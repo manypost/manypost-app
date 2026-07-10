@@ -6,7 +6,12 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const FORBIDDEN = /\b(openai|anthropic|gpt-\d|claude|gemini|mistral)\b/i;
-const ALLOWED_PATHS = [/packages[\\/]core[\\/]src[\\/]infra[\\/]ai/, /apps[\\/]api[\\/]src[\\/]infra[\\/]ai/];
+const ALLOWED_PATHS = [
+  /packages[\\/]core[\\/]src[\\/]infra[\\/]ai/,
+  /apps[\\/]api[\\/]src[\\/]infra[\\/]ai/,
+  // seleção do adapter via env (SPEC_AI §2): 'openai-compatible' é nome de protocolo
+  /packages[\\/]config[\\/]src[\\/]env\.ts$/,
+];
 const ROOTS = ['apps', 'packages'];
 
 const violations: string[] = [];

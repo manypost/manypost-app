@@ -1,18 +1,6 @@
-// Derived from Postiz (AGPL-3.0): enum State em schema.prisma (QUEUE/PUBLISHED/ERROR/DRAFT),
-// estendido conforme SPEC_QUEUE_PUBLISHING §4.
-export const PublicationStates = [
-  'DRAFT',
-  'SCHEDULED',
-  'PUBLISHING',
-  'RETRYING',
-  'TOKEN_REFRESH',
-  'PUBLISHED',
-  'FAILED',
-  'CANCELLED',
-  'NEEDS_REVIEW', // incerteza pós-crash: humano decide (DECISIONS v1 §7 — nunca repostar às cegas)
-] as const;
+import { PublicationStates, type PublicationState } from '@manypost/contracts';
 
-export type PublicationState = (typeof PublicationStates)[number];
+export { PublicationStates, type PublicationState };
 
 /** Transições permitidas — única fonte de verdade; UPDATEs condicionais no repositório (fencing). */
 export const AllowedTransitions: Record<PublicationState, readonly PublicationState[]> = {
@@ -24,7 +12,7 @@ export const AllowedTransitions: Record<PublicationState, readonly PublicationSt
   PUBLISHED: [],
   FAILED: ['SCHEDULED'], // retry manual
   CANCELLED: [],
-  NEEDS_REVIEW: ['PUBLISHED', 'SCHEDULED', 'FAILED'], // resolução humana
+  NEEDS_REVIEW: ['PUBLISHED', 'SCHEDULED', 'FAILED'], // resolução humana (DECISIONS v1 §7)
 };
 
 export function canTransition(from: PublicationState, to: PublicationState): boolean {

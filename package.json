@@ -19,6 +19,8 @@
     "check": "bun run typecheck && bun run test && bun run check:boundaries && bun run check:ai-providers"
   },
   "devDependencies": {
+    "@types/node": "^24.0.0",
+    "bun-types": "^1.2.0",
     "dependency-cruiser": "^16.10.0",
     "typescript": "^5.8.0"
   }

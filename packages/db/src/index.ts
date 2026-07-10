@@ -1,7 +1,16 @@
-/**
- * Schema Drizzle + repositórios (SPEC_DATA).
- * Fase 0: implementar src/schema/* conforme SPEC_DATA §3 (identity, channels, publishing,
- * plataforma) e gerar 0001_init via drizzle-kit. Convenções: uuid v7, org_id NOT NULL em
- * tabela de tenant, timestamptz UTC, jsonb tipado, soft-delete onde a UI tem lixeira.
- */
-export {};
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import * as schema from './schema';
+
+export * from './schema';
+export { uuidv7 } from './uuid';
+
+export type Db = ReturnType<typeof createDb>;
+
+export function createDb(connectionString: string) {
+  const client = postgres(connectionString, {
+    max: Number(process.env.DB_POOL_MAX ?? 10),
+    onnotice: () => {}, // silencioso; logs estruturados ficam na aplicação
+  });
+  return drizzle(client, { schema });
+}

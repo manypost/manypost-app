@@ -29,8 +29,12 @@ module.exports = {
     {
       name: 'domain-puro',
       severity: 'error',
+      comment: 'domain só enxerga contratos (shared kernel de tipos) e tipos do runtime',
       from: { path: '^packages/core/src/domain' },
-      to: { path: 'node_modules', pathNot: 'node_modules/(typescript|bun-types)' },
+      to: {
+        path: 'node_modules',
+        pathNot: 'node_modules/(typescript|bun-types|@types|@manypost[\\\\/]contracts)',
+      },
     },
   ],
   options: {
