@@ -15,6 +15,11 @@ export const ErrorCodes = {
   // ia
   AiBudgetExceeded: 'ai.budget_exceeded',
   CapabilityDisabled: 'capability.disabled',
+  // auth
+  AuthInvalidCredentials: 'auth.invalid_credentials',
+  AuthEmailTaken: 'auth.email_taken',
+  AuthSessionInvalid: 'auth.session_invalid',
+  AuthUnauthorized: 'auth.unauthorized',
   // genéricos
   NotFound: 'common.not_found',
   Forbidden: 'common.forbidden',

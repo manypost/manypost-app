@@ -28,11 +28,11 @@ Uma única pilha de autorização: qualquer credencial resolve para um **Princip
 - Troca de organização = novo access token (claim `org`).
 
 ### Máquinas — API keys com escopos
-- Formato `pq_live_<prefix8><secret32>`; armazenada **só o hash** (sha256) + prefixo para lookup; exibida uma única vez.
+- Formato `mp_live_<prefix8><secret32>`; armazenada **só o hash** (sha256) + prefixo para lookup; exibida uma única vez.
 - Escopos: `posts:read`, `posts:write`, `channels:read`, `channels:write`, `media:write`, `analytics:read`, `webhooks:manage`, `mcp` — múltiplas keys por org, revogação individual, `last_used_at`.
 
 ### MCP / apps de terceiros — OAuth 2.1 (*direção do Postiz*)
-- manypost como **authorization server**: `/.well-known/oauth-protected-resource` (RFC 9728) + `/.well-known/oauth-authorization-server`; authorization code + **PKCE S256** obrigatório; scopes `mcp:read`, `mcp:write`; tokens `pqo_*` opacos com hash no banco, expiração 1h + refresh.
+- manypost como **authorization server**: `/.well-known/oauth-protected-resource` (RFC 9728) + `/.well-known/oauth-authorization-server`; authorization code + **PKCE S256** obrigatório; scopes `mcp:read`, `mcp:write`; tokens `mpo_*` opacos com hash no banco, expiração 1h + refresh.
 - Tela de consentimento no web app listando escopos e organização.
 
 ### Tokens OAuth das redes sociais

@@ -4,4 +4,8 @@ export * from './application/ports/job-scheduler';
 export * from './application/ports/crypto';
 export * from './application/ports/channel-provider-registry';
 export * from './application/ports/ai-provider';
+export * from './application/ports/auth';
+export * from './application/ports/repositories';
+export * from './application/tokens';
+export * from './application/use-cases/auth';
 export * from './infra/crypto/aes-gcm.service';

@@ -8,6 +8,20 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: mp
+          POSTGRES_PASSWORD: mp
+          POSTGRES_DB: mp
+        ports:
+          - 5499:5432
+        options: >-
+          --health-cmd "pg_isready -U mp -d mp"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -26,3 +40,20 @@ jobs:
         run: |
           ! grep -rn "manypost-premium\|@manypost-premium" apps packages --include="*.ts" --include="*.json" \
             || (echo "Referência a código premium no repo AGPL" && exit 1)
+      - name: drizzle drift check (migrations sincronizadas com o schema)
+        working-directory: packages/db
+        run: bunx drizzle-kit check
+      - name: e2e auth (API real + Postgres real + migrations no boot)
+        env:
+          MODE: api
+          PORT: 3988
+          PUBLIC_URL: http://localhost:3988
+          DATABASE_URL: postgresql://mp:mp@localhost:5499/mp
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: ci-secret-with-at-least-32-characters!!
+          ENCRYPTION_KEY: cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd
+          DB_MIGRATE: auto
+        run: |
+          bun run apps/api/src/main.ts &
+          for i in $(seq 1 30); do curl -sf http://localhost:3988/health >/dev/null && break; sleep 1; done
+          BASE_URL=http://localhost:3988 bun run scripts/e2e-auth.ts

@@ -12,6 +12,8 @@ const EnvSchema = z
 
     DATABASE_URL: z.string().min(1),
     REDIS_URL: z.string().min(1),
+    /** auto = roda migrations no boot (advisory lock); off = útil em dev/smoke sem DB */
+    DB_MIGRATE: z.enum(['auto', 'off']).default('auto'),
 
     JWT_SECRET: z.string().min(32, 'JWT_SECRET precisa de >= 32 chars'),
     ENCRYPTION_KEY: z

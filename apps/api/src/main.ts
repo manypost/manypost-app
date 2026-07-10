@@ -1,9 +1,29 @@
+import { fileURLToPath } from 'node:url';
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { loadEnv } from '@manypost/config';
+import { runMigrations } from '@manypost/db';
 import { providerRegistry } from '@manypost/providers';
+import { buildContainer } from './container';
+import { correlationId, type AppEnv } from './http/middleware/context';
+import { errorHandler } from './http/middleware/error';
+import { apiKeyRoutes } from './http/routes/api-keys.routes';
+import { authRoutes } from './http/routes/auth.routes';
 
 const env = loadEnv();
-const app = new OpenAPIHono();
+
+if (env.DB_MIGRATE === 'auto') {
+  const migrationsFolder = fileURLToPath(
+    new URL('../../../packages/db/migrations', import.meta.url),
+  );
+  await runMigrations(env.DATABASE_URL, migrationsFolder);
+  console.log(JSON.stringify({ level: 'info', msg: 'migrations aplicadas' }));
+}
+
+const ctn = buildContainer(env);
+const app = new OpenAPIHono<AppEnv>();
+
+app.use('*', correlationId());
+app.onError(errorHandler);
 
 app.openapi(
   createRoute({
@@ -27,13 +47,15 @@ app.openapi(
     }),
 );
 
+app.route('/v1/auth', authRoutes(ctn));
+app.route('/v1/api-keys', apiKeyRoutes(ctn));
+
 app.doc('/openapi.json', {
   openapi: '3.1.0',
   info: { title: 'manypost API', version: '0.0.1' },
 });
 
-// Fase 1: montar http/routes/* (auth, channels, posts, media, analytics, public-v1),
-// middleware (correlation-id, auth, org-scope, rate-limit, error-mapper) e /mcp.
+// Fase 1: channels, posts, media, analytics, public-v1 e /mcp.
 console.log(`manypost api (MODE=${env.MODE}) on :${env.PORT}`);
 
 export default { port: env.PORT, fetch: app.fetch };

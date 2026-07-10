@@ -56,7 +56,11 @@ export const memberships = pgTable(
   ],
 );
 
-/** Refresh tokens com rotação e detecção de reuso (SPEC_API_MCP §2). */
+/**
+ * Refresh tokens com rotação e detecção de reuso (SPEC_API_MCP §2).
+ * 1 linha = 1 família de sessão: o hash rotaciona in-place e o hash anterior fica em
+ * prev_token_hash — token apresentado que casa com o anterior = reuso (roubo) → revoga.
+ */
 export const sessions = pgTable(
   'sessions',
   {
@@ -65,16 +69,17 @@ export const sessions = pgTable(
       .notNull()
       .references(() => users.id),
     refreshTokenHash: text('refresh_token_hash').notNull(),
-    /** sessão da qual esta foi rotacionada — reuso de ancestral revoga a família */
-    rotatedFrom: uuid('rotated_from'),
+    prevTokenHash: text('prev_token_hash'),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    lastRotatedAt: timestamp('last_rotated_at', { withTimezone: true }),
     userAgent: text('user_agent'),
     ip: text('ip'),
     ...timestamps,
   },
   (t) => [
     uniqueIndex('sessions_refresh_hash_ux').on(t.refreshTokenHash),
+    index('sessions_prev_hash_ix').on(t.prevTokenHash),
     index('sessions_user_ix').on(t.userId),
   ],
 );

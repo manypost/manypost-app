@@ -195,9 +195,10 @@ CREATE TABLE "sessions" (
 	"id" uuid PRIMARY KEY NOT NULL,
 	"user_id" uuid NOT NULL,
 	"refresh_token_hash" text NOT NULL,
-	"rotated_from" uuid,
+	"prev_token_hash" text,
 	"expires_at" timestamp with time zone NOT NULL,
 	"revoked_at" timestamp with time zone,
+	"last_rotated_at" timestamp with time zone,
 	"user_agent" text,
 	"ip" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -376,6 +377,7 @@ CREATE UNIQUE INDEX "memberships_org_user_ux" ON "memberships" USING btree ("org
 CREATE INDEX "memberships_user_ix" ON "memberships" USING btree ("user_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "organizations_slug_ux" ON "organizations" USING btree ("slug");--> statement-breakpoint
 CREATE UNIQUE INDEX "sessions_refresh_hash_ux" ON "sessions" USING btree ("refresh_token_hash");--> statement-breakpoint
+CREATE INDEX "sessions_prev_hash_ix" ON "sessions" USING btree ("prev_token_hash");--> statement-breakpoint
 CREATE INDEX "sessions_user_ix" ON "sessions" USING btree ("user_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "users_email_ux" ON "users" USING btree ("email");--> statement-breakpoint
 CREATE INDEX "ai_credits_org_ix" ON "ai_credits" USING btree ("org_id","period_end");--> statement-breakpoint

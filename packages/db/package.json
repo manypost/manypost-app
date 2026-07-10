@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@manypost/contracts": "workspace:*",
+    "@manypost/core": "workspace:*",
     "drizzle-orm": "^0.44.0",
     "postgres": "^3.4.0"
   },

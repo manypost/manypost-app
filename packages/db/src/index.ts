@@ -4,6 +4,8 @@ import * as schema from './schema';
 
 export * from './schema';
 export { uuidv7 } from './uuid';
+export { runMigrations } from './migrate';
+export * from './repositories/identity.repo';
 
 export type Db = ReturnType<typeof createDb>;
 

@@ -1,5 +1,5 @@
 {
-  "id": "3deae8ea-f29e-4960-a750-f34660956cf0",
+  "id": "73e4d252-b365-4ce8-8936-86fb80257a8d",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -1855,9 +1855,9 @@
           "primaryKey": false,
           "notNull": true
         },
-        "rotated_from": {
-          "name": "rotated_from",
-          "type": "uuid",
+        "prev_token_hash": {
+          "name": "prev_token_hash",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -1869,6 +1869,12 @@
         },
         "revoked_at": {
           "name": "revoked_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_rotated_at": {
+          "name": "last_rotated_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
@@ -1912,6 +1918,21 @@
             }
           ],
           "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "sessions_prev_hash_ix": {
+          "name": "sessions_prev_hash_ix",
+          "columns": [
+            {
+              "expression": "prev_token_hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}

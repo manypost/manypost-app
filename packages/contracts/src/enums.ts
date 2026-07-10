@@ -38,6 +38,19 @@ export type PostOrigin = (typeof PostOrigins)[number];
 export const ActorTypes = ['USER', 'API_KEY', 'MCP', 'SYSTEM', 'PUBLIC_LINK'] as const;
 export type ActorType = (typeof ActorTypes)[number];
 
+/** Escopos de API keys e tokens OAuth (SPEC_API_MCP §2). */
+export const ApiScopes = [
+  'posts:read',
+  'posts:write',
+  'channels:read',
+  'channels:write',
+  'media:write',
+  'analytics:read',
+  'webhooks:manage',
+  'mcp',
+] as const;
+export type ApiScope = (typeof ApiScopes)[number];
+
 export const ApprovalStatuses = [
   'PENDING',
   'APPROVED',
