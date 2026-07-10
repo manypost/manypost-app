@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["bun-types"],
+    "paths": {
+      "@postaq/contracts": ["./packages/contracts/src"],
+      "@postaq/core": ["./packages/core/src"],
+      "@postaq/config": ["./packages/config/src"],
+      "@postaq/db": ["./packages/db/src"],
+      "@postaq/providers": ["./packages/providers/src"]
+    }
+  }
+}

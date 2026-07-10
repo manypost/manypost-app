@@ -1,0 +1,25 @@
+{
+  "name": "postaq-monorepo",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "bun": ">=1.2.0"
+  },
+  "scripts": {
+    "dev": "bun run --cwd apps/api dev",
+    "dev:worker": "bun run --cwd apps/worker dev",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "check:boundaries": "depcruise apps packages --config .dependency-cruiser.cjs",
+    "check:ai-providers": "bun run scripts/check-ai-providers.ts",
+    "check": "bun run typecheck && bun run test && bun run check:boundaries && bun run check:ai-providers"
+  },
+  "devDependencies": {
+    "dependency-cruiser": "^16.10.0",
+    "typescript": "^5.8.0"
+  }
+}

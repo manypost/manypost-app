@@ -1,0 +1,20 @@
+{
+  "name": "@postaq/api",
+  "version": "0.0.1",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch src/main.ts",
+    "start": "bun run src/main.ts"
+  },
+  "dependencies": {
+    "@hono/zod-openapi": "^0.19.0",
+    "@postaq/config": "workspace:*",
+    "@postaq/contracts": "workspace:*",
+    "@postaq/core": "workspace:*",
+    "@postaq/providers": "workspace:*",
+    "hono": "^4.7.0",
+    "zod": "^3.25.0"
+  }
+}

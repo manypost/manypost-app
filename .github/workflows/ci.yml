@@ -1,0 +1,28 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+      - name: typecheck
+        run: bun run typecheck
+      - name: testes
+        run: bun test
+      - name: fronteiras de arquitetura (dependency-cruiser)
+        run: bun run check:boundaries
+      - name: provedores de IA nominais (SPEC_AI §2)
+        run: bun run check:ai-providers
+      - name: fronteira AGPL/premium — nenhum import de pacote premium
+        run: |
+          ! grep -rn "postaq-premium\|@postaq-premium" apps packages --include="*.ts" --include="*.json" \
+            || (echo "Referência a código premium no repo AGPL" && exit 1)

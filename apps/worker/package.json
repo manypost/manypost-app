@@ -1,0 +1,18 @@
+{
+  "name": "@postaq/worker",
+  "version": "0.0.1",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch src/main.ts",
+    "start": "bun run src/main.ts"
+  },
+  "dependencies": {
+    "@postaq/config": "workspace:*",
+    "@postaq/core": "workspace:*",
+    "@postaq/db": "workspace:*",
+    "@postaq/providers": "workspace:*",
+    "pg-boss": "^10.3.0"
+  }
+}
