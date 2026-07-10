@@ -1,7 +1,7 @@
-# SPEC_ARCHITECTURE.md — postaq: visão geral e fronteiras
+# SPEC_ARCHITECTURE.md — manypost: visão geral e fronteiras
 
 > **Status:** APROVADA (DECISIONS.md v1, 2026-07-10) — exceção: licença dos contratos pendente de validação jurídica (DECISIONS §1c).
-> **Contexto:** o postaq reimplementa as soluções do [Postiz](https://github.com/gitroomhq/postiz-app) (AGPL-3.0) em nova stack. Núcleo **AGPL-3.0 com atribuição** (derivação documentada em `POSTIZ_ANALYSIS.md §8`); premium **fechado e original**. Este documento define os bounded contexts, a fronteira aberto/fechado e como as camadas se encaixam. Specs irmãs: BACKEND, FRONTEND, QUEUE_PUBLISHING, INTEGRATIONS, DATA, API_MCP, AI, INFRA, ROADMAP.
+> **Contexto:** o manypost reimplementa as soluções do [Postiz](https://github.com/gitroomhq/postiz-app) (AGPL-3.0) em nova stack. Núcleo **AGPL-3.0 com atribuição** (derivação documentada em `POSTIZ_ANALYSIS.md §8`); premium **fechado e original**. Este documento define os bounded contexts, a fronteira aberto/fechado e como as camadas se encaixam. Specs irmãs: BACKEND, FRONTEND, QUEUE_PUBLISHING, INTEGRATIONS, DATA, API_MCP, AI, INFRA, ROADMAP.
 
 ## 1. Objetivo do produto
 
@@ -23,7 +23,7 @@ Agendador e publicador de posts para redes sociais, self-hostable, com: conexão
 
 ```mermaid
 flowchart TB
-    subgraph AGPL["Núcleo AGPL — repo postaq (público)"]
+    subgraph AGPL["Núcleo AGPL — repo manypost (público)"]
         IDENT["Identity & Access<br/>[AGPL núcleo]<br/>users, orgs, membros, auth,<br/>API keys, OAuth-as-provider"]
         CHAN["Channels<br/>[AGPL núcleo]<br/>providers, OAuth por rede,<br/>tokens, refresh, capacidades"]
         CONT["Content<br/>[AGPL núcleo]<br/>posts, grupos, threads, tags,<br/>media, sets, signatures"]
@@ -33,7 +33,7 @@ flowchart TB
         SURF["Surfaces<br/>[AGPL núcleo]<br/>REST público + MCP server<br/>sobre os mesmos use-cases"]
         NOTIF["Notifications<br/>[AGPL núcleo]<br/>in-app, e-mail, webhooks de saída"]
     end
-    subgraph PREM["Premium — repo postaq-premium (privado, original)"]
+    subgraph PREM["Premium — repo manypost-premium (privado, original)"]
         AIOPS["AI Operations [premium]<br/>assistente de respostas, roteamento,<br/>benchmarking, alertas"]
         GOV["Governance [premium]<br/>workspaces avançados, papéis finos,<br/>aprovações multi-estágio, auditoria estendida"]
         BILL["Billing [premium]"]
@@ -62,7 +62,7 @@ Cada módulo premium é um serviço/pacote separado que se conecta ao núcleo **
 ## 4. Repositórios e pacotes
 
 ```
-postaq/                     # repo público, AGPL-3.0
+manypost/                     # repo público, AGPL-3.0
 ├── NOTICE / ATTRIBUTION.md # origem Postiz, commit analisado, elementos derivados
 ├── apps/
 │   ├── api/                # Bun + Hono: HTTP, MCP, webhooks de entrada
@@ -73,13 +73,13 @@ postaq/                     # repo público, AGPL-3.0
 │   ├── db/                 # Drizzle schema + migrations + repositórios
 │   ├── providers/          # ChannelProviders (1 subpasta por rede)
 │   ├── contracts/          # OpenAPI gerado, tipos públicos, eventos, extension points
-│   │                       #   → @postaq/contracts: licença permissiva PENDENTE de validação
+│   │                       #   → @manypost/contracts: licença permissiva PENDENTE de validação
 │   │                       #     jurídica (DECISIONS §1c) — NÃO publicar no npm até parecer;
 │   │                       #     conteúdo restrito a tipos/schemas/constantes (zero lógica)
 │   └── config/             # env schema (zod), constantes
 └── docker/                 # compose self-host: api+worker+web, postgres, redis
 
-postaq-premium/             # repo privado, proprietário, código original
+manypost-premium/             # repo privado, proprietário, código original
 ├── services/ai-ops/        # IA operacional
 ├── services/governance/    # workspaces/aprovações avançadas
 ├── services/billing/
@@ -88,8 +88,8 @@ postaq-premium/             # repo privado, proprietário, código original
 
 Regras invioláveis:
 1. O núcleo **roda 100% self-hosted sem o premium** — nenhum import, nenhum feature-flag que dependa de código fechado.
-2. Premium depende apenas de `@postaq/contracts` (versão semântica; breaking = major).
-3. `@postaq/contracts` é gerado a partir do núcleo (OpenAPI + zod schemas) e não contém lógica.
+2. Premium depende apenas de `@manypost/contracts` (versão semântica; breaking = major).
+3. `@manypost/contracts` é gerado a partir do núcleo (OpenAPI + zod schemas) e não contém lógica.
 
 ## 5. Extension points do núcleo (como o premium se pluga)
 
@@ -139,5 +139,5 @@ Regra de dependência: `domain` não importa nada; `application` importa `domain
 
 1. Repositório núcleo criado com a estrutura do §4, `NOTICE`/`ATTRIBUTION.md` presentes e CI validando que `packages/core` não importa de `apps/*` nem de `infra`.
 2. `docker compose up` sobe o núcleo completo sem qualquer variável/serviço premium.
-3. `@postaq/contracts` publicável e consumido por um serviço de exemplo externo (smoke test) — publicação real só após validação jurídica (DECISIONS §1c/P1).
+3. `@manypost/contracts` publicável e consumido por um serviço de exemplo externo (smoke test) — publicação real só após validação jurídica (DECISIONS §1c/P1).
 4. Nenhuma referência a código premium no repo AGPL (verificação de CI por dependency-cruiser).

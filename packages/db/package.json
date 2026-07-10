@@ -1,5 +1,5 @@
 {
-  "name": "@postaq/db",
+  "name": "@manypost/db",
   "version": "0.0.1",
   "private": true,
   "license": "AGPL-3.0-only",
@@ -11,7 +11,7 @@
     "check": "drizzle-kit check"
   },
   "dependencies": {
-    "@postaq/config": "workspace:*",
+    "@manypost/config": "workspace:*",
     "drizzle-orm": "^0.44.0",
     "postgres": "^3.4.0"
   },

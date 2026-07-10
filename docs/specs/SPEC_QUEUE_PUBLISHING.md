@@ -1,10 +1,10 @@
-# SPEC_QUEUE_PUBLISHING.md — postaq: fila e pipeline de publicação
+# SPEC_QUEUE_PUBLISHING.md — manypost: fila e pipeline de publicação
 
 > **Escopo:** contexto **Publishing** [AGPL núcleo]. É a spec mais crítica do sistema. Segue a direção do Postiz (núcleo AGPL) no desenho do pipeline, na taxonomia de erros e na recuperação; diverge na tecnologia de fila. Depende de: SPEC_DATA (tabelas), SPEC_INTEGRATIONS (providers), SPEC_BACKEND (use-cases), SPEC_INFRA (Redis).
 
 ## 1. Contexto e lições do Postiz
 
-O Postiz começou com BullMQ e **migrou para Temporal** — evidência forte de que o domínio exige: (a) timers duráveis de dias/semanas; (b) retry com estado e histórico; (c) idempotência por identidade de execução; (d) concorrência global por provider; (e) recuperação de execuções perdidas. O postaq reimplementa **essas garantias** (a direção), escolhendo infraestrutura mais leve para o self-host.
+O Postiz começou com BullMQ e **migrou para Temporal** — evidência forte de que o domínio exige: (a) timers duráveis de dias/semanas; (b) retry com estado e histórico; (c) idempotência por identidade de execução; (d) concorrência global por provider; (e) recuperação de execuções perdidas. O manypost reimplementa **essas garantias** (a direção), escolhendo infraestrutura mais leve para o self-host.
 
 ## 2. Avaliação: Temporal vs River vs pg-boss vs NATS JetStream vs BullMQ
 
@@ -75,7 +75,7 @@ Transições são **UPDATEs condicionais** (`WHERE state = $expected`) — prote
 
 ## 6. Rate-limit por conta e por rede
 
-O Postiz usa concorrência de fila por provider (X=1, Reddit=1, LinkedIn=2, Pinterest=3, YouTube=200, Instagram=400, Facebook=500 — mapa que seguimos como default, núcleo AGPL). O postaq implementa **dois níveis reais** via Redis (algoritmo token bucket, script Lua atômico):
+O Postiz usa concorrência de fila por provider (X=1, Reddit=1, LinkedIn=2, Pinterest=3, YouTube=200, Instagram=400, Facebook=500 — mapa que seguimos como default, núcleo AGPL). O manypost implementa **dois níveis reais** via Redis (algoritmo token bucket, script Lua atômico):
 
 1. **Por provider global** (`rl:provider:{id}`): N publicações simultâneas + X por janela (ex.: X/Twitter: 1 concorrente, máx 300/3h por app).
 2. **Por conta conectada** (`rl:channel:{channelId}`): janelas da rede por usuário (ex.: Instagram ~25 posts/24h/conta, LinkedIn ~150/dia) — defaults por provider, sobrescrevíveis.

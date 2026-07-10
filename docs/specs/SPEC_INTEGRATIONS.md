@@ -1,10 +1,10 @@
-# SPEC_INTEGRATIONS.md — postaq: ChannelProvider e adaptadores por rede
+# SPEC_INTEGRATIONS.md — manypost: ChannelProvider e adaptadores por rede
 
 > **Escopo:** contexto **Channels** [AGPL núcleo] — `packages/providers`. Segue a direção do Postiz (núcleo AGPL) no contrato do provider, nos metadados declarativos e na classificação de erros (derivação documentada em POSTIZ_ANALYSIS §8). Depende de: SPEC_QUEUE_PUBLISHING (pipeline), SPEC_DATA (tabela channels), SPEC_BACKEND (ports).
 
 ## 1. Contexto
 
-No Postiz, um provider é uma classe que concentra OAuth + publicação + analytics + hints de UI, registrada num manager estático — desenho que escalou para 34 redes. O postaq mantém a ideia (interface única, registry, metadados declarativos) separando responsabilidades em ports componíveis e tipando `settings` com zod.
+No Postiz, um provider é uma classe que concentra OAuth + publicação + analytics + hints de UI, registrada num manager estático — desenho que escalou para 34 redes. O manypost mantém a ideia (interface única, registry, metadados declarativos) separando responsabilidades em ports componíveis e tipando `settings` com zod.
 
 ## 2. Interface `ChannelProvider`
 

@@ -1,5 +1,5 @@
 import PgBoss from 'pg-boss';
-import { loadEnv } from '@postaq/config';
+import { loadEnv } from '@manypost/config';
 
 /**
  * Worker pg-boss (SPEC_QUEUE_PUBLISHING).
@@ -12,7 +12,7 @@ const boss = new PgBoss({ connectionString: env.DATABASE_URL });
 boss.on('error', (err) => console.error(JSON.stringify({ level: 'error', msg: 'pg-boss', err: String(err) })));
 
 await boss.start();
-console.log(`postaq worker (MODE=${env.MODE}) conectado ao pg-boss`);
+console.log(`manypost worker (MODE=${env.MODE}) conectado ao pg-boss`);
 
 // Exemplo de fiação (substituído pelos handlers reais na fase 1):
 await boss.work('publish', async ([job]) => {

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { ChannelProvider, ProviderContext, PublishItem, TokenSet } from '@postaq/contracts';
+import type { ChannelProvider, ProviderContext, PublishItem, TokenSet } from '@manypost/contracts';
 
 /**
  * Provider fake para dev e E2E (SPEC_ROADMAP fase 0): simula uma rede social em memória.

@@ -12,11 +12,11 @@
     "noEmit": true,
     "types": ["bun-types"],
     "paths": {
-      "@postaq/contracts": ["./packages/contracts/src"],
-      "@postaq/core": ["./packages/core/src"],
-      "@postaq/config": ["./packages/config/src"],
-      "@postaq/db": ["./packages/db/src"],
-      "@postaq/providers": ["./packages/providers/src"]
+      "@manypost/contracts": ["./packages/contracts/src"],
+      "@manypost/core": ["./packages/core/src"],
+      "@manypost/config": ["./packages/config/src"],
+      "@manypost/db": ["./packages/db/src"],
+      "@manypost/providers": ["./packages/providers/src"]
     }
   }
 }

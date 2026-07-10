@@ -1,4 +1,4 @@
-import type { ChannelProvider } from '@postaq/contracts';
+import type { ChannelProvider } from '@manypost/contracts';
 import { fakeProvider } from './fake/fake.provider';
 
 /**

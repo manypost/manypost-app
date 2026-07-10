@@ -1,4 +1,4 @@
-# SPEC_INFRA.md — postaq: Redis, Docker, deploy e observabilidade
+# SPEC_INFRA.md — manypost: Redis, Docker, deploy e observabilidade
 
 > **Escopo:** infraestrutura do núcleo [AGPL]. Meta: self-host em 3 serviços (app, Postgres, Redis) — deliberadamente mais leve que o Postiz atual (que exige stack Temporal + Elasticsearch). Depende de: SPEC_QUEUE_PUBLISHING (pg-boss/rate-limit), SPEC_DATA (migrations), SPEC_ARCHITECTURE (topologia).
 
@@ -55,9 +55,9 @@ Env tipada com zod em `packages/config` (fail-fast com mensagem clara na var fal
 ## 5. CI/CD (GitHub Actions)
 
 1. **ci.yml** (PR): install (bun) → lint (+ regras de arquitetura: dependency-cruiser, greps de fronteira AGPL/premium e de provedores IA) → typecheck → testes unit/integração (services: postgres, redis) → migrations do zero → OpenAPI snapshot → build imagens.
-2. **release.yml** (tag): build+push GHCR multi-arch, SBOM, changelog automático, publish `@postaq/contracts`.
+2. **release.yml** (tag): build+push GHCR multi-arch, SBOM, changelog automático, publish `@manypost/contracts`.
 3. **e2e.yml** (nightly): compose completo + Playwright + provider fake; smoke de upgrade (volume da versão anterior → head).
-4. Repo premium tem CI próprio que consome `@postaq/contracts` publicado — nunca o código do núcleo.
+4. Repo premium tem CI próprio que consome `@manypost/contracts` publicado — nunca o código do núcleo.
 
 ## 6. Critérios de aceite
 

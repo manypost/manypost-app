@@ -1,5 +1,5 @@
 {
-  "name": "@postaq/worker",
+  "name": "@manypost/worker",
   "version": "0.0.1",
   "private": true,
   "license": "AGPL-3.0-only",
@@ -9,10 +9,10 @@
     "start": "bun run src/main.ts"
   },
   "dependencies": {
-    "@postaq/config": "workspace:*",
-    "@postaq/core": "workspace:*",
-    "@postaq/db": "workspace:*",
-    "@postaq/providers": "workspace:*",
+    "@manypost/config": "workspace:*",
+    "@manypost/core": "workspace:*",
+    "@manypost/db": "workspace:*",
+    "@manypost/providers": "workspace:*",
     "pg-boss": "^10.3.0"
   }
 }

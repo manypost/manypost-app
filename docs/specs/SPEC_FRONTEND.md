@@ -1,11 +1,13 @@
-# SPEC_FRONTEND.md — postaq: web app Next.js + shadcn/ui
+# SPEC_FRONTEND.md — manypost: web app Next.js + shadcn/ui
 
 > **Escopo:** `apps/web` [AGPL núcleo]. Cliente da API via **OpenAPI** (não tRPC). Segue a direção do Postiz (núcleo AGPL) nas telas de composer/calendário/conexões; o kanban é design original nosso (dentro do núcleo). Depende de: SPEC_BACKEND (OpenAPI), SPEC_API_MCP (auth), SPEC_INTEGRATIONS (capacidades por provider).
+>
+> **Identidade visual (normativo):** todo o frontend segue `docs/brand/BRAND_SYSTEM.md` + o guia de adaptação `docs/brand/README.md` — tokens de cor, tipografia dupla (Inter + Plus Jakarta Sans), botões 3×5, radius 4/6/8px, **zero sombras**, hover estável, wordmark `manypost` minúsculo. Conflito entre esta spec e o brand system → o brand system vence no visual.
 
 ## 1. Stack e fundações
 
-- **Next.js (App Router) + React + TypeScript**, `shadcn/ui` + Tailwind (tokens de tema em CSS vars; dark mode nativo). Sem Mantine/SCSS (desvio deliberado da mistura do Postiz).
-- **Cliente API gerado do OpenAPI** (`openapi-typescript` + `openapi-fetch`) publicado em `@postaq/contracts` — tipos de request/response sempre sincronizados com o backend; CI quebra se o contrato mudar.
+- **Next.js (App Router) + React + TypeScript**, `shadcn/ui` + Tailwind com o tema mapeado dos tokens do brand system (`--primary: var(--accent)`, `--border: var(--line)`, `--muted: var(--surface-2)`…; shadows do shadcn **anuladas** — hierarquia por borda/camada de fundo). **Light-only na v1** (a marca é light-first; dark exigirá extensão do brand system). Sem Mantine/SCSS (desvio deliberado da mistura do Postiz).
+- **Cliente API gerado do OpenAPI** (`openapi-typescript` + `openapi-fetch`) publicado em `@manypost/contracts` — tipos de request/response sempre sincronizados com o backend; CI quebra se o contrato mudar.
 - **TanStack Query** para dados de servidor (o Postiz usa SWR; Query dá mutações/optimistic/invalidations melhores para calendário e kanban). **Zustand** apenas para o estado do composer (mesma escolha do Postiz, que funciona bem).
 - Autenticação: cookies httpOnly (access 15min/refresh 30d) — o middleware do Next só verifica presença; autorização é 100% do backend.
 - i18n com `next-intl`; datas com `dayjs` + timezone do usuário (armazenamento UTC).
@@ -29,6 +31,7 @@ flowchart LR
     end
     CAL <--> COMP
     KAN <--> COMP
+    APR[Página PÚBLICA de aprovação<br/>sem login, por token] -.aprova/pede ajustes.-> KAN
 ```
 
 ## 3. Telas principais
@@ -69,6 +72,13 @@ flowchart LR
 - Por publicação: métricas do post (quando o provider suporta) na visualização do grupo.
 - Vazio elegante quando o provider não tem analytics (capacidade declarada).
 
+### 3.6 Aprovação pública por link (DECISIONS v1.1 §12 — núcleo; gate Pro+ no gerenciado)
+- Rota pública `/{locale}/approve/[token]` — **SSR real** (é a exceção junto com login/preview): sem login, sem shell autenticado.
+- Mostra o preview do grupo **como será renderizado em cada rede** (mesmos componentes de preview do composer), horário agendado no fuso do aprovador, e as ações **Aprovar** / **Pedir ajustes** (com campo de comentário e nome opcional).
+- Estados da página: pendente (ações ativas), já resolvido (mostra resultado, ações desativadas — ação é idempotente), expirado/revogado (mensagem neutra, sem vazar existência do conteúdo).
+- Na equipe: criar/copiar/revogar o link a partir do card (kanban) ou do composer; badge "aguardando cliente" usa `--state-review`; resolução vira notificação + move o card.
+- Sem qualquer dado da organização além do necessário ao preview; `noindex`; brand system aplicado (é uma vitrine do produto para o cliente da agência).
+
 ## 4. Estados e padrões de UI
 
 - **Convenção de dados**: cada recurso tem hook próprio (`usePublications(range)`, `useChannels()`...) — 1 hook = 1 query key (mesma regra do CLAUDE.md do Postiz, que evita bugs de rules-of-hooks).
@@ -76,7 +86,7 @@ flowchart LR
 - Mutações otimistas em: reagendar (calendário), mover card (kanban), marcar notificação lida. Todo o resto pessimista com toasts.
 - Realtime: SSE `GET /v1/events` (estado de publicação muda → invalida queries). Fallback: polling.
 - Acessibilidade: navegação por teclado no kanban e calendário; `aria` nos drags.
-- Design tokens: neutros + 1 cor de marca; estados de publicação com paleta consistente (rascunho cinza, agendado azul, publicando âmbar, publicado verde, falha vermelho) usada em TODAS as telas.
+- Design tokens: exclusivamente os do brand system (`docs/brand/BRAND_SYSTEM.md` §3) — nenhum hex ad-hoc. Estados de publicação usam os tokens semânticos `--state-*` propostos em `docs/brand/README.md` §3 (rascunho neutro, agendado roxo/accent, publicando âmbar, publicado verde, falha vermelho, em revisão âmbar-escuro), os mesmos em TODAS as telas e toasts.
 
 ## 5. Critérios de aceite
 
@@ -86,3 +96,4 @@ flowchart LR
 4. Reagendar por drag reflete a API (rollback visível em falha simulada).
 5. Todas as telas funcionam em 1280px e 375px (kanban vira lista empilhada em mobile).
 6. Lighthouse a11y ≥ 95 nas telas principais.
+7. **Conformidade com o brand system** (checklist de `docs/brand/README.md` §4): zero `shadow-*`, zero transform em hover, cores só via token, radius 4/6/8, fontes via `next/font`, wordmark minúsculo — verificados por lint/grep no CI.

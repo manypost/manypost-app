@@ -1,8 +1,8 @@
 # ATTRIBUTION.md — origem e derivação
 
-O núcleo do postaq reimplementa soluções do **Postiz** ([gitroomhq/postiz-app](https://github.com/gitroomhq/postiz-app), AGPL-3.0), estudado no commit `84edda5b02ea4a0aa31263a6aa52bc02b50f109f` (2026-07-05). Não há cópia literal de código-fonte (a stack é distinta), mas os elementos abaixo são **derivação conceitual direta** e mantêm este repositório sob AGPL-3.0:
+O núcleo do manypost reimplementa soluções do **Postiz** ([gitroomhq/postiz-app](https://github.com/gitroomhq/postiz-app), AGPL-3.0), estudado no commit `84edda5b02ea4a0aa31263a6aa52bc02b50f109f` (2026-07-05). Não há cópia literal de código-fonte (a stack é distinta), mas os elementos abaixo são **derivação conceitual direta** e mantêm este repositório sob AGPL-3.0:
 
-| Elemento derivado no postaq | Origem no Postiz |
+| Elemento derivado no manypost | Origem no Postiz |
 |---|---|
 | Contrato do provider de canal (auth url / authenticate / refresh / post / reply / analytics / mentions + metadados de capacidade: concorrência máxima, conexão em 2 passos, tipo de editor, limite de caracteres, validação de mídia) | `libraries/nestjs-libraries/src/integrations/social/social.integrations.interface.ts`, `social.abstract.ts` |
 | Taxonomia de erros `transient / refresh-token / permanent` e o fluxo "refresh e repete" | `social.abstract.ts`, `apps/orchestrator/src/workflows/post-workflows/post.workflow.v1.0.5.ts` |
@@ -13,4 +13,4 @@ O núcleo do postaq reimplementa soluções do **Postiz** ([gitroomhq/postiz-app
 
 **Regra de contribuição:** qualquer trecho portado de forma reconhecível do Postiz deve ser marcado no código com `// Derived from Postiz (AGPL-3.0): <caminho do arquivo upstream>`.
 
-Componentes premium do postaq (IA operacional, governança avançada, billing, admin) são implementação original, vivem em repositório separado e não derivam do Postiz.
+Componentes premium do manypost (IA operacional, governança avançada, billing, admin) são implementação original, vivem em repositório separado e não derivam do Postiz.

@@ -5,7 +5,7 @@ export const err = <E>(error: E): Result<never, E> => ({ ok: false, error });
 
 export class DomainError extends Error {
   constructor(
-    /** code estável do contrato público (@postaq/contracts ErrorCodes) */
+    /** code estável do contrato público (@manypost/contracts ErrorCodes) */
     public readonly code: string,
     message: string,
     public readonly detail?: Record<string, unknown>,

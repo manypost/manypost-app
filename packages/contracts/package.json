@@ -1,9 +1,9 @@
 {
-  "name": "@postaq/contracts",
+  "name": "@manypost/contracts",
   "version": "0.0.1",
   "private": true,
   "license": "SEE LICENSE IN LICENSE.md",
-  "description": "Tipos, schemas e constantes publicos do postaq. Zero logica. NAO publicar ate parecer juridico (DECISIONS v1 P1).",
+  "description": "Tipos, schemas e constantes publicos do manypost. Zero logica. NAO publicar ate parecer juridico (DECISIONS v1 P1).",
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",

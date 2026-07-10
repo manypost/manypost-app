@@ -2,7 +2,7 @@
 
 > **Objeto de estudo:** [gitroomhq/postiz-app](https://github.com/gitroomhq/postiz-app), licença **AGPL-3.0**.
 > **Commit analisado:** `84edda5b02ea4a0aa31263a6aa52bc02b50f109f` (2026-07-05).
-> **Propósito:** base de decisão para o **postaq**, reimplementação das soluções do Postiz em nova stack (Bun/TS, Hono, Next.js, Drizzle/Postgres, Redis). O núcleo do postaq é derivado conceitualmente do Postiz e portanto **AGPL-3.0 com atribuição** (ver §8).
+> **Propósito:** base de decisão para o **manypost**, reimplementação das soluções do Postiz em nova stack (Bun/TS, Hono, Next.js, Drizzle/Postgres, Redis). O núcleo do manypost é derivado conceitualmente do Postiz e portanto **AGPL-3.0 com atribuição** (ver §8).
 
 ---
 
@@ -163,13 +163,13 @@ Rate-limit **de publicação** = concorrência da task queue (§3.4). Rate-limit
 
 O Postiz **não tem kanban**: a tela "launches" é um calendário com modos `week | month | day | list` (`calendar.context.tsx`, confirmado) + drag-and-drop (react-dnd) para reagendar, filtros por customer/tag/canal. Fluxo de aprovação existe só no marketplace (buyer/seller) e num campo `approvedSubmitForOrder`.
 
-**Para o postaq:** o kanban por estado (Draft → Aguardando aprovação → Agendado → Publicado/Erro) será **design original nosso no núcleo AGPL**, reusando os estados que o Postiz já modela; aprovação avançada/governança fica no premium.
+**Para o manypost:** o kanban por estado (Draft → Aguardando aprovação → Agendado → Publicado/Erro) será **design original nosso no núcleo AGPL**, reusando os estados que o Postiz já modela; aprovação avançada/governança fica no premium.
 
 ### 3.8 Analytics
 
-Interface opcional no provider: `analytics(id, token, days)` e `postAnalytics(...)` → `AnalyticsData[] {label, data[{date,total}], percentageChange}`. O backend agrega sob demanda (com cache Redis) e o frontend plota (chart.js). Sem warehouse próprio: os números vêm da API de cada rede na hora. Há ainda `Star`/`Trending` (herança GitHub/gitroom) — irrelevante para o postaq.
+Interface opcional no provider: `analytics(id, token, days)` e `postAnalytics(...)` → `AnalyticsData[] {label, data[{date,total}], percentageChange}`. O backend agrega sob demanda (com cache Redis) e o frontend plota (chart.js). Sem warehouse próprio: os números vêm da API de cada rede na hora. Há ainda `Star`/`Trending` (herança GitHub/gitroom) — irrelevante para o manypost.
 
-**Avaliação:** suficiente para "analytics por canal", limitado para comparação/benchmarking (não persiste séries históricas — cada consulta re-busca). No postaq: núcleo segue essa direção (fetch on-demand por provider + cache); benchmarking/histórico/alertas = premium original.
+**Avaliação:** suficiente para "analytics por canal", limitado para comparação/benchmarking (não persiste séries históricas — cada consulta re-busca). No manypost: núcleo segue essa direção (fetch on-demand por provider + cache); benchmarking/histórico/alertas = premium original.
 
 ### 3.9 API pública
 
@@ -183,7 +183,7 @@ Interface opcional no provider: `analytics(id, token, days)` e `postAnalytics(..
 
 `CreationMethod` no Post registra a origem (`WEB|MCP|API|AUTOPOST|CLI`) — auditoria simples de canal de criação.
 
-**Avaliação:** direção certíssima (MCP sobre o mesmo core, OAuth spec-compliant). No postaq, seguir a direção mas com o SDK oficial `@modelcontextprotocol/sdk` em vez de acoplar o MCP ao framework de agente (no Postiz, o MCP depende do Mastra).
+**Avaliação:** direção certíssima (MCP sobre o mesmo core, OAuth spec-compliant). No manypost, seguir a direção mas com o SDK oficial `@modelcontextprotocol/sdk` em vez de acoplar o MCP ao framework de agente (no Postiz, o MCP depende do Mastra).
 
 ---
 
@@ -218,13 +218,13 @@ Pontos dignos de nota:
 - `Post.group` (multi-canal) + `parentPostId` (thread) + `intervalInDays` (recorrência) + `settings` JSON por provider.
 - Soft-delete (`deletedAt`) em quase tudo; índices generosos (ver schema).
 - Muita coisa é **String contendo JSON** (settings, postingTimes, additionalSettings) — sem `jsonb`, sem validação no banco.
-- Subsistema de marketplace (Orders/Messages/PayoutProblems/SocialMediaAgency) e tabelas `mastra_*` (memória/traces do agente) — fora do escopo do postaq MVP.
+- Subsistema de marketplace (Orders/Messages/PayoutProblems/SocialMediaAgency) e tabelas `mastra_*` (memória/traces do agente) — fora do escopo do manypost MVP.
 
 ---
 
 ## 5. Pontos fortes e fracos — o que seguir vs. melhorar
 
-| Área | Forte (seguir a direção) | Fraco (melhorar no postaq) |
+| Área | Forte (seguir a direção) | Fraco (melhorar no manypost) |
 |---|---|---|
 | Registry de providers | Interface única + metadados declarativos + registry; escala p/ dezenas de redes | Interface monolítica → separar ports (Auth/Publish/Analytics/Capabilities); tipar `settings` com Zod por provider |
 | Publicação durável | Workflow por post, timer durável, terminate-e-recria na edição, workflow versionado, scanner de posts perdidos | Stack Temporal pesada p/ self-host; erros engolidos; sem outbox transacional (start do workflow pode falhar após commit) |
@@ -241,7 +241,7 @@ Pontos dignos de nota:
 
 ## 6. Núcleo (seguir direção do Postiz, AGPL) vs. premium (original)
 
-**Núcleo postaq — seguindo a direção do Postiz (AGPL):**
+**Núcleo manypost — seguindo a direção do Postiz (AGPL):**
 - Registry de providers + interface de canal (§3.1, §3.2) — com as correções de design acima.
 - Agendamento durável + pipeline de publicação + recuperação (§3.3–3.5).
 - Modelo de dados essencial (§4, sem marketplace/mastra).
@@ -251,7 +251,7 @@ Pontos dignos de nota:
 - API pública + MCP sobre o mesmo core (§3.9, §3.10).
 - IA de criação com franquia por plano (créditos, como o Postiz).
 
-**Premium postaq — implementação original, não derivada:**
+**Premium manypost — implementação original, não derivada:**
 - IA operacional: assistente de respostas, roteamento de menções, benchmarking histórico, alertas.
 - Governança: workspaces avançados, papéis finos, fluxos de aprovação multi-estágio, políticas.
 - Billing e admin do gerenciado.
@@ -259,7 +259,7 @@ Pontos dignos de nota:
 
 ---
 
-## 7. Decisões do Postiz que o postaq NÃO vai copiar
+## 7. Decisões do Postiz que o manypost NÃO vai copiar
 
 1. **Temporal como dependência de infra obrigatória** — o núcleo self-hosted usará fila Postgres-nativa com orquestração explícita (ver SPEC_QUEUE_PUBLISHING; decisão sujeita a aval em DECISIONS.md).
 2. Prisma + `db push` → Drizzle + migrations versionadas (SPEC_DATA).
@@ -273,7 +273,7 @@ Pontos dignos de nota:
 
 ## 8. Derivação e atribuição (crítico)
 
-O postaq **não copiará código-fonte** do Postiz (stack diferente torna cópia literal inviável), mas as seguintes soluções são **derivação conceitual direta e documentada**, e o núcleo permanece AGPL-3.0 com atribuição em `NOTICE`/`ATTRIBUTION.md`:
+O manypost **não copiará código-fonte** do Postiz (stack diferente torna cópia literal inviável), mas as seguintes soluções são **derivação conceitual direta e documentada**, e o núcleo permanece AGPL-3.0 com atribuição em `NOTICE`/`ATTRIBUTION.md`:
 
 | Elemento derivado | Origem no Postiz |
 |---|---|

@@ -1,10 +1,10 @@
-# SPEC_BACKEND.md — postaq: backend Bun + TypeScript
+# SPEC_BACKEND.md — manypost: backend Bun + TypeScript
 
 > **Escopo:** `apps/api`, `apps/worker` e `packages/core` do repo núcleo (AGPL). Segue a direção do Postiz onde indicado; melhorias e desvios são explícitos. Depende de: SPEC_ARCHITECTURE (contextos), SPEC_DATA (schema), SPEC_QUEUE_PUBLISHING (jobs), SPEC_INTEGRATIONS (providers), SPEC_API_MCP (superfícies).
 
 ## 1. Contexto
 
-O backend do Postiz é NestJS com disciplina `Controller → Service → Repository` e lógica em bibliotecas compartilhadas entre API e workers. O postaq preserva **essa separação e o compartilhamento API/worker** (núcleo AGPL, seguindo a direção do Postiz), mas troca NestJS por Hono + DDD explícito, e decorators por composição funcional tipada.
+O backend do Postiz é NestJS com disciplina `Controller → Service → Repository` e lógica em bibliotecas compartilhadas entre API e workers. O manypost preserva **essa separação e o compartilhamento API/worker** (núcleo AGPL, seguindo a direção do Postiz), mas troca NestJS por Hono + DDD explícito, e decorators por composição funcional tipada.
 
 ## 2. Framework HTTP: Hono (decisão)
 

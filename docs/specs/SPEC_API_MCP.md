@@ -1,4 +1,4 @@
-# SPEC_API_MCP.md — postaq: API pública REST + servidor MCP
+# SPEC_API_MCP.md — manypost: API pública REST + servidor MCP
 
 > **Escopo:** contexto **Surfaces** [AGPL núcleo]. API RESTful pública e servidor MCP **sobre os mesmos use-cases** (nunca duplicar regra). Segue a direção do Postiz (núcleo AGPL) em: MCP sobre o core, OAuth de recurso protegido, origem da mutação auditada. Corrige: JWT eterno, API key sem hash/escopo. Depende de: SPEC_BACKEND (use-cases/OpenAPI), SPEC_DATA (api_keys, oauth_*, audit_log).
 
@@ -32,7 +32,7 @@ Uma única pilha de autorização: qualquer credencial resolve para um **Princip
 - Escopos: `posts:read`, `posts:write`, `channels:read`, `channels:write`, `media:write`, `analytics:read`, `webhooks:manage`, `mcp` — múltiplas keys por org, revogação individual, `last_used_at`.
 
 ### MCP / apps de terceiros — OAuth 2.1 (*direção do Postiz*)
-- postaq como **authorization server**: `/.well-known/oauth-protected-resource` (RFC 9728) + `/.well-known/oauth-authorization-server`; authorization code + **PKCE S256** obrigatório; scopes `mcp:read`, `mcp:write`; tokens `pqo_*` opacos com hash no banco, expiração 1h + refresh.
+- manypost como **authorization server**: `/.well-known/oauth-protected-resource` (RFC 9728) + `/.well-known/oauth-authorization-server`; authorization code + **PKCE S256** obrigatório; scopes `mcp:read`, `mcp:write`; tokens `pqo_*` opacos com hash no banco, expiração 1h + refresh.
 - Tela de consentimento no web app listando escopos e organização.
 
 ### Tokens OAuth das redes sociais
@@ -50,6 +50,12 @@ Recursos (paridade com o Postiz + organização REST):
 | Media | `POST /media/upload` (multipart, MIME real por magic bytes), `POST /media/from-url` (anti-SSRF), `GET /media` | media:write |
 | Analytics | `GET /channels/{id}/analytics?range` | analytics:read |
 | Webhooks | CRUD `/webhooks` (+ `POST /webhooks/{id}/test`) | webhooks:manage |
+| Aprovação por link | `POST /posts/{groupId}/approval-link` (cria/revoga; retorna URL única) | posts:write |
+
+### Superfície pública de aprovação (sem autenticação — por token, DECISIONS v1.1 §12)
+- `GET /public/approval/{token}` → preview do grupo (conteúdo resolvido por canal, mídia, horário) — token opaco ≥ 128 bits, comparado por hash, single-purpose, com expiração; resposta nunca inclui dados da org além do necessário ao preview.
+- `POST /public/approval/{token}/approve` e `POST /public/approval/{token}/request-changes` (com feedback) → transiciona o grupo (aprovado → elegível a agendar; ajustes → volta a rascunho com comentário), grava `audit_log` (`actor_type=PUBLIC_LINK`) e notifica a equipe.
+- Rate-limit agressivo por IP + token; sem enumeração (404 uniforme para token inválido/expirado); ação é idempotente (segunda chamada retorna o estado resolvido).
 
 Regras:
 - **OpenAPI 3.1** gerado do zod é o contrato canônico (`/openapi.json` público); SDK TS gerado dele.
@@ -61,7 +67,7 @@ Regras:
 
 ## 4. Webhooks de saída
 
-Eventos: `post.published`, `post.failed`, `post.scheduled`, `channel.refresh_required`, `channel.disconnected`. Entrega assinada `X-Postaq-Signature` (HMAC-SHA256 com timestamp, tolerância 5 min), retries exponenciais (5 tentativas), endpoint de replay, filtro por canal — *direção do Postiz (webhooks pós-publicação), formalizada*.
+Eventos: `post.published`, `post.failed`, `post.scheduled`, `channel.refresh_required`, `channel.disconnected`. Entrega assinada `X-manypost-Signature` (HMAC-SHA256 com timestamp, tolerância 5 min), retries exponenciais (5 tentativas), endpoint de replay, filtro por canal — *direção do Postiz (webhooks pós-publicação), formalizada*.
 
 ## 5. Servidor MCP
 
@@ -80,7 +86,7 @@ Eventos: `post.published`, `post.failed`, `post.scheduled`, `channel.refresh_req
 | `generate_content` | IA de criação (consome créditos) | mcp:write |
 | `find_free_slot` | próximo horário livre | mcp:read |
 
-- **Resources**: `postaq://channels`, `postaq://posts/{state}` (leitura de contexto barata para o cliente MCP).
+- **Resources**: `manypost://channels`, `manypost://posts/{state}` (leitura de contexto barata para o cliente MCP).
 - Políticas por tool: além do escopo, limites específicos (ex.: `schedule_post` máx 30/h por credencial) — mitiga agente em loop.
 - Toda chamada de tool grava `audit_log` com `actor_type=MCP` + tool + argumentos resumidos (*generalização do `CreationMethod` do Postiz*).
 - Respostas de tool são JSON estruturado estável (contrato versionado junto do OpenAPI).

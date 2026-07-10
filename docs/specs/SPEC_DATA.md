@@ -1,4 +1,4 @@
-# SPEC_DATA.md — postaq: PostgreSQL + Drizzle
+# SPEC_DATA.md — manypost: PostgreSQL + Drizzle
 
 > **Escopo:** `packages/db` [AGPL núcleo]. Modelo derivado do essencial do schema do Postiz (POSTIZ_ANALYSIS §4 — derivação documentada), modernizado: `jsonb` tipado, tokens cifrados, migrations versionadas. Depende de: SPEC_QUEUE_PUBLISHING (estados), SPEC_INTEGRATIONS (channels).
 
@@ -42,7 +42,7 @@ erDiagram
     organizations ||--o{ audit_log : ""
     channels ||--o{ channel_metrics : series
     organizations ||--o{ ai_credits : franquia
-    organizations ||--o{ oauth_apps : "postaq como AS"
+    organizations ||--o{ oauth_apps : "manypost como AS"
     oauth_apps ||--o{ oauth_grants : ""
 ```
 
@@ -65,6 +65,7 @@ erDiagram
 - `publication_events`: id, publication_id, from_state, to_state, detail jsonb, created_at — trilha de execução
 - `media`: id, org_id, path, mime, byte_size, width, height, duration_sec, thumbnail_path, alt, blurhash, deleted_at
 - `tags` + `post_group_tags`; `channel_sets` (sets do Postiz): id, org_id, name, channel_ids uuid[]; `signatures`: id, org_id, content jsonb, auto_add bool
+- `approval_links` (DECISIONS v1.1 §12 — aprovação pública sem login): id, org_id, group_id FK, **token_hash** (sha256; token opaco só na URL), status enum(`PENDING|APPROVED|CHANGES_REQUESTED|EXPIRED|REVOKED`), feedback text, approver_name text, approver_ip, expires_at, resolved_at; índice (token_hash) parcial `WHERE status='PENDING'`, unique(group_id) parcial em PENDING (1 link ativo por grupo)
 
 **plataforma**
 - `webhooks`: id, org_id, url, secret_enc, events text[], channel_ids uuid[], disabled_at; `webhook_deliveries`: id, webhook_id, event, payload jsonb, status, attempts, next_retry_at
@@ -72,7 +73,7 @@ erDiagram
 - `audit_log`: id, org_id, actor_type enum(`USER|API_KEY|MCP|SYSTEM`), actor_id, action, target_type, target_id, detail jsonb, ip, created_at (particionada por mês)
 - `channel_metrics`: channel_id, metric text, day date, value numeric, PK(channel_id, metric, day)
 - `ai_credits`: id, org_id, kind, granted, used, period_start/end
-- `oauth_apps` / `oauth_grants`: postaq como authorization server p/ MCP (client_id, client_secret_hash, redirect_uris, scopes; grants com code_hash + PKCE challenge, access_token_hash, expires) — *direção do Postiz*, com hashes em vez de tokens em claro
+- `oauth_apps` / `oauth_grants`: manypost como authorization server p/ MCP (client_id, client_secret_hash, redirect_uris, scopes; grants com code_hash + PKCE challenge, access_token_hash, expires) — *direção do Postiz*, com hashes em vez de tokens em claro
 - `idempotency_keys`: key, org_id, request_hash, response jsonb, expires_at
 
 Fora do MVP (deliberado, existiam no Postiz): marketplace (orders/messages/payouts), extensão, trending/stars, tabelas de agente (`mastra_*`) — memória de IA premium fica no banco do premium.

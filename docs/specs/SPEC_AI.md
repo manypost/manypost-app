@@ -1,4 +1,4 @@
-# SPEC_AI.md — postaq: IA de criação (núcleo) e IA operacional (premium)
+# SPEC_AI.md — manypost: IA de criação (núcleo) e IA operacional (premium)
 
 > **Escopo:** contexto **AI Creation** [AGPL núcleo] + fronteira com **AI Operations** [premium]. Regra de ouro: **nenhum provedor de IA é citado no código** — tudo atrás de ports. Depende de: SPEC_BACKEND (ports), SPEC_DATA (ai_credits), SPEC_API_MCP (tool `generate_content`), SPEC_ARCHITECTURE (fronteira premium).
 
@@ -8,7 +8,7 @@
 |---|---|---|
 | O quê | Gerar/reescrever legenda, hashtags, variações por canal, alt text, imagem simples no composer | Assistente de respostas a menções/comentários, roteamento/triagem, benchmarking com insights, alertas inteligentes |
 | Direção | *Seguindo a direção do Postiz (créditos por org, IA no composer)* | **Implementação original, não derivada** — não espelhar Postiz |
-| Onde roda | `packages/core` + adapter | repo `postaq-premium`, consome API pública do núcleo |
+| Onde roda | `packages/core` + adapter | repo `manypost-premium`, consome API pública do núcleo |
 | Custo | Franquia por plano (créditos) | Teto de custo por org + por operação |
 
 ## 2. Abstração de provedor (núcleo)
@@ -36,6 +36,7 @@ interface AiProvider {
 | `ai.hashtags` | texto + rede | lista | 1 |
 | `ai.altText` | imagem (url) | alt descritivo | 1 |
 | `ai.image` | prompt + tamanho | media na biblioteca | 5 |
+| `ai.bestTimes` | canal + histórico | melhores horários por rede (PLANS: feature Pro) | 0 — **heurística estatística sobre `channel_metrics`/histórico de engajamento, sem LLM**; entra aqui só por ser vendida como "IA" |
 
 Todos passam por: (a) checagem de créditos (`ai_credits`, decremento transacional); (b) moderação quando disponível; (c) registro em `audit_log` + usage (tokens/custo estimado) para telemetria do operador.
 
@@ -43,9 +44,11 @@ Todos passam por: (a) checagem de créditos (`ai_credits`, decremento transacion
 - Self-host: franquia default infinita (o operador paga o próprio provedor) — configurável.
 - Gerenciado: créditos mensais por plano; excedente bloqueia com CTA de upgrade (nunca cobra surpresa).
 
-## 4. IA operacional (premium — apenas fronteira, design em repo privado)
+## 4. IA operacional (código fechado — apenas fronteira, design em repo privado)
 
-O núcleo fornece os insumos via contratos públicos; o premium implementa a inteligência:
+Escopo concreto ratificado pela matriz de planos (`docs/PLANS.md`, plano Premium): responder comentários e DMs num lugar só; classificar e direcionar mensagens; acompanhar campanhas e gerar relatórios; avisar quando um post perde engajamento; montar e otimizar o calendário da semana. (Análise de concorrentes: confirmada como feature futura, PLANS PL4.)
+
+O núcleo fornece os insumos via contratos públicos; o código fechado implementa a inteligência:
 
 ```mermaid
 flowchart LR
@@ -54,7 +57,7 @@ flowchart LR
         API[API: analytics, posts, channels]
         POL[extension point: policy check]
     end
-    subgraph premium [postaq-premium — original]
+    subgraph premium [manypost-premium — original]
         ROUTE[Roteamento/triagem de menções]
         ASSIST[Assistente de respostas com aprovação humana]
         BENCH[Benchmarking + insights]
