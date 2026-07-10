@@ -29,7 +29,8 @@ docs/           Análise do Postiz, specs por camada e decisões congeladas
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Decisões congeladas v1 + adendo v1.1 (fronteira AGPL/código fechado, fila, stack, planos) |
 | [docs/PLANS.md](docs/PLANS.md) | Matriz de planos do gerenciado (Grátis/Pro/Premium) e mapeamento feature → código → gate de plano |
 | [docs/specs/](docs/specs/) | Specs por camada: arquitetura, backend, frontend, fila/publicação, integrações, dados, API/MCP, IA, infra, roadmap |
-| [docs/platform-gates.md](docs/platform-gates.md) | Rastreio dos gates de aprovação por plataforma (App Review Meta, auditoria TikTok, X, YouTube) |
+| [docs/INTEGRATIONS_SETUP.md](docs/INTEGRATIONS_SETUP.md) | **Guia para leigos:** como conseguir as credenciais de cada rede (Meta App Review, X, TikTok, YouTube…), clique a clique |
+| [docs/platform-gates.md](docs/platform-gates.md) | Rastreio interno do status dos gates de aprovação por plataforma |
 | [docs/brand/](docs/brand/) | **Identidade visual (normativa para todo frontend):** BRAND_SYSTEM.md + guia de adaptação para o app |
 
 ## Regras invioláveis do repositório

@@ -10,6 +10,7 @@ Plataforma de agendamento/publicação multicanal. **O wordmark é sempre `manyp
 | Backend/API | `docs/specs/SPEC_BACKEND.md`, `docs/specs/SPEC_API_MCP.md` |
 | Fila/publicação | `docs/specs/SPEC_QUEUE_PUBLISHING.md` |
 | Providers de rede social | `docs/specs/SPEC_INTEGRATIONS.md` + `docs/platform-gates.md` |
+| Docs de usuário: credenciais das redes | `docs/INTEGRATIONS_SETUP.md` (linguagem leiga — manter assim) |
 | Banco | `docs/specs/SPEC_DATA.md` |
 | Decisões já tomadas (não re-litigar) | `docs/DECISIONS.md` (v1 + adendo v1.1) |
 | Planos do SaaS e gates de feature | `docs/PLANS.md` — "plano Premium" (tier) ≠ "código fechado" (repo privado) |
