@@ -24,10 +24,18 @@ export interface ChannelCapabilities {
   customInstance: boolean;
 }
 
+export interface RateWindow {
+  limit: number;
+  windowSec: number;
+}
+
 export interface RateDefaults {
   /** Derived from Postiz (AGPL-3.0): valores maxConcurrentJob por provider */
   maxConcurrent: number;
-  perChannelWindow?: { limit: number; windowSec: number };
+  /** janela global do provider (todas as contas da instalação) */
+  perProviderWindow?: RateWindow;
+  /** janela por conta conectada */
+  perChannelWindow?: RateWindow;
 }
 
 export interface TokenSet {
@@ -88,12 +96,12 @@ export interface ChannelProvider {
 
   getAuthUrl(
     ctx: ProviderContext,
-    input: { redirectUri: string },
-  ): Promise<{ url: string; state: string; codeVerifier?: string }>;
+    input: { redirectUri: string; fields?: unknown },
+  ): Promise<{ url: string; state: string; codeVerifier?: string; extra?: unknown }>;
   exchangeCode(
     ctx: ProviderContext,
-    input: { code: string; codeVerifier?: string; redirectUri: string },
-  ): Promise<TokenSet & ExternalAccount>;
+    input: { code: string; codeVerifier?: string; redirectUri: string; extra?: unknown },
+  ): Promise<TokenSet & ExternalAccount & { channelSettings?: Record<string, unknown> }>;
   refreshToken(ctx: ProviderContext, refreshToken: string): Promise<TokenSet>;
   listSubAccounts?(ctx: ProviderContext, token: TokenSet): Promise<ExternalAccount[]>;
 

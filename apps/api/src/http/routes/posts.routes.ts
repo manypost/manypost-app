@@ -55,5 +55,27 @@ export function postRoutes(ctn: Container) {
     return c.json(serializeGroup(group));
   });
 
+  const PatchBody = z
+    .object({ text: z.string().min(1).max(10_000).optional(), publishAt: z.string().datetime().optional() })
+    .refine((b) => b.text !== undefined || b.publishAt !== undefined, {
+      message: 'informe text e/ou publishAt',
+    });
+
+  app.patch('/:groupId', async (c) => {
+    const body = PatchBody.parse(await c.req.json());
+    const group = await ctn.posts.reschedule({
+      orgId: c.get('principal').orgId,
+      groupId: c.req.param('groupId'),
+      ...(body.text !== undefined ? { text: body.text } : {}),
+      ...(body.publishAt ? { publishAt: new Date(body.publishAt) } : {}),
+    });
+    return c.json(serializeGroup(group!));
+  });
+
+  app.post('/:groupId/cancel', async (c) => {
+    const group = await ctn.posts.cancel(c.get('principal').orgId, c.req.param('groupId'));
+    return c.json(serializeGroup(group!));
+  });
+
   return app;
 }

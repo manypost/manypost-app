@@ -4,7 +4,13 @@ import type { ChannelProvider, PublicationState } from '@manypost/contracts';
 import { AesGcmCryptoService } from '../../infra/crypto/aes-gcm.service';
 import type { ChannelRecord, PublicationView } from '../ports/publishing';
 import { channelAad, makeConnectChannel } from './channels';
-import { makePublishPublication, makeRecoverDue, makeSchedulePost } from './publishing';
+import {
+  makeCancelPost,
+  makePublishPublication,
+  makeRecoverDue,
+  makeReschedulePost,
+  makeSchedulePost,
+} from './publishing';
 
 const crypto = AesGcmCryptoService.fromHex('b'.repeat(64));
 
@@ -24,7 +30,7 @@ function makeProvider(behavior: { failFirst?: number; expireToken?: boolean; rej
       twoStepConnect: false,
       customInstance: false,
     },
-    rateDefaults: { maxConcurrent: 2 },
+    rateDefaults: { maxConcurrent: 2, perChannelWindow: { limit: 10, windowSec: 60 } },
     settingsSchema: z.object({ tag: z.string().optional() }),
     async getAuthUrl() {
       return { url: 'http://fake', state: 's' };
@@ -123,6 +129,7 @@ function makeFakes(provider: ChannelProvider) {
             content: p.content,
             settings: p.settings,
             attemptCount: 0,
+            jobVersion: 0,
             externalId: null,
             releaseUrl: null,
             errorClass: null,
@@ -155,6 +162,7 @@ function makeFakes(provider: ChannelProvider) {
         events.push({ pubId: pid, from: p.state, to });
         p.state = to;
         if (patch?.incrementAttempt) p.attemptCount++;
+        if (patch?.bumpJobVersion) p.jobVersion++;
         if (patch?.externalId !== undefined) p.externalId = patch.externalId;
         if (patch?.releaseUrl !== undefined) p.releaseUrl = patch.releaseUrl;
         if (patch?.errorClass !== undefined) p.errorClass = patch.errorClass;
@@ -162,8 +170,27 @@ function makeFakes(provider: ChannelProvider) {
         return true;
       },
       listDue: async (before: Date) =>
-        pubs.filter((p) => p.state === 'SCHEDULED' && p.publishAt && p.publishAt <= before).map((p) => p.id),
+        pubs
+          .filter((p) => p.state === 'SCHEDULED' && p.publishAt && p.publishAt <= before)
+          .map((p) => ({ id: p.id, jobVersion: p.jobVersion })),
       listStuck: async () => [],
+      rescheduleGroup: async (orgId: string, gid: string, d: any) => {
+        return pubs
+          .filter(
+            (p) =>
+              p.groupId === gid &&
+              p.orgId === orgId &&
+              ['SCHEDULED', 'RETRYING', 'TOKEN_REFRESH'].includes(p.state),
+          )
+          .map((p) => {
+            p.state = 'SCHEDULED';
+            p.attemptCount = 0;
+            p.jobVersion++;
+            if (d.baseContent) p.content = d.baseContent;
+            if (d.publishAt) p.publishAt = d.publishAt;
+            return { id: p.id, channelId: p.channelId, jobVersion: p.jobVersion, publishAt: p.publishAt! };
+          });
+      },
       refreshGroupState: async (gid: string) => {
         const list = pubs.filter((p) => p.groupId === gid);
         const g = groups.find((x) => x.id === gid)!;
@@ -310,6 +337,79 @@ describe('publishPublication (máquina de estados)', () => {
     const callsBefore = prov.callCount();
     await publish(pubId);
     expect(prov.callCount()).toBe(callsBefore);
+  });
+});
+
+describe('cancelar e editar agendados', () => {
+  let groupId: string;
+  let pubId: string;
+  beforeEach(async () => {
+    await connect(f, prov.provider);
+    const group = await schedule({ publishAt: new Date(Date.now() + 60_000) });
+    groupId = group!.id;
+    pubId = group!.publications[0]!.id;
+  });
+
+  test('cancelar: publicação → CANCELLED e job antigo é descartado pela versão', async () => {
+    await makeCancelPost(f as any)('org-1', groupId);
+    expect(f._state.pubs[0]!.state).toBe('CANCELLED');
+    // job da versão 0 chega atrasado → fencing por estado E versão: no-op
+    await publish(pubId);
+    expect(prov.callCount()).toBe(0);
+    expect(f._state.groups[0]!.state).toBe('PARTIAL');
+  });
+
+  test('editar: novo texto/horário, versão sobe e job ANTIGO não publica', async () => {
+    const before = f._state.pubs[0]!.jobVersion;
+    await makeReschedulePost(f as any)({
+      orgId: 'org-1',
+      groupId,
+      text: 'texto editado',
+      publishAt: new Date(Date.now() - 1000),
+    });
+    const pub = f._state.pubs[0]!;
+    expect(pub.jobVersion).toBe(before + 1);
+    expect(pub.content.text).toBe('texto editado');
+    // job antigo (v0) descartado; job novo (v1) publica o texto editado
+    await makePublishPublication({ ...(f as any), retryBaseSec: 0.001 })(pubId, before);
+    expect(prov.callCount()).toBe(0);
+    await makePublishPublication({ ...(f as any), retryBaseSec: 0.001 })(pubId, pub.jobVersion);
+    expect(f._state.pubs[0]!.state).toBe('PUBLISHED');
+  });
+
+  test('editar valida limite de caracteres e recusa texto vazio', async () => {
+    await expect(
+      makeReschedulePost(f as any)({ orgId: 'org-1', groupId, text: 'x'.repeat(51) }),
+    ).rejects.toMatchObject({ code: 'post.too_long' });
+    await expect(
+      makeReschedulePost(f as any)({ orgId: 'org-1', groupId, text: '  ' }),
+    ).rejects.toMatchObject({ code: 'post.empty_content' });
+  });
+
+  test('publicado não pode ser editado', async () => {
+    await makeReschedulePost(f as any)({ orgId: 'org-1', groupId, publishAt: new Date(Date.now() - 1000) });
+    await publish(pubId);
+    await expect(
+      makeReschedulePost(f as any)({ orgId: 'org-1', groupId, text: 'tarde demais' }),
+    ).rejects.toMatchObject({ code: 'post.invalid_transition' });
+  });
+});
+
+describe('rate-limit por janela (SPEC_QUEUE §6)', () => {
+  test('negado: re-enfileira com retryAfter e NÃO consome tentativa', async () => {
+    await connect(f, prov.provider);
+    const group = await schedule();
+    const pubId = group!.publications[0]!.id;
+    const limiter = {
+      acquire: async () => ({ ok: false as const, retryAfterSec: 42 }),
+    };
+    await makePublishPublication({ ...(f as any), retryBaseSec: 1, rateLimiter: limiter })(pubId);
+    const pub = f._state.pubs[0]!;
+    expect(pub.state).toBe('SCHEDULED'); // não reivindicou
+    expect(pub.attemptCount).toBe(0);
+    const job = f._state.jobs.at(-1)!;
+    expect(job.opts.singletonKey).toContain(':rl:');
+    expect(prov.callCount()).toBe(0);
   });
 });
 

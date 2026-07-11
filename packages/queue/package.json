@@ -8,6 +8,7 @@
   "dependencies": {
     "@manypost/contracts": "workspace:*",
     "@manypost/core": "workspace:*",
+    "ioredis": "^5.6.0",
     "pg-boss": "^10.3.0",
     "postgres": "^3.4.0"
   }

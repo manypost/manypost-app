@@ -109,6 +109,83 @@ check(tooLong.status === 400 && tooLong.body.title === 'post.too_long', 'texto a
 const emptyCh = await schedule({ text: 'oi', channelIds: ['00000000-0000-7000-8000-000000000000'], publishAt: new Date().toISOString() });
 check(emptyCh.status === 404, 'canal inexistente → 404');
 
+// ---- 5) webhook de saída: entrega assinada de post.published ----
+import { createHmac } from 'node:crypto';
+const received: Array<{ headers: Record<string, string>; body: string }> = [];
+const receiver = Bun.serve({
+  port: 3989,
+  fetch: async (req) => {
+    received.push({
+      headers: Object.fromEntries(req.headers.entries()),
+      body: await req.text(),
+    });
+    return new Response('ok');
+  },
+});
+
+const wh = await fetch(`${BASE}/v1/webhooks`, {
+  method: 'POST',
+  headers: auth,
+  body: JSON.stringify({
+    name: 'e2e',
+    url: 'http://localhost:3989/hook',
+    events: ['post.published', 'post.failed'],
+  }),
+});
+check(wh.status === 201, `criar webhook → 201 (veio ${wh.status})`);
+const whBody = (await wh.json()) as any;
+check(whBody.secret?.startsWith('whsec_'), 'secret whsec_ retornado uma única vez');
+
+const hooked = await schedule({
+  text: 'post que dispara webhook',
+  channelIds: [channel.id],
+  publishAt: new Date().toISOString(),
+});
+await pollGroup(hooked.body.id, (g) => g.state === 'DONE');
+for (let i = 0; i < 20 && received.length === 0; i++) await sleep(500);
+check(received.length >= 1, `webhook entregue (${received.length} recebido)`);
+if (received.length > 0) {
+  const r = received[0]!;
+  check(r.headers['x-manypost-event'] === 'post.published', 'header x-manypost-event correto');
+  const sig = r.headers['x-manypost-signature'] ?? '';
+  const t = sig.match(/t=(\d+)/)?.[1];
+  const v1 = sig.match(/v1=([a-f0-9]+)/)?.[1];
+  const expected = createHmac('sha256', whBody.secret).update(`${t}.${r.body}`).digest('hex');
+  check(v1 === expected, 'assinatura HMAC confere com o secret');
+  const payload = JSON.parse(r.body);
+  check(payload.event === 'post.published' && !!payload.data.releaseUrl, 'payload com releaseUrl');
+}
+receiver.stop(true);
+
+// ---- 6) cancelar agendado: nunca publica ----
+const toCancel = await schedule({
+  text: 'post que será cancelado',
+  channelIds: [channel.id],
+  publishAt: new Date(Date.now() + 4000).toISOString(),
+});
+const cancelRes = await fetch(`${BASE}/v1/posts/${toCancel.body.id}/cancel`, { method: 'POST', headers: auth });
+check(cancelRes.status === 200, `cancelar → 200 (veio ${cancelRes.status})`);
+check(((await cancelRes.json()) as any).publications[0].state === 'CANCELLED', 'publicação → CANCELLED');
+await sleep(6000); // horário original passa; job antigo deve ser descartado
+const afterCancel = await pollGroup(toCancel.body.id, () => true);
+check(afterCancel.publications[0].state === 'CANCELLED', 'cancelado NÃO publicou após o horário');
+
+// ---- 7) editar agendado: publica o texto novo no horário novo ----
+const toEdit = await schedule({
+  text: 'texto original',
+  channelIds: [channel.id],
+  publishAt: new Date(Date.now() + 60_000).toISOString(),
+});
+const patch = await fetch(`${BASE}/v1/posts/${toEdit.body.id}`, {
+  method: 'PATCH',
+  headers: auth,
+  body: JSON.stringify({ text: 'texto editado', publishAt: new Date(Date.now() + 1000).toISOString() }),
+});
+check(patch.status === 200, `editar → 200 (veio ${patch.status})`);
+const edited = await pollGroup(toEdit.body.id, (g) => g.state === 'DONE');
+check(edited.state === 'DONE', `editado publicou no novo horário (veio ${edited.state})`);
+check(edited.publications[0].attemptCount === 1, 'edição zerou tentativas (1 tentativa)');
+
 if (failures > 0) {
   console.error(`\nE2E publish: ${failures} falha(s)`);
   process.exit(1);

@@ -16,6 +16,11 @@ const EnvSchema = z
     DB_MIGRATE: z.enum(['auto', 'off']).default('auto'),
     /** base do backoff exponencial de publicação (SPEC_QUEUE §7); e2e usa 1 */
     PUBLISH_RETRY_BASE_SEC: z.coerce.number().min(0.001).default(30),
+    /** permite webhook para rede privada (apenas dev/e2e — anti-SSRF fica desligado) */
+    WEBHOOKS_ALLOW_PRIVATE: z
+      .string()
+      .default('false')
+      .transform((v) => v === 'true'),
 
     JWT_SECRET: z.string().min(32, 'JWT_SECRET precisa de >= 32 chars'),
     ENCRYPTION_KEY: z

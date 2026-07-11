@@ -25,6 +25,7 @@ docs/           Análise do Postiz, specs por camada e decisões congeladas
 
 | Documento | Conteúdo |
 |---|---|
+| [docs/STATUS.md](docs/STATUS.md) | **Estado atual:** o que já funciona (verificado), o que falta e em que ordem — handoff entre sessões |
 | [docs/POSTIZ_ANALYSIS.md](docs/POSTIZ_ANALYSIS.md) | Avaliação técnica do Postiz (commit `84edda5`) e mapa de derivação |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Decisões congeladas v1 + adendo v1.1 (fronteira AGPL/código fechado, fila, stack, planos) |
 | [docs/PLANS.md](docs/PLANS.md) | Matriz de planos do gerenciado (Grátis/Pro/Premium) e mapeamento feature → código → gate de plano |

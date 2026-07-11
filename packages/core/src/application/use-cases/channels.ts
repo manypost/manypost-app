@@ -31,7 +31,7 @@ export const makeConnectChannel = (deps: ChannelDeps) =>
   async (input: {
     orgId: string;
     provider: ChannelProvider;
-    account: TokenSet & ExternalAccount;
+    account: TokenSet & ExternalAccount & { channelSettings?: Record<string, unknown> };
   }) => {
     const { orgId, provider, account } = input;
     const aad = channelAad(orgId, provider.id, account.externalId);
@@ -48,7 +48,7 @@ export const makeConnectChannel = (deps: ChannelDeps) =>
       username: account.username ?? null,
       avatarUrl: account.avatarUrl ?? null,
       scopes: account.scopes,
-      settings: {},
+      settings: account.channelSettings ?? {},
       tokenEnc: token.ciphertext,
       refreshTokenEnc: refresh?.ciphertext ?? null,
       tokenKeyVersion: token.keyVersion,

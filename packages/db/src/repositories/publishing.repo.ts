@@ -16,6 +16,7 @@ const toView = (row: typeof publications.$inferSelect): PublicationView => ({
   content: row.content as { text: string },
   settings: row.settings,
   attemptCount: row.attemptCount,
+  jobVersion: row.jobVersion,
   externalId: row.externalId,
   releaseUrl: row.releaseUrl,
   errorClass: row.errorClass,
@@ -129,6 +130,7 @@ export function makePublishingRepository(db: Db): PublishingRepository {
         .set({
           state: to,
           ...(patch?.incrementAttempt ? { attemptCount: sql`${publications.attemptCount} + 1` } : {}),
+          ...(patch?.bumpJobVersion ? { jobVersion: sql`${publications.jobVersion} + 1` } : {}),
           ...(patch?.attemptId ? { attemptId: sql`gen_random_uuid()` } : {}),
           ...(patch?.externalId !== undefined ? { externalId: patch.externalId } : {}),
           ...(patch?.releaseUrl !== undefined ? { releaseUrl: patch.releaseUrl } : {}),
@@ -150,13 +152,50 @@ export function makePublishingRepository(db: Db): PublishingRepository {
     },
 
     async listDue(before, limit) {
-      const rows = await db
-        .select({ id: publications.id })
+      return db
+        .select({ id: publications.id, jobVersion: publications.jobVersion })
         .from(publications)
         .where(and(eq(publications.state, 'SCHEDULED'), lte(publications.publishAt, before)))
         .orderBy(asc(publications.publishAt))
         .limit(limit);
-      return rows.map((r) => r.id);
+    },
+
+    async rescheduleGroup(orgId, groupId, d) {
+      return db.transaction(async (tx) => {
+        await tx
+          .update(postGroups)
+          .set({
+            ...(d.baseContent ? { baseContent: d.baseContent } : {}),
+            ...(d.publishAt ? { publishAt: d.publishAt } : {}),
+            state: 'SCHEDULED',
+          })
+          .where(and(eq(postGroups.id, groupId), eq(postGroups.orgId, orgId)));
+        const rows = await tx
+          .update(publications)
+          .set({
+            state: 'SCHEDULED',
+            attemptCount: 0,
+            jobVersion: sql`${publications.jobVersion} + 1`,
+            errorClass: null,
+            errorMessage: null,
+            ...(d.baseContent ? { content: d.baseContent } : {}),
+            ...(d.publishAt ? { publishAt: d.publishAt } : {}),
+          })
+          .where(
+            and(
+              eq(publications.groupId, groupId),
+              eq(publications.orgId, orgId),
+              inArray(publications.state, ['SCHEDULED', 'RETRYING', 'TOKEN_REFRESH']),
+            ),
+          )
+          .returning({
+            id: publications.id,
+            channelId: publications.channelId,
+            jobVersion: publications.jobVersion,
+            publishAt: publications.publishAt,
+          });
+        return rows.map((r) => ({ ...r, publishAt: r.publishAt ?? d.publishAt ?? new Date() }));
+      });
     },
 
     async listStuck(updatedBefore, limit) {

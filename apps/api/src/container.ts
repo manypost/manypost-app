@@ -8,19 +8,25 @@ import {
   makePublishingRepository,
   makeSessionRepository,
   makeUserRepository,
+  makeWebhookRepository,
 } from '@manypost/db';
 import {
   AesGcmCryptoService,
+  makeCancelPost,
   makeConnectChannel,
   makeCreateApiKey,
+  makeCreateWebhook,
+  makeDeleteWebhook,
   makeDisconnectChannel,
   makeListApiKeys,
   makeListChannels,
+  makeListWebhooks,
   makeLogin,
   makeLoginWithIdentity,
   makeLogout,
   makeRefreshSession,
   makeRegister,
+  makeReschedulePost,
   makeRevokeApiKey,
   makeSchedulePost,
   makeVerifyApiKey,
@@ -44,6 +50,7 @@ export async function buildContainer(env: Env) {
     identities: makeAuthIdentityRepository(db),
     channels: makeChannelRepository(db),
     publishing: makePublishingRepository(db),
+    webhooks: makeWebhookRepository(db),
   };
 
   const signer = makeJwtSigner(env.JWT_SECRET);
@@ -52,11 +59,14 @@ export async function buildContainer(env: Env) {
 
   const runtime = await createPublishingRuntime({
     databaseUrl: env.DATABASE_URL,
+    redisUrl: env.REDIS_URL,
     publishing: repos.publishing,
     channels: repos.channels,
+    webhooks: repos.webhooks,
     registry: providerRegistry,
     crypto,
     retryBaseSec: env.PUBLISH_RETRY_BASE_SEC,
+    allowPrivateWebhookUrls: env.WEBHOOKS_ALLOW_PRIVATE,
   });
 
   return {
@@ -80,6 +90,22 @@ export async function buildContainer(env: Env) {
         scheduler: runtime.scheduler,
       }),
       getGroup: (orgId: string, groupId: string) => repos.publishing.getGroup(orgId, groupId),
+      cancel: makeCancelPost({ publishing: repos.publishing, scheduler: runtime.scheduler }),
+      reschedule: makeReschedulePost({
+        publishing: repos.publishing,
+        channels: repos.channels,
+        registry: providerRegistry,
+        scheduler: runtime.scheduler,
+      }),
+    },
+    webhooks: {
+      create: makeCreateWebhook({
+        webhooks: repos.webhooks,
+        crypto,
+        allowPrivateUrls: env.WEBHOOKS_ALLOW_PRIVATE,
+      }),
+      list: makeListWebhooks({ webhooks: repos.webhooks }),
+      remove: makeDeleteWebhook({ webhooks: repos.webhooks }),
     },
     auth: {
       register: makeRegister(authDeps),

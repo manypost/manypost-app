@@ -1,9 +1,11 @@
 import type { PostOrigin, ProviderContext } from '@manypost/contracts';
-import { ErrorCodes } from '@manypost/contracts';
+import { ErrorCodes, WebhookEvents } from '@manypost/contracts';
 import { DomainError } from '../../domain/shared/result';
 import type { ChannelProviderRegistry } from '../ports/channel-provider-registry';
 import type { CryptoService } from '../ports/crypto';
+import type { EventPublisher } from '../ports/events';
 import type { JobScheduler } from '../ports/job-scheduler';
+import type { RateLimiter, RateWindowSpec } from '../ports/rate-limiter';
 import type { ChannelRepository, PublishingRepository } from '../ports/publishing';
 import { randomToken } from '../tokens';
 import { channelAad } from './channels';
@@ -97,7 +99,7 @@ export const makeSchedulePost = (deps: SchedulePostDeps) =>
       try {
         await deps.scheduler.enqueue(
           PUBLISH_QUEUE,
-          { publicationId: pub.id },
+          { publicationId: pub.id, v: 0 },
           { startAfter: input.publishAt, singletonKey: pub.id },
         );
       } catch (err) {
@@ -121,17 +123,49 @@ export interface PublishDeps {
   scheduler: JobScheduler;
   retryBaseSec: number;
   maxAttempts?: number;
+  rateLimiter?: RateLimiter;
+  events?: EventPublisher;
   log?: (level: string, msg: string, data?: object) => void;
 }
 
 const RUNNABLE = ['SCHEDULED', 'RETRYING', 'TOKEN_REFRESH'] as const;
 
 export const makePublishPublication = (deps: PublishDeps) =>
-  async (publicationId: string): Promise<void> => {
+  async (publicationId: string, jobVersion?: number): Promise<void> => {
     const found = await deps.publishing.findForPublish(publicationId);
     if (!found) return;
     const { publication: pub, channel } = found;
-    if (!(RUNNABLE as readonly string[]).includes(pub.state)) return; // já tratada — dedup por fencing
+    if (!(RUNNABLE as readonly string[]).includes(pub.state)) return; // já tratada — fencing
+    // job de uma versão anterior (post editado/cancelado): descarta
+    if (jobVersion !== undefined && jobVersion !== pub.jobVersion) return;
+
+    // rate-limit ANTES de reivindicar (negado não consome tentativa) — SPEC_QUEUE §6
+    if (deps.rateLimiter) {
+      const provider0 = deps.registry.get(channel.provider);
+      const windows: RateWindowSpec[] = [];
+      const pw = provider0?.rateDefaults.perProviderWindow;
+      if (pw) windows.push({ key: `rl:p:${channel.provider}`, ...pw });
+      const cw = provider0?.rateDefaults.perChannelWindow;
+      if (cw) windows.push({ key: `rl:c:${channel.id}`, ...cw });
+      if (windows.length > 0) {
+        const verdict = await deps.rateLimiter.acquire(windows);
+        if (!verdict.ok) {
+          deps.log?.('warn', 'rate-limit: publicação adiada', {
+            publicationId: pub.id,
+            retryAfterSec: verdict.retryAfterSec,
+          });
+          await deps.scheduler.enqueue(
+            PUBLISH_QUEUE,
+            { publicationId: pub.id, v: pub.jobVersion },
+            {
+              startAfter: new Date(Date.now() + Math.max(1, verdict.retryAfterSec) * 1000),
+              singletonKey: `${pub.id}:rl:${Math.floor(Date.now() / 1000)}`,
+            },
+          );
+          return;
+        }
+      }
+    }
 
     const claimed = await deps.publishing.transition(pub.id, [...RUNNABLE], 'PUBLISHING', {
       incrementAttempt: true,
@@ -146,6 +180,12 @@ export const makePublishPublication = (deps: PublishDeps) =>
         errorMessage: msg.slice(0, ERROR_MAX_LEN),
       });
       await deps.publishing.refreshGroupState(pub.groupId);
+      await deps.events?.emit({
+        orgId: pub.orgId,
+        event: WebhookEvents.PostFailed,
+        channelId: channel.id,
+        data: { groupId: pub.groupId, publicationId: pub.id, channelId: channel.id, errorClass: cls },
+      });
     };
 
     const provider = deps.registry.get(channel.provider);
@@ -156,11 +196,16 @@ export const makePublishPublication = (deps: PublishDeps) =>
 
     try {
       const accessToken = await deps.crypto.decrypt(channel.tokenEnc, aad, channel.tokenKeyVersion);
+      // settings do canal (ex.: instância Mastodon) + settings da publicação
+      const settings = {
+        ...(channel.settings as Record<string, unknown>),
+        ...(pub.settings as Record<string, unknown>),
+      };
       const [res] = await provider.publish(
         ctx,
         { accessToken, scopes: channel.scopes },
         [{ content: pub.content.text, media: [] }],
-        pub.settings,
+        settings,
       );
       await deps.publishing.transition(pub.id, ['PUBLISHING'], 'PUBLISHED', {
         ...(res?.externalId ? { externalId: res.externalId } : {}),
@@ -170,6 +215,18 @@ export const makePublishPublication = (deps: PublishDeps) =>
         errorMessage: null,
       });
       await deps.publishing.refreshGroupState(pub.groupId);
+      await deps.events?.emit({
+        orgId: pub.orgId,
+        event: WebhookEvents.PostPublished,
+        channelId: channel.id,
+        data: {
+          groupId: pub.groupId,
+          publicationId: pub.id,
+          channelId: channel.id,
+          externalId: res?.externalId ?? null,
+          releaseUrl: res?.releaseUrl ?? null,
+        },
+      });
     } catch (err) {
       const status = Number((err as { status?: number })?.status ?? 0);
       const body = String(
@@ -185,8 +242,17 @@ export const makePublishPublication = (deps: PublishDeps) =>
           errorMessage: body.slice(0, ERROR_MAX_LEN),
         });
         if (!moved) return;
-        if (!channel.refreshTokenEnc) {
+        const markRefreshRequired = async () => {
           await deps.channels.setStatus(channel.id, 'REFRESH_REQUIRED');
+          await deps.events?.emit({
+            orgId: pub.orgId,
+            event: WebhookEvents.ChannelRefreshRequired,
+            channelId: channel.id,
+            data: { channelId: channel.id, provider: channel.provider },
+          });
+        };
+        if (!channel.refreshTokenEnc) {
+          await markRefreshRequired();
           return fail('refresh-token', 'canal sem refresh token — reconexão manual necessária');
         }
         try {
@@ -209,11 +275,11 @@ export const makePublishPublication = (deps: PublishDeps) =>
           // token renovado → tenta de novo já (estado TOKEN_REFRESH é RUNNABLE)
           await deps.scheduler.enqueue(
             PUBLISH_QUEUE,
-            { publicationId: pub.id },
+            { publicationId: pub.id, v: pub.jobVersion },
             { singletonKey: `${pub.id}:refresh:${attempt}` },
           );
         } catch {
-          await deps.channels.setStatus(channel.id, 'REFRESH_REQUIRED');
+          await markRefreshRequired();
           return fail('refresh-token', 'refresh do token falhou — reconexão manual necessária');
         }
         return;
@@ -228,13 +294,83 @@ export const makePublishPublication = (deps: PublishDeps) =>
       });
       await deps.scheduler.enqueue(
         PUBLISH_QUEUE,
-        { publicationId: pub.id },
+        { publicationId: pub.id, v: pub.jobVersion },
         {
           startAfter: new Date(Date.now() + delaySec * 1000),
           singletonKey: `${pub.id}:a${attempt}`,
         },
       );
     }
+  };
+
+// ---------------------------------------------------------------- cancel / edit
+
+const PENDING = ['SCHEDULED', 'RETRYING', 'TOKEN_REFRESH'] as const;
+
+export interface MutatePostDeps {
+  publishing: PublishingRepository;
+  channels: ChannelRepository;
+  registry: ChannelProviderRegistry;
+  scheduler: JobScheduler;
+}
+
+/** Cancela tudo que ainda não foi publicado; fencing por estado + versão mata jobs antigos. */
+export const makeCancelPost = (deps: Pick<MutatePostDeps, 'publishing' | 'scheduler'>) =>
+  async (orgId: string, groupId: string) => {
+    const group = await deps.publishing.getGroup(orgId, groupId);
+    if (!group) throw new DomainError(ErrorCodes.NotFound, 'post não encontrado');
+    for (const pub of group.publications) {
+      if ((PENDING as readonly string[]).includes(pub.state)) {
+        await deps.publishing.transition(pub.id, [...PENDING], 'CANCELLED', { bumpJobVersion: true });
+        await deps.scheduler.cancelBySingletonKey(PUBLISH_QUEUE, pub.id).catch(() => {}); // higiene
+      }
+    }
+    await deps.publishing.refreshGroupState(groupId);
+    return deps.publishing.getGroup(orgId, groupId);
+  };
+
+/** Edita texto/horário do que ainda está pendente (equivalente ao TERMINATE_EXISTING do Postiz). */
+export const makeReschedulePost = (deps: MutatePostDeps) =>
+  async (input: { orgId: string; groupId: string; text?: string; publishAt?: Date }) => {
+    const group = await deps.publishing.getGroup(input.orgId, input.groupId);
+    if (!group) throw new DomainError(ErrorCodes.NotFound, 'post não encontrado');
+    if (group.publications.some((p) => p.state === 'PUBLISHING')) {
+      throw new DomainError(ErrorCodes.PostInvalidTransition, 'publicação em andamento — aguarde');
+    }
+    const pending = group.publications.filter((p) =>
+      (PENDING as readonly string[]).includes(p.state),
+    );
+    if (pending.length === 0) {
+      throw new DomainError(ErrorCodes.PostInvalidTransition, 'nada pendente para editar');
+    }
+
+    const text = input.text?.trim();
+    if (text !== undefined) {
+      if (!text) throw new DomainError(ErrorCodes.PostEmptyContent, 'conteúdo vazio');
+      const channels = await deps.channels.findMany(input.orgId, pending.map((p) => p.channelId));
+      for (const ch of channels) {
+        const provider = deps.registry.get(ch.provider);
+        const max = provider?.capabilities.maxLength(undefined) ?? Infinity;
+        if (text.length > max) {
+          throw new DomainError(ErrorCodes.PostTooLong, `limite de ${max} caracteres em ${ch.name}`);
+        }
+      }
+    }
+
+    const updated = await deps.publishing.rescheduleGroup(input.orgId, input.groupId, {
+      ...(text !== undefined ? { baseContent: { text } } : {}),
+      ...(input.publishAt ? { publishAt: input.publishAt } : {}),
+    });
+    for (const pub of updated) {
+      await deps.scheduler
+        .enqueue(
+          PUBLISH_QUEUE,
+          { publicationId: pub.id, v: pub.jobVersion },
+          { startAfter: pub.publishAt, singletonKey: `${pub.id}:v${pub.jobVersion}` },
+        )
+        .catch(() => {}); // scanner recupera
+    }
+    return deps.publishing.getGroup(input.orgId, input.groupId);
   };
 
 // ---------------------------------------------------------------- recover
@@ -251,11 +387,11 @@ export const makeRecoverDue = (deps: RecoverDeps) =>
     const minuteKey = Math.floor(Date.now() / 60_000);
 
     const due = await deps.publishing.listDue(new Date(Date.now() - 3_000), 200);
-    for (const id of due) {
+    for (const d of due) {
       await deps.scheduler.enqueue(
         PUBLISH_QUEUE,
-        { publicationId: id },
-        { singletonKey: `${id}:recover:${minuteKey}` },
+        { publicationId: d.id, v: d.jobVersion },
+        { singletonKey: `${d.id}:recover:${minuteKey}` },
       );
     }
     if (due.length > 0) deps.log?.('warn', 'scanner recuperou publicações', { count: due.length });

@@ -3,6 +3,7 @@ import {
   createDb,
   makeChannelRepository,
   makePublishingRepository,
+  makeWebhookRepository,
   runMigrations,
 } from '@manypost/db';
 import { AesGcmCryptoService } from '@manypost/core';
@@ -23,11 +24,14 @@ if (env.DB_MIGRATE === 'auto') {
 const db = createDb(env.DATABASE_URL);
 const runtime = await createPublishingRuntime({
   databaseUrl: env.DATABASE_URL,
+  redisUrl: env.REDIS_URL,
   publishing: makePublishingRepository(db),
   channels: makeChannelRepository(db),
+  webhooks: makeWebhookRepository(db),
   registry: providerRegistry,
   crypto: AesGcmCryptoService.fromHex(env.ENCRYPTION_KEY),
   retryBaseSec: env.PUBLISH_RETRY_BASE_SEC,
+  allowPrivateWebhookUrls: env.WEBHOOKS_ALLOW_PRIVATE,
 });
 await runtime.startWorker();
 console.log(JSON.stringify({ level: 'info', msg: 'manypost worker ativo' }));

@@ -2,6 +2,8 @@
 
 Plataforma de agendamento/publicação multicanal. **O wordmark é sempre `manypost`, em caixa baixa — inclusive em início de frase e `<title>`.**
 
+> **COMECE POR `docs/STATUS.md`** — estado atual, o que já funciona (com provas), o que falta (com referência de spec por item) e como rodar os E2E. O clone do Postiz para consulta está em `../_ref/postiz-app` (marque derivações — ver ATTRIBUTION.md).
+
 ## Leia antes de trabalhar
 
 | Se a tarefa é... | Leia primeiro |

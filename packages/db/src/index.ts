@@ -8,6 +8,7 @@ export { runMigrations } from './migrate';
 export * from './repositories/identity.repo';
 export * from './repositories/channels.repo';
 export * from './repositories/publishing.repo';
+export * from './repositories/webhooks.repo';
 
 export type Db = ReturnType<typeof createDb>;
 

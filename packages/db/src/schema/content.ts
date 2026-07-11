@@ -74,6 +74,8 @@ export const publications = pgTable(
     errorClass: text('error_class'), // transient | refresh-token | permanent
     errorMessage: text('error_message'), // truncado a 4k na aplicação
     attemptCount: integer('attempt_count').notNull().default(0),
+    /** versão do agendamento — jobs de versões anteriores são descartados (edit/cancel) */
+    jobVersion: integer('job_version').notNull().default(0),
     /** cursor de thread: itens <= índice já publicados — nunca republicar (SPEC_QUEUE §7) */
     lastPublishedIndex: integer('last_published_index').notNull().default(-1),
     /** id da tentativa em curso — protocolo anti-dupla-publicação (SPEC_QUEUE §5) */

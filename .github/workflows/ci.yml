@@ -22,6 +22,15 @@ jobs:
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6399:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -49,11 +58,12 @@ jobs:
           PORT: 3988
           PUBLIC_URL: http://localhost:3988
           DATABASE_URL: postgresql://mp:mp@localhost:5499/mp
-          REDIS_URL: redis://localhost:6379
+          REDIS_URL: redis://localhost:6399
           JWT_SECRET: ci-secret-with-at-least-32-characters!!
           ENCRYPTION_KEY: cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd
           DB_MIGRATE: auto
           PUBLISH_RETRY_BASE_SEC: 1
+          WEBHOOKS_ALLOW_PRIVATE: 'true'
         run: |
           bun run apps/api/src/main.ts &
           for i in $(seq 1 30); do curl -sf http://localhost:3988/health >/dev/null && break; sleep 1; done

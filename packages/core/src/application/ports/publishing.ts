@@ -51,6 +51,8 @@ export interface PublicationView {
   content: { text: string };
   settings: unknown;
   attemptCount: number;
+  /** versão do agendamento: jobs antigos (edit/cancel) são descartados pelo handler */
+  jobVersion: number;
   externalId: string | null;
   releaseUrl: string | null;
   errorClass: string | null;
@@ -64,6 +66,7 @@ export interface TransitionPatch {
   errorMessage?: string | null;
   publishedAt?: Date;
   incrementAttempt?: boolean;
+  bumpJobVersion?: boolean;
   attemptId?: string;
 }
 
@@ -98,7 +101,14 @@ export interface PublishingRepository {
     patch?: TransitionPatch,
   ): Promise<boolean>;
   /** SCHEDULED com publish_at vencido (scanner §8) */
-  listDue(before: Date, limit: number): Promise<string[]>;
+  listDue(before: Date, limit: number): Promise<Array<{ id: string; jobVersion: number }>>;
+  /** edita conteúdo/horário das publicações ainda pendentes (SCHEDULED/RETRYING):
+   *  volta a SCHEDULED, zera tentativas e incrementa job_version (jobs antigos morrem) */
+  rescheduleGroup(
+    orgId: string,
+    groupId: string,
+    d: { baseContent?: { text: string }; publishAt?: Date },
+  ): Promise<Array<{ id: string; channelId: string; jobVersion: number; publishAt: Date }>>;
   /** RETRYING/TOKEN_REFRESH/PUBLISHING parados há muito tempo (watchdog §8) */
   listStuck(updatedBefore: Date, limit: number): Promise<Array<{ id: string; state: PublicationState }>>;
   /** agrega estados das publicações → estado do grupo (DONE/PARTIAL/…) */

@@ -7,7 +7,7 @@ import { requireAdmin, requireAuth } from '../middleware/auth';
 import type { AppEnv } from '../middleware/context';
 
 const CONNECT_COOKIE = 'mp_ch_state';
-const ConnectBody = z.object({ provider: z.string().min(1) });
+const ConnectBody = z.object({ provider: z.string().min(1), fields: z.unknown().optional() });
 
 export function channelRoutes(ctn: Container) {
   const app = new OpenAPIHono<AppEnv>();
@@ -42,12 +42,21 @@ export function channelRoutes(ctn: Container) {
     const provider = ctn.registry.get(body.provider);
     if (!provider) throw new DomainError(ErrorCodes.CapabilityDisabled, 'provider indisponível');
 
+    // providers de instância custom (Mastodon) validam os campos de conexão
+    const fields = provider.connectionFieldsSchema
+      ? provider.connectionFieldsSchema.parse(body.fields ?? {})
+      : undefined;
     const redirectUri = `${ctn.env.PUBLIC_URL}/v1/channels/callback/${provider.id}`;
-    const auth = await provider.getAuthUrl(providerCtx, { redirectUri });
+    const auth = await provider.getAuthUrl(providerCtx, { redirectUri, fields });
     setCookie(
       c,
       CONNECT_COOKIE,
-      JSON.stringify({ p: provider.id, s: auth.state, v: auth.codeVerifier ?? null }),
+      JSON.stringify({
+        p: provider.id,
+        s: auth.state,
+        v: auth.codeVerifier ?? null,
+        x: auth.extra ?? null,
+      }),
       { httpOnly: true, sameSite: 'Lax', secure, path: '/v1/channels', maxAge: 600 },
     );
     return c.json({ url: auth.url });
@@ -60,7 +69,9 @@ export function channelRoutes(ctn: Container) {
 
     const raw = getCookie(c, CONNECT_COOKIE);
     deleteCookie(c, CONNECT_COOKIE, { path: '/v1/channels' });
-    const saved = raw ? (JSON.parse(raw) as { p: string; s: string; v: string | null }) : null;
+    const saved = raw
+      ? (JSON.parse(raw) as { p: string; s: string; v: string | null; x: unknown })
+      : null;
     const state = c.req.query('state');
     if (!saved || saved.p !== provider.id || !state || state !== saved.s) {
       throw new DomainError(ErrorCodes.AuthUnauthorized, 'state inválido — reinicie a conexão');
@@ -73,6 +84,7 @@ export function channelRoutes(ctn: Container) {
       code,
       redirectUri,
       ...(saved.v ? { codeVerifier: saved.v } : {}),
+      ...(saved.x ? { extra: saved.x } : {}),
     });
     const channel = await ctn.channels.connect({
       orgId: c.get('principal').orgId,

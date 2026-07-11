@@ -11,6 +11,7 @@ import { authRoutes } from './http/routes/auth.routes';
 import { channelRoutes } from './http/routes/channels.routes';
 import { postRoutes } from './http/routes/posts.routes';
 import { socialAuthRoutes } from './http/routes/social-auth.routes';
+import { webhookRoutes } from './http/routes/webhooks.routes';
 
 const env = loadEnv();
 
@@ -58,6 +59,7 @@ app.route('/v1/auth', authRoutes(ctn));
 app.route('/v1/api-keys', apiKeyRoutes(ctn));
 app.route('/v1/channels', channelRoutes(ctn));
 app.route('/v1/posts', postRoutes(ctn));
+app.route('/v1/webhooks', webhookRoutes(ctn));
 
 app.doc('/openapi.json', {
   openapi: '3.1.0',
