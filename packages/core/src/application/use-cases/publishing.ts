@@ -1,0 +1,280 @@
+import type { PostOrigin, ProviderContext } from '@manypost/contracts';
+import { ErrorCodes } from '@manypost/contracts';
+import { DomainError } from '../../domain/shared/result';
+import type { ChannelProviderRegistry } from '../ports/channel-provider-registry';
+import type { CryptoService } from '../ports/crypto';
+import type { JobScheduler } from '../ports/job-scheduler';
+import type { ChannelRepository, PublishingRepository } from '../ports/publishing';
+import { randomToken } from '../tokens';
+import { channelAad } from './channels';
+
+export const PUBLISH_QUEUE = 'publish';
+export const RECOVER_QUEUE = 'recover-scan';
+const ERROR_MAX_LEN = 4000;
+
+const makeCtx = (log?: ProviderContext['log']): ProviderContext => ({
+  fetch: globalThis.fetch,
+  log: log ?? (() => {}),
+  now: () => new Date(),
+  secrets: {},
+});
+
+// ---------------------------------------------------------------- schedule
+
+export interface SchedulePostDeps {
+  channels: ChannelRepository;
+  publishing: PublishingRepository;
+  registry: ChannelProviderRegistry;
+  scheduler: JobScheduler;
+  log?: (level: string, msg: string, data?: object) => void;
+}
+
+export const makeSchedulePost = (deps: SchedulePostDeps) =>
+  async (input: {
+    orgId: string;
+    authorId: string | null;
+    text: string;
+    channelIds: string[];
+    publishAt: Date;
+    timezone?: string;
+    origin?: PostOrigin;
+    settingsByChannel?: Record<string, unknown>;
+  }) => {
+    const text = input.text.trim();
+    if (!text) throw new DomainError(ErrorCodes.PostEmptyContent, 'conteúdo vazio');
+    const ids = [...new Set(input.channelIds)];
+    if (ids.length === 0) throw new DomainError(ErrorCodes.PostNoChannels, 'selecione ao menos um canal');
+
+    const channels = await deps.channels.findMany(input.orgId, ids);
+    if (channels.length !== ids.length) {
+      throw new DomainError(ErrorCodes.NotFound, 'canal não encontrado nesta organização');
+    }
+
+    const publications: Array<{ channelId: string; content: { text: string }; settings: unknown }> = [];
+    for (const ch of channels) {
+      if (ch.status !== 'ACTIVE') {
+        throw new DomainError(ErrorCodes.ChannelDisabled, `canal ${ch.name} não está ativo`, {
+          channelId: ch.id,
+          status: ch.status,
+        });
+      }
+      const provider = deps.registry.get(ch.provider);
+      if (!provider) {
+        throw new DomainError(ErrorCodes.CapabilityDisabled, `provider ${ch.provider} indisponível`);
+      }
+      const settingsRaw = input.settingsByChannel?.[ch.id] ?? {};
+      const parsed = provider.settingsSchema.safeParse(settingsRaw);
+      if (!parsed.success) {
+        throw new DomainError(ErrorCodes.PostInvalidSettings, 'settings inválidos para o canal', {
+          channelId: ch.id,
+          issues: parsed.error.issues.map((i) => i.message),
+        });
+      }
+      const max = provider.capabilities.maxLength(parsed.data);
+      if (text.length > max) {
+        throw new DomainError(ErrorCodes.PostTooLong, `limite de ${max} caracteres em ${ch.name}`, {
+          channelId: ch.id,
+          max,
+          length: text.length,
+        });
+      }
+      publications.push({ channelId: ch.id, content: { text }, settings: parsed.data });
+    }
+
+    const created = await deps.publishing.createGroup({
+      orgId: input.orgId,
+      authorId: input.authorId,
+      baseContent: { text },
+      publishAt: input.publishAt,
+      timezone: input.timezone ?? 'UTC',
+      origin: input.origin ?? 'WEB',
+      publications,
+    });
+
+    // enqueue pós-commit; qualquer falha aqui é recuperada pelo scanner (§8),
+    // e o fencing de estado torna entregas duplicadas inofensivas
+    for (const pub of created.publications) {
+      try {
+        await deps.scheduler.enqueue(
+          PUBLISH_QUEUE,
+          { publicationId: pub.id },
+          { startAfter: input.publishAt, singletonKey: pub.id },
+        );
+      } catch (err) {
+        deps.log?.('error', 'enqueue falhou — scanner vai recuperar', {
+          publicationId: pub.id,
+          err: String(err),
+        });
+      }
+    }
+
+    return deps.publishing.getGroup(input.orgId, created.groupId);
+  };
+
+// ---------------------------------------------------------------- publish
+
+export interface PublishDeps {
+  publishing: PublishingRepository;
+  channels: ChannelRepository;
+  registry: ChannelProviderRegistry;
+  crypto: CryptoService;
+  scheduler: JobScheduler;
+  retryBaseSec: number;
+  maxAttempts?: number;
+  log?: (level: string, msg: string, data?: object) => void;
+}
+
+const RUNNABLE = ['SCHEDULED', 'RETRYING', 'TOKEN_REFRESH'] as const;
+
+export const makePublishPublication = (deps: PublishDeps) =>
+  async (publicationId: string): Promise<void> => {
+    const found = await deps.publishing.findForPublish(publicationId);
+    if (!found) return;
+    const { publication: pub, channel } = found;
+    if (!(RUNNABLE as readonly string[]).includes(pub.state)) return; // já tratada — dedup por fencing
+
+    const claimed = await deps.publishing.transition(pub.id, [...RUNNABLE], 'PUBLISHING', {
+      incrementAttempt: true,
+      attemptId: randomToken(16),
+    });
+    if (!claimed) return;
+    const attempt = pub.attemptCount + 1;
+
+    const fail = async (cls: string, msg: string) => {
+      await deps.publishing.transition(pub.id, ['PUBLISHING', 'TOKEN_REFRESH'], 'FAILED', {
+        errorClass: cls,
+        errorMessage: msg.slice(0, ERROR_MAX_LEN),
+      });
+      await deps.publishing.refreshGroupState(pub.groupId);
+    };
+
+    const provider = deps.registry.get(channel.provider);
+    if (!provider) return fail('permanent', `provider ${channel.provider} desconhecido`);
+
+    const aad = channelAad(channel.orgId, channel.provider, channel.externalId);
+    const ctx = makeCtx(deps.log ? (l, m, d) => deps.log!(l, m, d) : undefined);
+
+    try {
+      const accessToken = await deps.crypto.decrypt(channel.tokenEnc, aad, channel.tokenKeyVersion);
+      const [res] = await provider.publish(
+        ctx,
+        { accessToken, scopes: channel.scopes },
+        [{ content: pub.content.text, media: [] }],
+        pub.settings,
+      );
+      await deps.publishing.transition(pub.id, ['PUBLISHING'], 'PUBLISHED', {
+        ...(res?.externalId ? { externalId: res.externalId } : {}),
+        ...(res?.releaseUrl ? { releaseUrl: res.releaseUrl } : {}),
+        publishedAt: new Date(),
+        errorClass: null,
+        errorMessage: null,
+      });
+      await deps.publishing.refreshGroupState(pub.groupId);
+    } catch (err) {
+      const status = Number((err as { status?: number })?.status ?? 0);
+      const body = String(
+        (err as { body?: string })?.body ?? (err as Error)?.message ?? err,
+      );
+      const cls = provider.classifyError(status, body);
+
+      if (cls === 'permanent') return fail('permanent', body);
+
+      if (cls === 'refresh-token') {
+        const moved = await deps.publishing.transition(pub.id, ['PUBLISHING'], 'TOKEN_REFRESH', {
+          errorClass: 'refresh-token',
+          errorMessage: body.slice(0, ERROR_MAX_LEN),
+        });
+        if (!moved) return;
+        if (!channel.refreshTokenEnc) {
+          await deps.channels.setStatus(channel.id, 'REFRESH_REQUIRED');
+          return fail('refresh-token', 'canal sem refresh token — reconexão manual necessária');
+        }
+        try {
+          const refreshPlain = await deps.crypto.decrypt(
+            channel.refreshTokenEnc,
+            aad,
+            channel.tokenKeyVersion,
+          );
+          const fresh = await provider.refreshToken(ctx, refreshPlain);
+          const tokenEnc = await deps.crypto.encrypt(fresh.accessToken, aad);
+          const refreshEnc = fresh.refreshToken
+            ? await deps.crypto.encrypt(fresh.refreshToken, aad)
+            : null;
+          await deps.channels.updateTokens(channel.id, {
+            tokenEnc: tokenEnc.ciphertext,
+            tokenKeyVersion: tokenEnc.keyVersion,
+            ...(refreshEnc ? { refreshTokenEnc: refreshEnc.ciphertext } : {}),
+            tokenExpiresAt: fresh.expiresAt ? new Date(fresh.expiresAt) : null,
+          });
+          // token renovado → tenta de novo já (estado TOKEN_REFRESH é RUNNABLE)
+          await deps.scheduler.enqueue(
+            PUBLISH_QUEUE,
+            { publicationId: pub.id },
+            { singletonKey: `${pub.id}:refresh:${attempt}` },
+          );
+        } catch {
+          await deps.channels.setStatus(channel.id, 'REFRESH_REQUIRED');
+          return fail('refresh-token', 'refresh do token falhou — reconexão manual necessária');
+        }
+        return;
+      }
+
+      // transient
+      if (attempt >= (deps.maxAttempts ?? 5)) return fail('transient', body);
+      const delaySec = deps.retryBaseSec * 2 ** (attempt - 1) * (0.5 + Math.random());
+      await deps.publishing.transition(pub.id, ['PUBLISHING'], 'RETRYING', {
+        errorClass: 'transient',
+        errorMessage: body.slice(0, ERROR_MAX_LEN),
+      });
+      await deps.scheduler.enqueue(
+        PUBLISH_QUEUE,
+        { publicationId: pub.id },
+        {
+          startAfter: new Date(Date.now() + delaySec * 1000),
+          singletonKey: `${pub.id}:a${attempt}`,
+        },
+      );
+    }
+  };
+
+// ---------------------------------------------------------------- recover
+
+export interface RecoverDeps {
+  publishing: PublishingRepository;
+  scheduler: JobScheduler;
+  log?: (level: string, msg: string, data?: object) => void;
+}
+
+/** Scanner (§8): SCHEDULED vencidas → re-enqueue; zumbis → NEEDS_REVIEW/re-enqueue. */
+export const makeRecoverDue = (deps: RecoverDeps) =>
+  async (): Promise<{ due: number; stuck: number }> => {
+    const minuteKey = Math.floor(Date.now() / 60_000);
+
+    const due = await deps.publishing.listDue(new Date(Date.now() - 3_000), 200);
+    for (const id of due) {
+      await deps.scheduler.enqueue(
+        PUBLISH_QUEUE,
+        { publicationId: id },
+        { singletonKey: `${id}:recover:${minuteKey}` },
+      );
+    }
+    if (due.length > 0) deps.log?.('warn', 'scanner recuperou publicações', { count: due.length });
+
+    const stuck = await deps.publishing.listStuck(new Date(Date.now() - 15 * 60_000), 200);
+    for (const s of stuck) {
+      if (s.state === 'PUBLISHING') {
+        // morreu no meio da chamada à rede: NUNCA repostar às cegas (DECISIONS §7)
+        await deps.publishing.transition(s.id, ['PUBLISHING'], 'NEEDS_REVIEW', {
+          errorClass: 'unknown',
+          errorMessage: 'worker interrompido durante a publicação — confirme na rede antes de repostar',
+        });
+      } else {
+        await deps.scheduler.enqueue(
+          PUBLISH_QUEUE,
+          { publicationId: s.id },
+          { singletonKey: `${s.id}:stuck:${minuteKey}` },
+        );
+      }
+    }
+    return { due: due.length, stuck: stuck.length };
+  };

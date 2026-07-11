@@ -43,9 +43,9 @@ jobs:
       - name: drizzle drift check (migrations sincronizadas com o schema)
         working-directory: packages/db
         run: bunx drizzle-kit check
-      - name: e2e auth (API real + Postgres real + migrations no boot)
+      - name: e2e (API+worker reais + Postgres real + migrations no boot)
         env:
-          MODE: api
+          MODE: all
           PORT: 3988
           PUBLIC_URL: http://localhost:3988
           DATABASE_URL: postgresql://mp:mp@localhost:5499/mp
@@ -53,7 +53,9 @@ jobs:
           JWT_SECRET: ci-secret-with-at-least-32-characters!!
           ENCRYPTION_KEY: cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd
           DB_MIGRATE: auto
+          PUBLISH_RETRY_BASE_SEC: 1
         run: |
           bun run apps/api/src/main.ts &
           for i in $(seq 1 30); do curl -sf http://localhost:3988/health >/dev/null && break; sleep 1; done
           BASE_URL=http://localhost:3988 bun run scripts/e2e-auth.ts
+          BASE_URL=http://localhost:3988 bun run scripts/e2e-publish.ts

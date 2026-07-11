@@ -9,6 +9,8 @@ export const ErrorCodes = {
   PostTooLong: 'post.too_long',
   PostEmptyContent: 'post.empty_content',
   PostInvalidTransition: 'post.invalid_transition',
+  PostNoChannels: 'post.no_channels',
+  PostInvalidSettings: 'post.invalid_settings',
   // plano/limites
   PlanChannelLimit: 'plan.channel_limit',
   RateLimited: 'rate.limited',

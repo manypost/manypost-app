@@ -8,6 +8,8 @@ import { correlationId, type AppEnv } from './http/middleware/context';
 import { errorHandler } from './http/middleware/error';
 import { apiKeyRoutes } from './http/routes/api-keys.routes';
 import { authRoutes } from './http/routes/auth.routes';
+import { channelRoutes } from './http/routes/channels.routes';
+import { postRoutes } from './http/routes/posts.routes';
 import { socialAuthRoutes } from './http/routes/social-auth.routes';
 
 const env = loadEnv();
@@ -20,7 +22,10 @@ if (env.DB_MIGRATE === 'auto') {
   console.log(JSON.stringify({ level: 'info', msg: 'migrations aplicadas' }));
 }
 
-const ctn = buildContainer(env);
+const ctn = await buildContainer(env);
+if (env.MODE !== 'api') {
+  await ctn.runtime.startWorker(); // MODE=all|worker: consome a fila no mesmo processo
+}
 const app = new OpenAPIHono<AppEnv>();
 
 app.use('*', correlationId());
@@ -51,6 +56,8 @@ app.openapi(
 app.route('/v1/auth/social', socialAuthRoutes(ctn));
 app.route('/v1/auth', authRoutes(ctn));
 app.route('/v1/api-keys', apiKeyRoutes(ctn));
+app.route('/v1/channels', channelRoutes(ctn));
+app.route('/v1/posts', postRoutes(ctn));
 
 app.doc('/openapi.json', {
   openapi: '3.1.0',

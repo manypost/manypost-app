@@ -13,6 +13,6 @@
     "@manypost/core": "workspace:*",
     "@manypost/db": "workspace:*",
     "@manypost/providers": "workspace:*",
-    "pg-boss": "^10.3.0"
+    "@manypost/queue": "workspace:*"
   }
 }

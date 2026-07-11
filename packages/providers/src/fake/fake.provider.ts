@@ -65,7 +65,8 @@ export const fakeProvider: ChannelProvider = {
     if (settings.expireToken) throw { status: 401, body: '{"error":"token expired"}' };
     if (settings.rejectContent) throw { status: 422, body: '{"error":"content rejected"}' };
 
-    const key = token.accessToken;
+    // contador por token+conteúdo: falhas transitórias não vazam entre posts diferentes
+    const key = `${token.accessToken}:${items[0]?.content ?? ''}`;
     const n = (attempts.get(key) ?? 0) + 1;
     attempts.set(key, n);
     if (n <= settings.failFirstAttempts) throw { status: 500, body: '{"error":"flaky"}' };

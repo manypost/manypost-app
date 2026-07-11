@@ -21,6 +21,7 @@
         "@manypost/core": "workspace:*",
         "@manypost/db": "workspace:*",
         "@manypost/providers": "workspace:*",
+        "@manypost/queue": "workspace:*",
         "hono": "^4.7.0",
         "jose": "^6.0.0",
         "zod": "^3.25.0",
@@ -34,7 +35,7 @@
         "@manypost/core": "workspace:*",
         "@manypost/db": "workspace:*",
         "@manypost/providers": "workspace:*",
-        "pg-boss": "^10.3.0",
+        "@manypost/queue": "workspace:*",
       },
     },
     "packages/config": {
@@ -78,6 +79,16 @@
       "dependencies": {
         "@manypost/contracts": "workspace:*",
         "zod": "^3.25.0",
+      },
+    },
+    "packages/queue": {
+      "name": "@manypost/queue",
+      "version": "0.0.1",
+      "dependencies": {
+        "@manypost/contracts": "workspace:*",
+        "@manypost/core": "workspace:*",
+        "pg-boss": "^10.3.0",
+        "postgres": "^3.4.0",
       },
     },
   },
@@ -157,6 +168,8 @@
     "@manypost/db": ["@manypost/db@workspace:packages/db"],
 
     "@manypost/providers": ["@manypost/providers@workspace:packages/providers"],
+
+    "@manypost/queue": ["@manypost/queue@workspace:packages/queue"],
 
     "@manypost/worker": ["@manypost/worker@workspace:apps/worker"],
 

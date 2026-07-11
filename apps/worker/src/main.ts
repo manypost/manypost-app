@@ -1,20 +1,33 @@
-import PgBoss from 'pg-boss';
 import { loadEnv } from '@manypost/config';
+import {
+  createDb,
+  makeChannelRepository,
+  makePublishingRepository,
+  runMigrations,
+} from '@manypost/db';
+import { AesGcmCryptoService } from '@manypost/core';
+import { providerRegistry } from '@manypost/providers';
+import { createPublishingRuntime } from '@manypost/queue';
+import { fileURLToPath } from 'node:url';
 
-/**
- * Worker pg-boss (SPEC_QUEUE_PUBLISHING).
- * Fase 1: handlers/publish (pipeline + state machine + rate-limit Redis),
- * handlers/refresh-token, handlers/recover-scan (cron 5min), handlers/webhook-delivery.
- */
+/** Worker dedicado (MODE=worker em escala; no self-host pequeno a api MODE=all já consome a fila). */
 const env = loadEnv();
-const boss = new PgBoss({ connectionString: env.DATABASE_URL });
 
-boss.on('error', (err) => console.error(JSON.stringify({ level: 'error', msg: 'pg-boss', err: String(err) })));
+if (env.DB_MIGRATE === 'auto') {
+  await runMigrations(
+    env.DATABASE_URL,
+    fileURLToPath(new URL('../../../packages/db/migrations', import.meta.url)),
+  );
+}
 
-await boss.start();
-console.log(`manypost worker (MODE=${env.MODE}) conectado ao pg-boss`);
-
-// Exemplo de fiação (substituído pelos handlers reais na fase 1):
-await boss.work('publish', async ([job]) => {
-  console.log(JSON.stringify({ level: 'info', msg: 'publish job recebido', id: job?.id }));
+const db = createDb(env.DATABASE_URL);
+const runtime = await createPublishingRuntime({
+  databaseUrl: env.DATABASE_URL,
+  publishing: makePublishingRepository(db),
+  channels: makeChannelRepository(db),
+  registry: providerRegistry,
+  crypto: AesGcmCryptoService.fromHex(env.ENCRYPTION_KEY),
+  retryBaseSec: env.PUBLISH_RETRY_BASE_SEC,
 });
+await runtime.startWorker();
+console.log(JSON.stringify({ level: 'info', msg: 'manypost worker ativo' }));

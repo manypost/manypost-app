@@ -16,7 +16,8 @@
       "@manypost/core": ["./packages/core/src"],
       "@manypost/config": ["./packages/config/src"],
       "@manypost/db": ["./packages/db/src"],
-      "@manypost/providers": ["./packages/providers/src"]
+      "@manypost/providers": ["./packages/providers/src"],
+      "@manypost/queue": ["./packages/queue/src"]
     }
   }
 }

@@ -1,0 +1,14 @@
+{
+  "name": "@manypost/queue",
+  "version": "0.0.1",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@manypost/contracts": "workspace:*",
+    "@manypost/core": "workspace:*",
+    "pg-boss": "^10.3.0",
+    "postgres": "^3.4.0"
+  }
+}

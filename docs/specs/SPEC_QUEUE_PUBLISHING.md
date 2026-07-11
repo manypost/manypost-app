@@ -72,6 +72,7 @@ Transições são **UPDATEs condicionais** (`WHERE state = $expected`) — prote
 - `singletonKey = publicationId` no pg-boss: 1 job ativo por publicação, sempre. Re-agendar = `cancel` + novo enqueue (equivalente ao `TERMINATE_EXISTING` do Postiz).
 - **Chave de idempotência na rede**: antes de chamar o provider, o worker grava `attempt_id` na publication; se o worker morrer após publicar e antes de confirmar, a re-execução consulta `provider.findRecentPost?` (quando a rede permite) ou aplica janela de dedup por conteúdo-hash nas últimas 24h; se indeterminado, marca `NEEDS_REVIEW` em vez de repostar. (Dupla publicação é o pior failure mode do domínio — nunca repostar às cegas.)
 - Enqueue sempre dentro da transação que muda o estado (outbox nativo por a fila SER o Postgres).
+  > **Nota de implementação (fase 0):** o enqueue atual é pós-commit (a API pública do pg-boss v10 não expõe executor transacional); a linha da publication é a fonte de verdade e o scanner (§8) + fencing de estados garantem entrega sem duplicação — coberto por teste. Insert transacional direto na tabela do pg-boss fica como melhoria rastreada.
 
 ## 6. Rate-limit por conta e por rede
 

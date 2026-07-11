@@ -14,6 +14,8 @@ const EnvSchema = z
     REDIS_URL: z.string().min(1),
     /** auto = roda migrations no boot (advisory lock); off = útil em dev/smoke sem DB */
     DB_MIGRATE: z.enum(['auto', 'off']).default('auto'),
+    /** base do backoff exponencial de publicação (SPEC_QUEUE §7); e2e usa 1 */
+    PUBLISH_RETRY_BASE_SEC: z.coerce.number().min(0.001).default(30),
 
     JWT_SECRET: z.string().min(32, 'JWT_SECRET precisa de >= 32 chars'),
     ENCRYPTION_KEY: z
