@@ -3,6 +3,7 @@ import { DomainError } from '../../domain/shared/result';
 import type { PasswordHasher, TokenSigner } from '../ports/auth';
 import type {
   ApiKeyRepository,
+  AuthIdentityRepository,
   OrganizationRepository,
   SessionRepository,
   UserRepository,
@@ -83,7 +84,10 @@ export const makeRegister = (deps: AuthDeps) =>
       ownerId: user.id,
     });
     const tokens = await issueTokens(deps, user.id, input);
-    return { user: { id: user.id, email: user.email, name: user.name }, ...tokens };
+    return {
+      user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl },
+      ...tokens,
+    };
   };
 
 export const makeLogin = (deps: AuthDeps) =>
@@ -102,7 +106,10 @@ export const makeLogin = (deps: AuthDeps) =>
       throw new DomainError(ErrorCodes.AuthInvalidCredentials, 'credenciais inválidas');
     }
     const tokens = await issueTokens(deps, user.id, input);
-    return { user: { id: user.id, email: user.email, name: user.name }, ...tokens };
+    return {
+      user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl },
+      ...tokens,
+    };
   };
 
 export const makeRefreshSession = (deps: AuthDeps) =>
@@ -132,6 +139,80 @@ export const makeRefreshSession = (deps: AuthDeps) =>
       ACCESS_TTL_SEC,
     );
     return { accessToken, refreshToken: newRefresh };
+  };
+
+/** Perfil resolvido pelo adapter do provedor de identidade (Google/GitHub…). */
+export interface SocialProfile {
+  provider: string;
+  providerUserId: string;
+  email: string;
+  emailVerified: boolean;
+  name: string | null;
+  avatarUrl: string | null;
+}
+
+export const makeLoginWithIdentity = (deps: AuthDeps & { identities: AuthIdentityRepository }) =>
+  async (input: {
+    profile: SocialProfile;
+    userAgent?: string | undefined;
+    ip?: string | undefined;
+  }) => {
+    const { profile } = input;
+    const existing = await deps.identities.find(profile.provider, profile.providerUserId);
+    let userId: string;
+    let isNewUser = false;
+
+    if (existing) {
+      userId = existing.userId;
+    } else {
+      // vincular/criar conta por e-mail exige e-mail VERIFICADO no provedor
+      if (!profile.email || !profile.emailVerified) {
+        throw new DomainError(
+          ErrorCodes.AuthSocialEmailUnverified,
+          'o e-mail da conta social não é verificado — use e-mail e senha',
+        );
+      }
+      const email = normalizeEmail(profile.email);
+      const byEmail = await deps.users.findByEmail(email);
+      if (byEmail) {
+        // conta já existe (senha ou outro social) → vincula; a senha continua valendo
+        userId = byEmail.id;
+      } else {
+        const orgName = profile.name?.trim() || email.split('@')[0]!;
+        const user = await deps.users.create({
+          email,
+          passwordHash: null,
+          name: profile.name,
+          avatarUrl: profile.avatarUrl,
+        });
+        await deps.orgs.createWithOwner({
+          name: orgName,
+          slug: `${slugify(orgName)}-${randomToken(4).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6)}`,
+          ownerId: user.id,
+        });
+        userId = user.id;
+        isNewUser = true;
+      }
+      await deps.identities.link({
+        userId,
+        provider: profile.provider,
+        providerUserId: profile.providerUserId,
+        email,
+      });
+    }
+
+    // foto do social só preenche quando o usuário ainda não tem foto própria
+    if (profile.avatarUrl) {
+      await deps.users.updateAvatarIfEmpty(userId, profile.avatarUrl);
+    }
+
+    const tokens = await issueTokens(deps, userId, input);
+    const user = (await deps.users.findById(userId))!;
+    return {
+      user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl },
+      isNewUser,
+      ...tokens,
+    };
   };
 
 export const makeLogout = (deps: Pick<AuthDeps, 'sessions'>) =>

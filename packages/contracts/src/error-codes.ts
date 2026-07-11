@@ -20,6 +20,7 @@ export const ErrorCodes = {
   AuthEmailTaken: 'auth.email_taken',
   AuthSessionInvalid: 'auth.session_invalid',
   AuthUnauthorized: 'auth.unauthorized',
+  AuthSocialEmailUnverified: 'auth.social_email_unverified',
   // genéricos
   NotFound: 'common.not_found',
   Forbidden: 'common.forbidden',

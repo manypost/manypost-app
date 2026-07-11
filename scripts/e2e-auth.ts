@@ -3,6 +3,8 @@
  * Fluxo: register → me → refresh (rotação) → reuso detectado (família revogada)
  *        → login → API key (criar, usar, revogar).
  */
+export {}; // torna o arquivo um módulo (top-level await)
+
 const BASE = process.env.BASE_URL ?? 'http://localhost:3988';
 
 let failures = 0;
@@ -87,6 +89,16 @@ check(meAfterRevoke.status === 401, 'API key revogada → 401');
 // 7) sem credencial → 401
 const anon = await fetch(`${BASE}/v1/api-keys`);
 check(anon.status === 401, 'endpoint protegido sem credencial → 401');
+
+// 8) login social: catálogo responde (vazio sem env) e provider não configurado → 404
+const social = await fetch(`${BASE}/v1/auth/social`);
+check(social.status === 200, 'GET /v1/auth/social → 200');
+check(Array.isArray(((await social.json()) as any).providers), 'catálogo de provedores é lista');
+const socialOff = await fetch(`${BASE}/v1/auth/social/google`, { redirect: 'manual' });
+check(
+  socialOff.status === 404 || socialOff.status === 302,
+  `provider google → 302 (configurado) ou 404 (não configurado) — veio ${socialOff.status}`,
+);
 
 if (failures > 0) {
   console.error(`\nE2E auth: ${failures} falha(s)`);

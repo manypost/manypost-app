@@ -8,6 +8,7 @@ import { correlationId, type AppEnv } from './http/middleware/context';
 import { errorHandler } from './http/middleware/error';
 import { apiKeyRoutes } from './http/routes/api-keys.routes';
 import { authRoutes } from './http/routes/auth.routes';
+import { socialAuthRoutes } from './http/routes/social-auth.routes';
 
 const env = loadEnv();
 
@@ -47,6 +48,7 @@ app.openapi(
     }),
 );
 
+app.route('/v1/auth/social', socialAuthRoutes(ctn));
 app.route('/v1/auth', authRoutes(ctn));
 app.route('/v1/api-keys', apiKeyRoutes(ctn));
 

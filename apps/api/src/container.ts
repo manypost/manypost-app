@@ -2,6 +2,7 @@ import type { Env } from '@manypost/config';
 import {
   createDb,
   makeApiKeyRepository,
+  makeAuthIdentityRepository,
   makeOrganizationRepository,
   makeSessionRepository,
   makeUserRepository,
@@ -11,6 +12,7 @@ import {
   makeCreateApiKey,
   makeListApiKeys,
   makeLogin,
+  makeLoginWithIdentity,
   makeLogout,
   makeRefreshSession,
   makeRegister,
@@ -31,6 +33,7 @@ export function buildContainer(env: Env) {
     orgs: makeOrganizationRepository(db),
     sessions: makeSessionRepository(db),
     apiKeys: makeApiKeyRepository(db),
+    identities: makeAuthIdentityRepository(db),
   };
 
   const signer = makeJwtSigner(env.JWT_SECRET);
@@ -46,6 +49,7 @@ export function buildContainer(env: Env) {
     auth: {
       register: makeRegister(authDeps),
       login: makeLogin(authDeps),
+      loginWithIdentity: makeLoginWithIdentity({ ...authDeps, identities: repos.identities }),
       refresh: makeRefreshSession(authDeps),
       logout: makeLogout({ sessions: repos.sessions }),
       createApiKey: makeCreateApiKey({ apiKeys: repos.apiKeys }),

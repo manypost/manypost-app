@@ -17,7 +17,7 @@
 
 ```mermaid
 flowchart LR
-    L[Login/Registro] --> ONB[Onboarding: conectar 1º canal]
+    L[Login/Registro<br/>e-mail+senha e botões sociais<br/>via GET /v1/auth/social] --> ONB[Onboarding: conectar 1º canal]
     ONB --> CAL
     subgraph shell [Shell autenticado: sidebar + org switcher]
         CAL[Calendário]

@@ -1,9 +1,10 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import type { Context } from 'hono';
-import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
+import { deleteCookie, getCookie } from 'hono/cookie';
 import { ErrorCodes } from '@manypost/contracts';
-import { ACCESS_TTL_SEC, DomainError, REFRESH_TTL_SEC } from '@manypost/core';
+import { DomainError } from '@manypost/core';
 import type { Container } from '../../container';
+import { setAuthCookies } from '../cookies';
 import { ACCESS_COOKIE, REFRESH_COOKIE, requireAuth } from '../middleware/auth';
 import type { AppEnv } from '../middleware/context';
 
@@ -19,6 +20,7 @@ const UserOut = z.object({
   id: z.string(),
   email: z.string(),
   name: z.string().nullable(),
+  avatarUrl: z.string().nullable(),
 });
 const AuthOut = z.object({
   user: UserOut,
@@ -36,22 +38,8 @@ export function authRoutes(ctn: Container) {
   const app = new OpenAPIHono<AppEnv>();
   const secure = ctn.env.PUBLIC_URL.startsWith('https');
 
-  const setAuthCookies = (c: Context, accessToken: string, refreshToken: string) => {
-    setCookie(c, ACCESS_COOKIE, accessToken, {
-      httpOnly: true,
-      sameSite: 'Lax',
-      secure,
-      path: '/',
-      maxAge: ACCESS_TTL_SEC,
-    });
-    setCookie(c, REFRESH_COOKIE, refreshToken, {
-      httpOnly: true,
-      sameSite: 'Lax',
-      secure,
-      path: '/v1/auth',
-      maxAge: REFRESH_TTL_SEC,
-    });
-  };
+  const applyCookies = (c: Context, accessToken: string, refreshToken: string) =>
+    setAuthCookies(c, secure, accessToken, refreshToken);
 
   app.openapi(
     createRoute({
@@ -68,7 +56,7 @@ export function authRoutes(ctn: Container) {
     async (c) => {
       const body = c.req.valid('json');
       const out = await ctn.auth.register({ ...body, ...clientMeta(c) });
-      setAuthCookies(c, out.accessToken, out.refreshToken);
+      applyCookies(c, out.accessToken, out.refreshToken);
       return c.json(
         {
           user: out.user,
@@ -93,7 +81,7 @@ export function authRoutes(ctn: Container) {
     async (c) => {
       const body = c.req.valid('json');
       const out = await ctn.auth.login({ ...body, ...clientMeta(c) });
-      setAuthCookies(c, out.accessToken, out.refreshToken);
+      applyCookies(c, out.accessToken, out.refreshToken);
       return c.json(
         {
           user: out.user,
@@ -118,7 +106,7 @@ export function authRoutes(ctn: Container) {
 
   app.post('/refresh', async (c) => {
     const out = await ctn.auth.refresh({ refreshToken: await refreshTokenFrom(c) });
-    setAuthCookies(c, out.accessToken, out.refreshToken);
+    applyCookies(c, out.accessToken, out.refreshToken);
     return c.json(out, 200);
   });
 
@@ -141,7 +129,9 @@ export function authRoutes(ctn: Container) {
       kind: p.kind,
       orgId: p.orgId,
       role: p.role,
-      user: user ? { id: user.id, email: user.email, name: user.name } : null,
+      user: user
+        ? { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl }
+        : null,
     });
   });
 

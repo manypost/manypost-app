@@ -62,6 +62,30 @@ Todas as chaves vão no arquivo `.env` (ou nas variáveis de ambiente do seu ser
 
 ---
 
+## 1.5 Login social no manypost (Google e GitHub) — opcional, 15 minutos
+
+Isso NÃO é publicação — é deixar seus usuários **entrarem no manypost** com "Continuar com Google/GitHub" em vez de senha. Sem revisão nenhuma (escopos básicos de perfil não passam por verificação pesada).
+
+**Google:**
+1. No **https://console.cloud.google.com** (pode ser o mesmo projeto do YouTube, §5.1): **APIs & Services → OAuth consent screen** preenchido (nome, e-mail) — para login, os escopos `openid email profile` não exigem verificação.
+2. **Credentials → Create Credentials → OAuth client ID** → tipo **Web application** → em redirect URIs adicione `https://SEU_DOMINIO/v1/auth/social/google/callback` → copie Client ID e Secret.
+
+**GitHub:**
+1. **https://github.com/settings/developers** → **OAuth Apps** → **New OAuth App**.
+2. Preencha nome, homepage (`https://SEU_DOMINIO`) e **Authorization callback URL**: `https://SEU_DOMINIO/v1/auth/social/github/callback` → Register.
+3. Copie o **Client ID** e clique **Generate a new client secret**.
+
+No `.env`:
+
+```env
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+GITHUB_CLIENT_ID=...
+GITHUB_CLIENT_SECRET=...
+```
+
+Comportamento: se já existir conta com o mesmo e-mail (verificado no provedor), o login social é **vinculado** a ela — a senha continua funcionando. A foto do Google/GitHub vira a foto de perfil **apenas se o usuário ainda não tiver uma**.
+
 ## 2. Nível muito fácil (sem cadastro de app)
 
 ### 2.1 Mastodon — não precisa de nada

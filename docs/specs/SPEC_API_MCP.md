@@ -26,6 +26,7 @@ Uma única pilha de autorização: qualquer credencial resolve para um **Princip
 - **Access token JWT** (HS256→migração p/ EdDSA quando houver federação), 15 min, claims `{sub, org, role}`; cookie httpOnly `SameSite=Lax`.
 - **Refresh token** opaco, 30 dias, rotação a cada uso, hash no banco (`sessions`), detecção de reuso (roubo → revoga a família), logout revoga.
 - Troca de organização = novo access token (claim `org`).
+- **Login social (Google/GitHub)** — *paridade com o Postiz (providers de login), núcleo AGPL*: OAuth code flow com state anti-CSRF em cookie httpOnly single-use; identidades em `auth_identities` (N por usuário); vínculo automático a conta existente **somente com e-mail verificado no provedor** (`auth.social_email_unverified` caso contrário); avatar do provedor preenche `users.avatar_url` apenas quando vazio; habilitado por env (`GOOGLE_*`/`GITHUB_*` — ausente = botão não existe).
 
 ### Máquinas — API keys com escopos
 - Formato `mp_live_<prefix8><secret32>`; armazenada **só o hash** (sha256) + prefixo para lookup; exibida uma única vez.

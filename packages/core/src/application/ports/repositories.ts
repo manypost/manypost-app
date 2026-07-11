@@ -5,6 +5,7 @@ export interface UserRecord {
   email: string;
   passwordHash: string | null;
   name: string | null;
+  avatarUrl: string | null;
   timezone: string;
   locale: string;
 }
@@ -14,11 +15,24 @@ export interface UserRepository {
   findById(id: string): Promise<UserRecord | null>;
   create(data: {
     email: string;
-    passwordHash: string;
+    passwordHash: string | null; // null = conta apenas social
     name: string | null;
+    avatarUrl?: string | null;
     timezone?: string;
     locale?: string;
   }): Promise<UserRecord>;
+  /** usa a foto do provedor social apenas quando o usuário ainda não tem uma */
+  updateAvatarIfEmpty(userId: string, avatarUrl: string): Promise<void>;
+}
+
+export interface AuthIdentityRepository {
+  find(provider: string, providerUserId: string): Promise<{ userId: string } | null>;
+  link(data: {
+    userId: string;
+    provider: string;
+    providerUserId: string;
+    email: string | null;
+  }): Promise<void>;
 }
 
 export interface OrgRecord {

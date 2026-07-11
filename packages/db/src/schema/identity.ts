@@ -16,8 +16,9 @@ export const users = pgTable(
   {
     id: pk(),
     email: text('email').notNull(), // normalizado para lowercase na aplicação
-    passwordHash: text('password_hash'), // null quando SSO
+    passwordHash: text('password_hash'), // null quando a conta é só social
     name: text('name'),
+    avatarUrl: text('avatar_url'),
     timezone: text('timezone').notNull().default('UTC'), // IANA (ex.: America/Sao_Paulo)
     locale: text('locale').notNull().default('pt-BR'),
     ...timestamps,
@@ -53,6 +54,25 @@ export const memberships = pgTable(
   (t) => [
     uniqueIndex('memberships_org_user_ux').on(t.orgId, t.userId),
     index('memberships_user_ix').on(t.userId),
+  ],
+);
+
+/** Logins sociais vinculados (Google, GitHub…) — 1 usuário pode ter vários. */
+export const authIdentities = pgTable(
+  'auth_identities',
+  {
+    id: pk(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    provider: text('provider').notNull(), // 'google' | 'github' | ...
+    providerUserId: text('provider_user_id').notNull(),
+    email: text('email'),
+    ...timestamps,
+  },
+  (t) => [
+    uniqueIndex('auth_identities_provider_ux').on(t.provider, t.providerUserId),
+    index('auth_identities_user_ix').on(t.userId),
   ],
 );
 

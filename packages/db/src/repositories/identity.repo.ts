@@ -1,12 +1,13 @@
 import { and, desc, eq, isNull, or } from 'drizzle-orm';
 import type {
   ApiKeyRepository,
+  AuthIdentityRepository,
   OrganizationRepository,
   SessionRepository,
   UserRepository,
 } from '@manypost/core';
 import type { Db } from '../index';
-import { apiKeys, memberships, organizations, sessions, users } from '../schema';
+import { apiKeys, authIdentities, memberships, organizations, sessions, users } from '../schema';
 
 export function makeUserRepository(db: Db): UserRepository {
   return {
@@ -25,11 +26,39 @@ export function makeUserRepository(db: Db): UserRepository {
           email: data.email,
           passwordHash: data.passwordHash,
           name: data.name,
+          avatarUrl: data.avatarUrl ?? null,
           ...(data.timezone ? { timezone: data.timezone } : {}),
           ...(data.locale ? { locale: data.locale } : {}),
         })
         .returning();
       return row!;
+    },
+    async updateAvatarIfEmpty(userId, avatarUrl) {
+      await db
+        .update(users)
+        .set({ avatarUrl })
+        .where(and(eq(users.id, userId), isNull(users.avatarUrl)));
+    },
+  };
+}
+
+export function makeAuthIdentityRepository(db: Db): AuthIdentityRepository {
+  return {
+    async find(provider, providerUserId) {
+      const [row] = await db
+        .select({ userId: authIdentities.userId })
+        .from(authIdentities)
+        .where(
+          and(
+            eq(authIdentities.provider, provider),
+            eq(authIdentities.providerUserId, providerUserId),
+          ),
+        )
+        .limit(1);
+      return row ?? null;
+    },
+    async link(data) {
+      await db.insert(authIdentities).values(data).onConflictDoNothing();
     },
   };
 }

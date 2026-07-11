@@ -10,11 +10,13 @@ import {
   makeCreateApiKey,
   makeListApiKeys,
   makeLogin,
+  makeLoginWithIdentity,
   makeLogout,
   makeRefreshSession,
   makeRegister,
   makeRevokeApiKey,
   makeVerifyApiKey,
+  type SocialProfile,
 } from './auth';
 
 // ---------- fakes em memória ----------
@@ -24,6 +26,7 @@ function makeFakes() {
   const orgs: (OrgRecord & { members: { userId: string; role: MemberRole }[] })[] = [];
   const sessions: (SessionRecord & { refreshTokenHash: string; prevTokenHash: string | null })[] = [];
   const keys: (ApiKeyRecord & { keyHash: string })[] = [];
+  const identities: { userId: string; provider: string; providerUserId: string; email: string | null }[] = [];
   let seq = 0;
   const id = () => `id-${++seq}`;
 
@@ -32,9 +35,20 @@ function makeFakes() {
       findByEmail: async (email: string) => users.find((u) => u.email === email) ?? null,
       findById: async (uid: string) => users.find((u) => u.id === uid) ?? null,
       create: async (d: any) => {
-        const u = { id: id(), timezone: 'UTC', locale: 'pt-BR', name: null, ...d, _n: seq };
+        const u = { id: id(), timezone: 'UTC', locale: 'pt-BR', name: null, avatarUrl: null, ...d, _n: seq };
         users.push(u);
         return u;
+      },
+      updateAvatarIfEmpty: async (uid: string, url: string) => {
+        const u = users.find((x) => x.id === uid);
+        if (u && !u.avatarUrl) u.avatarUrl = url;
+      },
+    },
+    identities: {
+      find: async (provider: string, providerUserId: string) =>
+        identities.find((i) => i.provider === provider && i.providerUserId === providerUserId) ?? null,
+      link: async (d: any) => {
+        identities.push(d);
       },
     },
     orgs: {
@@ -99,7 +113,7 @@ function makeFakes() {
       sign: async (claims: any) => `jwt(${claims.sub}:${claims.org}:${claims.role})`,
       verify: async () => null,
     },
-    _state: { users, orgs, sessions, keys },
+    _state: { users, orgs, sessions, keys, identities },
   };
   return deps;
 }
@@ -171,6 +185,58 @@ describe('refresh com rotação e detecção de reuso', () => {
     await expect(makeRefreshSession(f as any)({ refreshToken })).rejects.toMatchObject({
       code: 'auth.session_invalid',
     });
+  });
+});
+
+describe('login social (Google/GitHub)', () => {
+  const profile = (over: Partial<SocialProfile> = {}): SocialProfile => ({
+    provider: 'google',
+    providerUserId: 'g-123',
+    email: 'ana@gmail.com',
+    emailVerified: true,
+    name: 'Ana Social',
+    avatarUrl: 'https://foto/ana.png',
+    ...over,
+  });
+
+  test('primeiro login cria user com FOTO do social + org OWNER + identidade', async () => {
+    const out = await makeLoginWithIdentity(f as any)({ profile: profile() });
+    expect(out.isNewUser).toBe(true);
+    expect(out.user.avatarUrl).toBe('https://foto/ana.png');
+    expect(out.org.role).toBe('OWNER');
+    expect(f._state.identities).toHaveLength(1);
+  });
+
+  test('segundo login NÃO duplica conta nem org', async () => {
+    await makeLoginWithIdentity(f as any)({ profile: profile() });
+    const out = await makeLoginWithIdentity(f as any)({ profile: profile() });
+    expect(out.isNewUser).toBe(false);
+    expect(f._state.users).toHaveLength(1);
+    expect(f._state.orgs).toHaveLength(1);
+  });
+
+  test('vincula a conta existente pelo e-mail VERIFICADO (senha continua valendo)', async () => {
+    await makeRegister(f as any)({ email: 'ana@gmail.com', password: 'senha-forte-12', name: 'Ana' });
+    const out = await makeLoginWithIdentity(f as any)({ profile: profile() });
+    expect(out.isNewUser).toBe(false);
+    expect(f._state.users).toHaveLength(1);
+    expect(f._state.identities).toHaveLength(1);
+    // login por senha segue funcionando
+    const pw = await makeLogin(f as any)({ email: 'ana@gmail.com', password: 'senha-forte-12' });
+    expect(pw.user.email).toBe('ana@gmail.com');
+  });
+
+  test('e-mail NÃO verificado no provedor é recusado', async () => {
+    await expect(
+      makeLoginWithIdentity(f as any)({ profile: profile({ emailVerified: false }) }),
+    ).rejects.toMatchObject({ code: 'auth.social_email_unverified' });
+  });
+
+  test('foto do social só preenche avatar VAZIO — nunca sobrescreve', async () => {
+    await makeRegister(f as any)({ email: 'ana@gmail.com', password: 'senha-forte-12', name: 'Ana' });
+    f._state.users[0]!.avatarUrl = 'https://minha-foto-escolhida.png';
+    const out = await makeLoginWithIdentity(f as any)({ profile: profile() });
+    expect(out.user.avatarUrl).toBe('https://minha-foto-escolhida.png');
   });
 });
 
