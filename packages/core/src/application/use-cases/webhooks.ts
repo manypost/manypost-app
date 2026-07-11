@@ -24,17 +24,17 @@ const sanitize = (w: WebhookRecord) => ({
 });
 
 /** Bloqueia URLs que resolvem para IP privado (anti-SSRF — SPEC_API_MCP §3). */
-export async function assertPublicUrl(rawUrl: string, allowPrivate = false) {
+export async function assertPublicUrl(rawUrl: string, allowPrivate = false, what = 'webhook') {
   const url = new URL(rawUrl);
   if (url.protocol !== 'https:' && url.protocol !== 'http:') {
-    throw new DomainError(ErrorCodes.PostInvalidSettings, 'URL de webhook deve ser http(s)');
+    throw new DomainError(ErrorCodes.PostInvalidSettings, `URL de ${what} deve ser http(s)`);
   }
   if (allowPrivate) return;
   const addrs = await lookup(url.hostname, { all: true }).catch(() => []);
   const isPrivate = (ip: string) =>
     /^(10\.|127\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|0\.|::1|f[cd]|fe80)/i.test(ip);
   if (addrs.length === 0 || addrs.some((a) => isPrivate(a.address))) {
-    throw new DomainError(ErrorCodes.PostInvalidSettings, 'URL de webhook não permitida (rede privada)');
+    throw new DomainError(ErrorCodes.PostInvalidSettings, `URL de ${what} não permitida (rede privada)`);
   }
 }
 

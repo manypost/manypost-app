@@ -82,6 +82,89 @@ describe('mastodon provider', () => {
     expect(bodies[1].in_reply_to_id).toBe('s1');
   });
 
+  test('publish com mídia: baixa do storage, sobe em /api/v2/media e anexa media_ids', async () => {
+    const bodies: any[] = [];
+    const uploaded: RequestInit[] = [];
+    const { ctx } = mockCtx({
+      'https://mp/uploads/': () => new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47])),
+      '/api/v2/media': (init) => {
+        uploaded.push(init!);
+        return { id: `att-${uploaded.length}` };
+      },
+      '/api/v1/statuses': (init) => {
+        bodies.push(JSON.parse(String(init?.body)));
+        return { id: 's1', url: 'https://m/@ana/s1' };
+      },
+    });
+    await p.publish(
+      ctx,
+      { accessToken: 'tok', scopes: [] },
+      [
+        {
+          content: 'post com fotos',
+          media: [
+            { type: 'image', url: 'https://mp/uploads/org/a.png', mime: 'image/png', alt: 'foto A' },
+            { type: 'image', url: 'https://mp/uploads/org/b.png', mime: 'image/png' },
+          ],
+        },
+      ],
+      { instance: 'https://mastodon.social' },
+    );
+    expect(uploaded).toHaveLength(2);
+    expect(uploaded[0]!.body).toBeInstanceOf(FormData);
+    expect((uploaded[0]!.body as FormData).get('description')).toBe('foto A');
+    expect(bodies[0].media_ids).toEqual(['att-1', 'att-2']);
+  });
+
+  test('202 no upload → poll até 200 antes de postar (processamento assíncrono)', async () => {
+    let polls = 0;
+    const { ctx } = mockCtx({
+      'https://mp/uploads/': () => new Response(new Uint8Array([0, 0, 0, 0x10])),
+      '/api/v2/media': () => new Response(JSON.stringify({ id: 'att-9' }), { status: 202 }),
+      '/api/v1/media/att-9': () => {
+        polls++;
+        return new Response(polls < 2 ? '' : '{"id":"att-9"}', { status: polls < 2 ? 206 : 200 });
+      },
+      '/api/v1/statuses': () => ({ id: 's1', url: 'https://m/s1' }),
+    });
+    const res = await p.publish(
+      ctx,
+      { accessToken: 'tok', scopes: [] },
+      [{ content: 'vídeo', media: [{ type: 'video', url: 'https://mp/uploads/org/v.mp4' }] }],
+      { instance: 'https://mastodon.social' },
+    );
+    expect(polls).toBe(2);
+    expect(res[0]!.externalId).toBe('s1');
+  }, 10_000);
+
+  test('validateMedia: 4 imagens ok; 5 imagens, mistura e MIME errado são recusados', async () => {
+    const img = (n: number) =>
+      Array.from({ length: n }, (_, i) => ({
+        type: 'image' as const,
+        url: `https://u/${i}.png`,
+        mime: 'image/png',
+      }));
+    expect((await p.validateMedia([{ content: 'x', media: img(4) }])).ok).toBe(true);
+    expect((await p.validateMedia([{ content: 'x', media: img(5) }])).ok).toBe(false);
+    expect(
+      (
+        await p.validateMedia([
+          {
+            content: 'x',
+            media: [...img(1), { type: 'video', url: 'https://u/v.mp4', mime: 'video/mp4' }],
+          },
+        ])
+      ).ok,
+    ).toBe(false);
+    expect(
+      (
+        await p.validateMedia([
+          { content: 'x', media: [{ type: 'image', url: 'https://u/a.tiff', mime: 'image/tiff' }] },
+        ])
+      ).ok,
+    ).toBe(false);
+  });
+
   test('canal sem instância → erro permanente; classifyError cobre 401/429/422', async () => {
     const { ctx } = mockCtx({});
     await expect(

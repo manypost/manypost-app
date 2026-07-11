@@ -1,9 +1,16 @@
 import type {
   ChannelStatus,
   GroupState,
+  MediaRef,
   PostOrigin,
   PublicationState,
 } from '@manypost/contracts';
+
+/** Documento de conteúdo persistido em post_groups.base_content e publications.content. */
+export interface PostContent {
+  text: string;
+  media?: MediaRef[];
+}
 
 export interface ChannelRecord {
   id: string;
@@ -48,7 +55,7 @@ export interface PublicationView {
   channelId: string;
   state: PublicationState;
   publishAt: Date | null;
-  content: { text: string };
+  content: PostContent;
   settings: unknown;
   attemptCount: number;
   /** versão do agendamento: jobs antigos (edit/cancel) são descartados pelo handler */
@@ -74,11 +81,11 @@ export interface PublishingRepository {
   createGroup(d: {
     orgId: string;
     authorId: string | null;
-    baseContent: { text: string };
+    baseContent: PostContent;
     publishAt: Date;
     timezone: string;
     origin: PostOrigin;
-    publications: Array<{ channelId: string; content: { text: string }; settings: unknown }>;
+    publications: Array<{ channelId: string; content: PostContent; settings: unknown }>;
   }): Promise<{ groupId: string; publications: Array<{ id: string; channelId: string }> }>;
   getGroup(
     orgId: string,
@@ -103,11 +110,12 @@ export interface PublishingRepository {
   /** SCHEDULED com publish_at vencido (scanner §8) */
   listDue(before: Date, limit: number): Promise<Array<{ id: string; jobVersion: number }>>;
   /** edita conteúdo/horário das publicações ainda pendentes (SCHEDULED/RETRYING):
-   *  volta a SCHEDULED, zera tentativas e incrementa job_version (jobs antigos morrem) */
+   *  volta a SCHEDULED, zera tentativas e incrementa job_version (jobs antigos morrem).
+   *  baseContent é MERGE (jsonb ||): editar só o texto preserva a mídia anexada */
   rescheduleGroup(
     orgId: string,
     groupId: string,
-    d: { baseContent?: { text: string }; publishAt?: Date },
+    d: { baseContent?: Partial<PostContent>; publishAt?: Date },
   ): Promise<Array<{ id: string; channelId: string; jobVersion: number; publishAt: Date }>>;
   /** RETRYING/TOKEN_REFRESH/PUBLISHING parados há muito tempo (watchdog §8) */
   listStuck(updatedBefore: Date, limit: number): Promise<Array<{ id: string; state: PublicationState }>>;

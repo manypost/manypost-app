@@ -7,6 +7,7 @@ export { uuidv7 } from './uuid';
 export { runMigrations } from './migrate';
 export * from './repositories/identity.repo';
 export * from './repositories/channels.repo';
+export * from './repositories/media.repo';
 export * from './repositories/publishing.repo';
 export * from './repositories/webhooks.repo';
 

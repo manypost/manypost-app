@@ -13,7 +13,7 @@ const toView = (row: typeof publications.$inferSelect): PublicationView => ({
   channelId: row.channelId,
   state: row.state,
   publishAt: row.publishAt,
-  content: row.content as { text: string },
+  content: row.content as PublicationView['content'],
   settings: row.settings,
   attemptCount: row.attemptCount,
   jobVersion: row.jobVersion,
@@ -57,7 +57,8 @@ export function makePublishingRepository(db: Db): PublishingRepository {
           await tx.insert(publicationItems).values({
             publicationId: pub!.id,
             position: 0,
-            content: p.content,
+            content: { text: p.content.text },
+            media: p.content.media ?? [],
           });
           created.push({ id: pub!.id, channelId: p.channelId });
         }
@@ -161,11 +162,15 @@ export function makePublishingRepository(db: Db): PublishingRepository {
     },
 
     async rescheduleGroup(orgId, groupId, d) {
+      // merge jsonb (||): editar só o texto preserva a mídia anexada, e vice-versa
+      const contentPatch = d.baseContent ? JSON.stringify(d.baseContent) : null;
       return db.transaction(async (tx) => {
         await tx
           .update(postGroups)
           .set({
-            ...(d.baseContent ? { baseContent: d.baseContent } : {}),
+            ...(contentPatch
+              ? { baseContent: sql`${postGroups.baseContent} || ${contentPatch}::jsonb` }
+              : {}),
             ...(d.publishAt ? { publishAt: d.publishAt } : {}),
             state: 'SCHEDULED',
           })
@@ -178,7 +183,9 @@ export function makePublishingRepository(db: Db): PublishingRepository {
             jobVersion: sql`${publications.jobVersion} + 1`,
             errorClass: null,
             errorMessage: null,
-            ...(d.baseContent ? { content: d.baseContent } : {}),
+            ...(contentPatch
+              ? { content: sql`${publications.content} || ${contentPatch}::jsonb` }
+              : {}),
             ...(d.publishAt ? { publishAt: d.publishAt } : {}),
           })
           .where(

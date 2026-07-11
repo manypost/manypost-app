@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { ChannelProvider, ProviderContext, PublishItem, TokenSet } from '@manypost/contracts';
+import { checkMediaRules } from '../shared/media-rules';
 
 /**
  * Provider fake para dev e E2E (SPEC_ROADMAP fase 0): simula uma rede social em memória.
@@ -78,8 +79,7 @@ export const fakeProvider: ChannelProvider = {
   },
 
   async validateMedia(items) {
-    const tooMany = items.some((i) => i.media.filter((m) => m.type === 'image').length > 4);
-    return tooMany ? { ok: false, reason: 'máximo de 4 imagens' } : { ok: true };
+    return checkMediaRules(items, fakeProvider.capabilities.media);
   },
 
   classifyError(status) {

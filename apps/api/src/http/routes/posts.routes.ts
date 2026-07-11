@@ -11,6 +11,7 @@ const ScheduleBody = z.object({
   publishAt: z.string().datetime(),
   timezone: z.string().default('UTC'),
   settingsByChannel: z.record(z.unknown()).optional(),
+  mediaIds: z.array(z.string().uuid()).max(10).optional(),
 });
 
 const serializeGroup = (g: NonNullable<Awaited<ReturnType<Container['posts']['getGroup']>>>) => ({
@@ -21,6 +22,7 @@ const serializeGroup = (g: NonNullable<Awaited<ReturnType<Container['posts']['ge
     id: p.id,
     channelId: p.channelId,
     state: p.state,
+    media: p.content.media ?? [],
     attemptCount: p.attemptCount,
     externalId: p.externalId,
     releaseUrl: p.releaseUrl,
@@ -45,6 +47,7 @@ export function postRoutes(ctn: Container) {
       timezone: body.timezone,
       origin: p.kind === 'api_key' ? 'API' : 'WEB',
       ...(body.settingsByChannel ? { settingsByChannel: body.settingsByChannel } : {}),
+      ...(body.mediaIds ? { mediaIds: body.mediaIds } : {}),
     });
     return c.json(serializeGroup(group!), 201);
   });

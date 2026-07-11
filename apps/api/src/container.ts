@@ -4,6 +4,7 @@ import {
   makeApiKeyRepository,
   makeAuthIdentityRepository,
   makeChannelRepository,
+  makeMediaRepository,
   makeOrganizationRepository,
   makePublishingRepository,
   makeSessionRepository,
@@ -16,10 +17,13 @@ import {
   makeConnectChannel,
   makeCreateApiKey,
   makeCreateWebhook,
+  makeDeleteMedia,
   makeDeleteWebhook,
   makeDisconnectChannel,
+  makeIngestMediaFromUrl,
   makeListApiKeys,
   makeListChannels,
+  makeListMedia,
   makeListWebhooks,
   makeLogin,
   makeLoginWithIdentity,
@@ -29,12 +33,15 @@ import {
   makeReschedulePost,
   makeRevokeApiKey,
   makeSchedulePost,
+  makeSetMediaAlt,
+  makeUploadMedia,
   makeVerifyApiKey,
 } from '@manypost/core';
 import { providerRegistry } from '@manypost/providers';
 import { createPublishingRuntime } from '@manypost/queue';
 import { bunPasswordHasher } from './infra/auth/password.hasher';
 import { makeJwtSigner } from './infra/auth/token.signer';
+import { makeLocalMediaStorage } from './infra/storage/local.storage';
 
 export type Container = Awaited<ReturnType<typeof buildContainer>>;
 
@@ -51,7 +58,18 @@ export async function buildContainer(env: Env) {
     channels: makeChannelRepository(db),
     publishing: makePublishingRepository(db),
     webhooks: makeWebhookRepository(db),
+    media: makeMediaRepository(db),
   };
+
+  if (env.STORAGE_PROVIDER !== 'local') {
+    throw new Error('STORAGE_PROVIDER=s3 ainda não implementado — use local (S3/R2 vem com a onda 2)');
+  }
+  const storage = makeLocalMediaStorage({ dir: env.UPLOAD_DIR, publicBaseUrl: env.PUBLIC_URL });
+  const mediaLimits = {
+    imageMaxBytes: env.MEDIA_MAX_IMAGE_MB * 1024 * 1024,
+    videoMaxBytes: env.MEDIA_MAX_VIDEO_MB * 1024 * 1024,
+  };
+  const mediaDeps = { media: repos.media, storage, limits: mediaLimits };
 
   const signer = makeJwtSigner(env.JWT_SECRET);
   const crypto = AesGcmCryptoService.fromHex(env.ENCRYPTION_KEY);
@@ -75,8 +93,19 @@ export async function buildContainer(env: Env) {
     repos,
     signer,
     crypto,
+    storage,
     registry: providerRegistry,
     runtime,
+    media: {
+      upload: makeUploadMedia(mediaDeps),
+      fromUrl: makeIngestMediaFromUrl({
+        ...mediaDeps,
+        allowPrivateUrls: env.MEDIA_ALLOW_PRIVATE_URLS,
+      }),
+      list: makeListMedia(mediaDeps),
+      setAlt: makeSetMediaAlt(mediaDeps),
+      remove: makeDeleteMedia(mediaDeps),
+    },
     channels: {
       connect: makeConnectChannel({ channels: repos.channels, crypto }),
       list: makeListChannels({ channels: repos.channels }),
@@ -88,6 +117,8 @@ export async function buildContainer(env: Env) {
         publishing: repos.publishing,
         registry: providerRegistry,
         scheduler: runtime.scheduler,
+        media: repos.media,
+        storage,
       }),
       getGroup: (orgId: string, groupId: string) => repos.publishing.getGroup(orgId, groupId),
       cancel: makeCancelPost({ publishing: repos.publishing, scheduler: runtime.scheduler }),

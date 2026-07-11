@@ -35,6 +35,13 @@ const EnvSchema = z
 
     STORAGE_PROVIDER: z.enum(['local', 's3']).default('local'),
     UPLOAD_DIR: z.string().default('./uploads'),
+    MEDIA_MAX_IMAGE_MB: z.coerce.number().min(1).default(10),
+    MEDIA_MAX_VIDEO_MB: z.coerce.number().min(1).default(200),
+    /** permite /media/from-url apontar p/ rede privada (apenas dev/e2e — anti-SSRF desligado) */
+    MEDIA_ALLOW_PRIVATE_URLS: z
+      .string()
+      .default('false')
+      .transform((v) => v === 'true'),
 
     // IA agnóstica de provedor (SPEC_AI §2 / DECISIONS §8)
     AI_PROVIDER: z.enum(['none', 'openai-compatible', 'anthropic']).default('none'),

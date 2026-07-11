@@ -17,6 +17,7 @@ const crypto = AesGcmCryptoService.fromHex('b'.repeat(64));
 // ------- provider fake controlável -------
 function makeProvider(behavior: { failFirst?: number; expireToken?: boolean; reject?: boolean }) {
   let calls = 0;
+  let lastItems: any[] = [];
   const provider: ChannelProvider = {
     id: 'fake',
     name: 'Fake',
@@ -48,15 +49,18 @@ function makeProvider(behavior: { failFirst?: number; expireToken?: boolean; rej
       behavior.expireToken = false; // token novo passa a valer
       return { accessToken: 'tok-2', scopes: [] };
     },
-    async publish() {
+    async publish(_ctx, _token, items) {
       calls++;
+      lastItems = items;
       if (behavior.expireToken) throw { status: 401, body: 'expired' };
       if (behavior.reject) throw { status: 422, body: 'rejected' };
       if (behavior.failFirst && calls <= behavior.failFirst) throw { status: 500, body: 'flaky' };
       return [{ externalId: `ext-post-${calls}`, releaseUrl: 'https://fake/p/1' }];
     },
-    async validateMedia() {
-      return { ok: true as const };
+    async validateMedia(items) {
+      return items.some((i) => i.media.length > 4)
+        ? { ok: false as const, reason: 'máximo de 4 mídias' }
+        : { ok: true as const };
     },
     classifyError(status) {
       if (status === 401) return 'refresh-token';
@@ -64,7 +68,7 @@ function makeProvider(behavior: { failFirst?: number; expireToken?: boolean; rej
       return 'permanent';
     },
   };
-  return { provider, callCount: () => calls };
+  return { provider, callCount: () => calls, lastItems: () => lastItems };
 }
 
 // ------- fakes de repositório -------
@@ -76,6 +80,7 @@ function makeFakes(provider: ChannelProvider) {
   const pubs: (PublicationView & { attemptId?: string })[] = [];
   const events: { pubId: string; from: string | null; to: string }[] = [];
   const jobs: { queue: string; payload: any; opts: any }[] = [];
+  const mediaRecords: any[] = [];
 
   const deps = {
     crypto,
@@ -199,7 +204,23 @@ function makeFakes(provider: ChannelProvider) {
           g.state = 'PARTIAL';
       },
     },
-    _state: { channels, pubs, events, jobs, groups },
+    media: {
+      create: async () => {
+        throw new Error('não usado aqui');
+      },
+      list: async () => mediaRecords,
+      findMany: async (orgId: string, ids: string[]) =>
+        mediaRecords.filter((m) => m.orgId === orgId && ids.includes(m.id)),
+      setAlt: async () => true,
+      softDelete: async () => true,
+    },
+    storage: {
+      put: async () => {},
+      read: async () => null,
+      delete: async () => {},
+      publicUrl: (key: string) => `https://mp.test/uploads/${key}`,
+    },
+    _state: { channels, pubs, events, jobs, groups, mediaRecords },
   };
   return deps;
 }
@@ -274,6 +295,63 @@ describe('schedulePost', () => {
   test('canal desativado é recusado', async () => {
     await f.channels.setStatus(f._state.channels[0]!.id, 'DISABLED');
     await expect(schedule()).rejects.toMatchObject({ code: 'channel.disabled' });
+  });
+});
+
+describe('schedulePost com mídia', () => {
+  beforeEach(async () => {
+    await connect(f, prov.provider);
+    f._state.mediaRecords.push({
+      id: 'm-1',
+      orgId: 'org-1',
+      path: 'org-1/aaa.png',
+      mime: 'image/png',
+      alt: 'um logo',
+    });
+  });
+
+  test('resolve refs da biblioteca (URL pública + MIME real) e grava no content', async () => {
+    const group = await schedule({ mediaIds: ['m-1'] });
+    const content = f._state.pubs[0]!.content as any;
+    expect(content.media).toEqual([
+      {
+        mediaId: 'm-1',
+        type: 'image',
+        url: 'https://mp.test/uploads/org-1/aaa.png',
+        mime: 'image/png',
+        alt: 'um logo',
+      },
+    ]);
+    expect(group!.publications[0]!.state).toBe('SCHEDULED');
+  });
+
+  test('mídia inexistente ou de outra org → not_found', async () => {
+    await expect(schedule({ mediaIds: ['m-alheia'] })).rejects.toMatchObject({
+      code: 'common.not_found',
+    });
+  });
+
+  test('provider recusa (validateMedia) → post.invalid_media', async () => {
+    for (let i = 2; i <= 5; i++) {
+      f._state.mediaRecords.push({
+        id: `m-${i}`,
+        orgId: 'org-1',
+        path: `org-1/m${i}.png`,
+        mime: 'image/png',
+        alt: null,
+      });
+    }
+    await expect(
+      schedule({ mediaIds: ['m-1', 'm-2', 'm-3', 'm-4', 'm-5'] }),
+    ).rejects.toMatchObject({ code: 'post.invalid_media' });
+  });
+
+  test('worker entrega a mídia ao provider no publish', async () => {
+    const group = await schedule({ mediaIds: ['m-1'] });
+    await publish(group!.publications[0]!.id);
+    expect(f._state.pubs[0]!.state).toBe('PUBLISHED');
+    expect(prov.lastItems()[0].media).toHaveLength(1);
+    expect(prov.lastItems()[0].media[0].url).toBe('https://mp.test/uploads/org-1/aaa.png');
   });
 });
 

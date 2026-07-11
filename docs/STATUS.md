@@ -2,7 +2,7 @@
 
 > **Para o agente de IA que pegar este projeto:** leia este arquivo + `CLAUDE.md` (raiz) antes de qualquer coisa. Ele diz o que JÁ FUNCIONA (com prova), o que falta (com referência à spec de cada item) e onde tirar dúvidas. Atualize este arquivo ao fim de cada fatia entregue.
 >
-> **Última atualização:** 2026-07-11 · branch `main` · último commit da série fase 0/1.
+> **Última atualização:** 2026-07-11 (fatia de mídia) · branch `main`.
 
 ## 1. O que é o projeto (30 segundos)
 
@@ -29,9 +29,10 @@ Cada item abaixo tem testes unitários e/ou E2E reais (Postgres 17 + Redis + wor
 | **Cancelar/editar** | Cancel → CANCELLED (job antigo morre por versão); PATCH texto/horário → re-agenda com versão nova (equivalente ao TERMINATE_EXISTING do Postiz) | SPEC_QUEUE §5 | `makeCancelPost`/`makeReschedulePost` |
 | **Webhooks de saída** | CRUD `/v1/webhooks`, secret `whsec_` cifrado (mostrado 1x), entrega assinada HMAC (`x-manypost-signature: t=..,v1=..`), retries 1m→6h (5x), anti-SSRF por DNS | SPEC_API_MCP §4 | `use-cases/webhooks.ts` |
 | **Eventos emitidos** | `post.published`, `post.failed`, `channel.refresh_required` | contracts `events.ts` | dentro de `publishPublication` |
-| **Providers** | **Mastodon (real!)**: registro dinâmico de app por instância, OAuth, publish com thread via `in_reply_to_id`, idempotency-key nativo. **Fake**: simula sucesso/transient/401/rejeição p/ dev e E2E | SPEC_INTEGRATIONS | `packages/providers/src/{mastodon,fake}` |
+| **Providers** | **Mastodon (real!)**: registro dinâmico de app por instância, OAuth, publish com thread via `in_reply_to_id`, idempotency-key nativo, **mídia via `/api/v2/media`** (202 → poll até processar, `media_ids` no status, `description`=alt). **Fake**: simula sucesso/transient/401/rejeição p/ dev e E2E | SPEC_INTEGRATIONS | `packages/providers/src/{mastodon,fake}` |
+| **Mídia** ⭐ | Upload multipart (`POST /v1/media/upload`) com **MIME real por magic bytes** (JPEG/PNG/GIF/WebP/MP4/MOV/WebM, nunca confia no cliente) + dimensões de imagem lidas do header; `POST /v1/media/from-url` (anti-SSRF com re-validação por salto de redirect + teto de bytes no streaming); `GET /v1/media`, `PATCH :id` (alt), `DELETE :id` (soft — arquivo fica p/ posts agendados); arquivos servidos públicos em `/uploads/:org/:file` (chaves UUID); storage local (`UPLOAD_DIR`), port `MediaStorage` pronto p/ S3/R2; `POST /v1/posts` aceita `mediaIds` → refs com URL pública+MIME no content, validadas por canal via `provider.validateMedia` (helper `checkMediaRules` compartilhado: contagem, mistura imagem/vídeo, MIME) | SPEC_API_MCP §3, SPEC_DATA §3, SPEC_INTEGRATIONS §2 | `use-cases/media.ts`, `infra/media/sniff.ts`, `media.routes.ts`, `providers/src/shared/media-rules.ts` |
 
-**Provas:** 47 testes unit (`bun test`) + `scripts/e2e-auth.ts` (21 checks) + `scripts/e2e-publish.ts` (32 checks) — CI roda tudo com services postgres+redis.
+**Provas:** 69 testes unit (`bun test`) + `scripts/e2e-auth.ts` (21 checks) + `scripts/e2e-publish.ts` (45 checks, inclui upload→post com mídia→publicação) — CI roda tudo com services postgres+redis.
 
 ## 3. Decisões de implementação que você precisa saber (além das specs)
 
@@ -43,12 +44,13 @@ Cada item abaixo tem testes unitários e/ou E2E reais (Postgres 17 + Redis + wor
 6. Retry de fila (pg-boss `retryLimit`) = 0 de propósito: retry de negócio é da máquina de estados.
 7. Composition root em `apps/api/src/container.ts` (sem framework de DI); worker dedicado espelha em `apps/worker/src/main.ts`; `MODE=all` roda api+worker num processo.
 8. `cancelBySingletonKey` toca `pgboss.job` via SQL (best-effort; higiene) — se o schema do pg-boss mudar, só perde a higiene, nunca a corretude.
+9. **Mídia**: refs ficam DENTRO de `publications.content` (`{text, media: [{mediaId,type,url,mime,alt}]}`) e em `publication_items.media`; o worker só repassa URLs — quem baixa bytes é o provider (Mastodon baixa de `/uploads` e sobe na instância). `rescheduleGroup` faz **merge jsonb (`||`)** no content: editar só o texto preserva a mídia. `DELETE /v1/media` é soft e NÃO apaga o arquivo (posts agendados ainda apontam p/ a URL). `validateMedia` roda no agendamento (falha cedo com `post.invalid_media`), não no publish.
 
 ## 4. O QUE FALTA — em ordem sugerida, com referências
 
 ### Próximas fatias do backend (fase 1 — MVP, SPEC_ROADMAP)
-1. **Mídia**: upload (presigned/local), tabela `media` já existe; validação por provider (`validateMedia` é stub); Mastodon `/api/v2/media`. → SPEC_DATA §3, SPEC_INTEGRATIONS §2. Postiz ref: `libraries/nestjs-libraries/src/upload/*`.
-2. **Threads no composer** (backend já suporta `publication_items`; expor no POST /v1/posts) + delay entre itens. → SPEC_QUEUE §9.
+1. ~~Mídia~~ ✅ (2026-07-11). Ficou de fora (aceitável p/ MVP, retomar depois): thumbnail/blurhash, duração+dimensões de vídeo (probe), presigned upload direto (hoje o corpo passa pela API), driver S3/R2 (necessário p/ Instagram na onda 2 — mídia via URL pública já funciona com o storage local + PUBLIC_URL).
+2. **Threads no composer** (backend já suporta `publication_items`; expor no POST /v1/posts) + delay entre itens. → SPEC_QUEUE §9. Obs: `MediaRef`/`checkMediaRules` já são por item — validar item a item quando expor.
 3. **Aprovação por link público** (`approval_links` já criada no schema): token+preview+approve/request-changes. → DECISIONS v1.1 §12, SPEC_API_MCP §3, SPEC_FRONTEND §3.6.
 4. **Listagens**: `GET /v1/publications?from&to&state` (calendário/kanban) + SSE `/v1/events`. → SPEC_FRONTEND §3.1-3.2.
 5. **Providers onda 1 restantes**: Bluesky (app password), Telegram (bot), Discord, LinkedIn, X. Suíte de contrato em `packages/providers/test-kit` (README define; implementar). → SPEC_INTEGRATIONS §4/§7, guia de credenciais em [INTEGRATIONS_SETUP.md](INTEGRATIONS_SETUP.md). Postiz ref: `libraries/nestjs-libraries/src/integrations/social/*.provider.ts`.
@@ -76,7 +78,8 @@ docker run -d --name mp-pg -e POSTGRES_PASSWORD=mp -e POSTGRES_USER=mp -e POSTGR
 docker run -d --name mp-redis -p 6399:6379 redis:7-alpine
 MODE=all PORT=3988 PUBLIC_URL=http://localhost:3988 DATABASE_URL=postgresql://mp:mp@localhost:5499/mp \
   REDIS_URL=redis://localhost:6399 JWT_SECRET=<32+chars> ENCRYPTION_KEY=<64 hex> \
-  DB_MIGRATE=auto PUBLISH_RETRY_BASE_SEC=1 WEBHOOKS_ALLOW_PRIVATE=true bun run apps/api/src/main.ts &
+  DB_MIGRATE=auto PUBLISH_RETRY_BASE_SEC=1 WEBHOOKS_ALLOW_PRIVATE=true \
+  MEDIA_ALLOW_PRIVATE_URLS=true UPLOAD_DIR=./.e2e-uploads bun run apps/api/src/main.ts &
 BASE_URL=http://localhost:3988 bun run scripts/e2e-auth.ts
 BASE_URL=http://localhost:3988 bun run scripts/e2e-publish.ts
 ```

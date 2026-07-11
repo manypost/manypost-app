@@ -1,5 +1,12 @@
 import { z } from 'zod';
-import type { ChannelProvider, ProviderContext, PublishItem, TokenSet } from '@manypost/contracts';
+import type {
+  ChannelProvider,
+  MediaRef,
+  ProviderContext,
+  PublishItem,
+  TokenSet,
+} from '@manypost/contracts';
+import { checkMediaRules } from '../shared/media-rules';
 
 // Derived from Postiz (AGPL-3.0): direção do mastodon.provider.ts (registro dinâmico
 // de app por instância, sem env global). Implementação própria sobre a API v1 do Mastodon.
@@ -29,6 +36,52 @@ async function api<T>(ctx: ProviderContext, url: string, init?: RequestInit): Pr
     throw { status: res.status, body: (await res.text()).slice(0, 2000) };
   }
   return (await res.json()) as T;
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Upload de anexos: POST /api/v2/media; 202 = processando → poll GET /api/v1/media/:id (206 = ainda processando). */
+async function uploadAttachments(
+  ctx: ProviderContext,
+  token: TokenSet,
+  instance: string,
+  media: MediaRef[],
+): Promise<string[]> {
+  const authz = { authorization: `Bearer ${token.accessToken}` };
+  const ids: string[] = [];
+  for (const m of media) {
+    const src = await ctx.fetch(m.url, { signal: AbortSignal.timeout(60_000) });
+    if (!src.ok) {
+      throw { status: 422, body: `mídia inacessível para o worker: HTTP ${src.status} em ${m.url}` };
+    }
+    const form = new FormData();
+    form.append('file', await src.blob(), 'media');
+    if (m.alt) form.append('description', m.alt);
+    const res = await ctx.fetch(`${instance}/api/v2/media`, {
+      method: 'POST',
+      headers: authz,
+      body: form,
+    });
+    if (!res.ok && res.status !== 202) {
+      throw { status: res.status, body: (await res.text()).slice(0, 2000) };
+    }
+    const att = (await res.json()) as { id: string };
+    if (res.status === 202) {
+      let done = false;
+      for (let i = 0; i < 30 && !done; i++) {
+        await sleep(1000);
+        const poll = await ctx.fetch(`${instance}/api/v1/media/${att.id}`, { headers: authz });
+        if (poll.status === 200) done = true;
+        else if (poll.status !== 206) {
+          throw { status: poll.status, body: (await poll.text()).slice(0, 2000) };
+        }
+      }
+      // 503 = transient: a instância ainda processa; retry de negócio tenta de novo
+      if (!done) throw { status: 503, body: 'instância demorou a processar a mídia' };
+    }
+    ids.push(att.id);
+  }
+  return ids;
 }
 
 export const mastodonProvider: ChannelProvider = {
@@ -129,6 +182,7 @@ export const mastodonProvider: ChannelProvider = {
     const results = [];
     let inReplyTo: string | undefined;
     for (const item of items) {
+      const mediaIds = await uploadAttachments(ctx, token, instance, item.media);
       const status = await api<{ id: string; url: string }>(ctx, `${instance}/api/v1/statuses`, {
         method: 'POST',
         headers: {
@@ -140,6 +194,7 @@ export const mastodonProvider: ChannelProvider = {
         body: JSON.stringify({
           status: item.content,
           visibility: settings.visibility,
+          ...(mediaIds.length > 0 ? { media_ids: mediaIds } : {}),
           ...(inReplyTo ? { in_reply_to_id: inReplyTo } : {}),
         }),
       });
@@ -149,8 +204,9 @@ export const mastodonProvider: ChannelProvider = {
     return results;
   },
 
-  async validateMedia() {
-    return { ok: true as const }; // regras de mídia entram com o upload (fase de mídia)
+  async validateMedia(items) {
+    // Mastodon: até 4 imagens OU 1 vídeo por status, sem misturar
+    return checkMediaRules(items, mastodonProvider.capabilities.media);
   },
 
   classifyError(status) {

@@ -52,9 +52,21 @@ export interface ExternalAccount {
   avatarUrl?: string;
 }
 
+/** Referência de mídia anexada a um item de publicação (content jsonb / PublishItem). */
+export interface MediaRef {
+  type: 'image' | 'video';
+  url: string;
+  /** MIME real detectado por magic bytes no upload — presente quando a mídia veio da biblioteca */
+  mime?: string;
+  alt?: string;
+  thumbnailUrl?: string;
+  /** id na tabela media, quando aplicável */
+  mediaId?: string;
+}
+
 export interface PublishItem {
   content: string;
-  media: { type: 'image' | 'video'; url: string; alt?: string; thumbnailUrl?: string }[];
+  media: MediaRef[];
 }
 
 export interface PublishResult {

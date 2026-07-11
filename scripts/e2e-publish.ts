@@ -2,8 +2,9 @@ export {}; // módulo (top-level await)
 
 /**
  * E2E do coração do produto: conectar canal (fake) → agendar → worker publica.
- * Requer API em MODE=all com PUBLISH_RETRY_BASE_SEC=1.
- * Cobre: publicação no horário, retry transitório, falha permanente, estados do grupo.
+ * Requer API em MODE=all com PUBLISH_RETRY_BASE_SEC=1, MEDIA_ALLOW_PRIVATE_URLS=true.
+ * Cobre: publicação no horário, retry transitório, falha permanente, estados do grupo,
+ * webhooks assinados, cancelar/editar e biblioteca de mídia (upload/from-url → post com mídia).
  */
 const BASE = process.env.BASE_URL ?? 'http://localhost:3988';
 
@@ -185,6 +186,92 @@ check(patch.status === 200, `editar → 200 (veio ${patch.status})`);
 const edited = await pollGroup(toEdit.body.id, (g) => g.state === 'DONE');
 check(edited.state === 'DONE', `editado publicou no novo horário (veio ${edited.state})`);
 check(edited.publications[0].attemptCount === 1, 'edição zerou tentativas (1 tentativa)');
+
+// ---- 8) biblioteca de mídia: upload → arquivo público → post com mídia ----
+function pngBytes(width = 64, height = 32): Uint8Array {
+  const b = new Uint8Array(24);
+  b.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d]);
+  b.set([0x49, 0x48, 0x44, 0x52], 12); // IHDR
+  new DataView(b.buffer).setUint32(16, width);
+  new DataView(b.buffer).setUint32(20, height);
+  return b;
+}
+
+const form = new FormData();
+form.append('file', new Blob([pngBytes()], { type: 'text/plain' }), 'foto.png'); // content-type mentiroso de propósito
+form.append('alt', 'logo do e2e');
+const up = await fetch(`${BASE}/v1/media/upload`, {
+  method: 'POST',
+  headers: { authorization: auth.authorization },
+  body: form,
+});
+check(up.status === 201, `upload multipart → 201 (veio ${up.status})`);
+const uploaded = (await up.json()) as any;
+check(uploaded.mime === 'image/png', `MIME real por magic bytes, não o do cliente (veio ${uploaded.mime})`);
+check(uploaded.width === 64 && uploaded.height === 32, 'dimensões extraídas do header');
+check(uploaded.alt === 'logo do e2e', 'alt persistido');
+
+const served = await fetch(uploaded.url); // sem auth: URL pública p/ as redes baixarem
+check(served.status === 200, `arquivo servido em /uploads → 200 (veio ${served.status})`);
+check(served.headers.get('content-type') === 'image/png', 'content-type correto no serving');
+
+const badForm = new FormData();
+badForm.append('file', new Blob([new TextEncoder().encode('não sou imagem')]), 'nota.txt');
+const badUp = await fetch(`${BASE}/v1/media/upload`, {
+  method: 'POST',
+  headers: { authorization: auth.authorization },
+  body: badForm,
+});
+check(badUp.status === 400 && ((await badUp.json()) as any).title === 'media.unsupported_type',
+  'arquivo não-mídia recusado → media.unsupported_type');
+
+// from-url contra um servidor local (MEDIA_ALLOW_PRIVATE_URLS=true no e2e)
+const mediaServer = Bun.serve({
+  port: 3990,
+  fetch: () => new Response(pngBytes(10, 10), { headers: { 'content-type': 'image/png' } }),
+});
+const fromUrl = await fetch(`${BASE}/v1/media/from-url`, {
+  method: 'POST',
+  headers: auth,
+  body: JSON.stringify({ url: 'http://localhost:3990/externa.png' }),
+});
+check(fromUrl.status === 201, `from-url → 201 (veio ${fromUrl.status})`);
+mediaServer.stop(true);
+
+const lib = (await (await fetch(`${BASE}/v1/media`, { headers: auth })).json()) as any[];
+check(lib.length === 2, `GET /media lista a biblioteca (${lib.length} itens)`);
+
+const withMedia = await schedule({
+  text: 'post com imagem anexada',
+  channelIds: [channel.id],
+  publishAt: new Date().toISOString(),
+  mediaIds: [uploaded.id],
+});
+check(withMedia.status === 201, `agendar com mediaIds → 201 (veio ${withMedia.status})`);
+check(withMedia.body.publications[0].media?.[0]?.url === uploaded.url, 'publicação carrega a ref da mídia');
+const mediaDone = await pollGroup(withMedia.body.id, (g) => g.state === 'DONE');
+check(mediaDone.state === 'DONE', `post com mídia publicado (veio ${mediaDone.state})`);
+
+// 5 imagens distintas estouram o limite do canal (fake: máx 4) ANTES de agendar
+const moreIds: string[] = [uploaded.id];
+for (let i = 0; i < 4; i++) {
+  const extra = new FormData();
+  extra.append('file', new Blob([pngBytes(8 + i, 8)]), `extra-${i}.png`);
+  const res = await fetch(`${BASE}/v1/media/upload`, {
+    method: 'POST',
+    headers: { authorization: auth.authorization },
+    body: extra,
+  });
+  moreIds.push(((await res.json()) as any).id);
+}
+const tooManyMedia = await schedule({
+  text: 'cinco imagens não passam',
+  channelIds: [channel.id],
+  publishAt: new Date().toISOString(),
+  mediaIds: moreIds,
+});
+check(tooManyMedia.status === 400 && tooManyMedia.body.title === 'post.invalid_media',
+  `5 imagens → post.invalid_media (veio ${tooManyMedia.status} ${tooManyMedia.body.title})`);
 
 if (failures > 0) {
   console.error(`\nE2E publish: ${failures} falha(s)`);

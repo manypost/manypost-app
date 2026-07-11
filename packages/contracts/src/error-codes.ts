@@ -11,6 +11,10 @@ export const ErrorCodes = {
   PostInvalidTransition: 'post.invalid_transition',
   PostNoChannels: 'post.no_channels',
   PostInvalidSettings: 'post.invalid_settings',
+  // media
+  MediaUnsupportedType: 'media.unsupported_type',
+  MediaTooLarge: 'media.too_large',
+  MediaFetchFailed: 'media.fetch_failed',
   // plano/limites
   PlanChannelLimit: 'plan.channel_limit',
   RateLimited: 'rate.limited',

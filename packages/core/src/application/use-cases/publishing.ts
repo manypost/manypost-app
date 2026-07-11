@@ -1,10 +1,11 @@
-import type { PostOrigin, ProviderContext } from '@manypost/contracts';
+import type { MediaRef, PostOrigin, ProviderContext } from '@manypost/contracts';
 import { ErrorCodes, WebhookEvents } from '@manypost/contracts';
 import { DomainError } from '../../domain/shared/result';
 import type { ChannelProviderRegistry } from '../ports/channel-provider-registry';
 import type { CryptoService } from '../ports/crypto';
 import type { EventPublisher } from '../ports/events';
 import type { JobScheduler } from '../ports/job-scheduler';
+import type { MediaRepository, MediaStorage } from '../ports/media';
 import type { RateLimiter, RateWindowSpec } from '../ports/rate-limiter';
 import type { ChannelRepository, PublishingRepository } from '../ports/publishing';
 import { randomToken } from '../tokens';
@@ -28,6 +29,8 @@ export interface SchedulePostDeps {
   publishing: PublishingRepository;
   registry: ChannelProviderRegistry;
   scheduler: JobScheduler;
+  media?: MediaRepository;
+  storage?: MediaStorage;
   log?: (level: string, msg: string, data?: object) => void;
 }
 
@@ -41,6 +44,7 @@ export const makeSchedulePost = (deps: SchedulePostDeps) =>
     timezone?: string;
     origin?: PostOrigin;
     settingsByChannel?: Record<string, unknown>;
+    mediaIds?: string[];
   }) => {
     const text = input.text.trim();
     if (!text) throw new DomainError(ErrorCodes.PostEmptyContent, 'conteúdo vazio');
@@ -52,7 +56,33 @@ export const makeSchedulePost = (deps: SchedulePostDeps) =>
       throw new DomainError(ErrorCodes.NotFound, 'canal não encontrado nesta organização');
     }
 
-    const publications: Array<{ channelId: string; content: { text: string }; settings: unknown }> = [];
+    // resolve a mídia da biblioteca → refs com URL pública e MIME real (validado por canal abaixo)
+    let mediaRefs: MediaRef[] = [];
+    const mediaIds = [...new Set(input.mediaIds ?? [])];
+    if (mediaIds.length > 0) {
+      if (!deps.media || !deps.storage) {
+        throw new DomainError(ErrorCodes.CapabilityDisabled, 'mídia indisponível nesta instalação');
+      }
+      const records = await deps.media.findMany(input.orgId, mediaIds);
+      const byId = new Map(records.map((m) => [m.id, m]));
+      mediaRefs = mediaIds.map((id) => {
+        const m = byId.get(id);
+        if (!m) throw new DomainError(ErrorCodes.NotFound, 'mídia não encontrada nesta organização');
+        return {
+          mediaId: m.id,
+          type: m.mime.startsWith('image/') ? ('image' as const) : ('video' as const),
+          url: deps.storage!.publicUrl(m.path),
+          mime: m.mime,
+          ...(m.alt ? { alt: m.alt } : {}),
+        };
+      });
+    }
+
+    const publications: Array<{
+      channelId: string;
+      content: { text: string; media?: MediaRef[] };
+      settings: unknown;
+    }> = [];
     for (const ch of channels) {
       if (ch.status !== 'ACTIVE') {
         throw new DomainError(ErrorCodes.ChannelDisabled, `canal ${ch.name} não está ativo`, {
@@ -80,13 +110,25 @@ export const makeSchedulePost = (deps: SchedulePostDeps) =>
           length: text.length,
         });
       }
-      publications.push({ channelId: ch.id, content: { text }, settings: parsed.data });
+      if (mediaRefs.length > 0) {
+        const verdict = await provider.validateMedia([{ content: text, media: mediaRefs }]);
+        if (!verdict.ok) {
+          throw new DomainError(ErrorCodes.PostInvalidMedia, `${ch.name}: ${verdict.reason}`, {
+            channelId: ch.id,
+          });
+        }
+      }
+      publications.push({
+        channelId: ch.id,
+        content: { text, ...(mediaRefs.length > 0 ? { media: mediaRefs } : {}) },
+        settings: parsed.data,
+      });
     }
 
     const created = await deps.publishing.createGroup({
       orgId: input.orgId,
       authorId: input.authorId,
-      baseContent: { text },
+      baseContent: { text, ...(mediaRefs.length > 0 ? { media: mediaRefs } : {}) },
       publishAt: input.publishAt,
       timezone: input.timezone ?? 'UTC',
       origin: input.origin ?? 'WEB',
@@ -204,7 +246,7 @@ export const makePublishPublication = (deps: PublishDeps) =>
       const [res] = await provider.publish(
         ctx,
         { accessToken, scopes: channel.scopes },
-        [{ content: pub.content.text, media: [] }],
+        [{ content: pub.content.text, media: pub.content.media ?? [] }],
         settings,
       );
       await deps.publishing.transition(pub.id, ['PUBLISHING'], 'PUBLISHED', {
