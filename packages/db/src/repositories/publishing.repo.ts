@@ -1,5 +1,5 @@
 import { and, asc, eq, inArray, lte, sql } from 'drizzle-orm';
-import type { PublicationState } from '@manypost/contracts';
+import type { MediaRef, PublicationState } from '@manypost/contracts';
 import type { PublicationView, PublishingRepository, TransitionPatch } from '@manypost/core';
 import type { Db } from '../index';
 import { channels, postGroups, publicationEvents, publicationItems, publications } from '../schema';
@@ -17,6 +17,7 @@ const toView = (row: typeof publications.$inferSelect): PublicationView => ({
   settings: row.settings,
   attemptCount: row.attemptCount,
   jobVersion: row.jobVersion,
+  lastPublishedIndex: row.lastPublishedIndex,
   externalId: row.externalId,
   releaseUrl: row.releaseUrl,
   errorClass: row.errorClass,
@@ -54,12 +55,15 @@ export function makePublishingRepository(db: Db): PublishingRepository {
               publishAt: d.publishAt,
             })
             .returning({ id: publications.id });
-          await tx.insert(publicationItems).values({
-            publicationId: pub!.id,
-            position: 0,
-            content: { text: p.content.text },
-            media: p.content.media ?? [],
-          });
+          await tx.insert(publicationItems).values(
+            p.items.map((item, position) => ({
+              publicationId: pub!.id,
+              position,
+              content: item.content,
+              media: item.media,
+              delaySec: item.delaySec,
+            })),
+          );
           created.push({ id: pub!.id, channelId: p.channelId });
         }
         return { groupId: group!.id, publications: created };
@@ -73,8 +77,13 @@ export function makePublishingRepository(db: Db): PublishingRepository {
         .where(and(eq(postGroups.id, groupId), eq(postGroups.orgId, orgId)))
         .limit(1);
       if (!group) return null;
+      // atenção: ${publications.id} renderiza sem qualificação aqui e o escopo interno
+      // da subquery capturaria o "id" de pi — qualificar a tabela é obrigatório
+      const itemCount = sql<number>`(
+        select count(*)::int from ${publicationItems} pi where pi.publication_id = ${publications}.id
+      )`;
       const rows = await db
-        .select()
+        .select({ pub: publications, itemCount })
         .from(publications)
         .where(eq(publications.groupId, groupId))
         .orderBy(asc(publications.createdAt));
@@ -83,7 +92,7 @@ export function makePublishingRepository(db: Db): PublishingRepository {
         state: group.state,
         publishAt: group.publishAt,
         baseContent: group.baseContent,
-        publications: rows.map(toView),
+        publications: rows.map((r) => ({ ...toView(r.pub), itemCount: r.itemCount })),
       };
     },
 
@@ -150,6 +159,46 @@ export function makePublishingRepository(db: Db): PublishingRepository {
         detail: patch?.errorMessage ? { error: patch.errorMessage.slice(0, 500) } : {},
       });
       return true;
+    },
+
+    async listItems(publicationId) {
+      const rows = await db
+        .select()
+        .from(publicationItems)
+        .where(eq(publicationItems.publicationId, publicationId))
+        .orderBy(asc(publicationItems.position));
+      return rows.map((r) => ({
+        id: r.id,
+        position: r.position,
+        content: r.content as { text: string },
+        media: r.media as MediaRef[],
+        delaySec: r.delaySec,
+        externalId: r.externalId,
+      }));
+    },
+
+    async recordItemPublished(publicationId, itemId, position, d) {
+      await db.transaction(async (tx) => {
+        await tx
+          .update(publicationItems)
+          .set({ externalId: d.externalId })
+          .where(eq(publicationItems.id, itemId));
+        // cursor monotônico: só avança do índice imediatamente anterior (idempotente sob jobs duplicados)
+        await tx
+          .update(publications)
+          .set({
+            lastPublishedIndex: position,
+            ...(position === 0
+              ? {
+                  externalId: d.externalId,
+                  ...(d.releaseUrl !== undefined ? { releaseUrl: d.releaseUrl } : {}),
+                }
+              : {}),
+          })
+          .where(
+            and(eq(publications.id, publicationId), eq(publications.lastPublishedIndex, position - 1)),
+          );
+      });
     },
 
     async listDue(before, limit) {

@@ -13,6 +13,8 @@ const settingsSchema = z.object({
   failFirstAttempts: z.number().int().min(0).default(0),
   expireToken: z.boolean().default(false),
   rejectContent: z.boolean().default(false),
+  /** falha transitória nas N primeiras réplicas de thread (testa retomada pelo cursor) */
+  failFirstReplyAttempts: z.number().int().min(0).default(0),
 });
 
 const attempts = new Map<string, number>();
@@ -76,6 +78,16 @@ export const fakeProvider: ChannelProvider = {
       const id = crypto.randomUUID();
       return { externalId: id, releaseUrl: `https://fake.example/p/${id}` };
     });
+  },
+
+  async publishReply(_ctx, token: TokenSet, parentExternalId, item, rawSettings) {
+    const settings = settingsSchema.parse(rawSettings ?? {});
+    const key = `${token.accessToken}:reply:${item.content}`;
+    const n = (attempts.get(key) ?? 0) + 1;
+    attempts.set(key, n);
+    if (n <= settings.failFirstReplyAttempts) throw { status: 500, body: '{"error":"flaky reply"}' };
+    const id = crypto.randomUUID();
+    return { externalId: id, releaseUrl: `https://fake.example/p/${parentExternalId}/r/${id}` };
   },
 
   async validateMedia(items) {

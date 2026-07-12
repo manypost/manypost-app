@@ -123,11 +123,13 @@ export interface ChannelProvider {
     items: PublishItem[],
     settings: unknown,
   ): Promise<PublishResult[]>;
+  /** Publica um item de thread em resposta ao anterior — obrigatório quando capabilities.threads. */
   publishReply?(
     ctx: ProviderContext,
     token: TokenSet,
     parentExternalId: string,
     item: PublishItem,
+    settings?: unknown,
   ): Promise<PublishResult>;
   validateMedia(items: PublishItem[]): Promise<{ ok: true } | { ok: false; reason: string }>;
   classifyError(status: number, body: string): ErrorClass;

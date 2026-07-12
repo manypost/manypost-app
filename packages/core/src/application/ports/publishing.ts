@@ -60,10 +60,25 @@ export interface PublicationView {
   attemptCount: number;
   /** versão do agendamento: jobs antigos (edit/cancel) são descartados pelo handler */
   jobVersion: number;
+  /** cursor de thread: itens <= índice já publicados — nunca republicar (SPEC_QUEUE §7) */
+  lastPublishedIndex: number;
+  /** total de itens da thread (1 = post simples); preenchido no getGroup */
+  itemCount?: number;
   externalId: string | null;
   releaseUrl: string | null;
   errorClass: string | null;
   errorMessage: string | null;
+}
+
+/** Item de thread persistido em publication_items (position 0 = post principal). */
+export interface PublicationItemView {
+  id: string;
+  position: number;
+  content: { text: string };
+  media: MediaRef[];
+  /** espera ANTES de publicar este item (0 = imediato) */
+  delaySec: number;
+  externalId: string | null;
 }
 
 export interface TransitionPatch {
@@ -85,7 +100,14 @@ export interface PublishingRepository {
     publishAt: Date;
     timezone: string;
     origin: PostOrigin;
-    publications: Array<{ channelId: string; content: PostContent; settings: unknown }>;
+    publications: Array<{
+      channelId: string;
+      /** content do item 0 (fonte de verdade p/ edições via PATCH) */
+      content: PostContent;
+      settings: unknown;
+      /** thread completa (>= 1 item; item 0 duplica content) */
+      items: Array<{ content: { text: string }; media: MediaRef[]; delaySec: number }>;
+    }>;
   }): Promise<{ groupId: string; publications: Array<{ id: string; channelId: string }> }>;
   getGroup(
     orgId: string,
@@ -109,6 +131,16 @@ export interface PublishingRepository {
   ): Promise<boolean>;
   /** SCHEDULED com publish_at vencido (scanner §8) */
   listDue(before: Date, limit: number): Promise<Array<{ id: string; jobVersion: number }>>;
+  /** itens da thread ordenados por position (sempre >= 1) */
+  listItems(publicationId: string): Promise<PublicationItemView[]>;
+  /** confirma item publicado: external_id no item + cursor na publication (monotônico);
+   *  position 0 também preenche externalId/releaseUrl da publication */
+  recordItemPublished(
+    publicationId: string,
+    itemId: string,
+    position: number,
+    d: { externalId: string | null; releaseUrl?: string | null },
+  ): Promise<void>;
   /** edita conteúdo/horário das publicações ainda pendentes (SCHEDULED/RETRYING):
    *  volta a SCHEDULED, zera tentativas e incrementa job_version (jobs antigos morrem).
    *  baseContent é MERGE (jsonb ||): editar só o texto preserva a mídia anexada */

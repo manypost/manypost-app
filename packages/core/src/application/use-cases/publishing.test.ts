@@ -6,6 +6,7 @@ import type { ChannelRecord, PublicationView } from '../ports/publishing';
 import { channelAad, makeConnectChannel } from './channels';
 import {
   makeCancelPost,
+  makeContinueThread,
   makePublishPublication,
   makeRecoverDue,
   makeReschedulePost,
@@ -15,9 +16,17 @@ import {
 const crypto = AesGcmCryptoService.fromHex('b'.repeat(64));
 
 // ------- provider fake controlável -------
-function makeProvider(behavior: { failFirst?: number; expireToken?: boolean; reject?: boolean }) {
+function makeProvider(behavior: {
+  failFirst?: number;
+  expireToken?: boolean;
+  reject?: boolean;
+  failReplyFirst?: number;
+  noThreads?: boolean;
+}) {
   let calls = 0;
+  let replyCalls = 0;
   let lastItems: any[] = [];
+  const replies: Array<{ parent: string; content: string }> = [];
   const provider: ChannelProvider = {
     id: 'fake',
     name: 'Fake',
@@ -25,7 +34,9 @@ function makeProvider(behavior: { failFirst?: number; expireToken?: boolean; rej
       editor: 'plain',
       maxLength: () => 50,
       media: { images: { maxCount: 4, mimeTypes: [] }, videos: { maxCount: 1, mimeTypes: [] } },
-      threads: false,
+      get threads() {
+        return !behavior.noThreads;
+      },
       mentions: false,
       analytics: false,
       twoStepConnect: false,
@@ -57,6 +68,15 @@ function makeProvider(behavior: { failFirst?: number; expireToken?: boolean; rej
       if (behavior.failFirst && calls <= behavior.failFirst) throw { status: 500, body: 'flaky' };
       return [{ externalId: `ext-post-${calls}`, releaseUrl: 'https://fake/p/1' }];
     },
+    async publishReply(_ctx, _token, parentExternalId, item) {
+      replyCalls++;
+      if (behavior.expireToken) throw { status: 401, body: 'expired' };
+      if (behavior.failReplyFirst && replyCalls <= behavior.failReplyFirst) {
+        throw { status: 500, body: 'flaky reply' };
+      }
+      replies.push({ parent: parentExternalId, content: item.content });
+      return { externalId: `ext-reply-${replyCalls}`, releaseUrl: `https://fake/r/${replyCalls}` };
+    },
     async validateMedia(items) {
       return items.some((i) => i.media.length > 4)
         ? { ok: false as const, reason: 'máximo de 4 mídias' }
@@ -68,7 +88,13 @@ function makeProvider(behavior: { failFirst?: number; expireToken?: boolean; rej
       return 'permanent';
     },
   };
-  return { provider, callCount: () => calls, lastItems: () => lastItems };
+  return {
+    provider,
+    callCount: () => calls,
+    lastItems: () => lastItems,
+    replyCount: () => replyCalls,
+    replies: () => replies,
+  };
 }
 
 // ------- fakes de repositório -------
@@ -81,6 +107,7 @@ function makeFakes(provider: ChannelProvider) {
   const events: { pubId: string; from: string | null; to: string }[] = [];
   const jobs: { queue: string; payload: any; opts: any }[] = [];
   const mediaRecords: any[] = [];
+  const pubItems: any[] = [];
 
   const deps = {
     crypto,
@@ -135,15 +162,41 @@ function makeFakes(provider: ChannelProvider) {
             settings: p.settings,
             attemptCount: 0,
             jobVersion: 0,
+            lastPublishedIndex: -1,
             externalId: null,
             releaseUrl: null,
             errorClass: null,
             errorMessage: null,
           };
           pubs.push(pub);
+          for (const [position, item] of (p.items ?? []).entries()) {
+            pubItems.push({
+              id: id(),
+              publicationId: pub.id,
+              position,
+              content: item.content,
+              media: item.media,
+              delaySec: item.delaySec,
+              externalId: null,
+            });
+          }
           return { id: pub.id, channelId: p.channelId };
         });
         return { groupId: g.id, publications: created };
+      },
+      listItems: async (pid: string) =>
+        pubItems
+          .filter((x) => x.publicationId === pid)
+          .sort((a, b) => a.position - b.position),
+      recordItemPublished: async (pid: string, itemId: string, position: number, d: any) => {
+        const item = pubItems.find((x) => x.id === itemId)!;
+        item.externalId = d.externalId;
+        const pub = pubs.find((x) => x.id === pid)!;
+        if (pub.lastPublishedIndex === position - 1) pub.lastPublishedIndex = position;
+        if (position === 0) {
+          pub.externalId = d.externalId;
+          if (d.releaseUrl !== undefined) pub.releaseUrl = d.releaseUrl;
+        }
       },
       getGroup: async (orgId: string, gid: string) => {
         const g = groups.find((x) => x.id === gid && x.orgId === orgId);
@@ -220,7 +273,7 @@ function makeFakes(provider: ChannelProvider) {
       delete: async () => {},
       publicUrl: (key: string) => `https://mp.test/uploads/${key}`,
     },
-    _state: { channels, pubs, events, jobs, groups, mediaRecords },
+    _state: { channels, pubs, events, jobs, groups, mediaRecords, pubItems },
   };
   return deps;
 }
@@ -230,7 +283,13 @@ async function connect(deps: any, provider: ChannelProvider, orgId = 'org-1') {
   return makeConnectChannel(deps)({ orgId, provider, account });
 }
 
-let behavior: { failFirst?: number; expireToken?: boolean; reject?: boolean };
+let behavior: {
+  failFirst?: number;
+  expireToken?: boolean;
+  reject?: boolean;
+  failReplyFirst?: number;
+  noThreads?: boolean;
+};
 let prov: ReturnType<typeof makeProvider>;
 let f: ReturnType<typeof makeFakes>;
 
@@ -470,6 +529,108 @@ describe('cancelar e editar agendados', () => {
     await expect(
       makeReschedulePost(f as any)({ orgId: 'org-1', groupId, text: 'tarde demais' }),
     ).rejects.toMatchObject({ code: 'post.invalid_transition' });
+  });
+});
+
+describe('threads (SPEC_QUEUE §7/§9)', () => {
+  const threadSchedule = (over: any = {}) =>
+    schedule({
+      thread: [{ text: 'réplica 1' }, { text: 'réplica 2' }],
+      ...over,
+    });
+
+  beforeEach(async () => {
+    await connect(f, prov.provider);
+  });
+
+  test('agendar thread grava os itens com posição e delay', async () => {
+    await threadSchedule({ thread: [{ text: 'réplica 1', delaySec: 30 }] });
+    expect(f._state.pubItems).toHaveLength(2);
+    expect(f._state.pubItems[0]).toMatchObject({ position: 0, delaySec: 0 });
+    expect(f._state.pubItems[1]).toMatchObject({
+      position: 1,
+      content: { text: 'réplica 1' },
+      delaySec: 30,
+    });
+  });
+
+  test('canal sem suporte a thread → capability.disabled; réplica longa → post.too_long', async () => {
+    behavior.noThreads = true;
+    await expect(threadSchedule()).rejects.toMatchObject({ code: 'capability.disabled' });
+    behavior.noThreads = false;
+    await expect(
+      threadSchedule({ thread: [{ text: 'x'.repeat(51) }] }),
+    ).rejects.toMatchObject({ code: 'post.too_long' });
+  });
+
+  test('thread sem delay publica tudo numa execução: item 0 + réplicas encadeadas', async () => {
+    const group = await threadSchedule();
+    await publish(group!.publications[0]!.id);
+    const pub = f._state.pubs[0]!;
+    expect(pub.state).toBe('PUBLISHED');
+    expect(pub.lastPublishedIndex).toBe(2);
+    expect(prov.callCount()).toBe(1); // item 0 via publish
+    expect(prov.replyCount()).toBe(2); // réplicas via publishReply
+    expect(prov.replies()[0]!.parent).toBe('ext-post-1'); // encadeia no anterior
+    expect(prov.replies()[1]!.parent).toBe('ext-reply-1');
+    expect(f._state.pubItems.map((x: any) => x.externalId)).toEqual([
+      'ext-post-1',
+      'ext-reply-1',
+      'ext-reply-2',
+    ]);
+  });
+
+  test('delay entre itens: para em PUBLISHING, agenda publish-thread-item e a continuação termina', async () => {
+    const group = await threadSchedule({
+      thread: [{ text: 'réplica 1', delaySec: 60 }, { text: 'réplica 2' }],
+    });
+    const pubId = group!.publications[0]!.id;
+    await publish(pubId);
+    const pub = f._state.pubs[0]!;
+    expect(pub.state).toBe('PUBLISHING'); // aguardando o delay
+    expect(pub.lastPublishedIndex).toBe(0);
+    const contJob = f._state.jobs.at(-1)!;
+    expect(contJob.queue).toBe('publish-thread-item');
+    expect(contJob.payload).toMatchObject({ publicationId: pubId, v: 0, afterIndex: 0 });
+    expect(contJob.opts.startAfter).toBeInstanceOf(Date);
+
+    // continuação com cursor errado (duplicada/obsoleta) é no-op
+    await makeContinueThread({ ...(f as any), retryBaseSec: 0.001 })(pubId, 0, 5);
+    expect(prov.replyCount()).toBe(0);
+
+    await makeContinueThread({ ...(f as any), retryBaseSec: 0.001 })(pubId, 0, 0);
+    expect(f._state.pubs[0]!.state).toBe('PUBLISHED');
+    expect(f._state.pubs[0]!.lastPublishedIndex).toBe(2);
+    expect(prov.callCount()).toBe(1); // item 0 NUNCA repostado
+  });
+
+  test('falha transitória numa réplica: RETRYING e o retry retoma do cursor sem repostar', async () => {
+    behavior.failReplyFirst = 1;
+    const group = await threadSchedule({ thread: [{ text: 'réplica 1' }] });
+    const pubId = group!.publications[0]!.id;
+    await publish(pubId);
+    const pub = f._state.pubs[0]!;
+    expect(pub.state).toBe('RETRYING');
+    expect(pub.lastPublishedIndex).toBe(0); // item 0 confirmado
+    expect(pub.errorMessage).toContain('item 1');
+
+    await publish(pubId); // retry
+    expect(pub.state).toBe('PUBLISHED');
+    expect(prov.callCount()).toBe(1); // item 0 publicado UMA vez (SPEC_QUEUE §7)
+    expect(prov.replies()).toHaveLength(1);
+  });
+
+  test('post editado/cancelado mata a continuação pela versão do job', async () => {
+    const group = await threadSchedule({
+      publishAt: new Date(Date.now() + 60_000),
+      thread: [{ text: 'réplica 1', delaySec: 60 }],
+    });
+    const pubId = group!.publications[0]!.id;
+    await publish(pubId);
+    expect(f._state.pubs[0]!.state).toBe('PUBLISHING');
+    f._state.pubs[0]!.jobVersion++; // simula edit/cancel bumpando a versão
+    await makeContinueThread({ ...(f as any), retryBaseSec: 0.001 })(pubId, 0, 0);
+    expect(prov.replyCount()).toBe(0); // continuação da versão antiga descartada
   });
 });
 

@@ -12,8 +12,11 @@ import { randomToken } from '../tokens';
 import { channelAad } from './channels';
 
 export const PUBLISH_QUEUE = 'publish';
+export const THREAD_QUEUE = 'publish-thread-item';
 export const RECOVER_QUEUE = 'recover-scan';
 const ERROR_MAX_LEN = 4000;
+/** teto do delay entre itens de thread — mantém a publicação abaixo do watchdog de zumbis (15 min) */
+export const THREAD_MAX_DELAY_SEC = 600;
 
 const makeCtx = (log?: ProviderContext['log']): ProviderContext => ({
   fetch: globalThis.fetch,
@@ -45,9 +48,21 @@ export const makeSchedulePost = (deps: SchedulePostDeps) =>
     origin?: PostOrigin;
     settingsByChannel?: Record<string, unknown>;
     mediaIds?: string[];
+    /** réplicas encadeadas após o post principal (SPEC_QUEUE §9); delaySec = espera antes do item */
+    thread?: Array<{ text: string; mediaIds?: string[] | undefined; delaySec?: number | undefined }>;
   }) => {
-    const text = input.text.trim();
-    if (!text) throw new DomainError(ErrorCodes.PostEmptyContent, 'conteúdo vazio');
+    // item 0 = post principal; itens seguintes = réplicas da thread
+    const rawItems = [
+      { text: input.text, mediaIds: input.mediaIds ?? [], delaySec: 0 },
+      ...(input.thread ?? []).map((t) => ({
+        text: t.text,
+        mediaIds: t.mediaIds ?? [],
+        delaySec: Math.min(Math.max(t.delaySec ?? 0, 0), THREAD_MAX_DELAY_SEC),
+      })),
+    ].map((t) => ({ ...t, text: t.text.trim() }));
+    if (rawItems.some((t) => !t.text)) {
+      throw new DomainError(ErrorCodes.PostEmptyContent, 'conteúdo vazio');
+    }
     const ids = [...new Set(input.channelIds)];
     if (ids.length === 0) throw new DomainError(ErrorCodes.PostNoChannels, 'selecione ao menos um canal');
 
@@ -57,31 +72,38 @@ export const makeSchedulePost = (deps: SchedulePostDeps) =>
     }
 
     // resolve a mídia da biblioteca → refs com URL pública e MIME real (validado por canal abaixo)
-    let mediaRefs: MediaRef[] = [];
-    const mediaIds = [...new Set(input.mediaIds ?? [])];
-    if (mediaIds.length > 0) {
+    const allMediaIds = [...new Set(rawItems.flatMap((t) => t.mediaIds))];
+    const refById = new Map<string, MediaRef>();
+    if (allMediaIds.length > 0) {
       if (!deps.media || !deps.storage) {
         throw new DomainError(ErrorCodes.CapabilityDisabled, 'mídia indisponível nesta instalação');
       }
-      const records = await deps.media.findMany(input.orgId, mediaIds);
-      const byId = new Map(records.map((m) => [m.id, m]));
-      mediaRefs = mediaIds.map((id) => {
-        const m = byId.get(id);
-        if (!m) throw new DomainError(ErrorCodes.NotFound, 'mídia não encontrada nesta organização');
-        return {
+      const records = await deps.media.findMany(input.orgId, allMediaIds);
+      for (const m of records) {
+        refById.set(m.id, {
           mediaId: m.id,
-          type: m.mime.startsWith('image/') ? ('image' as const) : ('video' as const),
-          url: deps.storage!.publicUrl(m.path),
+          type: m.mime.startsWith('image/') ? 'image' : 'video',
+          url: deps.storage.publicUrl(m.path),
           mime: m.mime,
           ...(m.alt ? { alt: m.alt } : {}),
-        };
-      });
+        });
+      }
+      if (refById.size !== allMediaIds.length) {
+        throw new DomainError(ErrorCodes.NotFound, 'mídia não encontrada nesta organização');
+      }
     }
+    const items = rawItems.map((t) => ({
+      text: t.text,
+      media: [...new Set(t.mediaIds)].map((id) => refById.get(id)!),
+      delaySec: t.delaySec,
+    }));
+    const hasMedia = items.some((t) => t.media.length > 0);
 
     const publications: Array<{
       channelId: string;
       content: { text: string; media?: MediaRef[] };
       settings: unknown;
+      items: Array<{ content: { text: string }; media: MediaRef[]; delaySec: number }>;
     }> = [];
     for (const ch of channels) {
       if (ch.status !== 'ACTIVE') {
@@ -94,6 +116,11 @@ export const makeSchedulePost = (deps: SchedulePostDeps) =>
       if (!provider) {
         throw new DomainError(ErrorCodes.CapabilityDisabled, `provider ${ch.provider} indisponível`);
       }
+      if (items.length > 1 && (!provider.capabilities.threads || !provider.publishReply)) {
+        throw new DomainError(ErrorCodes.CapabilityDisabled, `${ch.name} não suporta threads`, {
+          channelId: ch.id,
+        });
+      }
       const settingsRaw = input.settingsByChannel?.[ch.id] ?? {};
       const parsed = provider.settingsSchema.safeParse(settingsRaw);
       if (!parsed.success) {
@@ -103,32 +130,39 @@ export const makeSchedulePost = (deps: SchedulePostDeps) =>
         });
       }
       const max = provider.capabilities.maxLength(parsed.data);
-      if (text.length > max) {
-        throw new DomainError(ErrorCodes.PostTooLong, `limite de ${max} caracteres em ${ch.name}`, {
-          channelId: ch.id,
-          max,
-          length: text.length,
-        });
+      for (const item of items) {
+        if (item.text.length > max) {
+          throw new DomainError(ErrorCodes.PostTooLong, `limite de ${max} caracteres em ${ch.name}`, {
+            channelId: ch.id,
+            max,
+            length: item.text.length,
+          });
+        }
       }
-      if (mediaRefs.length > 0) {
-        const verdict = await provider.validateMedia([{ content: text, media: mediaRefs }]);
+      if (hasMedia) {
+        const verdict = await provider.validateMedia(
+          items.map((t) => ({ content: t.text, media: t.media })),
+        );
         if (!verdict.ok) {
           throw new DomainError(ErrorCodes.PostInvalidMedia, `${ch.name}: ${verdict.reason}`, {
             channelId: ch.id,
           });
         }
       }
+      const first = items[0]!;
       publications.push({
         channelId: ch.id,
-        content: { text, ...(mediaRefs.length > 0 ? { media: mediaRefs } : {}) },
+        content: { text: first.text, ...(first.media.length > 0 ? { media: first.media } : {}) },
         settings: parsed.data,
+        items: items.map((t) => ({ content: { text: t.text }, media: t.media, delaySec: t.delaySec })),
       });
     }
 
+    const first = items[0]!;
     const created = await deps.publishing.createGroup({
       orgId: input.orgId,
       authorId: input.authorId,
-      baseContent: { text, ...(mediaRefs.length > 0 ? { media: mediaRefs } : {}) },
+      baseContent: { text: first.text, ...(first.media.length > 0 ? { media: first.media } : {}) },
       publishAt: input.publishAt,
       timezone: input.timezone ?? 'UTC',
       origin: input.origin ?? 'WEB',
@@ -172,49 +206,67 @@ export interface PublishDeps {
 
 const RUNNABLE = ['SCHEDULED', 'RETRYING', 'TOKEN_REFRESH'] as const;
 
-export const makePublishPublication = (deps: PublishDeps) =>
-  async (publicationId: string, jobVersion?: number): Promise<void> => {
+interface RunInput {
+  publicationId: string;
+  jobVersion?: number;
+  /** presente = continuação de thread: retoma após o item deste índice (job publish-thread-item) */
+  afterIndex?: number;
+}
+
+const makeRunner = (deps: PublishDeps) =>
+  async ({ publicationId, jobVersion, afterIndex }: RunInput): Promise<void> => {
     const found = await deps.publishing.findForPublish(publicationId);
     if (!found) return;
     const { publication: pub, channel } = found;
-    if (!(RUNNABLE as readonly string[]).includes(pub.state)) return; // já tratada — fencing
-    // job de uma versão anterior (post editado/cancelado): descarta
-    if (jobVersion !== undefined && jobVersion !== pub.jobVersion) return;
+    const isContinuation = afterIndex !== undefined;
 
-    // rate-limit ANTES de reivindicar (negado não consome tentativa) — SPEC_QUEUE §6
-    if (deps.rateLimiter) {
-      const provider0 = deps.registry.get(channel.provider);
-      const windows: RateWindowSpec[] = [];
-      const pw = provider0?.rateDefaults.perProviderWindow;
-      if (pw) windows.push({ key: `rl:p:${channel.provider}`, ...pw });
-      const cw = provider0?.rateDefaults.perChannelWindow;
-      if (cw) windows.push({ key: `rl:c:${channel.id}`, ...cw });
-      if (windows.length > 0) {
-        const verdict = await deps.rateLimiter.acquire(windows);
-        if (!verdict.ok) {
-          deps.log?.('warn', 'rate-limit: publicação adiada', {
-            publicationId: pub.id,
-            retryAfterSec: verdict.retryAfterSec,
-          });
-          await deps.scheduler.enqueue(
-            PUBLISH_QUEUE,
-            { publicationId: pub.id, v: pub.jobVersion },
-            {
-              startAfter: new Date(Date.now() + Math.max(1, verdict.retryAfterSec) * 1000),
-              singletonKey: `${pub.id}:rl:${Math.floor(Date.now() / 1000)}`,
-            },
-          );
-          return;
+    if (isContinuation) {
+      // continuação só roda se NADA mudou: mesma versão, ainda PUBLISHING e cursor exato.
+      // Qualquer divergência = job obsoleto/duplicado → no-op (nunca repostar)
+      if (pub.state !== 'PUBLISHING') return;
+      if (jobVersion !== pub.jobVersion) return;
+      if (pub.lastPublishedIndex !== afterIndex) return;
+    } else {
+      if (!(RUNNABLE as readonly string[]).includes(pub.state)) return; // já tratada — fencing
+      // job de uma versão anterior (post editado/cancelado): descarta
+      if (jobVersion !== undefined && jobVersion !== pub.jobVersion) return;
+
+      // rate-limit ANTES de reivindicar (negado não consome tentativa) — SPEC_QUEUE §6.
+      // Continuações não passam aqui: a thread já está em voo e o ritmo é o delaySec
+      if (deps.rateLimiter) {
+        const provider0 = deps.registry.get(channel.provider);
+        const windows: RateWindowSpec[] = [];
+        const pw = provider0?.rateDefaults.perProviderWindow;
+        if (pw) windows.push({ key: `rl:p:${channel.provider}`, ...pw });
+        const cw = provider0?.rateDefaults.perChannelWindow;
+        if (cw) windows.push({ key: `rl:c:${channel.id}`, ...cw });
+        if (windows.length > 0) {
+          const verdict = await deps.rateLimiter.acquire(windows);
+          if (!verdict.ok) {
+            deps.log?.('warn', 'rate-limit: publicação adiada', {
+              publicationId: pub.id,
+              retryAfterSec: verdict.retryAfterSec,
+            });
+            await deps.scheduler.enqueue(
+              PUBLISH_QUEUE,
+              { publicationId: pub.id, v: pub.jobVersion },
+              {
+                startAfter: new Date(Date.now() + Math.max(1, verdict.retryAfterSec) * 1000),
+                singletonKey: `${pub.id}:rl:${Math.floor(Date.now() / 1000)}`,
+              },
+            );
+            return;
+          }
         }
       }
-    }
 
-    const claimed = await deps.publishing.transition(pub.id, [...RUNNABLE], 'PUBLISHING', {
-      incrementAttempt: true,
-      attemptId: randomToken(16),
-    });
-    if (!claimed) return;
-    const attempt = pub.attemptCount + 1;
+      const claimed = await deps.publishing.transition(pub.id, [...RUNNABLE], 'PUBLISHING', {
+        incrementAttempt: true,
+        attemptId: randomToken(16),
+      });
+      if (!claimed) return;
+    }
+    const attempt = isContinuation ? pub.attemptCount : pub.attemptCount + 1;
 
     const fail = async (cls: string, msg: string) => {
       await deps.publishing.transition(pub.id, ['PUBLISHING', 'TOKEN_REFRESH'], 'FAILED', {
@@ -236,22 +288,12 @@ export const makePublishPublication = (deps: PublishDeps) =>
     const aad = channelAad(channel.orgId, channel.provider, channel.externalId);
     const ctx = makeCtx(deps.log ? (l, m, d) => deps.log!(l, m, d) : undefined);
 
-    try {
-      const accessToken = await deps.crypto.decrypt(channel.tokenEnc, aad, channel.tokenKeyVersion);
-      // settings do canal (ex.: instância Mastodon) + settings da publicação
-      const settings = {
-        ...(channel.settings as Record<string, unknown>),
-        ...(pub.settings as Record<string, unknown>),
-      };
-      const [res] = await provider.publish(
-        ctx,
-        { accessToken, scopes: channel.scopes },
-        [{ content: pub.content.text, media: pub.content.media ?? [] }],
-        settings,
-      );
+    const items = await deps.publishing.listItems(pub.id);
+    const startIdx = pub.lastPublishedIndex + 1;
+    let i = startIdx;
+
+    const finalize = async () => {
       await deps.publishing.transition(pub.id, ['PUBLISHING'], 'PUBLISHED', {
-        ...(res?.externalId ? { externalId: res.externalId } : {}),
-        ...(res?.releaseUrl ? { releaseUrl: res.releaseUrl } : {}),
         publishedAt: new Date(),
         errorClass: null,
         errorMessage: null,
@@ -265,16 +307,90 @@ export const makePublishPublication = (deps: PublishDeps) =>
           groupId: pub.groupId,
           publicationId: pub.id,
           channelId: channel.id,
-          externalId: res?.externalId ?? null,
-          releaseUrl: res?.releaseUrl ?? null,
+          externalId: firstExternalId,
+          releaseUrl: firstReleaseUrl,
         },
       });
+    };
+
+    // externalId/releaseUrl do item 0 (podem vir de tentativa anterior via cursor)
+    let firstExternalId: string | null = items[0]?.externalId ?? pub.externalId;
+    let firstReleaseUrl: string | null = pub.releaseUrl;
+
+    try {
+      // retomada tardia (crash entre o último item e o PUBLISHED): só finaliza
+      if (startIdx >= items.length) {
+        if (items.length > 0) await finalize();
+        return;
+      }
+
+      const accessToken = await deps.crypto.decrypt(channel.tokenEnc, aad, channel.tokenKeyVersion);
+      const token = { accessToken, scopes: channel.scopes };
+      // settings do canal (ex.: instância Mastodon) + settings da publicação
+      const settings = {
+        ...(channel.settings as Record<string, unknown>),
+        ...(pub.settings as Record<string, unknown>),
+      };
+
+      let prevExternalId = startIdx > 0 ? items[startIdx - 1]!.externalId : null;
+      for (; i < items.length; i++) {
+        const item = items[i]!;
+        let res;
+        if (i === 0) {
+          // item 0 publica a partir de pub.content — fonte de verdade p/ edições via PATCH
+          [res] = await provider.publish(
+            ctx,
+            token,
+            [{ content: pub.content.text, media: pub.content.media ?? [] }],
+            settings,
+          );
+        } else {
+          if (!provider.publishReply || !prevExternalId) {
+            throw { status: 422, body: 'thread sem suporte no provider ou sem item anterior' };
+          }
+          res = await provider.publishReply(
+            ctx,
+            token,
+            prevExternalId,
+            { content: item.content.text, media: item.media },
+            settings,
+          );
+        }
+        // cursor avança SÓ após confirmação da rede — retry nunca reposta (SPEC_QUEUE §7)
+        await deps.publishing.recordItemPublished(pub.id, item.id, i, {
+          externalId: res?.externalId ?? null,
+          releaseUrl: res?.releaseUrl ?? null,
+        });
+        prevExternalId = res?.externalId ?? null;
+        if (i === 0) {
+          firstExternalId = res?.externalId ?? null;
+          firstReleaseUrl = res?.releaseUrl ?? null;
+        }
+
+        const next = items[i + 1];
+        if (next && next.delaySec > 0) {
+          // espera durável via fila (SPEC_QUEUE §9) — estado permanece PUBLISHING
+          await deps.scheduler.enqueue(
+            THREAD_QUEUE,
+            { publicationId: pub.id, v: pub.jobVersion, afterIndex: i },
+            {
+              startAfter: new Date(Date.now() + next.delaySec * 1000),
+              singletonKey: `${pub.id}:t${i + 1}:v${pub.jobVersion}`,
+            },
+          );
+          return;
+        }
+      }
+
+      await finalize();
     } catch (err) {
       const status = Number((err as { status?: number })?.status ?? 0);
-      const body = String(
+      const rawBody = String(
         (err as { body?: string })?.body ?? (err as Error)?.message ?? err,
       );
-      const cls = provider.classifyError(status, body);
+      // em thread, aponta o item que falhou (os anteriores ficam publicados — cursor)
+      const body = items.length > 1 ? `item ${i} da thread: ${rawBody}` : rawBody;
+      const cls = provider.classifyError(status, rawBody);
 
       if (cls === 'permanent') return fail('permanent', body);
 
@@ -344,6 +460,19 @@ export const makePublishPublication = (deps: PublishDeps) =>
       );
     }
   };
+
+export const makePublishPublication = (deps: PublishDeps) => {
+  const run = makeRunner(deps);
+  return (publicationId: string, jobVersion?: number) =>
+    run({ publicationId, ...(jobVersion !== undefined ? { jobVersion } : {}) });
+};
+
+/** Handler do job publish-thread-item (SPEC_QUEUE §9): retoma a thread após o delay. */
+export const makeContinueThread = (deps: PublishDeps) => {
+  const run = makeRunner(deps);
+  return (publicationId: string, jobVersion: number, afterIndex: number) =>
+    run({ publicationId, jobVersion, afterIndex });
+};
 
 // ---------------------------------------------------------------- cancel / edit
 

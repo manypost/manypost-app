@@ -2,7 +2,7 @@
 
 > **Para o agente de IA que pegar este projeto:** leia este arquivo + `CLAUDE.md` (raiz) antes de qualquer coisa. Ele diz o que JÁ FUNCIONA (com prova), o que falta (com referência à spec de cada item) e onde tirar dúvidas. Atualize este arquivo ao fim de cada fatia entregue.
 >
-> **Última atualização:** 2026-07-11 (fatia de mídia) · branch `main`.
+> **Última atualização:** 2026-07-11 (fatias de mídia e threads) · branch `main`.
 
 ## 1. O que é o projeto (30 segundos)
 
@@ -32,7 +32,10 @@ Cada item abaixo tem testes unitários e/ou E2E reais (Postgres 17 + Redis + wor
 | **Providers** | **Mastodon (real!)**: registro dinâmico de app por instância, OAuth, publish com thread via `in_reply_to_id`, idempotency-key nativo, **mídia via `/api/v2/media`** (202 → poll até processar, `media_ids` no status, `description`=alt). **Fake**: simula sucesso/transient/401/rejeição p/ dev e E2E | SPEC_INTEGRATIONS | `packages/providers/src/{mastodon,fake}` |
 | **Mídia** ⭐ | Upload multipart (`POST /v1/media/upload`) com **MIME real por magic bytes** (JPEG/PNG/GIF/WebP/MP4/MOV/WebM, nunca confia no cliente) + dimensões de imagem lidas do header; `POST /v1/media/from-url` (anti-SSRF com re-validação por salto de redirect + teto de bytes no streaming); `GET /v1/media`, `PATCH :id` (alt), `DELETE :id` (soft — arquivo fica p/ posts agendados); arquivos servidos públicos em `/uploads/:org/:file` (chaves UUID); storage local (`UPLOAD_DIR`), port `MediaStorage` pronto p/ S3/R2; `POST /v1/posts` aceita `mediaIds` → refs com URL pública+MIME no content, validadas por canal via `provider.validateMedia` (helper `checkMediaRules` compartilhado: contagem, mistura imagem/vídeo, MIME) | SPEC_API_MCP §3, SPEC_DATA §3, SPEC_INTEGRATIONS §2 | `use-cases/media.ts`, `infra/media/sniff.ts`, `media.routes.ts`, `providers/src/shared/media-rules.ts` |
 
-**Provas:** 69 testes unit (`bun test`) + `scripts/e2e-auth.ts` (21 checks) + `scripts/e2e-publish.ts` (45 checks, inclui upload→post com mídia→publicação) — CI roda tudo com services postgres+redis.
+| **Threads** ⭐ | `POST /v1/posts` aceita `thread: [{text, mediaIds?, delaySec?}]` (réplicas após o post principal, até 24, delay 0–600s). Publicação item a item com **cursor `lastPublishedIndex`** — retry retoma do cursor e **nunca reposta** item confirmado (SPEC_QUEUE §7); delay entre itens = job `publish-thread-item` durável (§9), continuação com fencing triplo (estado PUBLISHING + jobVersion + cursor exato); item que falha aponta `item N da thread` no errorMessage; `itemCount`/`lastPublishedIndex` expostos no GET | SPEC_QUEUE §7/§9 | `makeContinueThread` em `use-cases/publishing.ts`, `publication_items` |
+| **Providers** (2) | `publishReply` no contrato (com settings); Mastodon responde via `in_reply_to_id`; fake simula réplicas com falha injetável (`failFirstReplyAttempts`) | SPEC_INTEGRATIONS §2 | idem |
+
+**Provas:** 76 testes unit (`bun test`) + `scripts/e2e-auth.ts` (21 checks) + `scripts/e2e-publish.ts` (53 checks, inclui upload→post com mídia→publicação e thread com delay real + retry) — CI roda tudo com services postgres+redis.
 
 ## 3. Decisões de implementação que você precisa saber (além das specs)
 
@@ -45,12 +48,14 @@ Cada item abaixo tem testes unitários e/ou E2E reais (Postgres 17 + Redis + wor
 7. Composition root em `apps/api/src/container.ts` (sem framework de DI); worker dedicado espelha em `apps/worker/src/main.ts`; `MODE=all` roda api+worker num processo.
 8. `cancelBySingletonKey` toca `pgboss.job` via SQL (best-effort; higiene) — se o schema do pg-boss mudar, só perde a higiene, nunca a corretude.
 9. **Mídia**: refs ficam DENTRO de `publications.content` (`{text, media: [{mediaId,type,url,mime,alt}]}`) e em `publication_items.media`; o worker só repassa URLs — quem baixa bytes é o provider (Mastodon baixa de `/uploads` e sobe na instância). `rescheduleGroup` faz **merge jsonb (`||`)** no content: editar só o texto preserva a mídia. `DELETE /v1/media` é soft e NÃO apaga o arquivo (posts agendados ainda apontam p/ a URL). `validateMedia` roda no agendamento (falha cedo com `post.invalid_media`), não no publish.
+10. **Threads**: item 0 publica a partir de `publications.content` (por isso PATCH de texto edita o post principal; réplicas são imutáveis por enquanto — edite cancelando/recriando). Itens ≥1 vêm de `publication_items` e saem via `provider.publishReply` (exigido junto com `capabilities.threads` no agendamento). O cursor só avança APÓS confirmação da rede (`recordItemPublished`, UPDATE condicional monotônico). Entre itens com delay o estado fica `PUBLISHING` — por isso `delaySec` ≤ 600s (watchdog de zumbi é 15 min; cada avanço de cursor renova `updated_at`). Continuações NÃO passam pelo rate-limit (a thread já está em voo; o ritmo é o delaySec). Cancelar só alcança estados pendentes — thread em voo termina. Zumbi mid-thread → `NEEDS_REVIEW` (cursor diz o que já está na rede).
+11. **Drizzle + subquery correlacionada**: `${tabela.coluna}` dentro de `sql\`\`` num select renderiza SEM qualificação — numa subquery o escopo interno captura a coluna errada. Qualifique com `${tabela}.coluna` (bug real corrigido no `itemCount`).
 
 ## 4. O QUE FALTA — em ordem sugerida, com referências
 
 ### Próximas fatias do backend (fase 1 — MVP, SPEC_ROADMAP)
 1. ~~Mídia~~ ✅ (2026-07-11). Ficou de fora (aceitável p/ MVP, retomar depois): thumbnail/blurhash, duração+dimensões de vídeo (probe), presigned upload direto (hoje o corpo passa pela API), driver S3/R2 (necessário p/ Instagram na onda 2 — mídia via URL pública já funciona com o storage local + PUBLIC_URL).
-2. **Threads no composer** (backend já suporta `publication_items`; expor no POST /v1/posts) + delay entre itens. → SPEC_QUEUE §9. Obs: `MediaRef`/`checkMediaRules` já são por item — validar item a item quando expor.
+2. ~~Threads no composer~~ ✅ (2026-07-11). Ficou de fora (retomar depois): editar texto de réplicas já agendadas (hoje só o item 0 via PATCH), `publishReply` nos providers da onda 1 conforme forem chegando.
 3. **Aprovação por link público** (`approval_links` já criada no schema): token+preview+approve/request-changes. → DECISIONS v1.1 §12, SPEC_API_MCP §3, SPEC_FRONTEND §3.6.
 4. **Listagens**: `GET /v1/publications?from&to&state` (calendário/kanban) + SSE `/v1/events`. → SPEC_FRONTEND §3.1-3.2.
 5. **Providers onda 1 restantes**: Bluesky (app password), Telegram (bot), Discord, LinkedIn, X. Suíte de contrato em `packages/providers/test-kit` (README define; implementar). → SPEC_INTEGRATIONS §4/§7, guia de credenciais em [INTEGRATIONS_SETUP.md](INTEGRATIONS_SETUP.md). Postiz ref: `libraries/nestjs-libraries/src/integrations/social/*.provider.ts`.

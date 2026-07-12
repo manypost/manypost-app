@@ -12,6 +12,17 @@ const ScheduleBody = z.object({
   timezone: z.string().default('UTC'),
   settingsByChannel: z.record(z.unknown()).optional(),
   mediaIds: z.array(z.string().uuid()).max(10).optional(),
+  /** réplicas encadeadas após o post principal; delaySec = espera antes de cada uma */
+  thread: z
+    .array(
+      z.object({
+        text: z.string().min(1).max(10_000),
+        mediaIds: z.array(z.string().uuid()).max(10).optional(),
+        delaySec: z.number().int().min(0).max(600).optional(),
+      }),
+    )
+    .max(24)
+    .optional(),
 });
 
 const serializeGroup = (g: NonNullable<Awaited<ReturnType<Container['posts']['getGroup']>>>) => ({
@@ -23,6 +34,9 @@ const serializeGroup = (g: NonNullable<Awaited<ReturnType<Container['posts']['ge
     channelId: p.channelId,
     state: p.state,
     media: p.content.media ?? [],
+    itemCount: p.itemCount ?? 1,
+    /** progresso da thread: itens <= índice já estão na rede */
+    lastPublishedIndex: p.lastPublishedIndex,
     attemptCount: p.attemptCount,
     externalId: p.externalId,
     releaseUrl: p.releaseUrl,
@@ -48,6 +62,7 @@ export function postRoutes(ctn: Container) {
       origin: p.kind === 'api_key' ? 'API' : 'WEB',
       ...(body.settingsByChannel ? { settingsByChannel: body.settingsByChannel } : {}),
       ...(body.mediaIds ? { mediaIds: body.mediaIds } : {}),
+      ...(body.thread ? { thread: body.thread } : {}),
     });
     return c.json(serializeGroup(group!), 201);
   });

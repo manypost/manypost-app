@@ -273,6 +273,39 @@ const tooManyMedia = await schedule({
 check(tooManyMedia.status === 400 && tooManyMedia.body.title === 'post.invalid_media',
   `5 imagens → post.invalid_media (veio ${tooManyMedia.status} ${tooManyMedia.body.title})`);
 
+// ---- 9) threads: item 0 + réplicas encadeadas, delay real via fila ----
+const threadPost = await schedule({
+  text: 'abrindo a thread',
+  channelIds: [channel.id],
+  publishAt: new Date().toISOString(),
+  mediaIds: [uploaded.id],
+  thread: [
+    { text: 'réplica 1, dois segundos depois', delaySec: 2 },
+    { text: 'réplica 2, imediata' },
+  ],
+});
+check(threadPost.status === 201, `agendar thread → 201 (veio ${threadPost.status})`);
+check(threadPost.body.publications[0].itemCount === 3, 'itemCount = 3 itens');
+const threadDone = await pollGroup(threadPost.body.id, (g) => g.state === 'DONE', 30_000);
+check(threadDone.state === 'DONE', `thread publicada inteira (veio ${threadDone.state})`);
+check(threadDone.publications[0].lastPublishedIndex === 2,
+  `cursor no último item (veio ${threadDone.publications[0].lastPublishedIndex})`);
+check(!!threadDone.publications[0].externalId, 'externalId do item 0 preenchido');
+
+// réplica falha 1x → retry retoma do cursor e termina (item 0 nunca é repostado — unit cobre)
+const flakyThread = await schedule({
+  text: 'thread com réplica instável',
+  channelIds: [channel.id],
+  publishAt: new Date().toISOString(),
+  settingsByChannel: { [channel.id]: { failFirstReplyAttempts: 1 } },
+  thread: [{ text: 'réplica que falha na primeira' }],
+});
+const flakyDone = await pollGroup(flakyThread.body.id, (g) => g.state === 'DONE', 30_000);
+check(flakyDone.state === 'DONE', `thread com falha transitória terminou (veio ${flakyDone.state})`);
+check(flakyDone.publications[0].attemptCount >= 2,
+  `retry consumiu tentativa (veio ${flakyDone.publications[0].attemptCount})`);
+check(flakyDone.publications[0].lastPublishedIndex === 1, 'cursor completo após retry');
+
 if (failures > 0) {
   console.error(`\nE2E publish: ${failures} falha(s)`);
   process.exit(1);

@@ -84,6 +84,43 @@ async function uploadAttachments(
   return ids;
 }
 
+interface ResolvedSettings {
+  instance: string;
+  visibility: 'public' | 'unlisted' | 'private';
+}
+
+function parseSettings(rawSettings: unknown): ResolvedSettings {
+  const { instance, ...rest } = (rawSettings ?? {}) as { instance?: string };
+  if (!instance) throw { status: 422, body: 'canal sem instância configurada' };
+  return { instance, ...settingsSchema.parse(rest) };
+}
+
+async function postStatus(
+  ctx: ProviderContext,
+  token: TokenSet,
+  cfg: ResolvedSettings,
+  item: PublishItem,
+  inReplyTo?: string,
+): Promise<{ externalId: string; releaseUrl: string }> {
+  const mediaIds = await uploadAttachments(ctx, token, cfg.instance, item.media);
+  const status = await api<{ id: string; url: string }>(ctx, `${cfg.instance}/api/v1/statuses`, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${token.accessToken}`,
+      'content-type': 'application/json',
+      // idempotência nativa da API do Mastodon por tentativa
+      'idempotency-key': crypto.randomUUID(),
+    },
+    body: JSON.stringify({
+      status: item.content,
+      visibility: cfg.visibility,
+      ...(mediaIds.length > 0 ? { media_ids: mediaIds } : {}),
+      ...(inReplyTo ? { in_reply_to_id: inReplyTo } : {}),
+    }),
+  });
+  return { externalId: status.id, releaseUrl: status.url };
+}
+
 export const mastodonProvider: ChannelProvider = {
   id: 'mastodon',
   name: 'Mastodon',
@@ -176,32 +213,19 @@ export const mastodonProvider: ChannelProvider = {
   },
 
   async publish(ctx, token: TokenSet, items: PublishItem[], rawSettings) {
-    const { instance, ...rest } = (rawSettings ?? {}) as { instance?: string };
-    if (!instance) throw { status: 422, body: 'canal sem instância configurada' };
-    const settings = settingsSchema.parse(rest);
+    const cfg = parseSettings(rawSettings);
     const results = [];
     let inReplyTo: string | undefined;
     for (const item of items) {
-      const mediaIds = await uploadAttachments(ctx, token, instance, item.media);
-      const status = await api<{ id: string; url: string }>(ctx, `${instance}/api/v1/statuses`, {
-        method: 'POST',
-        headers: {
-          authorization: `Bearer ${token.accessToken}`,
-          'content-type': 'application/json',
-          // idempotência nativa da API do Mastodon por tentativa
-          'idempotency-key': crypto.randomUUID(),
-        },
-        body: JSON.stringify({
-          status: item.content,
-          visibility: settings.visibility,
-          ...(mediaIds.length > 0 ? { media_ids: mediaIds } : {}),
-          ...(inReplyTo ? { in_reply_to_id: inReplyTo } : {}),
-        }),
-      });
-      inReplyTo = status.id;
-      results.push({ externalId: status.id, releaseUrl: status.url });
+      const res = await postStatus(ctx, token, cfg, item, inReplyTo);
+      inReplyTo = res.externalId;
+      results.push(res);
     }
     return results;
+  },
+
+  async publishReply(ctx, token, parentExternalId, item, rawSettings) {
+    return postStatus(ctx, token, parseSettings(rawSettings), item, parentExternalId);
   },
 
   async validateMedia(items) {

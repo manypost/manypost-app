@@ -137,6 +137,25 @@ describe('mastodon provider', () => {
     expect(res[0]!.externalId).toBe('s1');
   }, 10_000);
 
+  test('publishReply responde ao status pai com in_reply_to_id (item de thread)', async () => {
+    const bodies: any[] = [];
+    const { ctx } = mockCtx({
+      '/api/v1/statuses': (init) => {
+        bodies.push(JSON.parse(String(init?.body)));
+        return { id: 's99', url: 'https://m/@ana/s99' };
+      },
+    });
+    const res = await p.publishReply!(
+      ctx,
+      { accessToken: 'tok', scopes: [] },
+      's42',
+      { content: 'continuação da thread', media: [] },
+      { instance: 'https://mastodon.social', visibility: 'public' },
+    );
+    expect(bodies[0].in_reply_to_id).toBe('s42');
+    expect(res.externalId).toBe('s99');
+  });
+
   test('validateMedia: 4 imagens ok; 5 imagens, mistura e MIME errado são recusados', async () => {
     const img = (n: number) =>
       Array.from({ length: n }, (_, i) => ({

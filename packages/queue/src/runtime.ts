@@ -11,7 +11,9 @@ import type {
 import {
   PUBLISH_QUEUE,
   RECOVER_QUEUE,
+  THREAD_QUEUE,
   WEBHOOK_QUEUE,
+  makeContinueThread,
   makeDeliverWebhook,
   makeEmitEvent,
   makePublishPublication,
@@ -49,7 +51,7 @@ export async function createPublishingRuntime(
   const boss = new PgBoss({ connectionString: opts.databaseUrl });
   boss.on('error', (err) => log('error', 'pg-boss', { err: String(err) }));
   await boss.start();
-  for (const q of [PUBLISH_QUEUE, RECOVER_QUEUE, WEBHOOK_QUEUE]) {
+  for (const q of [PUBLISH_QUEUE, THREAD_QUEUE, RECOVER_QUEUE, WEBHOOK_QUEUE]) {
     await boss.createQueue(q).catch(() => {}); // idempotente entre versões
   }
   // conexão dedicada para operações fora da API do pg-boss (cancel por singletonKey)
@@ -91,6 +93,16 @@ export async function createPublishingRuntime(
     events,
     log,
   });
+  const continueThread = makeContinueThread({
+    publishing: opts.publishing,
+    channels: opts.channels,
+    registry: opts.registry,
+    crypto: opts.crypto,
+    scheduler,
+    retryBaseSec: opts.retryBaseSec,
+    events,
+    log,
+  });
   const recover = makeRecoverDue({ publishing: opts.publishing, scheduler, log });
   const deliver = makeDeliverWebhook({
     webhooks: opts.webhooks,
@@ -118,6 +130,21 @@ export async function createPublishingRuntime(
           }
         }
       });
+      await boss.work<{ publicationId: string; v: number; afterIndex: number }>(
+        THREAD_QUEUE,
+        async (jobs) => {
+          for (const job of jobs) {
+            try {
+              await continueThread(job.data.publicationId, job.data.v, job.data.afterIndex);
+            } catch (err) {
+              log('error', 'thread continuation falhou', {
+                publicationId: job.data.publicationId,
+                err: String(err),
+              });
+            }
+          }
+        },
+      );
       await boss.work<{ deliveryId: string }>(WEBHOOK_QUEUE, async (jobs) => {
         for (const job of jobs) {
           try {
@@ -132,7 +159,9 @@ export async function createPublishingRuntime(
         if (out.due || out.stuck) log('warn', 'recover-scan agiu', out);
       });
       await boss.schedule(RECOVER_QUEUE, '* * * * *', {}, {}); // barato: índices parciais
-      log('info', 'worker ativo', { queues: [PUBLISH_QUEUE, WEBHOOK_QUEUE, RECOVER_QUEUE] });
+      log('info', 'worker ativo', {
+        queues: [PUBLISH_QUEUE, THREAD_QUEUE, WEBHOOK_QUEUE, RECOVER_QUEUE],
+      });
     },
     async stop() {
       await boss.stop({ graceful: true });
