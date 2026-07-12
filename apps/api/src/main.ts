@@ -10,9 +10,11 @@ import { apiKeyRoutes } from './http/routes/api-keys.routes';
 import { approvalPublicRoutes } from './http/routes/approvals-public.routes';
 import { authRoutes } from './http/routes/auth.routes';
 import { channelRoutes } from './http/routes/channels.routes';
+import { eventRoutes } from './http/routes/events.routes';
 import { mediaRoutes, publicUploadRoutes } from './http/routes/media.routes';
 import { notificationRoutes } from './http/routes/notifications.routes';
 import { postRoutes } from './http/routes/posts.routes';
+import { publicationRoutes } from './http/routes/publications.routes';
 import { socialAuthRoutes } from './http/routes/social-auth.routes';
 import { webhookRoutes } from './http/routes/webhooks.routes';
 
@@ -62,6 +64,8 @@ app.route('/v1/auth', authRoutes(ctn));
 app.route('/v1/api-keys', apiKeyRoutes(ctn));
 app.route('/v1/channels', channelRoutes(ctn));
 app.route('/v1/posts', postRoutes(ctn));
+app.route('/v1/publications', publicationRoutes(ctn)); // feed do calendário/kanban
+app.route('/v1/events', eventRoutes(ctn)); // SSE
 app.route('/v1/media', mediaRoutes(ctn));
 app.route('/v1/webhooks', webhookRoutes(ctn));
 app.route('/v1/notifications', notificationRoutes(ctn));
@@ -73,7 +77,7 @@ app.doc('/openapi.json', {
   info: { title: 'manypost API', version: '0.0.1' },
 });
 
-// Fase 1 restante: listagens/SSE, providers onda 1, semáforo+métricas, analytics, public-v1 e /mcp.
+// Fase 1 restante: providers onda 1, semáforo+métricas, analytics, public-v1 e /mcp.
 console.log(`manypost api (MODE=${env.MODE}) on :${env.PORT}`);
 
 export default { port: env.PORT, fetch: app.fetch };

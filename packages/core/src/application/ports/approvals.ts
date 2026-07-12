@@ -68,4 +68,7 @@ export interface NotificationRepository {
     link?: string;
   }): Promise<void>;
   list(orgId: string, limit?: number): Promise<NotificationRecord[]>;
+  /** false = não encontrada nesta org (já lida é idempotente: true) */
+  markRead(orgId: string, id: string): Promise<boolean>;
+  markAllRead(orgId: string): Promise<number>;
 }

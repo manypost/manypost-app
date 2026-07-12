@@ -98,6 +98,19 @@ export function postRoutes(ctn: Container) {
     return c.json(serializeGroup(group!));
   });
 
+  const RetryBody = z.object({ channelId: z.string().uuid().optional() }).optional();
+
+  // kanban "tentar novamente" (por canal quando channelId vem no body)
+  app.post('/:groupId/retry', async (c) => {
+    const body = RetryBody.parse(await c.req.json().catch(() => undefined));
+    const group = await ctn.posts.retry({
+      orgId: c.get('principal').orgId,
+      groupId: c.req.param('groupId'),
+      ...(body?.channelId ? { channelId: body.channelId } : {}),
+    });
+    return c.json(serializeGroup(group!));
+  });
+
   // ---- aprovação por link público (DECISIONS v1.1 §12) ----
 
   const ApprovalLinkBody = z

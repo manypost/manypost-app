@@ -4,8 +4,9 @@ export {}; // módulo (top-level await)
  * E2E do coração do produto: conectar canal (fake) → agendar → worker publica.
  * Requer API em MODE=all com PUBLISH_RETRY_BASE_SEC=1, MEDIA_ALLOW_PRIVATE_URLS=true.
  * Cobre: publicação no horário, retry transitório, falha permanente, estados do grupo,
- * webhooks assinados, cancelar/editar, biblioteca de mídia (upload/from-url → post com mídia)
- * e aprovação por link público (rascunho → cliente aprova sem login → publica).
+ * webhooks assinados, cancelar/editar, biblioteca de mídia (upload/from-url → post com mídia),
+ * aprovação por link público (rascunho → cliente aprova sem login → publica),
+ * listagens p/ calendário/kanban, SSE, retry manual e notificações lidas.
  */
 const BASE = process.env.BASE_URL ?? 'http://localhost:3988';
 
@@ -403,6 +404,163 @@ check(notifs.filter((n) => n.kind === 'approval.resolved').length === 2,
   `notificações de aprovação para a equipe (veio ${notifs.filter((n) => n.kind === 'approval.resolved').length})`);
 check(notifs.some((n) => n.title === 'Cliente aprovou o post'), 'notificação de aprovado');
 check(notifs.some((n) => n.body === 'troca a primeira frase'), 'notificação de ajustes carrega o feedback');
+
+// ---- 11) SSE /v1/events: estado muda → evento chega sem reload ----
+const sseEvents: Array<{ event: string; data: string }> = [];
+const sseAbort = new AbortController();
+const ssePromise = (async () => {
+  const res = await fetch(`${BASE}/v1/events`, {
+    headers: { authorization: auth.authorization },
+    signal: sseAbort.signal,
+  });
+  check(res.status === 200, `SSE conecta → 200 (veio ${res.status})`);
+  check((res.headers.get('content-type') ?? '').includes('text/event-stream'), 'content-type event-stream');
+  const reader = res.body!.getReader();
+  const dec = new TextDecoder();
+  let buf = '';
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let sep: number;
+    while ((sep = buf.indexOf('\n\n')) >= 0) {
+      const chunk = buf.slice(0, sep);
+      buf = buf.slice(sep + 2);
+      sseEvents.push({
+        event: chunk.match(/^event: (.*)$/m)?.[1] ?? 'message',
+        data: chunk.match(/^data: (.*)$/m)?.[1] ?? '',
+      });
+    }
+  }
+})().catch(() => {}); // abort esperado no fim
+
+const sseSeen = async (event: string, timeoutMs = 90_000) => {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (sseEvents.some((e) => e.event === event)) return true;
+    await sleep(300);
+  }
+  return false;
+};
+check(await sseSeen('hello', 5000), 'handshake hello com realtime ativo');
+
+const ssePost = await schedule({
+  text: 'post observado pelo SSE',
+  channelIds: [channel.id],
+  publishAt: new Date().toISOString(),
+});
+check(ssePost.status === 201, `agendar post do SSE → 201 (veio ${ssePost.status})`);
+check(await sseSeen('post.scheduled', 10_000), 'SSE recebeu post.scheduled');
+check(await sseSeen('post.published'), 'SSE recebeu post.published (worker → Redis → stream)');
+{
+  const ev = sseEvents.find((e) => e.event === 'post.published');
+  check(!!ev && JSON.parse(ev.data).groupId === ssePost.body.id, 'payload do SSE aponta o grupo certo');
+}
+sseAbort.abort();
+await ssePromise;
+
+// ---- 12) GET /v1/publications: feed do calendário/kanban ----
+const range = `from=${encodeURIComponent(new Date(Date.now() - 3_600_000).toISOString())}&to=${encodeURIComponent(new Date(Date.now() + 3_600_000).toISOString())}`;
+const feed = (await (await fetch(`${BASE}/v1/publications?${range}&limit=200`, { headers: auth })).json()) as any;
+check(Array.isArray(feed.items) && feed.items.length >= 10, `feed lista as publicações do período (${feed.items.length})`);
+{
+  const item = feed.items.find((i: any) => i.groupId === ssePost.body.id);
+  check(!!item, 'item do feed pelo groupId');
+  check(item?.channel?.provider === 'fake' && !!item?.channel?.name, 'feed embute canal (provider/nome)');
+  check(item?.group?.state === 'DONE' && item?.group?.origin === 'WEB', 'feed embute estado e origem do grupo');
+  check(typeof item?.text === 'string' && item.text.length > 0, 'feed traz o texto do post');
+}
+
+const published = (await (
+  await fetch(`${BASE}/v1/publications?${range}&state=PUBLISHED&limit=200`, { headers: auth })
+).json()) as any;
+check(
+  published.items.length > 0 && published.items.every((i: any) => i.state === 'PUBLISHED'),
+  `filtro state=PUBLISHED só traz publicadas (${published.items.length})`,
+);
+
+const page1 = (await (await fetch(`${BASE}/v1/publications?${range}&limit=2`, { headers: auth })).json()) as any;
+check(page1.items.length === 2 && typeof page1.nextCursor === 'string', 'limit=2 + nextCursor presente');
+const page2 = (await (
+  await fetch(`${BASE}/v1/publications?${range}&limit=2&cursor=${encodeURIComponent(page1.nextCursor)}`, { headers: auth })
+).json()) as any;
+check(
+  page2.items.length > 0 && !page1.items.some((a: any) => page2.items.some((b: any) => a.id === b.id)),
+  'página 2 via cursor não repete itens',
+);
+
+const badState = await fetch(`${BASE}/v1/publications?state=INVENTADO`, { headers: auth });
+check(badState.status === 400 && ((await badState.json()) as any).title === 'validation.invalid_request',
+  `estado inválido → 400 problem+json (veio ${badState.status})`);
+
+// rascunho aguardando cliente aparece com a flag do kanban
+const kanbanDraft = await schedule({
+  text: 'rascunho para a coluna aguardando aprovação',
+  channelIds: [channel.id],
+  publishAt: new Date(Date.now() + 3_000_000).toISOString(),
+  requireApproval: true,
+});
+await fetch(`${BASE}/v1/posts/${kanbanDraft.body.id}/approval-link`, {
+  method: 'POST',
+  headers: auth,
+  body: JSON.stringify({}),
+});
+const draftFeed = (await (
+  await fetch(`${BASE}/v1/publications?state=DRAFT&limit=50`, { headers: auth })
+).json()) as any;
+const draftItem = draftFeed.items.find((i: any) => i.groupId === kanbanDraft.body.id);
+check(draftItem?.group?.awaitingApproval === true, 'DRAFT com link pendente → awaitingApproval (kanban)');
+
+// ---- 13) retry manual: falha esgotada → "tentar novamente" → publica ----
+const flakyPost = await schedule({
+  text: 'post que esgota as tentativas',
+  channelIds: [channel.id],
+  publishAt: new Date().toISOString(),
+  settingsByChannel: { [channel.id]: { failFirstAttempts: 5 } },
+});
+const exhausted = await pollGroup(flakyPost.body.id, (g) => g.publications[0].state === 'FAILED', 60_000);
+check(exhausted.publications[0].state === 'FAILED', `5 falhas → FAILED (veio ${exhausted.publications[0].state})`);
+check(exhausted.publications[0].errorClass === 'transient', 'errorClass transient');
+
+const retryRes = await fetch(`${BASE}/v1/posts/${flakyPost.body.id}/retry`, {
+  method: 'POST',
+  headers: auth,
+  body: JSON.stringify({ channelId: channel.id }),
+});
+check(retryRes.status === 200, `retry → 200 (veio ${retryRes.status})`);
+check(((await retryRes.json()) as any).publications[0].state === 'SCHEDULED', 'retry re-agenda a publicação');
+const retried2 = await pollGroup(flakyPost.body.id, (g) => g.state === 'DONE', 90_000);
+check(retried2.state === 'DONE', `retry manual publica (fake passa na 6ª tentativa — veio ${retried2.state})`);
+check(retried2.publications[0].attemptCount >= 1 && retried2.publications[0].attemptCount <= 5,
+  `tentativas zeradas no retry (veio ${retried2.publications[0].attemptCount})`);
+
+const nothingToRetry = await fetch(`${BASE}/v1/posts/${ssePost.body.id}/retry`, {
+  method: 'POST',
+  headers: auth,
+  body: JSON.stringify({}),
+});
+check(nothingToRetry.status === 400 && ((await nothingToRetry.json()) as any).title === 'post.invalid_transition',
+  'retry sem nada falhado → post.invalid_transition');
+
+// ---- 14) notificações: marcar lida / todas lidas ----
+const beforeRead = (await (await fetch(`${BASE}/v1/notifications`, { headers: auth })).json()) as any[];
+const unread = beforeRead.filter((n) => n.readAt === null);
+check(unread.length >= 2, `há notificações não lidas (${unread.length})`);
+const readOne = await fetch(`${BASE}/v1/notifications/${unread[0].id}/read`, { method: 'POST', headers: auth });
+check(readOne.status === 200, `marcar lida → 200 (veio ${readOne.status})`);
+const afterOne = (await (await fetch(`${BASE}/v1/notifications`, { headers: auth })).json()) as any[];
+check(afterOne.find((n) => n.id === unread[0].id)?.readAt !== null, 'readAt preenchido');
+const readAll = (await (
+  await fetch(`${BASE}/v1/notifications/read-all`, { method: 'POST', headers: auth })
+).json()) as any;
+check(readAll.read >= 1, `read-all marcou as restantes (${readAll.read})`);
+const afterAll = (await (await fetch(`${BASE}/v1/notifications`, { headers: auth })).json()) as any[];
+check(afterAll.every((n) => n.readAt !== null), 'nenhuma não lida após read-all');
+const readMissing = await fetch(`${BASE}/v1/notifications/00000000-0000-7000-8000-000000000000/read`, {
+  method: 'POST',
+  headers: auth,
+});
+check(readMissing.status === 404, `notificação inexistente → 404 (veio ${readMissing.status})`);
 
 if (failures > 0) {
   console.error(`\nE2E publish: ${failures} falha(s)`);

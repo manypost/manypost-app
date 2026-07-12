@@ -10,6 +10,7 @@ import {
   makePublishPublication,
   makeRecoverDue,
   makeReschedulePost,
+  makeRetryPost,
   makeSchedulePost,
 } from './publishing';
 
@@ -220,6 +221,7 @@ function makeFakes(provider: ChannelProvider) {
         events.push({ pubId: pid, from: p.state, to });
         p.state = to;
         if (patch?.incrementAttempt) p.attemptCount++;
+        if (patch?.resetAttempts) p.attemptCount = 0;
         if (patch?.bumpJobVersion) p.jobVersion++;
         if (patch?.externalId !== undefined) p.externalId = patch.externalId;
         if (patch?.releaseUrl !== undefined) p.releaseUrl = patch.releaseUrl;
@@ -631,6 +633,97 @@ describe('threads (SPEC_QUEUE §7/§9)', () => {
     f._state.pubs[0]!.jobVersion++; // simula edit/cancel bumpando a versão
     await makeContinueThread({ ...(f as any), retryBaseSec: 0.001 })(pubId, 0, 0);
     expect(prov.replyCount()).toBe(0); // continuação da versão antiga descartada
+  });
+});
+
+describe('retry manual (kanban "tentar novamente")', () => {
+  beforeEach(async () => {
+    await connect(f, prov.provider);
+  });
+
+  test('FAILED volta a SCHEDULED com tentativas zeradas e versão nova; job antigo morre', async () => {
+    behavior.reject = true;
+    const group = await schedule();
+    const pubId = group!.publications[0]!.id;
+    await publish(pubId);
+    expect(f._state.pubs[0]!.state).toBe('FAILED');
+
+    behavior.reject = false; // "a rede parou de rejeitar"
+    await makeRetryPost(f as any)({ orgId: 'org-1', groupId: group!.id });
+    const pub = f._state.pubs[0]!;
+    expect(pub.state).toBe('SCHEDULED');
+    expect(pub.attemptCount).toBe(0);
+    expect(pub.jobVersion).toBe(1);
+    expect(pub.errorClass).toBeNull();
+    const job = f._state.jobs.at(-1)!;
+    expect(job.payload).toMatchObject({ publicationId: pubId, v: 1 });
+
+    await makePublishPublication({ ...(f as any), retryBaseSec: 0.001 })(pubId, 0); // job velho
+    expect(f._state.pubs[0]!.state).toBe('SCHEDULED'); // descartado pela versão
+    await makePublishPublication({ ...(f as any), retryBaseSec: 0.001 })(pubId, 1);
+    expect(f._state.pubs[0]!.state).toBe('PUBLISHED');
+  });
+
+  test('NEEDS_REVIEW é retryable (ação humana — DECISIONS §7 só proíbe repost automático)', async () => {
+    const group = await schedule();
+    f._state.pubs[0]!.state = 'NEEDS_REVIEW';
+    await makeRetryPost(f as any)({ orgId: 'org-1', groupId: group!.id });
+    expect(f._state.pubs[0]!.state as string).toBe('SCHEDULED');
+  });
+
+  test('channelId filtra: só a publicação daquele canal é repetida; nada falhado → erro', async () => {
+    const group = await schedule();
+    await expect(
+      makeRetryPost(f as any)({ orgId: 'org-1', groupId: group!.id }),
+    ).rejects.toMatchObject({ code: 'post.invalid_transition' }); // ainda SCHEDULED
+
+    f._state.pubs[0]!.state = 'FAILED';
+    await makeRetryPost(f as any)({
+      orgId: 'org-1',
+      groupId: group!.id,
+      channelId: 'canal-que-nao-existe',
+    }).then(
+      () => {
+        throw new Error('deveria falhar');
+      },
+      (err) => expect(err).toMatchObject({ code: 'post.invalid_transition' }),
+    );
+    await makeRetryPost(f as any)({
+      orgId: 'org-1',
+      groupId: group!.id,
+      channelId: f._state.pubs[0]!.channelId,
+    });
+    expect(f._state.pubs[0]!.state as string).toBe('SCHEDULED');
+  });
+});
+
+describe('evento post.scheduled (SPEC_API_MCP §4)', () => {
+  beforeEach(async () => {
+    await connect(f, prov.provider);
+  });
+
+  test('agendar emite post.scheduled; rascunho (requireApproval) NÃO emite', async () => {
+    const emitted: any[] = [];
+    const events = { emit: async (e: any) => void emitted.push(e) };
+    await makeSchedulePost({ ...(f as any), events })({
+      orgId: 'org-1',
+      authorId: 'u1',
+      text: 'agendado',
+      channelIds: [f._state.channels[0]!.id],
+      publishAt: new Date(),
+    });
+    expect(emitted).toHaveLength(1);
+    expect(emitted[0]).toMatchObject({ event: 'post.scheduled', orgId: 'org-1' });
+
+    await makeSchedulePost({ ...(f as any), events })({
+      orgId: 'org-1',
+      authorId: 'u1',
+      text: 'rascunho',
+      channelIds: [f._state.channels[0]!.id],
+      publishAt: new Date(),
+      requireApproval: true,
+    });
+    expect(emitted).toHaveLength(1); // nada novo
   });
 });
 

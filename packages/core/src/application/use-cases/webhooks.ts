@@ -5,6 +5,7 @@ import { DomainError } from '../../domain/shared/result';
 import type { CryptoService } from '../ports/crypto';
 import type { EventPublisher, WebhookRecord, WebhookRepository } from '../ports/events';
 import type { JobScheduler } from '../ports/job-scheduler';
+import type { RealtimePublisher } from '../ports/realtime';
 import { randomToken } from '../tokens';
 
 export const WEBHOOK_QUEUE = 'webhook-delivery';
@@ -72,13 +73,18 @@ export const makeDeleteWebhook = (deps: Pick<WebhookDeps, 'webhooks'>) =>
     }
   };
 
-/** EventPublisher: 1 delivery por webhook inscrito + job de entrega. */
+/** EventPublisher: 1 delivery por webhook inscrito + job de entrega + eco no bus realtime (SSE). */
 export const makeEmitEvent = (deps: {
   webhooks: WebhookRepository;
   scheduler: JobScheduler;
+  realtime?: RealtimePublisher;
   log?: (level: string, msg: string, data?: object) => void;
 }): EventPublisher => ({
   async emit(e) {
+    // todo evento de domínio vai ao bus da UI, inscrito ou não em webhooks (melhor esforço)
+    await deps.realtime
+      ?.publish(e.orgId, { type: e.event, data: e.data })
+      .catch((err) => deps.log?.('warn', 'realtime publish falhou', { err: String(err) }));
     const targets = await deps.webhooks.findForEvent(e.orgId, e.event, e.channelId);
     for (const w of targets) {
       const envelope: WebhookEnvelope = {

@@ -1,5 +1,6 @@
 import type { Context } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
+import { ZodError } from 'zod';
 import { DomainError } from '@manypost/core';
 
 /** DomainError.code → HTTP (RFC 9457 problem+json — SPEC_API_MCP §3). */
@@ -18,6 +19,20 @@ const STATUS: Record<string, ContentfulStatusCode> = {
 };
 
 export function errorHandler(err: unknown, c: Context) {
+  if (err instanceof ZodError) {
+    // body/query fora do contrato: 400 com os campos, nunca 500
+    return c.json(
+      {
+        type: 'about:blank',
+        title: 'validation.invalid_request',
+        status: 400,
+        detail: 'requisição fora do contrato',
+        extra: err.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
+      },
+      400,
+      { 'content-type': 'application/problem+json' },
+    );
+  }
   if (err instanceof DomainError) {
     const status = STATUS[err.code] ?? 400;
     return c.json(

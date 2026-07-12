@@ -1,5 +1,5 @@
 import type { ActorType, ApprovalStatus, MediaRef } from '@manypost/contracts';
-import { ErrorCodes } from '@manypost/contracts';
+import { ErrorCodes, WebhookEvents } from '@manypost/contracts';
 import { DomainError } from '../../domain/shared/result';
 import type {
   ApprovalLinkRecord,
@@ -7,7 +7,9 @@ import type {
   AuditLogRepository,
   NotificationRepository,
 } from '../ports/approvals';
+import type { EventPublisher } from '../ports/events';
 import type { JobScheduler } from '../ports/job-scheduler';
+import type { RealtimePublisher } from '../ports/realtime';
 import type { ChannelRepository, PublishingRepository } from '../ports/publishing';
 import { randomToken, sha256Hex } from '../tokens';
 import { PUBLISH_QUEUE } from './publishing';
@@ -184,6 +186,8 @@ export interface ResolveApprovalDeps {
   scheduler: JobScheduler;
   audit?: AuditLogRepository;
   notifications?: NotificationRepository;
+  events?: EventPublisher;
+  realtime?: RealtimePublisher;
   log?: (level: string, msg: string, data?: object) => void;
 }
 
@@ -236,6 +240,13 @@ export const makeResolveApproval = (deps: ResolveApprovalDeps) =>
           });
         }
       }
+      if (pubs.length > 0) {
+        await deps.events?.emit({
+          orgId: link.orgId,
+          event: WebhookEvents.PostScheduled,
+          data: { groupId: link.groupId, via: 'approval_link' },
+        });
+      }
     }
 
     await deps.audit?.append({
@@ -251,13 +262,12 @@ export const makeResolveApproval = (deps: ResolveApprovalDeps) =>
       },
       ip: input.ip ?? null,
     });
+    const title =
+      input.action === 'approve' ? 'Cliente aprovou o post' : 'Cliente pediu ajustes no post';
     await deps.notifications?.create({
       orgId: link.orgId,
       kind: 'approval.resolved',
-      title:
-        input.action === 'approve'
-          ? 'Cliente aprovou o post'
-          : 'Cliente pediu ajustes no post',
+      title,
       ...(input.feedback
         ? { body: input.feedback.slice(0, 500) }
         : input.approverName
@@ -265,6 +275,13 @@ export const makeResolveApproval = (deps: ResolveApprovalDeps) =>
           : {}),
       link: `/posts/${link.groupId}`,
     });
+    // badge de notificação + card do kanban se movem sem reload (SSE)
+    await deps.realtime
+      ?.publish(link.orgId, {
+        type: 'notification.created',
+        data: { kind: 'approval.resolved', title, groupId: link.groupId, status: to },
+      })
+      .catch((err) => deps.log?.('warn', 'realtime publish falhou', { err: String(err) }));
 
     return { status: to, resolvedAt: new Date(), alreadyResolved: false as const };
   };

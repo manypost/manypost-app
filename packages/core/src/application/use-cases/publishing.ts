@@ -35,6 +35,7 @@ export interface SchedulePostDeps {
   scheduler: JobScheduler;
   media?: MediaRepository;
   storage?: MediaStorage;
+  events?: EventPublisher;
   log?: (level: string, msg: string, data?: object) => void;
 }
 
@@ -192,6 +193,12 @@ export const makeSchedulePost = (deps: SchedulePostDeps) =>
         });
       }
     }
+
+    await deps.events?.emit({
+      orgId: input.orgId,
+      event: WebhookEvents.PostScheduled,
+      data: { groupId: created.groupId, publishAt: input.publishAt.toISOString() },
+    });
 
     return deps.publishing.getGroup(input.orgId, created.groupId);
   };
@@ -566,6 +573,46 @@ export const makeReschedulePost = (deps: MutatePostDeps) =>
         )
         .catch(() => {}); // scanner recupera
     }
+    return deps.publishing.getGroup(input.orgId, input.groupId);
+  };
+
+// ---------------------------------------------------------------- retry manual
+
+/** Retry humano (kanban "tentar novamente"): FAILED e NEEDS_REVIEW voltam a SCHEDULED.
+ *  NEEDS_REVIEW só entra aqui porque é ação humana explícita — o scanner NUNCA reposta
+ *  às cegas (DECISIONS §7); quem clica confirma que olhou a rede antes. */
+export const makeRetryPost = (deps: Pick<MutatePostDeps, 'publishing' | 'scheduler'>) =>
+  async (input: { orgId: string; groupId: string; channelId?: string }) => {
+    const group = await deps.publishing.getGroup(input.orgId, input.groupId);
+    if (!group) throw new DomainError(ErrorCodes.NotFound, 'post não encontrado');
+    const targets = group.publications.filter(
+      (p) =>
+        (p.state === 'FAILED' || p.state === 'NEEDS_REVIEW') &&
+        (!input.channelId || p.channelId === input.channelId),
+    );
+    if (targets.length === 0) {
+      throw new DomainError(ErrorCodes.PostInvalidTransition, 'nada falhado para repetir');
+    }
+    for (const pub of targets) {
+      // versão capturada ANTES do bump; se outra corrida bumpar no meio, o job
+      // com versão errada é no-op e o scanner recupera a SCHEDULED
+      const v = pub.jobVersion + 1;
+      const moved = await deps.publishing.transition(pub.id, ['FAILED', 'NEEDS_REVIEW'], 'SCHEDULED', {
+        resetAttempts: true,
+        bumpJobVersion: true,
+        errorClass: null,
+        errorMessage: null,
+      });
+      if (!moved) continue; // corrida com outro retry — o vencedor já enfileirou
+      await deps.scheduler
+        .enqueue(
+          PUBLISH_QUEUE,
+          { publicationId: pub.id, v },
+          { singletonKey: `${pub.id}:v${v}` }, // retry publica imediatamente
+        )
+        .catch(() => {}); // scanner recupera
+    }
+    await deps.publishing.refreshGroupState(input.groupId);
     return deps.publishing.getGroup(input.orgId, input.groupId);
   };
 

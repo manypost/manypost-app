@@ -80,6 +80,8 @@ function makeWorld() {
   const jobs: Array<{ queue: string; payload: any; opts: any }> = [];
   const audits: any[] = [];
   const notifs: any[] = [];
+  const emitted: any[] = [];
+  const realtimeEvents: Array<{ orgId: string; e: any }> = [];
 
   const publishing = {
     createGroup: async (d: any) => {
@@ -235,8 +237,20 @@ function makeWorld() {
         notifs.push(n);
       },
       list: async () => notifs as any,
+      markRead: async () => true,
+      markAllRead: async () => 0,
     },
-    _state: { groups, pubs, links, jobs, audits, notifs },
+    events: {
+      emit: async (e: any) => {
+        emitted.push(e);
+      },
+    },
+    realtime: {
+      publish: async (orgId: string, e: any) => {
+        realtimeEvents.push({ orgId, e });
+      },
+    },
+    _state: { groups, pubs, links, jobs, audits, notifs, emitted, realtimeEvents },
   };
   return deps;
 }
@@ -410,6 +424,19 @@ describe('resolver: aprovar / pedir ajustes', () => {
       title: 'Cliente pediu ajustes no post',
       body: 'troca a foto, por favor',
     });
+  });
+
+  test('aprovar emite post.scheduled (webhooks) e notification.created (SSE)', async () => {
+    await makeResolveApproval(w as any)({ token, action: 'approve' });
+    expect(w._state.emitted).toContainEqual(
+      expect.objectContaining({ event: 'post.scheduled', orgId: 'org-1' }),
+    );
+    expect(w._state.realtimeEvents).toContainEqual(
+      expect.objectContaining({
+        orgId: 'org-1',
+        e: expect.objectContaining({ type: 'notification.created' }),
+      }),
+    );
   });
 
   test('aprovado depois de o grupo ser cancelado: resolve mas não agenda nada', async () => {

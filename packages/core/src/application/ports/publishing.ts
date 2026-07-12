@@ -88,8 +88,47 @@ export interface TransitionPatch {
   errorMessage?: string | null;
   publishedAt?: Date;
   incrementAttempt?: boolean;
+  /** retry manual: zera o contador — a publicação ganha 5 tentativas novas */
+  resetAttempts?: boolean;
   bumpJobVersion?: boolean;
   attemptId?: string;
+}
+
+/** Linha do feed de listagem (calendário/kanban — SPEC_FRONTEND §3.1-3.2). */
+export interface PublicationFeedItem {
+  id: string;
+  groupId: string;
+  channelId: string;
+  state: PublicationState;
+  publishAt: Date | null;
+  content: PostContent;
+  externalId: string | null;
+  releaseUrl: string | null;
+  errorClass: string | null;
+  errorMessage: string | null;
+  attemptCount: number;
+  group: {
+    state: GroupState;
+    origin: PostOrigin;
+    /** existe link de aprovação PENDING não expirado — coluna "aguardando aprovação" */
+    awaitingApproval: boolean;
+  };
+  channel: {
+    provider: string;
+    name: string;
+    username: string | null;
+    avatarUrl: string | null;
+  };
+}
+
+export interface PublicationFeedQuery {
+  from?: Date;
+  to?: Date;
+  states?: PublicationState[];
+  channelIds?: string[];
+  /** paginação por cursor: última (publishAt, id) da página anterior */
+  cursor?: { publishAt: Date; id: string };
+  limit: number;
 }
 
 export interface PublishingRepository {
@@ -166,6 +205,8 @@ export interface PublishingRepository {
     orgId: string,
     groupId: string,
   ): Promise<Array<{ id: string; channelId: string; jobVersion: number; publishAt: Date | null }>>;
+  /** feed p/ calendário/kanban — ordenado por (publishAt, id) asc, filtros e cursor */
+  listPublicationsFeed(orgId: string, q: PublicationFeedQuery): Promise<PublicationFeedItem[]>;
   /** RETRYING/TOKEN_REFRESH/PUBLISHING parados há muito tempo (watchdog §8) */
   listStuck(updatedBefore: Date, limit: number): Promise<Array<{ id: string; state: PublicationState }>>;
   /** agrega estados das publicações → estado do grupo (DONE/PARTIAL/…) */

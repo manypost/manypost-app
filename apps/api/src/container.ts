@@ -38,6 +38,7 @@ import {
   makeRegister,
   makeReschedulePost,
   makeResolveApproval,
+  makeRetryPost,
   makeRevokeApiKey,
   makeRevokeApprovalLink,
   makeSchedulePost,
@@ -130,8 +131,11 @@ export async function buildContainer(env: Env) {
         scheduler: runtime.scheduler,
         media: repos.media,
         storage,
+        events: runtime.events,
       }),
       getGroup: (orgId: string, groupId: string) => repos.publishing.getGroup(orgId, groupId),
+      feed: repos.publishing.listPublicationsFeed,
+      retry: makeRetryPost({ publishing: repos.publishing, scheduler: runtime.scheduler }),
       cancel: makeCancelPost({
         publishing: repos.publishing,
         scheduler: runtime.scheduler,
@@ -164,10 +168,14 @@ export async function buildContainer(env: Env) {
         scheduler: runtime.scheduler,
         audit: repos.audit,
         notifications: repos.notifications,
+        events: runtime.events,
+        ...(runtime.realtime ? { realtime: runtime.realtime } : {}),
       }),
     },
     notifications: {
       list: (orgId: string) => repos.notifications.list(orgId),
+      markRead: repos.notifications.markRead,
+      markAllRead: repos.notifications.markAllRead,
     },
     webhooks: {
       create: makeCreateWebhook({

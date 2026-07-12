@@ -1,4 +1,4 @@
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { AuditLogRepository, NotificationRepository } from '@manypost/core';
 import type { Db } from '../index';
 import { auditLog, notifications } from '../schema';
@@ -50,6 +50,32 @@ export function makeNotificationRepository(db: Db): NotificationRepository {
         readAt: r.readAt,
         createdAt: r.createdAt,
       }));
+    },
+
+    async markRead(orgId, id) {
+      // idempotente: já lida não regrava o horário, mas continua sendo "encontrada"
+      const rows = await db
+        .select({ id: notifications.id })
+        .from(notifications)
+        .where(and(eq(notifications.id, id), eq(notifications.orgId, orgId)))
+        .limit(1);
+      if (rows.length === 0) return false;
+      await db
+        .update(notifications)
+        .set({ readAt: new Date() })
+        .where(
+          and(eq(notifications.id, id), eq(notifications.orgId, orgId), isNull(notifications.readAt)),
+        );
+      return true;
+    },
+
+    async markAllRead(orgId) {
+      const rows = await db
+        .update(notifications)
+        .set({ readAt: new Date() })
+        .where(and(eq(notifications.orgId, orgId), isNull(notifications.readAt)))
+        .returning({ id: notifications.id });
+      return rows.length;
     },
   };
 }

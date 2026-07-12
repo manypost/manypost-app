@@ -1,8 +1,15 @@
-import { and, asc, eq, inArray, lte, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import type { MediaRef, PublicationState } from '@manypost/contracts';
 import type { PublicationView, PublishingRepository, TransitionPatch } from '@manypost/core';
 import type { Db } from '../index';
-import { channels, postGroups, publicationEvents, publicationItems, publications } from '../schema';
+import {
+  approvalLinks,
+  channels,
+  postGroups,
+  publicationEvents,
+  publicationItems,
+  publications,
+} from '../schema';
 
 const IN_FLIGHT: PublicationState[] = ['SCHEDULED', 'PUBLISHING', 'RETRYING', 'TOKEN_REFRESH'];
 
@@ -142,6 +149,7 @@ export function makePublishingRepository(db: Db): PublishingRepository {
         .set({
           state: to,
           ...(patch?.incrementAttempt ? { attemptCount: sql`${publications.attemptCount} + 1` } : {}),
+          ...(patch?.resetAttempts ? { attemptCount: 0 } : {}),
           ...(patch?.bumpJobVersion ? { jobVersion: sql`${publications.jobVersion} + 1` } : {}),
           ...(patch?.attemptId ? { attemptId: sql`gen_random_uuid()` } : {}),
           ...(patch?.externalId !== undefined ? { externalId: patch.externalId } : {}),
@@ -318,6 +326,58 @@ export function makePublishingRepository(db: Db): PublishingRepository {
         }
         return rows;
       });
+    },
+
+    async listPublicationsFeed(orgId, q) {
+      const conds = [eq(publications.orgId, orgId)];
+      if (q.from) conds.push(gte(publications.publishAt, q.from));
+      if (q.to) conds.push(lte(publications.publishAt, q.to));
+      if (q.states?.length) conds.push(inArray(publications.state, q.states));
+      if (q.channelIds?.length) conds.push(inArray(publications.channelId, q.channelIds));
+      if (q.cursor) {
+        // keyset por (publish_at, id) — estável sob inserções entre páginas.
+        // ISO + cast explícito: num sql`` cru o drizzle não infere o tipo do Date
+        conds.push(
+          sql`(${publications.publishAt}, ${publications.id}) > (${q.cursor.publishAt.toISOString()}::timestamptz, ${q.cursor.id}::uuid)`,
+        );
+      }
+      const awaitingApproval = sql<boolean>`exists (
+        select 1 from ${approvalLinks} al
+        where al.group_id = ${publications}.group_id
+          and al.status = 'PENDING' and al.expires_at > now()
+      )`;
+      const rows = await db
+        .select({ pub: publications, group: postGroups, ch: channels, awaitingApproval })
+        .from(publications)
+        .innerJoin(postGroups, eq(postGroups.id, publications.groupId))
+        .innerJoin(channels, eq(channels.id, publications.channelId))
+        .where(and(...conds))
+        .orderBy(asc(publications.publishAt), asc(publications.id))
+        .limit(q.limit);
+      return rows.map((r) => ({
+        id: r.pub.id,
+        groupId: r.pub.groupId,
+        channelId: r.pub.channelId,
+        state: r.pub.state,
+        publishAt: r.pub.publishAt,
+        content: r.pub.content as { text: string },
+        externalId: r.pub.externalId,
+        releaseUrl: r.pub.releaseUrl,
+        errorClass: r.pub.errorClass,
+        errorMessage: r.pub.errorMessage,
+        attemptCount: r.pub.attemptCount,
+        group: {
+          state: r.group.state,
+          origin: r.group.origin,
+          awaitingApproval: r.awaitingApproval,
+        },
+        channel: {
+          provider: r.ch.provider,
+          name: r.ch.name,
+          username: r.ch.username,
+          avatarUrl: r.ch.avatarUrl,
+        },
+      }));
     },
 
     async listStuck(updatedBefore, limit) {

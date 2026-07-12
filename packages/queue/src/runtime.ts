@@ -21,6 +21,7 @@ import {
   makeRecoverDue,
 } from '@manypost/core';
 import { makeRedisRateLimiter } from './redis-rate-limiter';
+import { makeRedisRealtimeBus } from './redis-realtime-bus';
 
 const log = (level: string, msg: string, data?: object) =>
   console.log(JSON.stringify({ level, msg, module: 'queue', ...data }));
@@ -41,6 +42,8 @@ export interface PublishingRuntime {
   scheduler: JobScheduler;
   /** compartilhado com a API (ex.: rate-limit da superfície pública de aprovação) */
   rateLimiter?: RateLimiter;
+  /** bus pub/sub p/ SSE — worker publica, API assina (mesmo objeto em MODE=all) */
+  realtime?: ReturnType<typeof makeRedisRealtimeBus>;
   events: ReturnType<typeof makeEmitEvent>;
   publish: (publicationId: string, v?: number) => Promise<void>;
   recover: () => Promise<{ due: number; stuck: number }>;
@@ -84,7 +87,13 @@ export async function createPublishingRuntime(
   };
 
   const rateLimiter = opts.redisUrl ? makeRedisRateLimiter(opts.redisUrl) : undefined;
-  const events = makeEmitEvent({ webhooks: opts.webhooks, scheduler, log });
+  const realtime = opts.redisUrl ? makeRedisRealtimeBus(opts.redisUrl) : undefined;
+  const events = makeEmitEvent({
+    webhooks: opts.webhooks,
+    scheduler,
+    ...(realtime ? { realtime } : {}),
+    log,
+  });
   const publish = makePublishPublication({
     publishing: opts.publishing,
     channels: opts.channels,
@@ -118,6 +127,7 @@ export async function createPublishingRuntime(
   return {
     scheduler,
     ...(rateLimiter ? { rateLimiter } : {}),
+    ...(realtime ? { realtime } : {}),
     events,
     publish,
     recover,
@@ -170,6 +180,7 @@ export async function createPublishingRuntime(
     async stop() {
       await boss.stop({ graceful: true });
       await rateLimiter?.close();
+      await realtime?.close();
       await sqlc.end();
     },
   };
