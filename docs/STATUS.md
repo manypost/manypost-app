@@ -2,7 +2,7 @@
 
 > **Para o agente de IA que pegar este projeto:** leia este arquivo + `CLAUDE.md` (raiz) antes de qualquer coisa. Ele diz o que JÁ FUNCIONA (com prova), o que falta (com referência à spec de cada item) e onde tirar dúvidas. Atualize este arquivo ao fim de cada fatia entregue.
 >
-> **Última atualização:** 2026-07-11 (fatias de mídia e threads) · branch `main`.
+> **Última atualização:** 2026-07-12 (fatia de aprovação por link público) · branch `main`.
 
 ## 1. O que é o projeto (30 segundos)
 
@@ -34,8 +34,9 @@ Cada item abaixo tem testes unitários e/ou E2E reais (Postgres 17 + Redis + wor
 
 | **Threads** ⭐ | `POST /v1/posts` aceita `thread: [{text, mediaIds?, delaySec?}]` (réplicas após o post principal, até 24, delay 0–600s). Publicação item a item com **cursor `lastPublishedIndex`** — retry retoma do cursor e **nunca reposta** item confirmado (SPEC_QUEUE §7); delay entre itens = job `publish-thread-item` durável (§9), continuação com fencing triplo (estado PUBLISHING + jobVersion + cursor exato); item que falha aponta `item N da thread` no errorMessage; `itemCount`/`lastPublishedIndex` expostos no GET | SPEC_QUEUE §7/§9 | `makeContinueThread` em `use-cases/publishing.ts`, `publication_items` |
 | **Providers** (2) | `publishReply` no contrato (com settings); Mastodon responde via `in_reply_to_id`; fake simula réplicas com falha injetável (`failFirstReplyAttempts`) | SPEC_INTEGRATIONS §2 | idem |
+| **Aprovação por link** ⭐ | `POST /v1/posts` com `requireApproval: true` → grupo/publicações nascem `DRAFT` sem job. `POST/GET/DELETE /v1/posts/:groupId/approval-link` (token 256 bits, só sha256 no banco, expira em 7 dias — configurável 1–720h; criar de novo revoga o anterior). Superfície pública **sem login** `/public/approval/:token`: `GET` preview por canal (conteúdo/mídia/horário, zero ids internos), `POST .../approve` **agenda de verdade** (DRAFT→SCHEDULED + jobs), `POST .../request-changes` (feedback obrigatório) mantém rascunho. 404 uniforme (inválido/expirado/revogado), idempotente (2ª chamada devolve o resolvido), rate-limit Redis por IP+token (30 e 10/min), `audit_log` com `actor_type=PUBLIC_LINK`, notificação p/ equipe (`GET /v1/notifications`) | DECISIONS v1.1 §12, SPEC_API_MCP §3, SPEC_FRONTEND §3.6 | `use-cases/approvals.ts`, `approvals-public.routes.ts`, `approvals.repo.ts`, `platform.repo.ts` |
 
-**Provas:** 76 testes unit (`bun test`) + `scripts/e2e-auth.ts` (21 checks) + `scripts/e2e-publish.ts` (53 checks, inclui upload→post com mídia→publicação e thread com delay real + retry) — CI roda tudo com services postgres+redis.
+**Provas:** 90 testes unit (`bun test`) + `scripts/e2e-auth.ts` (21 checks) + `scripts/e2e-publish.ts` (76 checks, inclui rascunho→link→ajustes→edição→aprovação→publicação real) — CI roda tudo com services postgres+redis.
 
 ## 3. Decisões de implementação que você precisa saber (além das specs)
 
@@ -50,13 +51,14 @@ Cada item abaixo tem testes unitários e/ou E2E reais (Postgres 17 + Redis + wor
 9. **Mídia**: refs ficam DENTRO de `publications.content` (`{text, media: [{mediaId,type,url,mime,alt}]}`) e em `publication_items.media`; o worker só repassa URLs — quem baixa bytes é o provider (Mastodon baixa de `/uploads` e sobe na instância). `rescheduleGroup` faz **merge jsonb (`||`)** no content: editar só o texto preserva a mídia. `DELETE /v1/media` é soft e NÃO apaga o arquivo (posts agendados ainda apontam p/ a URL). `validateMedia` roda no agendamento (falha cedo com `post.invalid_media`), não no publish.
 10. **Threads**: item 0 publica a partir de `publications.content` (por isso PATCH de texto edita o post principal; réplicas são imutáveis por enquanto — edite cancelando/recriando). Itens ≥1 vêm de `publication_items` e saem via `provider.publishReply` (exigido junto com `capabilities.threads` no agendamento). O cursor só avança APÓS confirmação da rede (`recordItemPublished`, UPDATE condicional monotônico). Entre itens com delay o estado fica `PUBLISHING` — por isso `delaySec` ≤ 600s (watchdog de zumbi é 15 min; cada avanço de cursor renova `updated_at`). Continuações NÃO passam pelo rate-limit (a thread já está em voo; o ritmo é o delaySec). Cancelar só alcança estados pendentes — thread em voo termina. Zumbi mid-thread → `NEEDS_REVIEW` (cursor diz o que já está na rede).
 11. **Drizzle + subquery correlacionada**: `${tabela.coluna}` dentro de `sql\`\`` num select renderiza SEM qualificação — numa subquery o escopo interno captura a coluna errada. Qualifique com `${tabela}.coluna` (bug real corrigido no `itemCount`).
+12. **Aprovação por link**: rascunho (`requireApproval`) NUNCA vira `refreshGroupState` (agregador não conhece DRAFT) — aprovação usa `scheduleDraftGroup` (UPDATE condicional em DRAFT = fencing: grupo cancelado no meio → aprova o link mas agenda 0 publicações, inofensivo). **Editar ou cancelar o rascunho revoga o link pendente** (o cliente não pode aprovar conteúdo que não viu); PATCH em grupo DRAFT edita SEM agendar (via `updateDraftGroup`, não `rescheduleGroup`). Expiração é **lazy** (checada no acesso; sem cron). Aprovado com `publishAt` no passado publica imediatamente. No preview, o item 0 sai de `publications.content` (não de `publication_items`) — mesma fonte que o worker usa, então edição via PATCH aparece certa. Rate-limit da superfície pública falha aberto sem Redis (consistente com §6 da fila).
 
 ## 4. O QUE FALTA — em ordem sugerida, com referências
 
 ### Próximas fatias do backend (fase 1 — MVP, SPEC_ROADMAP)
 1. ~~Mídia~~ ✅ (2026-07-11). Ficou de fora (aceitável p/ MVP, retomar depois): thumbnail/blurhash, duração+dimensões de vídeo (probe), presigned upload direto (hoje o corpo passa pela API), driver S3/R2 (necessário p/ Instagram na onda 2 — mídia via URL pública já funciona com o storage local + PUBLIC_URL).
 2. ~~Threads no composer~~ ✅ (2026-07-11). Ficou de fora (retomar depois): editar texto de réplicas já agendadas (hoje só o item 0 via PATCH), `publishReply` nos providers da onda 1 conforme forem chegando.
-3. **Aprovação por link público** (`approval_links` já criada no schema): token+preview+approve/request-changes. → DECISIONS v1.1 §12, SPEC_API_MCP §3, SPEC_FRONTEND §3.6.
+3. ~~Aprovação por link público~~ ✅ (2026-07-12). Ficou de fora (retomar depois): página pública no web app (SPEC_FRONTEND §3.6 — a API está pronta), marcar notificação como lida (vem com a fatia de listagens/SSE), papel `MEMBER` sem poder criar link (matriz papel×endpoint da SPEC_API_MCP §6 ainda não aplicada nas rotas de posts).
 4. **Listagens**: `GET /v1/publications?from&to&state` (calendário/kanban) + SSE `/v1/events`. → SPEC_FRONTEND §3.1-3.2.
 5. **Providers onda 1 restantes**: Bluesky (app password), Telegram (bot), Discord, LinkedIn, X. Suíte de contrato em `packages/providers/test-kit` (README define; implementar). → SPEC_INTEGRATIONS §4/§7, guia de credenciais em [INTEGRATIONS_SETUP.md](INTEGRATIONS_SETUP.md). Postiz ref: `libraries/nestjs-libraries/src/integrations/social/*.provider.ts`.
 6. **Semáforo maxConcurrent** por provider (Redis) + métricas Prometheus `/metrics` + OTel. → SPEC_QUEUE §6, SPEC_INFRA §4.
@@ -77,7 +79,7 @@ Cada item abaixo tem testes unitários e/ou E2E reais (Postgres 17 + Redis + wor
 ## 5. Como rodar/verificar localmente
 
 ```bash
-bun install && bun run check          # typecheck + 47 testes + fronteiras + grep IA
+bun install && bun run check          # typecheck + 90 testes + fronteiras + grep IA
 # E2E (precisa Docker Desktop aberto):
 docker run -d --name mp-pg -e POSTGRES_PASSWORD=mp -e POSTGRES_USER=mp -e POSTGRES_DB=mp -p 5499:5432 postgres:17-alpine
 docker run -d --name mp-redis -p 6399:6379 redis:7-alpine

@@ -100,6 +100,8 @@ export interface PublishingRepository {
     publishAt: Date;
     timezone: string;
     origin: PostOrigin;
+    /** DRAFT = aguardando aprovação (sem job); default SCHEDULED */
+    state?: 'DRAFT' | 'SCHEDULED';
     publications: Array<{
       channelId: string;
       /** content do item 0 (fonte de verdade p/ edições via PATCH) */
@@ -116,6 +118,7 @@ export interface PublishingRepository {
     id: string;
     state: GroupState;
     publishAt: Date | null;
+    timezone: string;
     baseContent: unknown;
     publications: PublicationView[];
   } | null>;
@@ -149,6 +152,20 @@ export interface PublishingRepository {
     groupId: string,
     d: { baseContent?: Partial<PostContent>; publishAt?: Date },
   ): Promise<Array<{ id: string; channelId: string; jobVersion: number; publishAt: Date }>>;
+  /** edita conteúdo/horário de um grupo ainda DRAFT (aguardando aprovação) — permanece DRAFT,
+   *  sem jobs e sem bump de versão; merge de baseContent como no rescheduleGroup.
+   *  false = grupo não está em DRAFT */
+  updateDraftGroup(
+    orgId: string,
+    groupId: string,
+    d: { baseContent?: Partial<PostContent>; publishAt?: Date },
+  ): Promise<boolean>;
+  /** aprovação: transiciona grupo + publicações DRAFT→SCHEDULED (com publication_events);
+   *  [] = grupo não estava mais em DRAFT (cancelado/corrida) */
+  scheduleDraftGroup(
+    orgId: string,
+    groupId: string,
+  ): Promise<Array<{ id: string; channelId: string; jobVersion: number; publishAt: Date | null }>>;
   /** RETRYING/TOKEN_REFRESH/PUBLISHING parados há muito tempo (watchdog §8) */
   listStuck(updatedBefore: Date, limit: number): Promise<Array<{ id: string; state: PublicationState }>>;
   /** agrega estados das publicações → estado do grupo (DONE/PARTIAL/…) */

@@ -6,6 +6,7 @@ import type {
   CryptoService,
   JobScheduler,
   PublishingRepository,
+  RateLimiter,
   WebhookRepository,
 } from '@manypost/core';
 import {
@@ -38,6 +39,8 @@ export interface PublishingRuntimeOpts {
 
 export interface PublishingRuntime {
   scheduler: JobScheduler;
+  /** compartilhado com a API (ex.: rate-limit da superfície pública de aprovação) */
+  rateLimiter?: RateLimiter;
   events: ReturnType<typeof makeEmitEvent>;
   publish: (publicationId: string, v?: number) => Promise<void>;
   recover: () => Promise<{ due: number; stuck: number }>;
@@ -114,6 +117,7 @@ export async function createPublishingRuntime(
 
   return {
     scheduler,
+    ...(rateLimiter ? { rateLimiter } : {}),
     events,
     publish,
     recover,

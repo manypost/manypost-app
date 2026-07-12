@@ -27,6 +27,7 @@ const toView = (row: typeof publications.$inferSelect): PublicationView => ({
 export function makePublishingRepository(db: Db): PublishingRepository {
   return {
     async createGroup(d) {
+      const state = d.state ?? 'SCHEDULED';
       return db.transaction(async (tx) => {
         const [group] = await tx
           .insert(postGroups)
@@ -36,7 +37,7 @@ export function makePublishingRepository(db: Db): PublishingRepository {
             baseContent: d.baseContent,
             publishAt: d.publishAt,
             timezone: d.timezone,
-            state: 'SCHEDULED',
+            state,
             origin: d.origin,
           })
           .returning({ id: postGroups.id });
@@ -51,7 +52,7 @@ export function makePublishingRepository(db: Db): PublishingRepository {
               channelId: p.channelId,
               content: p.content,
               settings: p.settings,
-              state: 'SCHEDULED',
+              state,
               publishAt: d.publishAt,
             })
             .returning({ id: publications.id });
@@ -91,6 +92,7 @@ export function makePublishingRepository(db: Db): PublishingRepository {
         id: group.id,
         state: group.state,
         publishAt: group.publishAt,
+        timezone: group.timezone,
         baseContent: group.baseContent,
         publications: rows.map((r) => ({ ...toView(r.pub), itemCount: r.itemCount })),
       };
@@ -251,6 +253,70 @@ export function makePublishingRepository(db: Db): PublishingRepository {
             publishAt: publications.publishAt,
           });
         return rows.map((r) => ({ ...r, publishAt: r.publishAt ?? d.publishAt ?? new Date() }));
+      });
+    },
+
+    async updateDraftGroup(orgId, groupId, d) {
+      const contentPatch = d.baseContent ? JSON.stringify(d.baseContent) : null;
+      return db.transaction(async (tx) => {
+        const rows = await tx
+          .update(postGroups)
+          .set({
+            ...(contentPatch
+              ? { baseContent: sql`${postGroups.baseContent} || ${contentPatch}::jsonb` }
+              : {}),
+            ...(d.publishAt ? { publishAt: d.publishAt } : {}),
+          })
+          .where(
+            and(eq(postGroups.id, groupId), eq(postGroups.orgId, orgId), eq(postGroups.state, 'DRAFT')),
+          )
+          .returning({ id: postGroups.id });
+        if (rows.length === 0) return false;
+        await tx
+          .update(publications)
+          .set({
+            ...(contentPatch
+              ? { content: sql`${publications.content} || ${contentPatch}::jsonb` }
+              : {}),
+            ...(d.publishAt ? { publishAt: d.publishAt } : {}),
+          })
+          .where(and(eq(publications.groupId, groupId), eq(publications.state, 'DRAFT')));
+        return true;
+      });
+    },
+
+    async scheduleDraftGroup(orgId, groupId) {
+      return db.transaction(async (tx) => {
+        // condicional no estado (fencing): grupo cancelado/já agendado = no-op
+        const groups = await tx
+          .update(postGroups)
+          .set({ state: 'SCHEDULED' })
+          .where(
+            and(eq(postGroups.id, groupId), eq(postGroups.orgId, orgId), eq(postGroups.state, 'DRAFT')),
+          )
+          .returning({ id: postGroups.id });
+        if (groups.length === 0) return [];
+        const rows = await tx
+          .update(publications)
+          .set({ state: 'SCHEDULED' })
+          .where(and(eq(publications.groupId, groupId), eq(publications.state, 'DRAFT')))
+          .returning({
+            id: publications.id,
+            channelId: publications.channelId,
+            jobVersion: publications.jobVersion,
+            publishAt: publications.publishAt,
+          });
+        if (rows.length > 0) {
+          await tx.insert(publicationEvents).values(
+            rows.map((r) => ({
+              publicationId: r.id,
+              fromState: 'DRAFT' as const,
+              toState: 'SCHEDULED' as const,
+              detail: { via: 'approval_link' },
+            })),
+          );
+        }
+        return rows;
       });
     },
 

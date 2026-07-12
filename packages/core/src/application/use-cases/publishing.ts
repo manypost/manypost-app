@@ -1,6 +1,7 @@
 import type { MediaRef, PostOrigin, ProviderContext } from '@manypost/contracts';
 import { ErrorCodes, WebhookEvents } from '@manypost/contracts';
 import { DomainError } from '../../domain/shared/result';
+import type { ApprovalLinkRepository } from '../ports/approvals';
 import type { ChannelProviderRegistry } from '../ports/channel-provider-registry';
 import type { CryptoService } from '../ports/crypto';
 import type { EventPublisher } from '../ports/events';
@@ -50,6 +51,8 @@ export const makeSchedulePost = (deps: SchedulePostDeps) =>
     mediaIds?: string[];
     /** réplicas encadeadas após o post principal (SPEC_QUEUE §9); delaySec = espera antes do item */
     thread?: Array<{ text: string; mediaIds?: string[] | undefined; delaySec?: number | undefined }>;
+    /** true = nasce DRAFT aguardando aprovação por link (DECISIONS v1.1 §12) — sem job até aprovar */
+    requireApproval?: boolean;
   }) => {
     // item 0 = post principal; itens seguintes = réplicas da thread
     const rawItems = [
@@ -166,8 +169,12 @@ export const makeSchedulePost = (deps: SchedulePostDeps) =>
       publishAt: input.publishAt,
       timezone: input.timezone ?? 'UTC',
       origin: input.origin ?? 'WEB',
+      state: input.requireApproval ? 'DRAFT' : 'SCHEDULED',
       publications,
     });
+
+    // rascunho aguardando aprovação: o job só nasce quando o cliente aprovar (approvals.ts)
+    if (input.requireApproval) return deps.publishing.getGroup(input.orgId, created.groupId);
 
     // enqueue pós-commit; qualquer falha aqui é recuperada pelo scanner (§8),
     // e o fencing de estado torna entregas duplicadas inofensivas
@@ -477,25 +484,31 @@ export const makeContinueThread = (deps: PublishDeps) => {
 // ---------------------------------------------------------------- cancel / edit
 
 const PENDING = ['SCHEDULED', 'RETRYING', 'TOKEN_REFRESH'] as const;
+/** DRAFT (aguardando aprovação) também é cancelável — só nunca teve job */
+const CANCELLABLE = ['DRAFT', ...PENDING] as const;
 
 export interface MutatePostDeps {
   publishing: PublishingRepository;
   channels: ChannelRepository;
   registry: ChannelProviderRegistry;
   scheduler: JobScheduler;
+  /** presente = cancelar/editar rascunho revoga o link público pendente (o cliente
+   *  não pode aprovar algo que mudou ou deixou de existir) */
+  approvals?: ApprovalLinkRepository;
 }
 
 /** Cancela tudo que ainda não foi publicado; fencing por estado + versão mata jobs antigos. */
-export const makeCancelPost = (deps: Pick<MutatePostDeps, 'publishing' | 'scheduler'>) =>
+export const makeCancelPost = (deps: Pick<MutatePostDeps, 'publishing' | 'scheduler' | 'approvals'>) =>
   async (orgId: string, groupId: string) => {
     const group = await deps.publishing.getGroup(orgId, groupId);
     if (!group) throw new DomainError(ErrorCodes.NotFound, 'post não encontrado');
     for (const pub of group.publications) {
-      if ((PENDING as readonly string[]).includes(pub.state)) {
-        await deps.publishing.transition(pub.id, [...PENDING], 'CANCELLED', { bumpJobVersion: true });
+      if ((CANCELLABLE as readonly string[]).includes(pub.state)) {
+        await deps.publishing.transition(pub.id, [...CANCELLABLE], 'CANCELLED', { bumpJobVersion: true });
         await deps.scheduler.cancelBySingletonKey(PUBLISH_QUEUE, pub.id).catch(() => {}); // higiene
       }
     }
+    await deps.approvals?.revokePending(orgId, groupId);
     await deps.publishing.refreshGroupState(groupId);
     return deps.publishing.getGroup(orgId, groupId);
   };
@@ -508,8 +521,9 @@ export const makeReschedulePost = (deps: MutatePostDeps) =>
     if (group.publications.some((p) => p.state === 'PUBLISHING')) {
       throw new DomainError(ErrorCodes.PostInvalidTransition, 'publicação em andamento — aguarde');
     }
+    const isDraft = group.state === 'DRAFT';
     const pending = group.publications.filter((p) =>
-      (PENDING as readonly string[]).includes(p.state),
+      (isDraft ? (['DRAFT'] as readonly string[]) : (PENDING as readonly string[])).includes(p.state),
     );
     if (pending.length === 0) {
       throw new DomainError(ErrorCodes.PostInvalidTransition, 'nada pendente para editar');
@@ -526,6 +540,17 @@ export const makeReschedulePost = (deps: MutatePostDeps) =>
           throw new DomainError(ErrorCodes.PostTooLong, `limite de ${max} caracteres em ${ch.name}`);
         }
       }
+    }
+
+    if (isDraft) {
+      // rascunho continua rascunho (a aprovação é quem agenda); editar invalida o
+      // link pendente — o cliente não pode aprovar um conteúdo que não viu
+      await deps.publishing.updateDraftGroup(input.orgId, input.groupId, {
+        ...(text !== undefined ? { baseContent: { text } } : {}),
+        ...(input.publishAt ? { publishAt: input.publishAt } : {}),
+      });
+      await deps.approvals?.revokePending(input.orgId, input.groupId);
+      return deps.publishing.getGroup(input.orgId, input.groupId);
     }
 
     const updated = await deps.publishing.rescheduleGroup(input.orgId, input.groupId, {

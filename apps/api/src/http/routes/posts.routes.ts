@@ -23,6 +23,8 @@ const ScheduleBody = z.object({
     )
     .max(24)
     .optional(),
+  /** true = nasce rascunho aguardando aprovação por link público (DECISIONS v1.1 §12) */
+  requireApproval: z.boolean().optional(),
 });
 
 const serializeGroup = (g: NonNullable<Awaited<ReturnType<Container['posts']['getGroup']>>>) => ({
@@ -63,6 +65,7 @@ export function postRoutes(ctn: Container) {
       ...(body.settingsByChannel ? { settingsByChannel: body.settingsByChannel } : {}),
       ...(body.mediaIds ? { mediaIds: body.mediaIds } : {}),
       ...(body.thread ? { thread: body.thread } : {}),
+      ...(body.requireApproval ? { requireApproval: true } : {}),
     });
     return c.json(serializeGroup(group!), 201);
   });
@@ -93,6 +96,50 @@ export function postRoutes(ctn: Container) {
   app.post('/:groupId/cancel', async (c) => {
     const group = await ctn.posts.cancel(c.get('principal').orgId, c.req.param('groupId'));
     return c.json(serializeGroup(group!));
+  });
+
+  // ---- aprovação por link público (DECISIONS v1.1 §12) ----
+
+  const ApprovalLinkBody = z
+    .object({ expiresInHours: z.number().int().min(1).max(720).optional() })
+    .optional();
+
+  app.post('/:groupId/approval-link', async (c) => {
+    const body = ApprovalLinkBody.parse(await c.req.json().catch(() => undefined));
+    const p = c.get('principal');
+    const out = await ctn.approvals.createLink({
+      orgId: p.orgId,
+      groupId: c.req.param('groupId'),
+      actorType: p.kind === 'api_key' ? 'API_KEY' : 'USER',
+      actorId: (p.kind === 'user' ? p.userId : null) ?? null,
+      ...(body?.expiresInHours ? { expiresInHours: body.expiresInHours } : {}),
+    });
+    // o token só existe nesta resposta (o banco guarda o hash);
+    // a URL é a rota pública do web app (SPEC_FRONTEND §3.6)
+    return c.json(
+      {
+        token: out.token,
+        url: new URL(`/approve/${out.token}`, ctn.env.PUBLIC_URL).toString(),
+        expiresAt: out.expiresAt.toISOString(),
+      },
+      201,
+    );
+  });
+
+  app.get('/:groupId/approval-link', async (c) => {
+    const status = await ctn.approvals.linkStatus(c.get('principal').orgId, c.req.param('groupId'));
+    return c.json(status);
+  });
+
+  app.delete('/:groupId/approval-link', async (c) => {
+    const p = c.get('principal');
+    const out = await ctn.approvals.revokeLink({
+      orgId: p.orgId,
+      groupId: c.req.param('groupId'),
+      actorType: p.kind === 'api_key' ? 'API_KEY' : 'USER',
+      actorId: (p.kind === 'user' ? p.userId : null) ?? null,
+    });
+    return c.json(out);
   });
 
   return app;

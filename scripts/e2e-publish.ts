@@ -4,7 +4,8 @@ export {}; // módulo (top-level await)
  * E2E do coração do produto: conectar canal (fake) → agendar → worker publica.
  * Requer API em MODE=all com PUBLISH_RETRY_BASE_SEC=1, MEDIA_ALLOW_PRIVATE_URLS=true.
  * Cobre: publicação no horário, retry transitório, falha permanente, estados do grupo,
- * webhooks assinados, cancelar/editar e biblioteca de mídia (upload/from-url → post com mídia).
+ * webhooks assinados, cancelar/editar, biblioteca de mídia (upload/from-url → post com mídia)
+ * e aprovação por link público (rascunho → cliente aprova sem login → publica).
  */
 const BASE = process.env.BASE_URL ?? 'http://localhost:3988';
 
@@ -305,6 +306,103 @@ check(flakyDone.state === 'DONE', `thread com falha transitória terminou (veio 
 check(flakyDone.publications[0].attemptCount >= 2,
   `retry consumiu tentativa (veio ${flakyDone.publications[0].attemptCount})`);
 check(flakyDone.publications[0].lastPublishedIndex === 1, 'cursor completo após retry');
+
+// ---- 10) aprovação por link público (DECISIONS v1.1 §12): sem login, por token ----
+const draft = await schedule({
+  text: 'post aguardando aprovação do cliente',
+  channelIds: [channel.id],
+  publishAt: new Date(Date.now() + 2000).toISOString(),
+  requireApproval: true,
+});
+check(draft.status === 201 && draft.body.state === 'DRAFT',
+  `requireApproval → grupo DRAFT (veio ${draft.status} ${draft.body.state})`);
+check(draft.body.publications[0].state === 'DRAFT', 'publicação nasce DRAFT (sem job)');
+await sleep(3500); // horário passa e NADA publica (rascunho não tem job)
+const stillDraft = await pollGroup(draft.body.id, () => true);
+check(stillDraft.state === 'DRAFT', `rascunho NÃO publica sozinho (veio ${stillDraft.state})`);
+
+const linkRes = await fetch(`${BASE}/v1/posts/${draft.body.id}/approval-link`, {
+  method: 'POST',
+  headers: auth,
+  body: JSON.stringify({}),
+});
+check(linkRes.status === 201, `criar approval-link → 201 (veio ${linkRes.status})`);
+const link1 = (await linkRes.json()) as any;
+check(typeof link1.token === 'string' && link1.token.length >= 43, 'token opaco ≥ 256 bits');
+check(link1.url?.includes(link1.token), 'URL única contém o token');
+
+// preview público: sem nenhuma credencial
+const prev = await fetch(`${BASE}/public/approval/${link1.token}`);
+check(prev.status === 200, `preview público sem login → 200 (veio ${prev.status})`);
+const preview = (await prev.json()) as any;
+check(preview.status === 'PENDING', 'preview PENDING');
+check(preview.publications[0].items[0].text === 'post aguardando aprovação do cliente',
+  'preview mostra o conteúdo como será publicado');
+check(preview.publications[0].provider === 'fake' && !JSON.stringify(preview).includes(channel.id),
+  'preview identifica o canal sem vazar ids internos da org');
+
+const badToken = await fetch(`${BASE}/public/approval/um-token-invalido-qualquer-123456`);
+check(badToken.status === 404, `token inválido → 404 uniforme (veio ${badToken.status})`);
+
+// cliente pede ajustes (com feedback)
+const changes = await fetch(`${BASE}/public/approval/${link1.token}/request-changes`, {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({ feedback: 'troca a primeira frase', name: 'Cliente E2E' }),
+});
+check(changes.status === 200 && ((await changes.json()) as any).status === 'CHANGES_REQUESTED',
+  'request-changes → CHANGES_REQUESTED');
+const linkStatus = (await (
+  await fetch(`${BASE}/v1/posts/${draft.body.id}/approval-link`, { headers: auth })
+).json()) as any;
+check(linkStatus.status === 'CHANGES_REQUESTED' && linkStatus.feedback === 'troca a primeira frase',
+  'equipe vê o feedback do cliente no link');
+check((await pollGroup(draft.body.id, () => true)).state === 'DRAFT', 'pedir ajustes mantém o rascunho');
+
+// equipe edita o rascunho (continua DRAFT) e gera novo link; cliente aprova → publica
+const draftPatch = await fetch(`${BASE}/v1/posts/${draft.body.id}`, {
+  method: 'PATCH',
+  headers: auth,
+  body: JSON.stringify({ text: 'frase trocada, pronta para aprovar' }),
+});
+check(draftPatch.status === 200 && ((await draftPatch.json()) as any).state === 'DRAFT',
+  'editar rascunho não agenda (permanece DRAFT)');
+const link2 = (await (
+  await fetch(`${BASE}/v1/posts/${draft.body.id}/approval-link`, {
+    method: 'POST',
+    headers: auth,
+    body: JSON.stringify({}),
+  })
+).json()) as any;
+const approve = await fetch(`${BASE}/public/approval/${link2.token}/approve`, {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({ name: 'Cliente E2E' }),
+});
+check(approve.status === 200 && ((await approve.json()) as any).status === 'APPROVED',
+  'approve → APPROVED');
+// timeout longo: a essa altura a janela de rate-limit do canal fake (10/60s) pode estar
+// cheia — o job é adiado sem consumir tentativa e publica quando a janela rola
+const approvedDone = await pollGroup(draft.body.id, (g) => g.state === 'DONE', 90_000);
+check(approvedDone.state === 'DONE', `aprovado publica de verdade (veio ${approvedDone.state})`);
+check(approvedDone.publications[0].state === 'PUBLISHED', 'publicação → PUBLISHED após aprovação');
+
+// idempotência: aprovar de novo não duplica nada
+const again = await fetch(`${BASE}/public/approval/${link2.token}/approve`, {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({}),
+});
+const againBody = (await again.json()) as any;
+check(again.status === 200 && againBody.status === 'APPROVED' && againBody.alreadyResolved === true,
+  'segunda aprovação é idempotente (retorna o resolvido)');
+
+// equipe é notificada das duas resoluções
+const notifs = (await (await fetch(`${BASE}/v1/notifications`, { headers: auth })).json()) as any[];
+check(notifs.filter((n) => n.kind === 'approval.resolved').length === 2,
+  `notificações de aprovação para a equipe (veio ${notifs.filter((n) => n.kind === 'approval.resolved').length})`);
+check(notifs.some((n) => n.title === 'Cliente aprovou o post'), 'notificação de aprovado');
+check(notifs.some((n) => n.body === 'troca a primeira frase'), 'notificação de ajustes carrega o feedback');
 
 if (failures > 0) {
   console.error(`\nE2E publish: ${failures} falha(s)`);

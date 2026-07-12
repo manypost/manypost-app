@@ -2,9 +2,12 @@ import type { Env } from '@manypost/config';
 import {
   createDb,
   makeApiKeyRepository,
+  makeApprovalLinkRepository,
+  makeAuditLogRepository,
   makeAuthIdentityRepository,
   makeChannelRepository,
   makeMediaRepository,
+  makeNotificationRepository,
   makeOrganizationRepository,
   makePublishingRepository,
   makeSessionRepository,
@@ -16,10 +19,13 @@ import {
   makeCancelPost,
   makeConnectChannel,
   makeCreateApiKey,
+  makeCreateApprovalLink,
   makeCreateWebhook,
   makeDeleteMedia,
   makeDeleteWebhook,
   makeDisconnectChannel,
+  makeGetApprovalLinkStatus,
+  makeGetApprovalPreview,
   makeIngestMediaFromUrl,
   makeListApiKeys,
   makeListChannels,
@@ -31,7 +37,9 @@ import {
   makeRefreshSession,
   makeRegister,
   makeReschedulePost,
+  makeResolveApproval,
   makeRevokeApiKey,
+  makeRevokeApprovalLink,
   makeSchedulePost,
   makeSetMediaAlt,
   makeUploadMedia,
@@ -59,6 +67,9 @@ export async function buildContainer(env: Env) {
     publishing: makePublishingRepository(db),
     webhooks: makeWebhookRepository(db),
     media: makeMediaRepository(db),
+    approvals: makeApprovalLinkRepository(db),
+    audit: makeAuditLogRepository(db),
+    notifications: makeNotificationRepository(db),
   };
 
   if (env.STORAGE_PROVIDER !== 'local') {
@@ -121,13 +132,42 @@ export async function buildContainer(env: Env) {
         storage,
       }),
       getGroup: (orgId: string, groupId: string) => repos.publishing.getGroup(orgId, groupId),
-      cancel: makeCancelPost({ publishing: repos.publishing, scheduler: runtime.scheduler }),
+      cancel: makeCancelPost({
+        publishing: repos.publishing,
+        scheduler: runtime.scheduler,
+        approvals: repos.approvals,
+      }),
       reschedule: makeReschedulePost({
         publishing: repos.publishing,
         channels: repos.channels,
         registry: providerRegistry,
         scheduler: runtime.scheduler,
+        approvals: repos.approvals,
       }),
+    },
+    approvals: {
+      createLink: makeCreateApprovalLink({
+        approvals: repos.approvals,
+        publishing: repos.publishing,
+        audit: repos.audit,
+      }),
+      revokeLink: makeRevokeApprovalLink({ approvals: repos.approvals, audit: repos.audit }),
+      linkStatus: makeGetApprovalLinkStatus({ approvals: repos.approvals }),
+      preview: makeGetApprovalPreview({
+        approvals: repos.approvals,
+        publishing: repos.publishing,
+        channels: repos.channels,
+      }),
+      resolve: makeResolveApproval({
+        approvals: repos.approvals,
+        publishing: repos.publishing,
+        scheduler: runtime.scheduler,
+        audit: repos.audit,
+        notifications: repos.notifications,
+      }),
+    },
+    notifications: {
+      list: (orgId: string) => repos.notifications.list(orgId),
     },
     webhooks: {
       create: makeCreateWebhook({

@@ -7,9 +7,11 @@ import { buildContainer } from './container';
 import { correlationId, type AppEnv } from './http/middleware/context';
 import { errorHandler } from './http/middleware/error';
 import { apiKeyRoutes } from './http/routes/api-keys.routes';
+import { approvalPublicRoutes } from './http/routes/approvals-public.routes';
 import { authRoutes } from './http/routes/auth.routes';
 import { channelRoutes } from './http/routes/channels.routes';
 import { mediaRoutes, publicUploadRoutes } from './http/routes/media.routes';
+import { notificationRoutes } from './http/routes/notifications.routes';
 import { postRoutes } from './http/routes/posts.routes';
 import { socialAuthRoutes } from './http/routes/social-auth.routes';
 import { webhookRoutes } from './http/routes/webhooks.routes';
@@ -62,14 +64,16 @@ app.route('/v1/channels', channelRoutes(ctn));
 app.route('/v1/posts', postRoutes(ctn));
 app.route('/v1/media', mediaRoutes(ctn));
 app.route('/v1/webhooks', webhookRoutes(ctn));
+app.route('/v1/notifications', notificationRoutes(ctn));
 app.route('/uploads', publicUploadRoutes(ctn)); // arquivos públicos (chaves UUID, não enumeráveis)
+app.route('/public/approval', approvalPublicRoutes(ctn)); // aprovação por token, sem login (§12)
 
 app.doc('/openapi.json', {
   openapi: '3.1.0',
   info: { title: 'manypost API', version: '0.0.1' },
 });
 
-// Fase 1 restante: threads na API, aprovação por link, listagens/SSE, analytics, public-v1 e /mcp.
+// Fase 1 restante: listagens/SSE, providers onda 1, semáforo+métricas, analytics, public-v1 e /mcp.
 console.log(`manypost api (MODE=${env.MODE}) on :${env.PORT}`);
 
 export default { port: env.PORT, fetch: app.fetch };
