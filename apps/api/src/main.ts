@@ -77,6 +77,51 @@ app.doc('/openapi.json', {
   info: { title: 'manypost API', version: '0.0.1' },
 });
 
+// Explorador de API no navegador (Scalar) — superfície de teste até existir o apps/web.
+// Lê o /openapi.json desta mesma origem; o bundle da UI vem de CDN (precisa de internet só p/
+// carregar a página — as chamadas à API são locais). É read-only e a API segue protegida por auth.
+app.get('/docs', (c) =>
+  c.html(`<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>manypost API — explorador</title>
+  </head>
+  <body>
+    <script id="api-reference" data-url="/openapi.json"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+  </body>
+</html>`),
+);
+
+// Página inicial: orienta quem abrir a raiz no navegador (evita um 404 sem contexto).
+app.get('/', (c) =>
+  c.html(`<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>manypost</title>
+    <style>
+      body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 4rem auto; padding: 0 1rem; line-height: 1.6; }
+      code { background: #f2f2f2; padding: .1rem .35rem; border-radius: 4px; }
+      a { color: #1a56db; }
+    </style>
+  </head>
+  <body>
+    <h1>manypost</h1>
+    <p>Backend no ar. Ainda não há tela visual — você testa pela API.</p>
+    <ul>
+      <li><a href="/docs">/docs</a> — explorador de API (clique e dispare requisições)</li>
+      <li><a href="/health">/health</a> — status e providers disponíveis</li>
+      <li><a href="/openapi.json">/openapi.json</a> — especificação OpenAPI</li>
+    </ul>
+    <p>Passo a passo para testar: veja o <code>TESTING.md</code> no repositório.</p>
+  </body>
+</html>`),
+);
+
 // Fase 1 restante: providers onda 1, semáforo+métricas, analytics, public-v1 e /mcp.
 console.log(`manypost api (MODE=${env.MODE}) on :${env.PORT}`);
 
