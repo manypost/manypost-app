@@ -1,6 +1,7 @@
 /**
  * Conecta um canal REAL e publica um post de teste — pela linha de comando, sem frontend.
- * Funciona com Mastodon (OAuth pelo navegador), Telegram e Bluesky (credenciais diretas).
+ * Funciona com Mastodon (OAuth pelo navegador) e Telegram / Bluesky / Discord (credenciais
+ * diretas — o Discord conecta colando a URL de um webhook do canal).
  *
  * Pré-requisitos: Postgres + Redis no ar e a API rodando (veja docs/STATUS.md §5 ou o
  * passo a passo que o assistente te passou). Então:
@@ -122,6 +123,10 @@ async function connectByFields(providerId: string, auth: Record<string, string>)
   } else if (providerId === 'bluesky') {
     fields.handle = await ask('Seu handle Bluesky (ex.: voce.bsky.social): ');
     fields.appPassword = await ask('App Password (xxxx-xxxx-xxxx-xxxx): ');
+  } else if (providerId === 'discord') {
+    fields.webhookUrl = await ask(
+      'URL do webhook do canal Discord (Config do servidor → Integrações → Webhooks → Copiar URL): ',
+    );
   } else {
     // fallback genérico: pergunta os campos que o provider declara
     console.log('(informe os campos de conexão exigidos por este provider)');
