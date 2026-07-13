@@ -1,28 +1,28 @@
-# manypost BRAND & DESIGN SYSTEM · ESPECIFICAÇÃO OFICIAL (ASTRO 5)
+# ManyPost BRAND & DESIGN SYSTEM · ESPECIFICAÇÃO OFICIAL (ASTRO 5)
 
 > **Documento de Referência para Agentes de IA e Engenheiros de Frontend**
-> Este arquivo estabelece as regras de identidade visual, estrutura de interface, tokens de cor, escala tipográfica e anatomia de componentes do **manypost**. Toda nova página, componente ou interface gerada por IA ou humanos DEVE seguir estes padrões, inspirados na clareza, solidez e maturidade de plataformas como **Zapier** e **Cloudflare**.
+> Este arquivo estabelece as regras de identidade visual, estrutura de interface, tokens de cor, escala tipográfica e anatomia de componentes do **ManyPost**. Toda nova página, componente ou interface gerada por IA ou humanos DEVE seguir estes padrões, inspirados na clareza, solidez e maturidade de plataformas como **Zapier** e **Cloudflare**.
 
 ---
 
 ## 1. Contexto da Aplicação, Posicionamento & Ecossistema (Branding)
 
-O **manypost** é uma plataforma de gestão inteligente de canais sociais, agendamento multicanal, automação de fluxo de trabalho e análise de dados. Desenvolvida com tecnologia **100% brasileira (BR)** para atender agências, criadores, marcas e desenvolvedores em escala global e nacional, a plataforma elimina o trabalho manual e fragmentado da gestão de conteúdo, oferecendo um ambiente seguro, profissional e fácil de usar.
+O **ManyPost** é uma plataforma de gestão inteligente de canais sociais, agendamento multicanal, automação de fluxo de trabalho e análise de dados. Desenvolvida com tecnologia **100% brasileira (BR)** para atender agências, criadores, marcas e desenvolvedores em escala global e nacional, a plataforma elimina o trabalho manual e fragmentado da gestão de conteúdo, oferecendo um ambiente seguro, profissional e fácil de usar.
 
 ### A. O Foco Duplo · Agências + Desenvolvedores
-O manypost preenche a lacuna entre o design visual e a engenharia de software, unindo os dois mundos em uma única plataforma prática e integrada:
+O ManyPost preenche a lacuna entre o design visual e a engenharia de software, unindo os dois mundos em uma única plataforma prática e integrada:
 * **Para Agências & Gestores (Dashboard Completo):** Uma interface limpa, intuitiva e sem distrações ("zero sombras") onde equipes de marketing, atendimento e criadores gerenciam todo o ciclo de vida do conteúdo em um único painel, sem trinta abas abertas e com zero necessidade de conhecimento técnico em código.
 * **Para Desenvolvedores & IA (API RESTful + Protocolo MCP):** Para equipes de tecnologia e automação avançada, disponibilizamos uma **API oficial completa** e servidores nativos **MCP (Model Context Protocol)**. Isso permite que assistentes de IA (como Claude, ChatGPT e agentes autônomos) e scripts em qualquer linguagem consultem métricas, criem rascunhos, agendem e gerenciem postagens diretamente pelo pipeline oficial e autenticado da plataforma.
 
 ### B. Funcionalidades Centrais de Publicação & Multicanalidade
 * **Kanban de Postagens:** Quadro visual interativo para gestão ágil do pipeline de conteúdo (colunas de Ideação, Rascunho, Em Revisão, Aprovado pelo Cliente, Agendado e Publicado), com suporte a drag-and-drop e filtros por canal ou responsável.
 * **Criação de Rascunhos & Timeline de Agendamento:** Elaboração e teste de formatos com visualização cronológica precisa. O calendário interativo permite agendar posts em múltiplos fusos horários com prevenção de conflitos.
-* **Conexões Multicanal & Publicação Automática:** Integração nativa, confiável e segura com as principais redes sociais do mercado: **Instagram, Facebook, Telegram, X (Twitter), LinkedIn, TikTok, YouTube e Pinterest**. Após o agendamento, o manypost assume o disparo e realiza a publicação automática nas redes através das **APIs oficiais**, garantindo conformidade total e eliminando riscos de bloqueio ou banimento (shadowban).
+* **Conexões Multicanal & Publicação Automática:** Integração nativa, confiável e segura com as principais redes sociais do mercado: **Instagram, Facebook, Telegram, X (Twitter), LinkedIn, TikTok, YouTube e Pinterest**. Após o agendamento, o ManyPost assume o disparo e realiza a publicação automática nas redes através das **APIs oficiais**, garantindo conformidade total e eliminando riscos de bloqueio ou banimento (shadowban).
 
 ### C. Inteligência Analítica & Análise de Concorrentes (Competitive Intelligence)
 * **Criação e Otimização com IA:** Motores de Inteligência Artificial integrados ao fluxo de trabalho para simplificar a criação de posts, otimizar legendas, sugerir variações de tom de voz (adaptando o texto para a linguagem de cada rede social), indicar hashtags relevantes e prever o engajamento antes da publicação.
 * **Relatórios Avançados e Dashboards de Marketing & Mídias Sociais:** Gráficos e métricas aprofundadas de alcance, impressões, taxa de engajamento, conversão, crescimento de seguidores e ROI de mídia social em tempo real.
-* **Análise de Concorrentes (Benchmarking Avançado):** O manypost analisa, rastrea e compara o crescimento e a performance dos principais concorrentes do usuário. A plataforma revela insights estratégicos como:
+* **Análise de Concorrentes (Benchmarking Avançado):** O ManyPost analisa, rastrea e compara o crescimento e a performance dos principais concorrentes do usuário. A plataforma revela insights estratégicos como:
   * **Frequência de postagens e curvas de crescimento** do concorrente.
   * **Horários e dias de maior publicação** e engajamento da concorrência.
   * **Formatos de conteúdo utilizados** (proporção entre Vídeos/Reels, Carrosséis, Imagens estáticas e Textos).
@@ -31,14 +31,14 @@ O manypost preenche a lacuna entre o design visual e a engenharia de software, u
 
 ### D. Gestão de Times, Workflow & Aprovação Externa (Links Públicos)
 * **Gestão de Equipes e Fluxo de Trabalho (Workflow):** Organização colaborativa com controle de permissões e papéis (Criador, Revisor, Gestor de Mídia e Admin). Cada alteração gera um **histórico de entregas e ajustes**, permitindo acompanhar quem criou, quem comentou, o que foi alterado e quando foi aprovado.
-* **Links Públicos para Aprovação de Clientes:** Para simplificar a validação com clientes finais ou gestores externos, o manypost gera **links públicos de preview interativo**. O cliente visualiza a postagem exatamente como ela será renderizada na rede social (com imagens, vídeos e carrosséis) e pode aprovar ou solicitar ajustes com apenas 1 clique — **sem precisar fazer login, criar conta ou enfrentar burocracia no sistema**.
+* **Links Públicos para Aprovação de Clientes:** Para simplificar a validação com clientes finais ou gestores externos, o ManyPost gera **links públicos de preview interativo**. O cliente visualiza a postagem exatamente como ela será renderizada na rede social (com imagens, vídeos e carrosséis) e pode aprovar ou solicitar ajustes com apenas 1 clique — **sem precisar fazer login, criar conta ou enfrentar burocracia no sistema**.
 
 ---
 
 ## 2. Princípios Fundamentais de Design & Experiência
 
 1. **Estética Limpa, Profissional e Acolhedora:**
-   O manypost é uma plataforma de gestão de redes sociais e automação de IA para quem valoriza seu tempo. Elementos decorativos em excesso (como globos 3D giratórios, sombras flutuantes ou animações exageradas) são evitados para manter o foco no conteúdo.
+   O ManyPost é uma plataforma de gestão de redes sociais e automação de IA para quem valoriza seu tempo. Elementos decorativos em excesso (como globos 3D giratórios, sombras flutuantes ou animações exageradas) são evitados para manter o foco no conteúdo.
 2. **Regra do Zero Sombras (`box-shadow: none !important`):**
    Inspirado no padrão visual da Zapier, abolimos todas as sombras artificiais. A hierarquia visual, separação de blocos e destaque são construídos exclusivamente por **bordas limpas** (`1px solid var(--line)`) e **sobreposição de cores de fundo** (ex: `--surface-2` sobre `--surface`).
 3. **Regra de Estabilidade em Botões:**
@@ -90,41 +90,11 @@ O sistema é **light-first**: a base é o branco, o texto é quase-preto e o rox
 }
 ```
 
-### 3.1 Tokens Semânticos de Estado (App) — oficial desde 2026-07-10 (DECISIONS v1.1 §11)
-
-Para estados de publicação, toasts e indicadores do aplicativo. Filosofia da paleta preservada: tons **-700 que passam AA como texto sobre branco**, tint de fundo suave, hierarquia por borda/fundo (nunca sombra), nada neon. Badge/chip de estado = fundo `tint` + texto/borda na cor cheia (formato `.badge` do §7.B, radius 4px).
-
-| Token | Hex | Contraste s/ branco | Uso |
-| :--- | :--- | :--- | :--- |
-| *(rascunho)* | usa `--graphite` + `--surface-2` | 5,3:1 | Estado neutro — não ganha cor própria |
-| `--state-scheduled` | `#7C3AED` (= `--accent`) | 5,7:1 | Agendado: "nas mãos do sistema" |
-| `--state-scheduled-tint` | `#EDE9FE` (= `--accent-tint`) | — | Fundo do badge agendado |
-| `--state-publishing` | `#B45309` | 4,7:1 | Publicando (em andamento) |
-| `--state-publishing-tint` | `#FEF3C7` | — | |
-| `--state-published` | `#15803D` | 4,8:1 | Publicado / sucesso |
-| `--state-published-tint` | `#DCFCE7` | — | |
-| `--state-failed` | `#B91C1C` | 5,9:1 | Falha / erro destrutivo |
-| `--state-failed-tint` | `#FEE2E2` | — | |
-| `--state-review` | `#A16207` | 4,6:1 | Em revisão / aguardando aprovação / needs-review |
-| `--state-review-tint` | `#FEF9C3` | — | |
-
-```css
-:root {
-  --state-scheduled: #7C3AED;  --state-scheduled-tint: #EDE9FE;
-  --state-publishing: #B45309; --state-publishing-tint: #FEF3C7;
-  --state-published: #15803D;  --state-published-tint: #DCFCE7;
-  --state-failed: #B91C1C;     --state-failed-tint: #FEE2E2;
-  --state-review: #A16207;     --state-review-tint: #FEF9C3;
-}
-```
-
-Regras: a mesma cor de estado é usada em **todas** as telas (kanban, calendário, listas, toasts); cores de estado nunca substituem `--accent` em ações/CTAs; texto sobre `tint` usa a cor cheia do estado ou `--ink`.
-
 ---
 
 ## 4. Estrutura Visual & Cantos Suaves (Border Radius)
 
-O manypost evita formatos pílula (`border-radius: 9999px`) em botões, cards ou containers, exceto em avatares circulares. O arredondamento dos cantos segue uma escala simples e natural em 3 níveis:
+O ManyPost evita formatos pílula (`border-radius: 9999px`) em botões, cards ou containers, exceto em avatares circulares. O arredondamento dos cantos segue uma escala simples e natural em 3 níveis:
 
 * **`4px` (Small Radius):** Badges, tags, tooltips, toolbars, pequenas pílulas de status e ícones de marca.
 * **`6px` (Medium Radius):** Botões padrão (todas as variações), campos de formulário (inputs, selects, textareas) e modais pequenos.
@@ -134,30 +104,41 @@ O manypost evita formatos pílula (`border-radius: 9999px`) em botões, cards ou
 
 ## 5. Tipografia Dupla (Marca vs. Leitura Fluida)
 
-Utilizamos duas famílias tipográficas complementares importadas via Google Fonts:
+Utilizamos um sistema tipográfico duplo de alta precisão que combina a personalidade marcante da **Degular Display** nos grandes formatos com a legibilidade suíça da **Inter** na interface do usuário:
 
 ```css
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,600;0,700;0,800;1,700&display=swap');
+@font-face {
+  font-family: "Degular Display";
+  src: url("/fonts/DegularDisplay-500.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
-  --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --display: 'Plus Jakarta Sans', var(--sans);
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Degular Display', 'Plus Jakarta Sans', var(--font-sans);
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
 ```
 
-### A. Plus Jakarta Sans (`var(--display)`) · Títulos & Marca
-Fonte moderna e acolhedora reservada para impacto editorial, números de métricas e identidade da marca.
-* **Títulos Principais (H1 / Display):** `font-size: 40px`, `font-weight: 700`, `line-height: 1.15`, `letter-spacing: -0.03em`, `color: var(--ink)`. (Evitar tamanhos > 44px ou peso 800 para não desproporcionar a interface e manter a elegância da Zapier).
-* **Títulos de Seção (H2):** `font-size: 22px`, `font-weight: 700`, `letter-spacing: -0.02em`, `color: var(--ink)`, `text-transform: uppercase`.
-* **Títulos de Cards (H3):** `font-size: 18px`, `font-weight: 700`, `letter-spacing: -0.01em`, `color: var(--ink)`.
-* **Kickers (Sobretítulos):** `font-size: 11px`, `font-weight: 700`, `letter-spacing: 0.08em`, `color: var(--graphite)`, `text-transform: uppercase`. (Usar grafite editorial para alto contraste, evitando o uso excessivo de laranja).
+### A. Degular Display (`var(--font-display)`) · Títulos de Impacto & Grandes Formatos
+A fonte proprietária **Degular Display** (da fundição OH no Type Co.) é a assinatura visual do ManyPost e quem dá vida à manchete do Hero (*"Vários posts. Várias redes. Um clique."*). Com proporções singulares e geometria "regular mas nem tão regular", ela cria memória visual imediata.
 
-### B. Inter UI (`var(--sans)`) · UI, Corpo & Dados
-O padrão de ouro para legibilidade técnica em interfaces, tabelas de dados, botões, formulários e logs.
-* **Corpo de Texto Grande (`.body-lg`):** `font-size: 16px`, `font-weight: 400`, `line-height: 1.6`, `color: var(--graphite)`.
-* **Descrição de Cards (`.card-desc`):** `font-size: 14px`, `font-weight: 400`, `line-height: 1.6`, `color: var(--graphite)`.
-* **Textos de UI / Botões / Form Labels:** `font-size: 13px` ou `14px`, `font-weight: 500` ou `600`.
-* **Metadados / Legendas / Carimbos de Tempo:** `font-size: 12px`, `font-weight: 600`, `color: var(--graphite)`.
+> [!IMPORTANT]
+> **Regra Tipográfica Inegociável (`Degular Display` apenas $\ge 26\text{px}$):**
+> A `Degular Display` foi desenhada exclusivamente para **Grandes Formatos (Hero H1, grandes CTAs e Títulos Principais de Seção H2 entre 32px e 56px)**. É **terminantemente proibido** utilizá-la em toda a aplicação ou em textos pequenos ($\le 22\text{px}$ como subtítulos de cards H3/H4, metadados ou UI). Em tamanhos menores ela fica estranha, pesada e perde a legibilidade.
+
+* **Padrão Exato da LP para Manchetes (Hero H1 / Display):** `font-family: var(--font-display)`, `font-size: 44px a 56px`, `font-weight: 500` (equivalente ao `font-medium` do Tailwind/LP), `line-height: 1.02`, `letter-spacing: -0.5px` (`tracking-[-0.5px]`), `color: var(--ink)`.
+* **Títulos Principais de Seções (H2 / CTAs):** `font-family: var(--font-display)`, `font-size: 32px a 48px`, `font-weight: 500`, `letter-spacing: -0.5px`, `color: var(--ink)`.
+* **Kickers (Sobretítulos de Seção):** `font-size: 12px`, `font-weight: 700`, `letter-spacing: 0.05em a 0.08em`, `color: var(--accent) ou var(--graphite)`, `text-transform: uppercase`.
+
+### B. Inter UI (`var(--font-sans)`) · Cards ($\le 22\text{px}$), UI, Corpo & Dados
+O padrão imutável para todo o restante do sistema: subtítulos de cards, botões, navegação, tabelas, formulários e parágrafos de corpo.
+* **Títulos de Cards de Funcionalidade (H3 / H4 em Cards):** `font-family: var(--font-sans)`, `font-size: 18px a 22px`, `font-weight: 600`, `letter-spacing: -0.2px a -0.3px`, `color: var(--ink)`. (Exemplo exacto das seções *EveryTeam* e *Outcomes*).
+* **Corpo de Texto (`.body-lg` / Parágrafos):** `font-size: 14px a 16px`, `font-weight: 400`, `line-height: 1.6`, `color: var(--graphite)`.
+* **Textos de UI / Botões (`ZapButton`) / Form Labels:** `font-size: 11px, 13px ou 15px`, `font-weight: 600` (ou `700` no botão large).
+* **Metadados / Legendas / Carimbos de Tempo:** `font-size: 12px a 15px`, `font-weight: 600`, `color: var(--graphite)`.
 
 ---
 
@@ -208,10 +189,9 @@ Cards estruturais devem ter altura igualizada (`height: 100%` em grids com `alig
 * **Especificação:** `font-size: 11px`, `font-weight: 600`, `padding: 4px 10px`, `border-radius: 4px`, `background: var(--surface)`, `border: 1px solid var(--line)`, `color: var(--graphite)`, `text-transform: uppercase`.
 
 ### C. Logo Oficial (`/images/logo.png`)
-* A logo oficial do manypost está em `public/images/logo.png` — um mark quadrado (500×500) roxo.
-* **No Header:** Utilizar `<img src="/images/logo.png" alt="" width="28" height="28" />` com estilo `height: 28px; width: auto; object-fit: contain; display: inline-block;`, acompanhada do wordmark `manypost` em fonte Display.
-* O `alt` fica vazio porque o wordmark textual ao lado já nomeia a marca; o link é rotulado por `aria-label`.
-* **O wordmark é sempre em caixa baixa** — inclusive em início de frase, título e `<title>`. Nunca "manypost" ou "manypost".
+* A logo oficial do ManyPost está em `public/images/logo.png` (ou `logo.png` se carregado diretamente na raiz do componente de branding) — um mark quadrado roxo.
+* **No Header:** Utilizar `<img src="/images/logo.png" alt="Logo do ManyPost" width="28" height="28" />` (com fallback `onerror` na documentação HTML), acompanhada do wordmark `ManyPost` em fonte Display.
+* **Grafia da Marca:** A grafia oficial é sempre **`ManyPost`** (com `M` e `P` maiúsculos), inclusive em títulos, textos e `<title>`. Nunca escrever "manypost" ou "ManyPost".
 
 ---
 
