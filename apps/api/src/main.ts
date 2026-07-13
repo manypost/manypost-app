@@ -72,9 +72,50 @@ app.route('/v1/notifications', notificationRoutes(ctn));
 app.route('/uploads', publicUploadRoutes(ctn)); // arquivos públicos (chaves UUID, não enumeráveis)
 app.route('/public/approval', approvalPublicRoutes(ctn)); // aprovação por token, sem login (§12)
 
-app.doc('/openapi.json', {
-  openapi: '3.1.0',
-  info: { title: 'manypost API', version: '0.0.1' },
+// OpenAPI + explorador: @hono/zod-openapi só inclui no doc as rotas escritas com createRoute
+// (auth/api-keys/health). O resto do produto usa .get/.post simples e não apareceria no
+// explorador. Como app.routes expõe TODAS as rotas montadas (com prefixo), completamos o
+// documento com um "stub" mínimo (método + caminho + params + corpo genérico) para cada rota
+// ainda não documentada — o explorador passa a listar o fluxo inteiro sem alterar nenhum
+// handler. A fonte de verdade continua sendo o código / TESTING.md.
+const OPENAPI_INFO = { openapi: '3.1.0' as const, info: { title: 'manypost API', version: '0.0.1' } };
+const HTTP_METHODS = new Set(['get', 'post', 'put', 'patch', 'delete']);
+const NON_API_PATHS = new Set(['/', '/docs', '/openapi.json']);
+
+app.get('/openapi.json', (c) => {
+  const doc = app.getOpenAPI31Document(OPENAPI_INFO);
+  if (!doc.paths) doc.paths = {};
+  const paths = doc.paths as Record<string, Record<string, unknown>>;
+  const seen = new Set<string>();
+  for (const route of app.routes) {
+    const method = route.method.toLowerCase();
+    if (!HTTP_METHODS.has(method)) continue; // ignora middlewares (method ALL)
+    if (route.path.includes('*') || NON_API_PATHS.has(route.path)) continue;
+    const oaPath = route.path.replace(/:([A-Za-z0-9_]+)/g, '{$1}'); // :param (Hono) → {param}
+    if (seen.has(`${method} ${oaPath}`)) continue;
+    seen.add(`${method} ${oaPath}`);
+    const entry = (paths[oaPath] ??= {});
+    if (entry[method]) continue; // já documentado via createRoute — não sobrescreve
+    const segments = oaPath.split('/').filter(Boolean);
+    const tag = segments[0] === 'v1' ? segments[1] ?? 'v1' : segments[0] ?? 'root';
+    const params = [...oaPath.matchAll(/\{([^}]+)\}/g)].map((m) => ({
+      name: m[1],
+      in: 'path',
+      required: true,
+      schema: { type: 'string' },
+    }));
+    const op: Record<string, unknown> = {
+      tags: [tag],
+      summary: `${method.toUpperCase()} ${oaPath}`,
+      responses: { default: { description: 'resposta — veja o código / TESTING.md' } },
+    };
+    if (params.length) op.parameters = params;
+    if (method !== 'get' && method !== 'delete') {
+      op.requestBody = { content: { 'application/json': { schema: { type: 'object' } } } };
+    }
+    entry[method] = op;
+  }
+  return c.json(doc);
 });
 
 // Explorador de API no navegador (Scalar) — superfície de teste até existir o apps/web.
