@@ -33,6 +33,18 @@ const EnvSchema = z
     GITHUB_CLIENT_ID: z.string().optional(),
     GITHUB_CLIENT_SECRET: z.string().optional(),
 
+    // Credenciais de providers de rede (opcionais — sem env, o provider some do catálogo;
+    // guia leigo em docs/INTEGRATIONS_SETUP.md). Bluesky/Mastodon não precisam de env.
+    MASTODON_DEFAULT_INSTANCE: z.string().url().optional(), // pré-preenche a instância no connect
+    TELEGRAM_BOT_TOKEN: z.string().optional(),
+    DISCORD_CLIENT_ID: z.string().optional(),
+    DISCORD_CLIENT_SECRET: z.string().optional(),
+    DISCORD_BOT_TOKEN: z.string().optional(),
+    LINKEDIN_CLIENT_ID: z.string().optional(),
+    LINKEDIN_CLIENT_SECRET: z.string().optional(),
+    X_CLIENT_ID: z.string().optional(),
+    X_CLIENT_SECRET: z.string().optional(),
+
     STORAGE_PROVIDER: z.enum(['local', 's3']).default('local'),
     UPLOAD_DIR: z.string().default('./uploads'),
     MEDIA_MAX_IMAGE_MB: z.coerce.number().min(1).default(10),

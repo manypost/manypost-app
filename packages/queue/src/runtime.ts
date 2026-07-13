@@ -36,6 +36,8 @@ export interface PublishingRuntimeOpts {
   crypto: CryptoService;
   retryBaseSec: number;
   allowPrivateWebhookUrls?: boolean;
+  /** secrets de app por provider (env → ctx.secrets do worker) */
+  providerSecrets?: Record<string, Record<string, string>>;
 }
 
 export interface PublishingRuntime {
@@ -102,6 +104,7 @@ export async function createPublishingRuntime(
     scheduler,
     retryBaseSec: opts.retryBaseSec,
     ...(rateLimiter ? { rateLimiter } : {}),
+    ...(opts.providerSecrets ? { secrets: opts.providerSecrets } : {}),
     events,
     log,
   });
@@ -112,6 +115,7 @@ export async function createPublishingRuntime(
     crypto: opts.crypto,
     scheduler,
     retryBaseSec: opts.retryBaseSec,
+    ...(opts.providerSecrets ? { secrets: opts.providerSecrets } : {}),
     events,
     log,
   });

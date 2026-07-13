@@ -19,11 +19,14 @@ const ERROR_MAX_LEN = 4000;
 /** teto do delay entre itens de thread — mantém a publicação abaixo do watchdog de zumbis (15 min) */
 export const THREAD_MAX_DELAY_SEC = 600;
 
-const makeCtx = (log?: ProviderContext['log']): ProviderContext => ({
+const makeCtx = (
+  log?: ProviderContext['log'],
+  secrets?: Record<string, string>,
+): ProviderContext => ({
   fetch: globalThis.fetch,
   log: log ?? (() => {}),
   now: () => new Date(),
-  secrets: {},
+  secrets: secrets ?? {},
 });
 
 // ---------------------------------------------------------------- schedule
@@ -215,6 +218,8 @@ export interface PublishDeps {
   maxAttempts?: number;
   rateLimiter?: RateLimiter;
   events?: EventPublisher;
+  /** secrets de app por provider (client id/secret via env — SPEC_INTEGRATIONS §2) */
+  secrets?: Record<string, Record<string, string>>;
   log?: (level: string, msg: string, data?: object) => void;
 }
 
@@ -300,7 +305,10 @@ const makeRunner = (deps: PublishDeps) =>
     if (!provider) return fail('permanent', `provider ${channel.provider} desconhecido`);
 
     const aad = channelAad(channel.orgId, channel.provider, channel.externalId);
-    const ctx = makeCtx(deps.log ? (l, m, d) => deps.log!(l, m, d) : undefined);
+    const ctx = makeCtx(
+      deps.log ? (l, m, d) => deps.log!(l, m, d) : undefined,
+      deps.secrets?.[channel.provider],
+    );
 
     const items = await deps.publishing.listItems(pub.id);
     const startIdx = pub.lastPublishedIndex + 1;
@@ -331,6 +339,13 @@ const makeRunner = (deps: PublishDeps) =>
     let firstExternalId: string | null = items[0]?.externalId ?? pub.externalId;
     let firstReleaseUrl: string | null = pub.releaseUrl;
 
+    // settings do canal (ex.: instância Mastodon, service do Bluesky) + settings da publicação;
+    // fora do try: o refresh de token (catch) também precisa deles
+    const settings = {
+      ...(channel.settings as Record<string, unknown>),
+      ...(pub.settings as Record<string, unknown>),
+    };
+
     try {
       // retomada tardia (crash entre o último item e o PUBLISHED): só finaliza
       if (startIdx >= items.length) {
@@ -340,11 +355,6 @@ const makeRunner = (deps: PublishDeps) =>
 
       const accessToken = await deps.crypto.decrypt(channel.tokenEnc, aad, channel.tokenKeyVersion);
       const token = { accessToken, scopes: channel.scopes };
-      // settings do canal (ex.: instância Mastodon) + settings da publicação
-      const settings = {
-        ...(channel.settings as Record<string, unknown>),
-        ...(pub.settings as Record<string, unknown>),
-      };
 
       let prevExternalId = startIdx > 0 ? items[startIdx - 1]!.externalId : null;
       for (; i < items.length; i++) {
@@ -433,7 +443,7 @@ const makeRunner = (deps: PublishDeps) =>
             aad,
             channel.tokenKeyVersion,
           );
-          const fresh = await provider.refreshToken(ctx, refreshPlain);
+          const fresh = await provider.refreshToken(ctx, refreshPlain, settings);
           const tokenEnc = await deps.crypto.encrypt(fresh.accessToken, aad);
           const refreshEnc = fresh.refreshToken
             ? await deps.crypto.encrypt(fresh.refreshToken, aad)

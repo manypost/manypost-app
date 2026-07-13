@@ -105,6 +105,15 @@ export interface ChannelProvider {
   readonly rateDefaults: RateDefaults;
   readonly settingsSchema: ZodType;
   readonly connectionFieldsSchema?: ZodType;
+  /** chaves de ctx.secrets exigidas p/ o provider estar disponível (ex.: botToken via env) */
+  readonly requiredSecrets?: string[];
+
+  /** Conexão direta por credenciais (Bluesky app password, Telegram bot) — sem redirect
+   *  OAuth (SPEC_INTEGRATIONS §5). Presente = o connect usa este caminho e ignora getAuthUrl. */
+  connectWithFields?(
+    ctx: ProviderContext,
+    input: { fields: unknown },
+  ): Promise<TokenSet & ExternalAccount & { channelSettings?: Record<string, unknown> }>;
 
   getAuthUrl(
     ctx: ProviderContext,
@@ -114,7 +123,8 @@ export interface ChannelProvider {
     ctx: ProviderContext,
     input: { code: string; codeVerifier?: string; redirectUri: string; extra?: unknown },
   ): Promise<TokenSet & ExternalAccount & { channelSettings?: Record<string, unknown> }>;
-  refreshToken(ctx: ProviderContext, refreshToken: string): Promise<TokenSet>;
+  /** settings = merge canal+publicação (ex.: service do PDS no Bluesky, instance no Mastodon) */
+  refreshToken(ctx: ProviderContext, refreshToken: string, settings?: unknown): Promise<TokenSet>;
   listSubAccounts?(ctx: ProviderContext, token: TokenSet): Promise<ExternalAccount[]>;
 
   publish(

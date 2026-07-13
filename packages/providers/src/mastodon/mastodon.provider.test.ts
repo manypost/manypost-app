@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import type { ProviderContext } from '@manypost/contracts';
+import { runProviderContract } from '../../test-kit/contract';
 import { mastodonProvider as p } from './mastodon.provider';
+
+runProviderContract(p);
 
 /** ctx.fetch mockado: valida os requests exatos contra a API do Mastodon. */
 function mockCtx(routes: Record<string, (init?: RequestInit) => unknown>) {

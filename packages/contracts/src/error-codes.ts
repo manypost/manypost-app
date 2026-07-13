@@ -4,6 +4,7 @@ export const ErrorCodes = {
   ChannelRefreshRequired: 'channel.refresh_required',
   ChannelMissingScopes: 'channel.missing_scopes',
   ChannelDisabled: 'channel.disabled',
+  ChannelConnectFailed: 'channel.connect_failed',
   // posts
   PostInvalidMedia: 'post.invalid_media',
   PostTooLong: 'post.too_long',

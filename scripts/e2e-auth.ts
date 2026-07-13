@@ -100,6 +100,25 @@ check(
   `provider google → 302 (configurado) ou 404 (não configurado) — veio ${socialOff.status}`,
 );
 
+// 9) catálogo de providers de rede: só os disponíveis (env presente) aparecem
+const providers = (await (
+  await fetch(`${BASE}/v1/channels/providers`, { headers: bearer })
+).json()) as any[];
+const ids = providers.map((p) => p.id);
+check(ids.includes('bluesky'), 'bluesky sempre disponível (não precisa de env)');
+check(ids.includes('mastodon'), 'mastodon sempre disponível');
+const bsky = providers.find((p) => p.id === 'bluesky');
+check(bsky?.connectType === 'fields', 'bluesky conecta por campos (app password)');
+// telegram só aparece com TELEGRAM_BOT_TOKEN no env do servidor
+if (ids.includes('telegram')) {
+  check(providers.find((p) => p.id === 'telegram')?.connectType === 'fields', 'telegram conecta por campos');
+}
+// discord exige env; sem ela, conectar → capability.disabled (404)
+if (!ids.includes('discord')) {
+  const discordOff = await post('/v1/channels/connect', { provider: 'discord' }, bearer);
+  check(discordOff.status === 404, 'provider sem env → connect 404 (capability.disabled)');
+}
+
 if (failures > 0) {
   console.error(`\nE2E auth: ${failures} falha(s)`);
   process.exit(1);

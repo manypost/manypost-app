@@ -87,6 +87,22 @@ export async function buildContainer(env: Env) {
   const crypto = AesGcmCryptoService.fromHex(env.ENCRYPTION_KEY);
   const authDeps = { ...repos, hasher: bunPasswordHasher, signer };
 
+  // secrets de app por provider (SPEC_INTEGRATIONS §2): env → ctx.secrets;
+  // provider indisponível quando faltam os requiredSecrets dele
+  const prune = (o: Record<string, string | undefined>) =>
+    Object.fromEntries(Object.entries(o).filter(([, v]) => v)) as Record<string, string>;
+  const providerSecrets: Record<string, Record<string, string>> = {
+    mastodon: prune({ defaultInstance: env.MASTODON_DEFAULT_INSTANCE }),
+    telegram: prune({ botToken: env.TELEGRAM_BOT_TOKEN }),
+    discord: prune({
+      clientId: env.DISCORD_CLIENT_ID,
+      clientSecret: env.DISCORD_CLIENT_SECRET,
+      botToken: env.DISCORD_BOT_TOKEN,
+    }),
+    linkedin: prune({ clientId: env.LINKEDIN_CLIENT_ID, clientSecret: env.LINKEDIN_CLIENT_SECRET }),
+    x: prune({ clientId: env.X_CLIENT_ID, clientSecret: env.X_CLIENT_SECRET }),
+  };
+
   const runtime = await createPublishingRuntime({
     databaseUrl: env.DATABASE_URL,
     redisUrl: env.REDIS_URL,
@@ -97,6 +113,7 @@ export async function buildContainer(env: Env) {
     crypto,
     retryBaseSec: env.PUBLISH_RETRY_BASE_SEC,
     allowPrivateWebhookUrls: env.WEBHOOKS_ALLOW_PRIVATE,
+    providerSecrets,
   });
 
   return {
@@ -107,6 +124,7 @@ export async function buildContainer(env: Env) {
     crypto,
     storage,
     registry: providerRegistry,
+    providerSecrets,
     runtime,
     media: {
       upload: makeUploadMedia(mediaDeps),

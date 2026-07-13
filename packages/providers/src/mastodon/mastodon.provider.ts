@@ -14,10 +14,12 @@ import { checkMediaRules } from '../shared/media-rules';
 const SCOPES = 'read write';
 
 const fieldsSchema = z.object({
+  // opcional: sem campo, vale ctx.secrets.defaultInstance (env MASTODON_DEFAULT_INSTANCE)
   instance: z
     .string()
     .url()
-    .transform((u) => u.replace(/\/+$/, '')),
+    .transform((u) => u.replace(/\/+$/, ''))
+    .optional(),
 });
 
 const settingsSchema = z.object({
@@ -145,7 +147,11 @@ export const mastodonProvider: ChannelProvider = {
   connectionFieldsSchema: fieldsSchema,
 
   async getAuthUrl(ctx, { redirectUri, fields }) {
-    const { instance } = fieldsSchema.parse(fields);
+    const parsed = fieldsSchema.parse(fields ?? {});
+    const instance = parsed.instance ?? ctx.secrets.defaultInstance?.replace(/\/+$/, '');
+    if (!instance) {
+      throw { status: 422, body: 'informe a URL da instância (ou defina MASTODON_DEFAULT_INSTANCE)' };
+    }
     // registro dinâmico do app NA instância do usuário — nada de env global
     const app = await api<{ client_id: string; client_secret: string }>(
       ctx,

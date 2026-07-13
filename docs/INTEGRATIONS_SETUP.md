@@ -121,7 +121,9 @@ No Telegram, quem publica é um **bot** seu, administrador do seu canal/grupo:
 TELEGRAM_BOT_TOKEN=1234567890:AAExemploDeTokenLongoAqui
 ```
 
-6. No manypost, conecte o Telegram e escolha o canal/grupo onde o bot é admin.
+6. No manypost, conecte o Telegram informando **onde** o bot vai publicar: o `@username` do canal (ex.: `@minhaagencia`), o link `t.me/minhaagencia`, ou o **id numérico** do grupo (grupos são negativos, ex.: `-1001234567890`). O manypost confere na hora que o bot é admin do chat com permissão de publicar — se não for, mostra o erro exato para corrigir.
+   - Um mesmo bot atende **vários canais/grupos**: você conecta cada um separadamente informando o chat de destino; o token do bot no `.env` é compartilhado.
+   - Trocar o `TELEGRAM_BOT_TOKEN` depois exige reconectar os canais do Telegram (o token fica guardado cifrado em cada canal no momento da conexão).
 
 ---
 
