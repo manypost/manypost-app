@@ -69,10 +69,10 @@ describe('bluesky: conexão por app password', () => {
 });
 
 describe('bluesky: publicação', () => {
-  test('texto puro: refreshSession → createRecord com langs e createdAt', async () => {
+  test('texto puro: getSession → createRecord com langs e createdAt', async () => {
     let recordBody: any;
     const ctx = route({
-      'com.atproto.server.refreshSession': () => jsonResponse(SESSION),
+      'com.atproto.server.getSession': () => jsonResponse(SESSION),
       'com.atproto.repo.createRecord': (b) => {
         recordBody = b;
         return jsonResponse({ uri: 'at://did:plc:abc123/app.bsky.feed.post/xyz', cid: 'cid1' });
@@ -81,6 +81,13 @@ describe('bluesky: publicação', () => {
         jsonResponse({ posts: [{ uri: 'at://did:plc:abc123/app.bsky.feed.post/xyz', cid: 'cid1' }] }),
     });
     const [res] = await p.publish(ctx, token, [{ content: 'olá bsky', media: [] }], {});
+    // publicar usa o accessToken direto via getSession (GET). Renovar aqui invalidaria o
+    // refreshJwt guardado (rotação atproto) e criava loop refresh↔publish — nunca chamar
+    // refreshSession no caminho de publicação.
+    const getSession = ctx.calls.find((c) => c.url.includes('com.atproto.server.getSession'));
+    expect(getSession?.init?.method).toBe('GET');
+    expect((getSession?.init?.headers as Record<string, string>)?.authorization).toBe('Bearer access-jwt');
+    expect(ctx.calls.some((c) => c.url.includes('com.atproto.server.refreshSession'))).toBe(false);
     expect(recordBody.repo).toBe('did:plc:abc123');
     expect(recordBody.collection).toBe('app.bsky.feed.post');
     expect(recordBody.record).toMatchObject({
@@ -99,7 +106,7 @@ describe('bluesky: publicação', () => {
   test('com imagem: uploadBlob → embed app.bsky.embed.images com alt', async () => {
     let recordBody: any;
     const ctx = route({
-      'com.atproto.server.refreshSession': () => jsonResponse(SESSION),
+      'com.atproto.server.getSession': () => jsonResponse(SESSION),
       'com.atproto.repo.uploadBlob': () => jsonResponse({ blob: { $type: 'blob', ref: 'blobref' } }),
       'com.atproto.repo.createRecord': (b) => {
         recordBody = b;
@@ -115,7 +122,7 @@ describe('bluesky: publicação', () => {
       const method = url.split('/xrpc/')[1]?.split('?')[0] ?? '';
       const body = init?.body && typeof init.body === 'string' ? JSON.parse(init.body) : undefined;
       const routes: Record<string, () => Response> = {
-        'com.atproto.server.refreshSession': () => jsonResponse(SESSION),
+        'com.atproto.server.getSession': () => jsonResponse(SESSION),
         'com.atproto.repo.uploadBlob': () => jsonResponse({ blob: { $type: 'blob' } }),
         'com.atproto.repo.createRecord': () => {
           recordBody = body;
@@ -143,7 +150,7 @@ describe('bluesky: publicação', () => {
     let recordBody: any;
     const ROOT = { uri: 'at://did/app.bsky.feed.post/root', cid: 'cidroot' };
     const ctx = route({
-      'com.atproto.server.refreshSession': () => jsonResponse(SESSION),
+      'com.atproto.server.getSession': () => jsonResponse(SESSION),
       'app.bsky.feed.getPosts': () =>
         jsonResponse({
           posts: [
@@ -170,6 +177,23 @@ describe('bluesky: publicação', () => {
       root: ROOT,
       parent: { uri: 'at://did/app.bsky.feed.post/parent', cid: 'cidparent' },
     });
+  });
+
+  test('refreshToken: refreshSession é POST sem body, refreshJwt no header', async () => {
+    // é o caminho que o worker chama quando o accessJwt expira. refreshSession é uma
+    // procedure do atproto (POST) e o refreshJwt vai no header — sem body. Inferir GET
+    // pela ausência de body devolve "Incorrect HTTP method (GET) expected POST".
+    const ctx = route({
+      'com.atproto.server.refreshSession': () =>
+        jsonResponse({ ...SESSION, accessJwt: 'novo-access', refreshJwt: 'novo-refresh' }),
+    });
+    const out = await p.refreshToken(ctx, 'refresh-jwt', {});
+    const call = ctx.calls.find((c) => c.url.includes('com.atproto.server.refreshSession'));
+    expect(call?.init?.method).toBe('POST');
+    expect(call?.init?.body).toBeUndefined();
+    expect((call?.init?.headers as Record<string, string>)?.authorization).toBe('Bearer refresh-jwt');
+    // rotação: devolve o novo par p/ o worker persistir
+    expect(out).toEqual({ accessToken: 'novo-access', refreshToken: 'novo-refresh', scopes: [] });
   });
 
   test('classifyError: token expirado → refresh-token; 5xx → transient', () => {

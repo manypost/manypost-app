@@ -43,17 +43,21 @@ async function xrpc<T>(
   ctx: ProviderContext,
   service: string,
   method: string,
-  init: { token?: string; body?: unknown; query?: Record<string, string> },
+  init: { token?: string; body?: unknown; query?: Record<string, string>; procedure?: boolean },
 ): Promise<T> {
-  const isGet = init.body === undefined;
+  // No AT Protocol o método HTTP segue o tipo do lexicon: query → GET, procedure → POST.
+  // A maioria das procedures manda body, mas refreshSession é POST *sem* body (o refreshJwt
+  // vai no header), então não dá p/ inferir o método só pela presença de body — daí `procedure`.
+  const hasBody = init.body !== undefined;
+  const isPost = hasBody || init.procedure === true;
   const qs = init.query ? `?${new URLSearchParams(init.query)}` : '';
   const res = await ctx.fetch(`${service}/xrpc/${method}${qs}`, {
-    method: isGet ? 'GET' : 'POST',
+    method: isPost ? 'POST' : 'GET',
     headers: {
       ...(init.token ? { authorization: `Bearer ${init.token}` } : {}),
-      ...(isGet ? {} : { 'content-type': 'application/json' }),
+      ...(hasBody ? { 'content-type': 'application/json' } : {}),
     },
-    ...(isGet ? {} : { body: JSON.stringify(init.body) }),
+    ...(hasBody ? { body: JSON.stringify(init.body) } : {}),
   });
   if (!res.ok) throw { status: res.status, body: (await res.text()).slice(0, 2000) };
   return (await res.json()) as T;
@@ -155,16 +159,25 @@ async function fetchPost(
 
 const refOf = (p: FetchedPost): StrongRef => ({ uri: p.uri, cid: p.cid });
 
-/** O token do worker carrega o refreshJwt; renovamos a sessão a cada publish (JWTs são curtos). */
-async function freshSession(
+/**
+ * Publica com o accessJwt guardado (o worker só passa o accessToken; o refreshJwt fica
+ * cifrado no canal). `getSession` valida o token e resolve did/handle p/ o createRecord.
+ * NÃO renovamos aqui: o refreshJwt do atproto ROTACIONA a cada refreshSession e só o worker
+ * persiste a rotação — refrescar num provider stateless invalidaria o token guardado.
+ * accessJwt expirado → ExpiredToken/401 → classify='refresh-token' → o worker renova e persiste.
+ */
+async function currentSession(
   ctx: ProviderContext,
   service: string,
   token: TokenSet,
 ): Promise<{ did: string; handle: string; accessJwt: string }> {
-  const s = await xrpc<Session>(ctx, service, 'com.atproto.server.refreshSession', {
-    token: token.refreshToken ?? token.accessToken,
-  });
-  return { did: s.did, handle: s.handle, accessJwt: s.accessJwt };
+  const s = await xrpc<{ did: string; handle: string }>(
+    ctx,
+    service,
+    'com.atproto.server.getSession',
+    { token: token.accessToken },
+  );
+  return { did: s.did, handle: s.handle, accessJwt: token.accessToken };
 }
 
 export const blueskyProvider: ChannelProvider = {
@@ -231,6 +244,7 @@ export const blueskyProvider: ChannelProvider = {
   async refreshToken(ctx, refreshToken, settings) {
     const s = await xrpc<Session>(ctx, serviceOf(settings), 'com.atproto.server.refreshSession', {
       token: refreshToken,
+      procedure: true,
     });
     return { accessToken: s.accessJwt, refreshToken: s.refreshJwt, scopes: [] };
   },
@@ -238,7 +252,7 @@ export const blueskyProvider: ChannelProvider = {
   async publish(ctx, token, items, rawSettings) {
     const service = serviceOf(rawSettings);
     const { langs } = settingsSchema.parse(rawSettings ?? {});
-    const session = await freshSession(ctx, service, token);
+    const session = await currentSession(ctx, service, token);
 
     const results: PublishResult[] = [];
     let root: StrongRef | undefined;
@@ -257,7 +271,7 @@ export const blueskyProvider: ChannelProvider = {
   async publishReply(ctx, token, parentExternalId, item, rawSettings) {
     const service = serviceOf(rawSettings);
     const { langs } = settingsSchema.parse(rawSettings ?? {});
-    const session = await freshSession(ctx, service, token);
+    const session = await currentSession(ctx, service, token);
     const parentPost = await fetchPost(ctx, service, session.accessJwt, parentExternalId);
     const parent = refOf(parentPost);
     // a raiz da thread é o root do pai (se ele já for réplica) ou o próprio pai
