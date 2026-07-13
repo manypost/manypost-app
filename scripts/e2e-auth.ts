@@ -109,14 +109,18 @@ check(ids.includes('bluesky'), 'bluesky sempre disponível (não precisa de env)
 check(ids.includes('mastodon'), 'mastodon sempre disponível');
 const bsky = providers.find((p) => p.id === 'bluesky');
 check(bsky?.connectType === 'fields', 'bluesky conecta por campos (app password)');
-// telegram só aparece com TELEGRAM_BOT_TOKEN no env do servidor
+// discord conecta por URL de webhook (sem env no servidor) → sempre disponível, por campos
+check(ids.includes('discord'), 'discord sempre disponível (webhook, não precisa de env)');
+check(
+  providers.find((p) => p.id === 'discord')?.connectType === 'fields',
+  'discord conecta por campos (URL do webhook)',
+);
+// telegram só aparece com TELEGRAM_BOT_TOKEN; sem env → some do catálogo e connect dá 404
 if (ids.includes('telegram')) {
   check(providers.find((p) => p.id === 'telegram')?.connectType === 'fields', 'telegram conecta por campos');
-}
-// discord exige env; sem ela, conectar → capability.disabled (404)
-if (!ids.includes('discord')) {
-  const discordOff = await post('/v1/channels/connect', { provider: 'discord' }, bearer);
-  check(discordOff.status === 404, 'provider sem env → connect 404 (capability.disabled)');
+} else {
+  const off = await post('/v1/channels/connect', { provider: 'telegram' }, bearer);
+  check(off.status === 404, 'provider sem env → connect 404 (capability.disabled)');
 }
 
 if (failures > 0) {

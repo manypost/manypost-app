@@ -49,7 +49,7 @@ Todas as chaves vão no arquivo `.env` (ou nas variáveis de ambiente do seu ser
 | Mastodon | nenhuma | grátis | não | imediato |
 | Bluesky | muito fácil | grátis | não | 2 minutos |
 | Telegram | muito fácil | grátis | não | 5 minutos |
-| Discord | fácil | grátis | não | 15 minutos |
+| Discord | muito fácil | grátis | não | 2 minutos |
 | Reddit | fácil | grátis | não | 10 minutos |
 | LinkedIn (perfil) | média | grátis | não (produtos instantâneos) | 30 minutos |
 | X (Twitter) | média | **grátis limitado; pago para volume** | cadastro com justificativa | 1 dia |
@@ -129,21 +129,18 @@ TELEGRAM_BOT_TOKEN=1234567890:AAExemploDeTokenLongoAqui
 
 ## 3. Nível fácil (cadastro simples, sem revisão)
 
-### 3.1 Discord (15 minutos)
+### 3.1 Discord (2 minutos, sem cadastro de app)
 
-1. Acesse **https://discord.com/developers/applications** e entre com sua conta.
-2. **New Application** → nome (ex.: `manypost`) → Create.
-3. Menu lateral **OAuth2**: copie o **Client ID**; em Client Secret clique **Reset Secret** e copie.
-4. Ainda em OAuth2 → **Redirects**: adicione `https://SEU_DOMINIO/v1/channels/callback/discord`.
-5. Menu **Bot**: clique **Reset Token** e copie o **token do bot**.
-6. Convide o bot para o seu servidor: OAuth2 → **URL Generator** → marque `bot` → em permissões marque **Send Messages**, **Attach Files**, **Manage Webhooks** → copie a URL gerada, abra no navegador, escolha o servidor e autorize (você precisa ser admin do servidor).
-7. No `.env`:
+O Discord conecta por **webhook do canal** — nada de app, bot ou `.env`. Você só cola uma URL. Precisa ser admin (ou ter a permissão *Gerenciar webhooks*) do servidor.
 
-```env
-DISCORD_CLIENT_ID=...
-DISCORD_CLIENT_SECRET=...
-DISCORD_BOT_TOKEN=...
-```
+1. No Discord, abra o servidor → clique na engrenagem do **canal** onde quer publicar → **Integrações**.
+2. **Webhooks** → **Novo webhook**. Dê um nome (ex.: `manypost`) — é o nome que aparecerá como autor dos posts. Opcional: defina um avatar.
+3. Clique **Copiar URL do webhook**.
+4. No manypost, na tela de conexão do Discord, cole essa URL. Pronto — o canal fica conectado.
+
+> Uma URL de webhook aponta para **um canal**. Para publicar em vários canais, crie um webhook em cada um e conecte cada URL. A URL contém um segredo: o manypost a guarda **cifrada** e nunca a exibe de volta.
+>
+> Réplicas encadeadas (threads) no Discord ainda não são suportadas por este modelo — webhooks não criam threads (fica para a onda 2, que exige bot token).
 
 ### 3.2 Reddit (10 minutos)
 
@@ -329,7 +326,7 @@ O acesso à API do Google Business Profile depende de um **formulário de solici
 | Mastodon | `MASTODON_DEFAULT_INSTANCE` (opcional) | — |
 | Bluesky | *(nenhuma — handle + app password na conexão)* | §2.2 |
 | Telegram | `TELEGRAM_BOT_TOKEN` | §2.3 |
-| Discord | `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_BOT_TOKEN` | §3.1 |
+| Discord | *(nenhuma — URL do webhook do canal na conexão)* | §3.1 |
 | Reddit | `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` | §3.2 |
 | LinkedIn | `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET` | §3.3 |
 | X | `X_API_KEY`, `X_API_SECRET` | §4.1 |

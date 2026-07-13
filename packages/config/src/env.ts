@@ -37,9 +37,7 @@ const EnvSchema = z
     // guia leigo em docs/INTEGRATIONS_SETUP.md). Bluesky/Mastodon não precisam de env.
     MASTODON_DEFAULT_INSTANCE: z.string().url().optional(), // pré-preenche a instância no connect
     TELEGRAM_BOT_TOKEN: z.string().optional(),
-    DISCORD_CLIENT_ID: z.string().optional(),
-    DISCORD_CLIENT_SECRET: z.string().optional(),
-    DISCORD_BOT_TOKEN: z.string().optional(),
+    // Discord conecta por URL de webhook (colada na conexão) — sem env no servidor.
     LINKEDIN_CLIENT_ID: z.string().optional(),
     LINKEDIN_CLIENT_SECRET: z.string().optional(),
     X_CLIENT_ID: z.string().optional(),

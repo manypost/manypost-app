@@ -94,11 +94,7 @@ export async function buildContainer(env: Env) {
   const providerSecrets: Record<string, Record<string, string>> = {
     mastodon: prune({ defaultInstance: env.MASTODON_DEFAULT_INSTANCE }),
     telegram: prune({ botToken: env.TELEGRAM_BOT_TOKEN }),
-    discord: prune({
-      clientId: env.DISCORD_CLIENT_ID,
-      clientSecret: env.DISCORD_CLIENT_SECRET,
-      botToken: env.DISCORD_BOT_TOKEN,
-    }),
+    // discord conecta por URL de webhook (sem requiredSecrets) — não precisa de entrada aqui
     linkedin: prune({ clientId: env.LINKEDIN_CLIENT_ID, clientSecret: env.LINKEDIN_CLIENT_SECRET }),
     x: prune({ clientId: env.X_CLIENT_ID, clientSecret: env.X_CLIENT_SECRET }),
   };
