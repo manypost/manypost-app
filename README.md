@@ -4,7 +4,8 @@ Agendador e publicador open source de posts para redes sociais: canais via OAuth
 
 > **Origem e licença:** o núcleo do manypost é **derivado do [Postiz](https://github.com/gitroomhq/postiz-app)** (AGPL-3.0) — reimplementação das soluções dele em nova stack (Bun/TypeScript, Hono, Next.js, Drizzle/PostgreSQL, pg-boss, Redis). Por isso este repositório é **AGPL-3.0**, com atribuição preservada. Detalhes: [NOTICE](NOTICE) e [ATTRIBUTION.md](ATTRIBUTION.md).
 
-**Status:** fase 0 — esqueleto do repositório. Nada aqui é utilizável ainda.
+**Status:** fase 1 — backend funcional (sem UI ainda). Para **clonar e testar** num comando
+(Docker + explorador de API no navegador), veja **[TESTING.md](TESTING.md)**.
 
 ## Estrutura
 

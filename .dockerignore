@@ -1,0 +1,20 @@
+# Mantém o build do Docker reprodutível e independente do estado da máquina do testador.
+# Sem isso, um `bun install` local (node_modules do host, específico do SO) seria copiado
+# por cima do node_modules instalado na imagem e quebraria o container.
+node_modules
+**/node_modules
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+uploads
+.e2e-uploads
+.e2e-api.log
+dist
+**/dist
+.next
+**/.next
+*.tsbuildinfo
+coverage
+.DS_Store
