@@ -1,9 +1,58 @@
-import { OpenAPIHono, z } from '@hono/zod-openapi';
+import { z } from '@hono/zod-openapi';
 import { PublicationStates, type PublicationState } from '@manypost/contracts';
 import type { PublicationFeedItem } from '@manypost/core';
 import type { Container } from '../../container';
 import { requireAuth } from '../middleware/auth';
-import type { AppEnv } from '../middleware/context';
+import { AUTH_SECURITY, createApp, errorResponses, jsonResponse } from '../openapi';
+
+// schema só de documentação: o Query real usa transforms (csv/coerce) que não renderizam
+// limpo em OpenAPI — aqui descrevemos os params como o cliente os envia (strings de query).
+const QueryDoc = z.object({
+  from: z.string().datetime().optional().openapi({ description: 'início do período (ISO 8601)' }),
+  to: z.string().datetime().optional().openapi({ description: 'fim do período (ISO 8601)' }),
+  state: z
+    .string()
+    .optional()
+    .openapi({ description: 'csv de estados de publicação', example: 'SCHEDULED,PUBLISHED' }),
+  channelId: z.string().optional().openapi({ description: 'csv de ids de canal' }),
+  cursor: z.string().optional().openapi({ description: 'cursor keyset da página anterior' }),
+  limit: z.string().optional().openapi({ description: '1–200 (default 100)', example: '100' }),
+});
+
+const FeedItemOut = z
+  .object({
+    id: z.string(),
+    groupId: z.string(),
+    channelId: z.string(),
+    state: z.string().openapi({ example: 'PUBLISHED' }),
+    publishAt: z.string().datetime().nullable(),
+    text: z.string(),
+    mediaCount: z.number().int(),
+    externalId: z.string().nullable(),
+    releaseUrl: z.string().nullable(),
+    errorClass: z.string().nullable(),
+    errorMessage: z.string().nullable(),
+    attemptCount: z.number().int(),
+    group: z.object({
+      state: z.string(),
+      origin: z.string().openapi({ example: 'WEB' }),
+      awaitingApproval: z.boolean(),
+    }),
+    channel: z.object({
+      provider: z.string(),
+      name: z.string(),
+      username: z.string().nullable(),
+      avatarUrl: z.string().nullable(),
+    }),
+  })
+  .openapi('FeedItem');
+
+const FeedOut = z
+  .object({
+    items: z.array(FeedItemOut),
+    nextCursor: z.string().nullable().openapi({ description: 'cursor keyset da próxima página' }),
+  })
+  .openapi('PublicationFeed');
 
 const csv = <T extends z.ZodTypeAny>(item: T) =>
   z
@@ -58,9 +107,20 @@ const serialize = (p: PublicationFeedItem) => ({
 /** Feed p/ calendário e kanban (SPEC_FRONTEND §3.1-3.2): flat por publicação,
  *  o cliente agrupa por groupId; cursor keyset (publishAt, id). */
 export function publicationRoutes(ctn: Container) {
-  const app = new OpenAPIHono<AppEnv>();
+  const app = createApp();
   app.use('*', requireAuth({ signer: ctn.signer, verifyApiKey: ctn.auth.verifyApiKey }));
 
+  app.openAPIRegistry.registerPath({
+    method: 'get',
+    path: '/',
+    tags: ['publications'],
+    security: AUTH_SECURITY,
+    summary: 'Feed flat de publicações (calendário/kanban)',
+    description:
+      'Uma linha por publicação (o cliente agrupa por groupId). Cada item embute grupo (state/origin/awaitingApproval) e canal. Paginação keyset por (publishAt, id).',
+    request: { query: QueryDoc },
+    responses: { 200: jsonResponse('página do feed', FeedOut), ...errorResponses(400, 401) },
+  });
   app.get('/', async (c) => {
     const q = Query.parse(c.req.query());
     const cursor = q.cursor ? decodeCursor(q.cursor) : undefined;

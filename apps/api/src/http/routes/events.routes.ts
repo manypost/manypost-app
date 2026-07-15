@@ -1,8 +1,8 @@
-import { OpenAPIHono } from '@hono/zod-openapi';
+import { z } from '@hono/zod-openapi';
 import { streamSSE } from 'hono/streaming';
 import type { Container } from '../../container';
 import { requireAuth } from '../middleware/auth';
-import type { AppEnv } from '../middleware/context';
+import { AUTH_SECURITY, createApp, errorResponses } from '../openapi';
 
 const KEEPALIVE_MS = 25_000; // proxies derrubam conexões ociosas antes dos 30s típicos
 
@@ -13,9 +13,25 @@ const KEEPALIVE_MS = 25_000; // proxies derrubam conexões ociosas antes dos 30s
  * Sem Redis o stream fica só com keepalive — o fallback é o polling de 30s da UI.
  */
 export function eventRoutes(ctn: Container) {
-  const app = new OpenAPIHono<AppEnv>();
+  const app = createApp();
   app.use('*', requireAuth({ signer: ctn.signer, verifyApiKey: ctn.auth.verifyApiKey }));
 
+  app.openAPIRegistry.registerPath({
+    method: 'get',
+    path: '/',
+    tags: ['events'],
+    security: AUTH_SECURITY,
+    summary: 'Stream SSE de eventos em tempo real',
+    description:
+      'Eventos nomeados: post.scheduled, post.published, post.failed, channel.refresh_required, notification.created (+ hello no handshake e ping a cada 25s). Sem Redis o stream fica só com keepalive — a UI cai no polling.',
+    responses: {
+      200: {
+        description: 'stream text/event-stream',
+        content: { 'text/event-stream': { schema: z.string() } },
+      },
+      ...errorResponses(401),
+    },
+  });
   app.get('/', (c) => {
     const orgId = c.get('principal').orgId;
     const bus = ctn.runtime.realtime;

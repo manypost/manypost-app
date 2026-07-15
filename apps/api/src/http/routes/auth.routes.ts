@@ -1,4 +1,4 @@
-import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
+import { createRoute, z } from '@hono/zod-openapi';
 import type { Context } from 'hono';
 import { deleteCookie, getCookie } from 'hono/cookie';
 import { ErrorCodes } from '@manypost/contracts';
@@ -7,6 +7,7 @@ import type { Container } from '../../container';
 import { setAuthCookies } from '../cookies';
 import { ACCESS_COOKIE, REFRESH_COOKIE, requireAuth } from '../middleware/auth';
 import type { AppEnv } from '../middleware/context';
+import { AUTH_SECURITY, createApp, errorResponses, jsonBody, jsonResponse } from '../openapi';
 
 const Credentials = z.object({
   email: z.string().email(),
@@ -22,12 +23,30 @@ const UserOut = z.object({
   name: z.string().nullable(),
   avatarUrl: z.string().nullable(),
 });
-const AuthOut = z.object({
-  user: UserOut,
-  org: z.object({ id: z.string(), name: z.string(), role: z.string() }),
-  accessToken: z.string(),
-  refreshToken: z.string(),
+const AuthOut = z
+  .object({
+    user: UserOut,
+    org: z.object({ id: z.string(), name: z.string(), role: z.string() }),
+    accessToken: z.string(),
+    refreshToken: z.string(),
+  })
+  .openapi('AuthResult');
+const TokenPair = z
+  .object({ accessToken: z.string(), refreshToken: z.string() })
+  .openapi('TokenPair');
+const RefreshBody = z.object({
+  /** token de refresh; opcional quando vai no cookie httpOnly (fluxo web) */
+  refreshToken: z.string().optional(),
 });
+const MeOut = z
+  .object({
+    kind: z.enum(['user', 'api_key']),
+    orgId: z.string(),
+    role: z.string().optional(),
+    scopes: z.array(z.string()).optional(),
+    user: UserOut.nullable().optional(),
+  })
+  .openapi('Me');
 
 const clientMeta = (c: Context) => ({
   userAgent: c.req.header('user-agent'),
@@ -35,7 +54,7 @@ const clientMeta = (c: Context) => ({
 });
 
 export function authRoutes(ctn: Container) {
-  const app = new OpenAPIHono<AppEnv>();
+  const app = createApp();
   const secure = ctn.env.PUBLIC_URL.startsWith('https');
 
   const applyCookies = (c: Context, accessToken: string, refreshToken: string) =>
@@ -45,12 +64,15 @@ export function authRoutes(ctn: Container) {
     createRoute({
       method: 'post',
       path: '/register',
+      tags: ['auth'],
+      summary: 'Cria conta + organização (papel OWNER) e já autentica',
       request: { body: { content: { 'application/json': { schema: RegisterBody } } } },
       responses: {
         201: {
           description: 'conta criada (cookies httpOnly também são definidos)',
           content: { 'application/json': { schema: AuthOut } },
         },
+        ...errorResponses(400, 409),
       },
     }),
     async (c) => {
@@ -73,9 +95,12 @@ export function authRoutes(ctn: Container) {
     createRoute({
       method: 'post',
       path: '/login',
+      tags: ['auth'],
+      summary: 'Autentica por e-mail e senha',
       request: { body: { content: { 'application/json': { schema: Credentials } } } },
       responses: {
         200: { description: 'autenticado', content: { 'application/json': { schema: AuthOut } } },
+        ...errorResponses(400, 401),
       },
     }),
     async (c) => {
@@ -104,12 +129,33 @@ export function authRoutes(ctn: Container) {
     return fromBody;
   };
 
+  app.openAPIRegistry.registerPath({
+    method: 'post',
+    path: '/refresh',
+    tags: ['auth'],
+    summary: 'Renova a sessão com rotação do refresh token',
+    description:
+      'Token via cookie httpOnly (web) ou body JSON (clientes de API). O reuso de um token já rotacionado revoga a família inteira.',
+    request: jsonBody(RefreshBody, false),
+    responses: {
+      200: jsonResponse('nova dupla de tokens (cookies também são atualizados)', TokenPair),
+      ...errorResponses(401),
+    },
+  });
   app.post('/refresh', async (c) => {
     const out = await ctn.auth.refresh({ refreshToken: await refreshTokenFrom(c) });
     applyCookies(c, out.accessToken, out.refreshToken);
     return c.json(out, 200);
   });
 
+  app.openAPIRegistry.registerPath({
+    method: 'post',
+    path: '/logout',
+    tags: ['auth'],
+    summary: 'Encerra a sessão e limpa os cookies',
+    request: jsonBody(RefreshBody, false),
+    responses: { 204: { description: 'sessão encerrada' } },
+  });
   app.post('/logout', async (c) => {
     const token = await refreshTokenFrom(c).catch(() => null);
     if (token) await ctn.auth.logout({ refreshToken: token });
@@ -118,6 +164,17 @@ export function authRoutes(ctn: Container) {
     return c.body(null, 204);
   });
 
+  app.openAPIRegistry.registerPath({
+    method: 'get',
+    path: '/me',
+    tags: ['auth'],
+    security: AUTH_SECURITY,
+    summary: 'Identidade do principal autenticado (usuário ou API key)',
+    responses: {
+      200: jsonResponse('usuário (com papel) ou API key (com escopos)', MeOut),
+      ...errorResponses(401),
+    },
+  });
   app.use('/me', requireAuth({ signer: ctn.signer, verifyApiKey: ctn.auth.verifyApiKey }));
   app.get('/me', async (c) => {
     const p = c.get('principal');
