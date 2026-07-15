@@ -122,6 +122,18 @@ if (ids.includes('telegram')) {
   const off = await post('/v1/channels/connect', { provider: 'telegram' }, bearer);
   check(off.status === 404, 'provider sem env → connect 404 (capability.disabled)');
 }
+// linkedin/x (OAuth, credenciais de app no env) seguem a mesma regra do telegram
+for (const oauthId of ['linkedin', 'x']) {
+  if (ids.includes(oauthId)) {
+    check(
+      providers.find((p) => p.id === oauthId)?.connectType === 'oauth',
+      `${oauthId} conecta por OAuth`,
+    );
+  } else {
+    const off = await post('/v1/channels/connect', { provider: oauthId }, bearer);
+    check(off.status === 404, `${oauthId} sem env → connect 404 (capability.disabled)`);
+  }
+}
 
 if (failures > 0) {
   console.error(`\nE2E auth: ${failures} falha(s)`);

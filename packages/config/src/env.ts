@@ -78,3 +78,20 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
   }
   return parsed.data;
 }
+
+/**
+ * env → ctx.secrets por provider (SPEC_INTEGRATIONS §2). Fonte única para a api E o
+ * worker dedicado — o refresh de token (LinkedIn/X) roda no worker e precisa das
+ * credenciais do app tanto quanto o connect.
+ */
+export function providerSecretsFromEnv(env: Env): Record<string, Record<string, string>> {
+  const prune = (o: Record<string, string | undefined>) =>
+    Object.fromEntries(Object.entries(o).filter(([, v]) => v)) as Record<string, string>;
+  return {
+    mastodon: prune({ defaultInstance: env.MASTODON_DEFAULT_INSTANCE }),
+    telegram: prune({ botToken: env.TELEGRAM_BOT_TOKEN }),
+    // discord conecta por URL de webhook (sem requiredSecrets) — não precisa de entrada aqui
+    linkedin: prune({ clientId: env.LINKEDIN_CLIENT_ID, clientSecret: env.LINKEDIN_CLIENT_SECRET }),
+    x: prune({ clientId: env.X_CLIENT_ID, clientSecret: env.X_CLIENT_SECRET }),
+  };
+}
