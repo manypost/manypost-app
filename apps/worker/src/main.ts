@@ -1,4 +1,4 @@
-import { loadEnv } from '@manypost/config';
+import { loadEnv, providerSecretsFromEnv } from '@manypost/config';
 import {
   createDb,
   makeChannelRepository,
@@ -32,6 +32,8 @@ const runtime = await createPublishingRuntime({
   crypto: AesGcmCryptoService.fromHex(env.ENCRYPTION_KEY),
   retryBaseSec: env.PUBLISH_RETRY_BASE_SEC,
   allowPrivateWebhookUrls: env.WEBHOOKS_ALLOW_PRIVATE,
+  // sem isso o refresh de token (LinkedIn/X exigem client id/secret) falha no worker dedicado
+  providerSecrets: providerSecretsFromEnv(env),
 });
 await runtime.startWorker();
 console.log(JSON.stringify({ level: 'info', msg: 'manypost worker ativo' }));
