@@ -1,11 +1,12 @@
 import { fileURLToPath } from 'node:url';
-import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
+import { createRoute, z } from '@hono/zod-openapi';
 import { loadEnv } from '@manypost/config';
 import { runMigrations } from '@manypost/db';
 import { providerRegistry } from '@manypost/providers';
 import { buildContainer } from './container';
-import { correlationId, type AppEnv } from './http/middleware/context';
+import { correlationId } from './http/middleware/context';
 import { errorHandler } from './http/middleware/error';
+import { createApp } from './http/openapi';
 import { apiKeyRoutes } from './http/routes/api-keys.routes';
 import { approvalPublicRoutes } from './http/routes/approvals-public.routes';
 import { authRoutes } from './http/routes/auth.routes';
@@ -32,15 +33,30 @@ const ctn = await buildContainer(env);
 if (env.MODE !== 'api') {
   await ctn.runtime.startWorker(); // MODE=all|worker: consome a fila no mesmo processo
 }
-const app = new OpenAPIHono<AppEnv>();
+const app = createApp();
 
 app.use('*', correlationId());
 app.onError(errorHandler);
+
+// Schemes de autenticação referenciados pelas rotas protegidas (SPEC_API_MCP §1-2).
+app.openAPIRegistry.registerComponent('securitySchemes', 'bearerAuth', {
+  type: 'http',
+  scheme: 'bearer',
+  description: 'JWT de acesso OU API key mp_live_ — enviado como Authorization: Bearer <token>',
+});
+app.openAPIRegistry.registerComponent('securitySchemes', 'cookieAuth', {
+  type: 'apiKey',
+  in: 'cookie',
+  name: 'mp_at',
+  description: 'cookie de sessão httpOnly (fluxo web)',
+});
 
 app.openapi(
   createRoute({
     method: 'get',
     path: '/health',
+    tags: ['health'],
+    summary: 'Status e providers de rede disponíveis',
     responses: {
       200: {
         description: 'health check',
@@ -72,18 +88,38 @@ app.route('/v1/notifications', notificationRoutes(ctn));
 app.route('/uploads', publicUploadRoutes(ctn)); // arquivos públicos (chaves UUID, não enumeráveis)
 app.route('/public/approval', approvalPublicRoutes(ctn)); // aprovação por token, sem login (§12)
 
-// OpenAPI + explorador: @hono/zod-openapi só inclui no doc as rotas escritas com createRoute
-// (auth/api-keys/health). O resto do produto usa .get/.post simples e não apareceria no
-// explorador. Como app.routes expõe TODAS as rotas montadas (com prefixo), completamos o
-// documento com um "stub" mínimo (método + caminho + params + corpo genérico) para cada rota
-// ainda não documentada — o explorador passa a listar o fluxo inteiro sem alterar nenhum
-// handler. A fonte de verdade continua sendo o código / TESTING.md.
-const OPENAPI_INFO = { openapi: '3.1.0' as const, info: { title: 'manypost API', version: '0.0.1' } };
+// OpenAPI: cada rota é documentada com schemas reais de request/response/erro via
+// createRoute (auth/api-keys/health) ou app.openAPIRegistry.registerPath (o restante,
+// que usa handlers .get/.post). O laço abaixo é apenas uma REDE DE SEGURANÇA: se alguma
+// rota nova for montada sem documentação, entra no /openapi.json como stub mínimo (só
+// método + caminho) para não sumir do explorador — não sobrescreve nada já documentado.
+const OPENAPI_DOC = {
+  openapi: '3.1.0' as const,
+  info: {
+    title: 'manypost API',
+    version: '0.0.1',
+    description:
+      'API do manypost — agendamento/publicação multicanal. Autentique com `Authorization: Bearer <jwt|mp_live_…>` ou cookie de sessão httpOnly. Erros seguem problem+json (RFC 9457): o campo `title` carrega o código estável do erro.',
+  },
+  servers: [{ url: env.PUBLIC_URL, description: 'esta instalação' }],
+  tags: [
+    { name: 'auth', description: 'contas, sessões e login social' },
+    { name: 'api-keys', description: 'chaves de API por escopo' },
+    { name: 'channels', description: 'conexão de canais de rede social' },
+    { name: 'posts', description: 'agendar, editar, cancelar, retry, aprovação por link' },
+    { name: 'publications', description: 'feed de calendário/kanban' },
+    { name: 'media', description: 'biblioteca de mídia' },
+    { name: 'webhooks', description: 'webhooks de saída assinados' },
+    { name: 'notifications', description: 'notificações da organização' },
+    { name: 'events', description: 'stream SSE em tempo real' },
+    { name: 'approvals', description: 'superfície pública de aprovação por token' },
+  ],
+};
 const HTTP_METHODS = new Set(['get', 'post', 'put', 'patch', 'delete']);
 const NON_API_PATHS = new Set(['/', '/docs', '/openapi.json']);
 
 app.get('/openapi.json', (c) => {
-  const doc = app.getOpenAPI31Document(OPENAPI_INFO);
+  const doc = app.getOpenAPI31Document(OPENAPI_DOC);
   if (!doc.paths) doc.paths = {};
   const paths = doc.paths as Record<string, Record<string, unknown>>;
   const seen = new Set<string>();
@@ -115,14 +151,18 @@ app.get('/openapi.json', (c) => {
     }
     entry[method] = op;
   }
+  // no-store: em dev o doc muda a cada edição — nunca servir uma versão cacheada (evita
+  // o explorador mostrar rotas/stubs antigos porque o navegador guardou o /openapi.json).
+  c.header('cache-control', 'no-store');
   return c.json(doc);
 });
 
 // Explorador de API no navegador (Scalar) — superfície de teste até existir o apps/web.
 // Lê o /openapi.json desta mesma origem; o bundle da UI vem de CDN (precisa de internet só p/
 // carregar a página — as chamadas à API são locais). É read-only e a API segue protegida por auth.
-app.get('/docs', (c) =>
-  c.html(`<!doctype html>
+app.get('/docs', (c) => {
+  c.header('cache-control', 'no-store');
+  return c.html(`<!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8" />
@@ -133,8 +173,8 @@ app.get('/docs', (c) =>
     <script id="api-reference" data-url="/openapi.json"></script>
     <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
   </body>
-</html>`),
-);
+</html>`);
+});
 
 // Página inicial: orienta quem abrir a raiz no navegador (evita um 404 sem contexto).
 app.get('/', (c) =>

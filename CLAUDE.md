@@ -2,7 +2,9 @@
 
 Plataforma de agendamento/publicação multicanal. **O wordmark é sempre `manypost`, em caixa baixa — inclusive em início de frase e `<title>`.**
 
-> **COMECE POR `docs/STATUS.md`** — estado atual, o que já funciona (com provas), o que falta (com referência de spec por item) e como rodar os E2E. O clone do Postiz para consulta está em `../_ref/postiz-app` (marque derivações — ver ATTRIBUTION.md).
+> **COMECE POR `docs/principal/STATUS.md`** — estado atual, o que já funciona (com provas), o que falta (com referência de spec por item) e como rodar os E2E. O clone do Postiz para consulta está em `../_ref/postiz-app` (marque derivações — ver ATTRIBUTION.md).
+>
+> **Nota:** `docs/principal/` (STATUS, DECISIONS, PLANS, INTEGRATIONS_SETUP, platform-gates, POSTIZ_ANALYSIS) é **local e fora do versionamento** (gitignored) — o planejamento não vai para o repositório público.
 
 ## Leia antes de trabalhar
 
@@ -11,11 +13,11 @@ Plataforma de agendamento/publicação multicanal. **O wordmark é sempre `manyp
 | **Qualquer frontend/UI** | `docs/brand/BRAND_SYSTEM.md` (obrigatório) + `docs/brand/README.md` (adaptação p/ o app) + `docs/specs/SPEC_FRONTEND.md` |
 | Backend/API | `docs/specs/SPEC_BACKEND.md`, `docs/specs/SPEC_API_MCP.md` |
 | Fila/publicação | `docs/specs/SPEC_QUEUE_PUBLISHING.md` |
-| Providers de rede social | `docs/specs/SPEC_INTEGRATIONS.md` + `docs/platform-gates.md` |
-| Docs de usuário: credenciais das redes | `docs/INTEGRATIONS_SETUP.md` (linguagem leiga — manter assim) |
+| Providers de rede social | `docs/specs/SPEC_INTEGRATIONS.md` + `docs/principal/platform-gates.md` |
+| Docs de usuário: credenciais das redes | `docs/principal/INTEGRATIONS_SETUP.md` (linguagem leiga — manter assim) |
 | Banco | `docs/specs/SPEC_DATA.md` |
-| Decisões já tomadas (não re-litigar) | `docs/DECISIONS.md` (v1 + adendo v1.1) |
-| Planos do SaaS e gates de feature | `docs/PLANS.md` — "plano Premium" (tier) ≠ "código fechado" (repo privado) |
+| Decisões já tomadas (não re-litigar) | `docs/principal/DECISIONS.md` (v1 + adendo v1.1) |
+| Planos do SaaS e gates de feature | `docs/principal/PLANS.md` — "plano Premium" (tier) ≠ "código fechado" (repo privado) |
 | Origem/licença | `ATTRIBUTION.md` — derivado do Postiz (AGPL-3.0) |
 
 ## Regras invioláveis
