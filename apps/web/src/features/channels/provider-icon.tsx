@@ -23,6 +23,8 @@ export const PROVIDER_ICONS: Record<string, string> = {
   tiktok: '/social/TikTok.svg',
   x: '/social/X.svg',
   youtube: '/social/Youtube.svg',
+  mastodon: '/social/Mastodon.svg',
+  bluesky: '/social/Bluesky.svg',
 };
 
 export function ProviderIcon({
