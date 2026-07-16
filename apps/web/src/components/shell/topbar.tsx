@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, CalendarDays, Image as ImageIcon, LogOut, Menu, Plug, Settings, SquareKanban } from 'lucide-react';
+import { Bell, CalendarDays, Image as ImageIcon, LogOut, Menu, PenSquare, Plug, Settings, SquareKanban } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { Wordmark } from '@/components/brand/wordmark';
@@ -18,6 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useLogout, useMe } from '@/features/auth/hooks';
 
 const MOBILE_NAV = [
+  { href: '/compor', key: 'compose', icon: PenSquare },
   { href: '/calendario', key: 'calendar', icon: CalendarDays },
   { href: '/kanban', key: 'kanban', icon: SquareKanban },
   { href: '/conexoes', key: 'connections', icon: Plug },

@@ -935,7 +935,7 @@ export type paths = {
         put?: never;
         /**
          * Agenda um post (1 grupo → 1 publicação por canal)
-         * @description Valida texto/mídia por canal e enfileira. `thread` cria réplicas encadeadas; `requireApproval` nasce DRAFT aguardando aprovação por link.
+         * @description Valida texto/mídia por canal e enfileira. `textByChannel` personaliza o texto do post principal por canal; `thread` cria réplicas encadeadas; `requireApproval` nasce DRAFT aguardando aprovação por link.
          */
         post: {
             parameters: {
@@ -955,6 +955,9 @@ export type paths = {
                         timezone?: string;
                         settingsByChannel?: {
                             [key: string]: unknown;
+                        };
+                        textByChannel?: {
+                            [key: string]: string;
                         };
                         mediaIds?: string[];
                         thread?: {
@@ -2413,6 +2416,14 @@ export type components = {
             status: string;
             scopes: string[] | null;
         };
+        ProviderMediaRule: {
+            maxCount: number;
+            mimeTypes: string[];
+            maxBytes?: number;
+            minWidth?: number;
+            minHeight?: number;
+            maxDurationSec?: number;
+        };
         ChannelProviderInfo: {
             id: string;
             name: string;
@@ -2424,6 +2435,12 @@ export type components = {
              * @enum {string}
              */
             connectType: "fields" | "oauth";
+            /** @description limite base de caracteres (sem settings do canal — ex.: X verified pode ser maior) */
+            maxLength: number;
+            media: {
+                images: components["schemas"]["ProviderMediaRule"];
+                videos: components["schemas"]["ProviderMediaRule"];
+            };
         };
         MediaRef: {
             mediaId?: string;

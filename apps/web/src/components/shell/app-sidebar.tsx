@@ -1,10 +1,11 @@
 'use client';
 
-import { Bell, CalendarDays, Image as ImageIcon, Plug, Settings, SquareKanban } from 'lucide-react';
+import { Bell, CalendarDays, Image as ImageIcon, PenSquare, Plug, Settings, SquareKanban } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Wordmark } from '@/components/brand/wordmark';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { IconType } from '@/types';
 
@@ -32,6 +33,12 @@ export function AppSidebar() {
         </Link>
       </div>
       <nav className="flex flex-1 flex-col gap-1 p-3" aria-label={t('calendar')}>
+        <Button asChild className="mb-2">
+          <Link href="/compor">
+            <PenSquare aria-hidden />
+            {t('compose')}
+          </Link>
+        </Button>
         {NAV.map(({ href, key, icon: Icon }) => {
           const active = pathname.startsWith(href);
           return (
