@@ -13,6 +13,7 @@
     "dev": "bun run --cwd apps/api dev",
     "dev:worker": "bun run --cwd apps/worker dev",
     "dev:web": "bun run --cwd apps/web dev",
+    "dev:all": "bun run scripts/dev-all.ts",
     "typecheck": "tsc --noEmit",
     "typecheck:web": "bun run --cwd apps/web typecheck",
     "test": "bun test",

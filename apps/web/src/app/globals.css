@@ -125,3 +125,23 @@
     @apply bg-background font-sans text-foreground antialiased;
   }
 }
+
+/* células passadas do calendário: hachura sutil com tokens (direção do Postiz) */
+.cal-past {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent,
+    transparent 5px,
+    var(--surface-2) 5px,
+    var(--surface-2) 6px
+  );
+}
+
+/* placeholder do editor TipTap (composer) — cor decorativa, nunca texto lido */
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--mist);
+}

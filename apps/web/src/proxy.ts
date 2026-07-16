@@ -13,6 +13,10 @@ export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const hasSession = req.cookies.has('mp_at') || req.cookies.has('mp_session');
 
+  // página pública de aprovação por token (SPEC_FRONTEND §3.6) — sem login,
+  // e sem redirecionar usuário logado: o aprovador pode ser da própria org
+  if (pathname.startsWith('/approve/')) return NextResponse.next();
+
   if (PUBLIC_PATHS.has(pathname)) {
     return hasSession
       ? NextResponse.redirect(new URL('/calendario', req.url))
@@ -28,6 +32,6 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  // /v1 e /uploads são proxy p/ a API; arquivos estáticos e _next ficam de fora
-  matcher: ['/((?!v1|uploads|_next|favicon\\.ico|.*\\..*).*)'],
+  // /v1, /uploads e /public são proxy p/ a API; estáticos e _next ficam de fora
+  matcher: ['/((?!v1|uploads|public|_next|favicon\\.ico|.*\\..*).*)'],
 };

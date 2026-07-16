@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useApiErrorMessage } from '@/lib/api/errors';
+import { cn } from '@/lib/utils';
 import { ConnectDialog } from './connect-dialog';
 import { useChannels, useConnectChannel, useDisconnectChannel, useProviders } from './hooks';
 import { PROVIDER_FIELDS } from './provider-fields';
@@ -90,6 +91,9 @@ export function ConnectionsView() {
       <section aria-labelledby="channels-title" className="flex flex-col gap-4">
         <h2 id="channels-title" className="text-base font-semibold tracking-[-0.2px] text-ink">
           {t('channelsTitle')}
+          {channels.data ? (
+            <span className="ml-1.5 font-normal text-graphite">({channels.data.length})</span>
+          ) : null}
         </h2>
         {channels.isPending ? (
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -201,29 +205,32 @@ export function ConnectionsView() {
             <p className="text-sm leading-relaxed text-graphite">{t('catalogEmpty')}</p>
           </div>
         ) : (
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {providers.data.map((p) => (
-              <li key={p.id}>
-                <Card className="flex h-full items-center gap-3 p-4 transition-colors duration-200 hover:border-accent">
-                  <ProviderIcon provider={p.id} name={p.name} className="size-9" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] font-semibold text-ink">{p.name}</p>
-                    <div className="mt-1 flex flex-wrap gap-1.5">
-                      {p.threads ? <Badge>{t('capabilities.threads')}</Badge> : null}
-                      {p.twoStepConnect ? <Badge>{t('capabilities.twoStep')}</Badge> : null}
-                    </div>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
+          // tiles centrados (direção do Postiz: clique na rede para conectar)
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {providers.data.map((p) => {
+              const connecting = connect.isPending && connect.variables?.provider === p.id;
+              return (
+                <li key={p.id}>
+                  <button
+                    type="button"
                     onClick={() => startConnect(p as ProviderInfo)}
-                    isLoading={connect.isPending && connect.variables?.provider === p.id}
+                    disabled={connecting}
+                    aria-label={t('connectTitle', { provider: p.name })}
+                    className={cn(
+                      'flex h-full w-full flex-col items-center gap-2.5 rounded-lg border border-line bg-surface px-4 py-6 outline-none transition-colors duration-200',
+                      'hover:border-accent hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+                      'disabled:cursor-progress disabled:opacity-60',
+                    )}
                   >
-                    {t('connect')}
-                  </Button>
-                </Card>
-              </li>
-            ))}
+                    <ProviderIcon provider={p.id} name={p.name} className="size-10" />
+                    <span className="text-[13px] font-semibold text-ink">{p.name}</span>
+                    {p.threads ? (
+                      <Badge className="mt-auto">{t('capabilities.threads')}</Badge>
+                    ) : null}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

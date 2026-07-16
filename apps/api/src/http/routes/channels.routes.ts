@@ -23,6 +23,17 @@ const ChannelOut = z
   })
   .openapi('Channel');
 
+const MediaRuleOut = z
+  .object({
+    maxCount: z.number().int(),
+    mimeTypes: z.array(z.string()),
+    maxBytes: z.number().optional(),
+    minWidth: z.number().optional(),
+    minHeight: z.number().optional(),
+    maxDurationSec: z.number().optional(),
+  })
+  .openapi('ProviderMediaRule');
+
 const ProviderInfo = z
   .object({
     id: z.string(),
@@ -31,6 +42,11 @@ const ProviderInfo = z
     threads: z.boolean(),
     twoStepConnect: z.boolean(),
     connectType: z.enum(['fields', 'oauth']).openapi({ description: 'fields = credenciais; oauth = redirect' }),
+    maxLength: z
+      .number()
+      .int()
+      .openapi({ description: 'limite base de caracteres (sem settings do canal — ex.: X verified pode ser maior)' }),
+    media: z.object({ images: MediaRuleOut, videos: MediaRuleOut }),
   })
   .openapi('ChannelProviderInfo');
 
@@ -101,6 +117,9 @@ export function channelRoutes(ctn: Container) {
           twoStepConnect: p.capabilities.twoStepConnect,
           /** fields = credenciais direto no app (Bluesky/Telegram); oauth = redirect */
           connectType: p.connectWithFields ? 'fields' : 'oauth',
+          // limite base p/ contador do composer (settings do canal podem ampliar — ex.: X verified)
+          maxLength: p.capabilities.maxLength(undefined),
+          media: p.capabilities.media,
         })),
     ),
   );

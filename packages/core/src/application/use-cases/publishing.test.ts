@@ -359,6 +359,48 @@ describe('schedulePost', () => {
   });
 });
 
+describe('schedulePost com textByChannel (override por canal — SPEC_FRONTEND §3.3)', () => {
+  let ch1: string;
+  let ch2: string;
+  beforeEach(async () => {
+    await connect(f, prov.provider);
+    await makeConnectChannel(f as any)({
+      orgId: 'org-1',
+      provider: prov.provider,
+      account: { accessToken: 'tok-9', scopes: [], externalId: 'ext-2', name: 'Conta 2' },
+    });
+    ch1 = f._state.channels[0]!.id;
+    ch2 = f._state.channels[1]!.id;
+  });
+
+  test('override aplica só no canal indicado; demais usam o texto global', async () => {
+    await schedule({ channelIds: [ch1, ch2], textByChannel: { [ch2]: 'versão do canal 2' } });
+    const byCh = (cid: string) => f._state.pubs.find((p) => p.channelId === cid)!;
+    expect(byCh(ch1).content.text).toBe('olá mundo');
+    expect(byCh(ch2).content.text).toBe('versão do canal 2');
+    // item 0 da thread acompanha o override (é o que o worker publica)
+    const item0 = f._state.pubItems.find(
+      (i: any) => i.publicationId === byCh(ch2).id && i.position === 0,
+    );
+    expect(item0.content.text).toBe('versão do canal 2');
+  });
+
+  test('override é validado pelo maxLength do canal', async () => {
+    await expect(
+      schedule({ channelIds: [ch1, ch2], textByChannel: { [ch2]: 'x'.repeat(51) } }),
+    ).rejects.toMatchObject({ code: 'post.too_long' });
+  });
+
+  test('override vazio → post.empty_content; canal fora de channelIds → not_found', async () => {
+    await expect(
+      schedule({ channelIds: [ch1], textByChannel: { [ch1]: '   ' } }),
+    ).rejects.toMatchObject({ code: 'post.empty_content' });
+    await expect(
+      schedule({ channelIds: [ch1], textByChannel: { [ch2]: 'oi' } }),
+    ).rejects.toMatchObject({ code: 'common.not_found' });
+  });
+});
+
 describe('schedulePost com mídia', () => {
   beforeEach(async () => {
     await connect(f, prov.provider);

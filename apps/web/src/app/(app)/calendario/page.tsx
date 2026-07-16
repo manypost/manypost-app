@@ -1,10 +1,15 @@
 import type { Metadata } from 'next';
-import { getTranslations } from 'next-intl/server';
-import { PagePlaceholder } from '@/components/shell/page-placeholder';
+import { Suspense } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { CalendarView } from '@/features/calendar/calendar-view';
 
 export const metadata: Metadata = { title: 'Calendário' };
 
-export default async function CalendarioPage() {
-  const t = await getTranslations();
-  return <PagePlaceholder title={t('nav.calendar')} description={t('placeholders.calendar')} />;
+export default function CalendarioPage() {
+  return (
+    // useSearchParams (filtros na URL) exige boundary de Suspense
+    <Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
+      <CalendarView />
+    </Suspense>
+  );
 }

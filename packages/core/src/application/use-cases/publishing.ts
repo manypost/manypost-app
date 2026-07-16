@@ -52,6 +52,8 @@ export const makeSchedulePost = (deps: SchedulePostDeps) =>
     timezone?: string;
     origin?: PostOrigin;
     settingsByChannel?: Record<string, unknown>;
+    /** override do texto do post principal por canal (SPEC_FRONTEND §3.3 — abas por canal) */
+    textByChannel?: Record<string, string>;
     mediaIds?: string[];
     /** réplicas encadeadas após o post principal (SPEC_QUEUE §9); delaySec = espera antes do item */
     thread?: Array<{ text: string; mediaIds?: string[] | undefined; delaySec?: number | undefined }>;
@@ -72,6 +74,13 @@ export const makeSchedulePost = (deps: SchedulePostDeps) =>
     }
     const ids = [...new Set(input.channelIds)];
     if (ids.length === 0) throw new DomainError(ErrorCodes.PostNoChannels, 'selecione ao menos um canal');
+    for (const key of Object.keys(input.textByChannel ?? {})) {
+      if (!ids.includes(key)) {
+        throw new DomainError(ErrorCodes.NotFound, 'textByChannel referencia canal fora de channelIds', {
+          channelId: key,
+        });
+      }
+    }
 
     const channels = await deps.channels.findMany(input.orgId, ids);
     if (channels.length !== ids.length) {
@@ -136,8 +145,17 @@ export const makeSchedulePost = (deps: SchedulePostDeps) =>
           issues: parsed.error.issues.map((i) => i.message),
         });
       }
+      // override do texto do post principal (item 0) por canal; réplicas da thread são globais
+      const override = input.textByChannel?.[ch.id]?.trim();
+      if (override !== undefined && override.length === 0) {
+        throw new DomainError(ErrorCodes.PostEmptyContent, `conteúdo vazio para ${ch.name}`, {
+          channelId: ch.id,
+        });
+      }
+      const chItems =
+        override === undefined ? items : items.map((t, i) => (i === 0 ? { ...t, text: override } : t));
       const max = provider.capabilities.maxLength(parsed.data);
-      for (const item of items) {
+      for (const item of chItems) {
         if (item.text.length > max) {
           throw new DomainError(ErrorCodes.PostTooLong, `limite de ${max} caracteres em ${ch.name}`, {
             channelId: ch.id,
@@ -148,7 +166,7 @@ export const makeSchedulePost = (deps: SchedulePostDeps) =>
       }
       if (hasMedia) {
         const verdict = await provider.validateMedia(
-          items.map((t) => ({ content: t.text, media: t.media })),
+          chItems.map((t) => ({ content: t.text, media: t.media })),
         );
         if (!verdict.ok) {
           throw new DomainError(ErrorCodes.PostInvalidMedia, `${ch.name}: ${verdict.reason}`, {
@@ -156,12 +174,12 @@ export const makeSchedulePost = (deps: SchedulePostDeps) =>
           });
         }
       }
-      const first = items[0]!;
+      const first = chItems[0]!;
       publications.push({
         channelId: ch.id,
         content: { text: first.text, ...(first.media.length > 0 ? { media: first.media } : {}) },
         settings: parsed.data,
-        items: items.map((t) => ({ content: { text: t.text }, media: t.media, delaySec: t.delaySec })),
+        items: chItems.map((t) => ({ content: { text: t.text }, media: t.media, delaySec: t.delaySec })),
       });
     }
 

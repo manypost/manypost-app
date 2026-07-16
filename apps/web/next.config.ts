@@ -16,6 +16,8 @@ const nextConfig: NextConfig = {
     return [
       { source: '/v1/:path*', destination: `${API_URL}/v1/:path*` },
       { source: '/uploads/:path*', destination: `${API_URL}/uploads/:path*` },
+      // superfície pública de aprovação (página /approve/[token] consome sem login)
+      { source: '/public/:path*', destination: `${API_URL}/public/:path*` },
     ];
   },
 };

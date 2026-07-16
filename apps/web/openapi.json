@@ -364,6 +364,36 @@
           "scopes"
         ]
       },
+      "ProviderMediaRule": {
+        "type": "object",
+        "properties": {
+          "maxCount": {
+            "type": "integer"
+          },
+          "mimeTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "maxBytes": {
+            "type": "number"
+          },
+          "minWidth": {
+            "type": "number"
+          },
+          "minHeight": {
+            "type": "number"
+          },
+          "maxDurationSec": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "maxCount",
+          "mimeTypes"
+        ]
+      },
       "ChannelProviderInfo": {
         "type": "object",
         "properties": {
@@ -389,6 +419,25 @@
               "oauth"
             ],
             "description": "fields = credenciais; oauth = redirect"
+          },
+          "maxLength": {
+            "type": "integer",
+            "description": "limite base de caracteres (sem settings do canal — ex.: X verified pode ser maior)"
+          },
+          "media": {
+            "type": "object",
+            "properties": {
+              "images": {
+                "$ref": "#/components/schemas/ProviderMediaRule"
+              },
+              "videos": {
+                "$ref": "#/components/schemas/ProviderMediaRule"
+              }
+            },
+            "required": [
+              "images",
+              "videos"
+            ]
           }
         },
         "required": [
@@ -397,7 +446,9 @@
           "editor",
           "threads",
           "twoStepConnect",
-          "connectType"
+          "connectType",
+          "maxLength",
+          "media"
         ]
       },
       "MediaRef": {
@@ -2021,7 +2072,7 @@
           }
         ],
         "summary": "Agenda um post (1 grupo → 1 publicação por canal)",
-        "description": "Valida texto/mídia por canal e enfileira. `thread` cria réplicas encadeadas; `requireApproval` nasce DRAFT aguardando aprovação por link.",
+        "description": "Valida texto/mídia por canal e enfileira. `textByChannel` personaliza o texto do post principal por canal; `thread` cria réplicas encadeadas; `requireApproval` nasce DRAFT aguardando aprovação por link.",
         "requestBody": {
           "required": true,
           "content": {
@@ -2054,6 +2105,14 @@
                   "settingsByChannel": {
                     "type": "object",
                     "additionalProperties": {}
+                  },
+                  "textByChannel": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 10000
+                    }
                   },
                   "mediaIds": {
                     "type": "array",

@@ -11,6 +11,9 @@ const ScheduleBody = z.object({
   publishAt: z.string().datetime(),
   timezone: z.string().default('UTC'),
   settingsByChannel: z.record(z.unknown()).optional(),
+  /** override do texto do post principal por canal (chave = channelId); réplicas de thread são globais.
+   *  Atenção: PATCH de texto sobrescreve o content de TODAS as publicações (reseta overrides). */
+  textByChannel: z.record(z.string().min(1).max(10_000)).optional(),
   mediaIds: z.array(z.string().uuid()).max(10).optional(),
   /** réplicas encadeadas após o post principal; delaySec = espera antes de cada uma */
   thread: z
@@ -120,7 +123,7 @@ export function postRoutes(ctn: Container) {
     security: AUTH_SECURITY,
     summary: 'Agenda um post (1 grupo → 1 publicação por canal)',
     description:
-      'Valida texto/mídia por canal e enfileira. `thread` cria réplicas encadeadas; `requireApproval` nasce DRAFT aguardando aprovação por link.',
+      'Valida texto/mídia por canal e enfileira. `textByChannel` personaliza o texto do post principal por canal; `thread` cria réplicas encadeadas; `requireApproval` nasce DRAFT aguardando aprovação por link.',
     request: jsonBody(ScheduleBody),
     responses: {
       201: jsonResponse('grupo agendado (ou DRAFT se requireApproval)', GroupOut),
@@ -139,6 +142,7 @@ export function postRoutes(ctn: Container) {
       timezone: body.timezone,
       origin: p.kind === 'api_key' ? 'API' : 'WEB',
       ...(body.settingsByChannel ? { settingsByChannel: body.settingsByChannel } : {}),
+      ...(body.textByChannel ? { textByChannel: body.textByChannel } : {}),
       ...(body.mediaIds ? { mediaIds: body.mediaIds } : {}),
       ...(body.thread ? { thread: body.thread } : {}),
       ...(body.requireApproval ? { requireApproval: true } : {}),
