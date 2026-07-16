@@ -28,6 +28,7 @@ import { useApiErrorMessage } from '@/lib/api/errors';
 import { ConnectDialog } from './connect-dialog';
 import { useChannels, useConnectChannel, useDisconnectChannel, useProviders } from './hooks';
 import { PROVIDER_FIELDS } from './provider-fields';
+import { PROVIDER_ICONS, ProviderIcon } from './provider-icon';
 import { useOauthFlow } from './use-oauth-flow';
 
 type ProviderInfo = {
@@ -52,14 +53,6 @@ const STATUS_VARIANT: Record<string, 'published' | 'review' | 'neutral'> = {
   REFRESH_REQUIRED: 'review',
   DISABLED: 'neutral',
 };
-
-function ProviderMark({ name }: { name: string }) {
-  return (
-    <span className="grid size-9 shrink-0 place-items-center rounded-md border border-line bg-surface-2 text-sm font-bold text-ink">
-      {name.charAt(0)}
-    </span>
-  );
-}
 
 export function ConnectionsView() {
   const t = useTranslations('connections');
@@ -125,10 +118,21 @@ export function ConnectionsView() {
               return (
                 <li key={ch.id}>
                   <Card className="flex items-center gap-3 p-4">
-                    <Avatar className="size-10">
-                      {ch.avatarUrl ? <AvatarImage src={ch.avatarUrl} alt="" /> : null}
-                      <AvatarFallback>{(ch.name ?? ch.username ?? '?').charAt(0)}</AvatarFallback>
-                    </Avatar>
+                    <span className="relative shrink-0">
+                      <Avatar className="size-10">
+                        {ch.avatarUrl ? <AvatarImage src={ch.avatarUrl} alt="" /> : null}
+                        <AvatarFallback>{(ch.name ?? ch.username ?? '?').charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      {PROVIDER_ICONS[ch.provider] ? (
+                        // badge da rede sobre o avatar da conta (padrão multi-rede)
+                        <img
+                          src={PROVIDER_ICONS[ch.provider]}
+                          alt=""
+                          aria-hidden
+                          className="absolute -bottom-0.5 -right-0.5 size-4 rounded-sm border border-surface"
+                        />
+                      ) : null}
+                    </span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[13px] font-semibold text-ink">
                         {ch.name ?? ch.username ?? ch.id}
@@ -201,7 +205,7 @@ export function ConnectionsView() {
             {providers.data.map((p) => (
               <li key={p.id}>
                 <Card className="flex h-full items-center gap-3 p-4 transition-colors duration-200 hover:border-accent">
-                  <ProviderMark name={p.name} />
+                  <ProviderIcon provider={p.id} name={p.name} className="size-9" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px] font-semibold text-ink">{p.name}</p>
                     <div className="mt-1 flex flex-wrap gap-1.5">
