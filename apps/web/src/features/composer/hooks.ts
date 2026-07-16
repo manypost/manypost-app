@@ -9,6 +9,8 @@ interface ScheduleInput {
   publishAt: string; // ISO UTC
   timezone: string;
   textByChannel?: Record<string, string>;
+  mediaIds?: string[];
+  thread?: Array<{ text: string; mediaIds?: string[]; delaySec?: number }>;
   requireApproval?: boolean;
 }
 
@@ -25,6 +27,8 @@ export function useSchedulePost() {
           ...(input.textByChannel && Object.keys(input.textByChannel).length > 0
             ? { textByChannel: input.textByChannel }
             : {}),
+          ...(input.mediaIds && input.mediaIds.length > 0 ? { mediaIds: input.mediaIds } : {}),
+          ...(input.thread && input.thread.length > 0 ? { thread: input.thread } : {}),
           ...(input.requireApproval ? { requireApproval: true } : {}),
         },
       });

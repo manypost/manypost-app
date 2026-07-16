@@ -3,6 +3,7 @@
 import { Bell, CalendarDays, Image as ImageIcon, LogOut, Menu, PenSquare, Plug, Settings, SquareKanban } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Wordmark } from '@/components/brand/wordmark';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLogout, useMe } from '@/features/auth/hooks';
+import { NotificationsMenu } from '@/features/notifications/notifications-menu';
 
 const MOBILE_NAV = [
   { href: '/compor', key: 'compose', icon: PenSquare },
@@ -27,10 +29,22 @@ const MOBILE_NAV = [
   { href: '/configuracoes', key: 'settings', icon: Settings },
 ] as const;
 
+const TITLE_BY_PATH: Array<{ prefix: string; key: string }> = [
+  { prefix: '/calendario', key: 'nav.calendar' },
+  { prefix: '/kanban', key: 'nav.kanban' },
+  { prefix: '/conexoes', key: 'nav.connections' },
+  { prefix: '/midia', key: 'nav.media' },
+  { prefix: '/notificacoes', key: 'nav.notifications' },
+  { prefix: '/configuracoes', key: 'nav.settings' },
+  { prefix: '/compor', key: 'nav.compose' },
+];
+
 export function Topbar() {
   const t = useTranslations();
+  const pathname = usePathname();
   const { data: me, isPending } = useMe();
   const logout = useLogout();
+  const title = TITLE_BY_PATH.find(({ prefix }) => pathname.startsWith(prefix));
 
   const user = me?.user;
   const initials = (user?.name ?? user?.email ?? '?')
@@ -62,8 +76,13 @@ export function Topbar() {
         </DropdownMenu>
         <Wordmark />
       </div>
-      <div className="hidden md:block" />
+      {/* título da página (padrão do Postiz: título vive na topbar) */}
+      <h1 className="hidden text-lg font-semibold tracking-[-0.3px] text-ink md:block">
+        {title ? t(title.key) : ''}
+      </h1>
 
+      <div className="flex items-center gap-2">
+      <NotificationsMenu />
       {isPending ? (
         <Skeleton className="size-8 rounded-full" />
       ) : (
@@ -96,6 +115,7 @@ export function Topbar() {
           </DropdownMenuContent>
         </DropdownMenu>
       )}
+      </div>
     </header>
   );
 }

@@ -11,11 +11,23 @@ import { persist } from 'zustand/middleware';
  */
 export type ScheduleMode = 'now' | 'schedule';
 
+export interface ThreadItemDraft {
+  /** chave local estável p/ React/remount — não vai pra API */
+  key: string;
+  text: string;
+  delaySec: number;
+  mediaIds: string[];
+}
+
 interface ComposerState {
   text: string;
   channelIds: string[];
   /** override do texto por canal (chave = channelId) — só os personalizados */
   overrides: Record<string, string>;
+  /** mídia do post principal (ids da biblioteca) */
+  mediaIds: string[];
+  /** réplicas encadeadas (item 0 é o post principal, não entra aqui) */
+  thread: ThreadItemDraft[];
   mode: ScheduleMode;
   /** valor cru do input datetime-local (horário local do usuário) */
   publishAtLocal: string;
@@ -26,6 +38,13 @@ interface ComposerState {
   toggleChannel: (id: string) => void;
   setOverride: (id: string, text: string) => void;
   clearOverride: (id: string) => void;
+  toggleMedia: (id: string) => void;
+  removeMedia: (id: string) => void;
+  addThreadItem: () => void;
+  setThreadText: (key: string, text: string) => void;
+  setThreadDelay: (key: string, delaySec: number) => void;
+  toggleThreadMedia: (key: string, mediaId: string) => void;
+  removeThreadItem: (key: string) => void;
   setMode: (mode: ScheduleMode) => void;
   setPublishAtLocal: (value: string) => void;
   setRequireApproval: (value: boolean) => void;
@@ -36,10 +55,17 @@ const EMPTY = {
   text: '',
   channelIds: [] as string[],
   overrides: {} as Record<string, string>,
+  mediaIds: [] as string[],
+  thread: [] as ThreadItemDraft[],
   mode: 'schedule' as ScheduleMode,
   publishAtLocal: '',
   requireApproval: false,
 };
+
+const newKey = () =>
+  typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random()}`;
 
 export const useComposerStore = create<ComposerState>()(
   persist(
@@ -62,6 +88,40 @@ export const useComposerStore = create<ComposerState>()(
           const { [id]: _, ...overrides } = s.overrides;
           return { overrides };
         }),
+      toggleMedia: (id) =>
+        set((s) => ({
+          mediaIds: s.mediaIds.includes(id)
+            ? s.mediaIds.filter((m) => m !== id)
+            : [...s.mediaIds, id],
+        })),
+      removeMedia: (id) => set((s) => ({ mediaIds: s.mediaIds.filter((m) => m !== id) })),
+      addThreadItem: () =>
+        set((s) => ({
+          thread: [...s.thread, { key: newKey(), text: '', delaySec: 0, mediaIds: [] }],
+        })),
+      setThreadText: (key, text) =>
+        set((s) => ({
+          thread: s.thread.map((item) => (item.key === key ? { ...item, text } : item)),
+        })),
+      setThreadDelay: (key, delaySec) =>
+        set((s) => ({
+          thread: s.thread.map((item) => (item.key === key ? { ...item, delaySec } : item)),
+        })),
+      toggleThreadMedia: (key, mediaId) =>
+        set((s) => ({
+          thread: s.thread.map((item) =>
+            item.key === key
+              ? {
+                  ...item,
+                  mediaIds: item.mediaIds.includes(mediaId)
+                    ? item.mediaIds.filter((m) => m !== mediaId)
+                    : [...item.mediaIds, mediaId],
+                }
+              : item,
+          ),
+        })),
+      removeThreadItem: (key) =>
+        set((s) => ({ thread: s.thread.filter((item) => item.key !== key) })),
       setMode: (mode) => set({ mode }),
       setPublishAtLocal: (publishAtLocal) => set({ publishAtLocal }),
       setRequireApproval: (requireApproval) => set({ requireApproval }),

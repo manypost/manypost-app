@@ -1,0 +1,428 @@
+'use client';
+
+import {
+  DndContext,
+  type DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import { ChevronLeft, ChevronRight, CircleAlert } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
+import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useMemo, useState } from 'react';
+import { toast } from 'sonner';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PROVIDER_ICONS } from '@/features/channels/provider-icon';
+import { useComposerStore } from '@/features/composer/store';
+import { PostDetailSheet } from '@/features/publications/post-detail-sheet';
+import { usePublicationsFeed, useReschedulePost } from '@/features/publications/hooks';
+import { stateBadgeVariant } from '@/features/publications/state';
+import { useApiErrorMessage } from '@/lib/api/errors';
+import { addDays, dayKey, startOfMonth, startOfWeek, toLocalInput } from '@/lib/datetime';
+import { cn } from '@/lib/utils';
+import { type FeedItem, MonthGrid, TimeGrid } from './calendar-grids';
+import { ChannelsPanel } from './channels-panel';
+
+type ViewMode = 'dia' | 'semana' | 'mes' | 'lista';
+
+/** filtro de estado do modo lista (paridade Postiz: All | Scheduled | Draft | Published) */
+const LIST_FILTERS: Record<string, string | undefined> = {
+  todos: undefined,
+  agendados: 'SCHEDULED',
+  rascunhos: 'DRAFT',
+  publicados: 'PUBLISHED',
+};
+
+/**
+ * Calendário (SPEC_FRONTEND §3.1, direção do Postiz): painel de canais à
+ * esquerda (clique filtra), visões dia/semana/mês com grade de horas e
+ * lista com filtro por estado; drag-and-drop otimista com rollback.
+ */
+export function CalendarView() {
+  const t = useTranslations('calendar');
+  const locale = useLocale();
+  const errorMessage = useApiErrorMessage();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const reschedule = useReschedulePost();
+
+  // ---- estado persistido na URL (?visao&data&canais&estado) ----
+  const rawView = searchParams.get('visao');
+  const view: ViewMode =
+    rawView === 'lista' || rawView === 'mes' || rawView === 'dia' ? rawView : 'semana';
+  const anchor = useMemo(() => {
+    const raw = searchParams.get('data');
+    const parsed = raw ? new Date(`${raw}T00:00:00`) : null;
+    return parsed && !Number.isNaN(parsed.getTime()) ? parsed : new Date();
+  }, [searchParams]);
+  const channelFilter = useMemo(
+    () => (searchParams.get('canais')?.split(',').filter(Boolean) ?? []) as string[],
+    [searchParams],
+  );
+  const rawListFilter = searchParams.get('estado') ?? 'todos';
+  const listFilter = rawListFilter in LIST_FILTERS ? rawListFilter : 'todos';
+
+  const setParams = useCallback(
+    (patch: Record<string, string | null>) => {
+      const next = new URLSearchParams(searchParams.toString());
+      for (const [key, value] of Object.entries(patch)) {
+        if (value === null || value === '') next.delete(key);
+        else next.set(key, value);
+      }
+      router.replace(`${pathname}?${next.toString()}`, { scroll: false });
+    },
+    [router, pathname, searchParams],
+  );
+
+  const toggleChannel = useCallback(
+    (id: string) => {
+      const next = channelFilter.includes(id)
+        ? channelFilter.filter((c) => c !== id)
+        : [...channelFilter, id];
+      setParams({ canais: next.join(',') || null });
+    },
+    [channelFilter, setParams],
+  );
+
+  // ---- janela de dados por visão ----
+  const range = useMemo(() => {
+    if (view === 'dia') {
+      const start = new Date(anchor);
+      start.setHours(0, 0, 0, 0);
+      return { from: start, to: addDays(start, 1), gridStart: start };
+    }
+    if (view === 'semana') {
+      const start = startOfWeek(anchor);
+      return { from: start, to: addDays(start, 7), gridStart: start };
+    }
+    if (view === 'mes') {
+      const monthStart = startOfMonth(anchor);
+      const gridStart = startOfWeek(monthStart);
+      return { from: gridStart, to: addDays(gridStart, 42), gridStart };
+    }
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    return { from: start, to: null, gridStart: start };
+  }, [view, anchor]);
+
+  const feed = usePublicationsFeed({
+    from: range.from.toISOString(),
+    ...(range.to ? { to: range.to.toISOString() } : {}),
+    ...(channelFilter.length > 0 ? { channelId: channelFilter.join(',') } : {}),
+    ...(view === 'lista' && LIST_FILTERS[listFilter] ? { state: LIST_FILTERS[listFilter] } : {}),
+  });
+
+  // ---- drag otimista com rollback ----
+  const [moves, setMoves] = useState<Record<string, string>>({});
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  const onDragEnd = (event: DragEndEvent) => {
+    const over = event.over?.id;
+    const data = event.active.data.current as { groupId: string; publishAt: string } | undefined;
+    if (!over || !data || typeof over !== 'string') return;
+    const current = new Date(data.publishAt);
+    const next = new Date(current);
+
+    const slot = /^slot-(\d{4}-\d{2}-\d{2})-(\d{1,2})$/.exec(over);
+    const day = /^day-(\d{4}-\d{2}-\d{2})$/.exec(over);
+    if (slot) {
+      const [y, m, d] = slot[1]!.split('-').map(Number);
+      next.setFullYear(y!, m! - 1, d!);
+      next.setHours(Number(slot[2]), current.getMinutes(), 0, 0);
+    } else if (day) {
+      const [y, m, d] = day[1]!.split('-').map(Number);
+      next.setFullYear(y!, m! - 1, d!);
+    } else {
+      return;
+    }
+    if (next.getTime() === current.getTime()) return;
+
+    const { groupId } = data;
+    setMoves((m) => ({ ...m, [groupId]: next.toISOString() }));
+    const settle = () =>
+      setMoves((m) => {
+        const { [groupId]: _, ...rest } = m;
+        return rest;
+      });
+    reschedule.mutate(
+      { groupId, publishAt: next.toISOString() },
+      {
+        onSuccess: () => {
+          settle();
+          toast.success(t('rescheduled'));
+        },
+        onError: (err) => {
+          settle(); // rollback visível (SPEC §5.4)
+          toast.error(errorMessage(err));
+        },
+      },
+    );
+  };
+
+  // aplica o overlay otimista e agrupa por dia
+  const items = useMemo(() => {
+    const raw = feed.data?.items ?? [];
+    const withMoves = raw.map((item) =>
+      moves[item.groupId] && item.publishAt ? { ...item, publishAt: moves[item.groupId]! } : item,
+    );
+    return withMoves.sort((a, b) => (a.publishAt ?? '').localeCompare(b.publishAt ?? ''));
+  }, [feed.data, moves]);
+
+  const itemsByDay = useMemo(() => {
+    const map = new Map<string, FeedItem[]>();
+    for (const item of items) {
+      if (!item.publishAt) continue;
+      const key = dayKey(new Date(item.publishAt));
+      const list = map.get(key) ?? [];
+      list.push(item);
+      map.set(key, list);
+    }
+    return map;
+  }, [items]);
+
+  // ---- "+" no slot: pré-preenche o composer e abre /compor ----
+  const scheduleAt = useCallback(
+    (date: Date) => {
+      // nunca sugerir horário no passado — cai para daqui a ~10 min
+      let target = date;
+      if (target.getTime() <= Date.now()) {
+        target = new Date(Date.now() + 10 * 60_000);
+        target.setMinutes(Math.ceil(target.getMinutes() / 5) * 5, 0, 0);
+      }
+      const composer = useComposerStore.getState();
+      composer.setMode('schedule');
+      composer.setPublishAtLocal(toLocalInput(target));
+      router.push('/compor');
+    },
+    [router],
+  );
+
+  // ---- painel de detalhe ----
+  const [openGroupId, setOpenGroupId] = useState<string | null>(null);
+  const openItems = useMemo(
+    () => items.filter((i) => i.groupId === openGroupId),
+    [items, openGroupId],
+  );
+
+  // ---- navegação por período ----
+  const navigate = (dir: -1 | 1) => {
+    const next =
+      view === 'mes'
+        ? new Date(anchor.getFullYear(), anchor.getMonth() + dir, 1)
+        : view === 'dia'
+          ? addDays(anchor, dir)
+          : addDays(startOfWeek(anchor), dir * 7);
+    setParams({ data: dayKey(next) });
+  };
+
+  const dayFmt = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' });
+  const periodLabel =
+    view === 'mes'
+      ? new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(anchor)
+      : view === 'semana'
+        ? `${dayFmt.format(startOfWeek(anchor))} – ${dayFmt.format(addDays(startOfWeek(anchor), 6))}`
+        : view === 'dia'
+          ? new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long' }).format(anchor)
+          : t('fromToday');
+
+  const weekDays = useMemo(
+    () =>
+      view === 'dia'
+        ? [range.gridStart]
+        : Array.from({ length: 7 }, (_, i) => addDays(range.gridStart, i)),
+    [view, range.gridStart],
+  );
+
+  return (
+    <div className="flex flex-col gap-6 lg:flex-row">
+      <ChannelsPanel
+        selectedIds={channelFilter}
+        onToggle={toggleChannel}
+        onClear={() => setParams({ canais: null })}
+      />
+
+      <div className="flex min-w-0 flex-1 flex-col gap-4">
+        {/* toolbar */}
+        <div className="flex flex-wrap items-center gap-3">
+          {view !== 'lista' ? (
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon-sm" aria-label={t('previous')} onClick={() => navigate(-1)}>
+                <ChevronLeft aria-hidden />
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setParams({ data: null })}>
+                {t('today')}
+              </Button>
+              <Button variant="ghost" size="icon-sm" aria-label={t('next')} onClick={() => navigate(1)}>
+                <ChevronRight aria-hidden />
+              </Button>
+            </div>
+          ) : null}
+          <span className="text-sm font-semibold capitalize text-ink">{periodLabel}</span>
+
+          <div className="ml-auto flex items-center gap-2">
+            {view === 'lista' ? (
+              <Tabs value={listFilter} onValueChange={(v) => setParams({ estado: v === 'todos' ? null : v })}>
+                <TabsList>
+                  <TabsTrigger value="todos">{t('filter.all')}</TabsTrigger>
+                  <TabsTrigger value="agendados">{t('filter.scheduled')}</TabsTrigger>
+                  <TabsTrigger value="rascunhos">{t('filter.drafts')}</TabsTrigger>
+                  <TabsTrigger value="publicados">{t('filter.published')}</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            ) : null}
+            <Tabs value={view} onValueChange={(v) => setParams({ visao: v === 'semana' ? null : v })}>
+              <TabsList>
+                <TabsTrigger value="dia">{t('viewDay')}</TabsTrigger>
+                <TabsTrigger value="semana">{t('viewWeek')}</TabsTrigger>
+                <TabsTrigger value="mes">{t('viewMonth')}</TabsTrigger>
+                <TabsTrigger value="lista">{t('viewList')}</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+        </div>
+
+        {/* conteúdo */}
+        {feed.isPending ? (
+          <Skeleton className="h-96 rounded-lg" />
+        ) : feed.isError ? (
+          <Alert variant="destructive">
+            <CircleAlert aria-hidden />
+            <AlertDescription className="flex flex-wrap items-center gap-3">
+              {errorMessage(feed.error)}
+              <Button variant="outline" size="sm" onClick={() => feed.refetch()}>
+                {t('retry')}
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+            {view === 'mes' ? (
+              <MonthGrid
+                gridStart={range.gridStart}
+                anchorMonth={anchor.getMonth()}
+                itemsByDay={itemsByDay}
+                onOpen={setOpenGroupId}
+                onSchedule={scheduleAt}
+              />
+            ) : view === 'lista' ? (
+              <ListView items={items} onOpen={setOpenGroupId} />
+            ) : (
+              <TimeGrid
+                days={weekDays}
+                itemsByDay={itemsByDay}
+                onOpen={setOpenGroupId}
+                onSchedule={scheduleAt}
+              />
+            )}
+          </DndContext>
+        )}
+      </div>
+
+      <PostDetailSheet groupId={openGroupId} items={openItems} onClose={() => setOpenGroupId(null)} />
+    </div>
+  );
+}
+
+/** Modo lista (paridade Postiz): dias como cabeçalho, linhas com hora à direita. */
+function ListView({ items, onOpen }: { items: FeedItem[]; onOpen: (groupId: string) => void }) {
+  const t = useTranslations('calendar');
+  const locale = useLocale();
+
+  if (items.length === 0) {
+    return (
+      <div className="rounded-lg border border-dashed border-line bg-surface-2 px-6 py-12 text-center">
+        <p className="text-sm leading-relaxed text-graphite">{t('empty')}</p>
+        <Button asChild size="sm" className="mt-4">
+          <Link href="/compor">{t('newPost')}</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  const todayKey = dayKey(new Date());
+  const groups = new Map<string, FeedItem[]>();
+  for (const item of items) {
+    const key = item.publishAt ? dayKey(new Date(item.publishAt)) : 'sem-data';
+    const list = groups.get(key) ?? [];
+    list.push(item);
+    groups.set(key, list);
+  }
+  const dayLabel = new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long' });
+  const timeLabel = new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' });
+
+  return (
+    <div className="flex flex-col gap-6">
+      {[...groups.entries()].map(([key, dayItems]) => (
+        <section key={key} aria-label={key} className="flex flex-col gap-2">
+          <h2 className="text-center text-sm font-semibold capitalize text-graphite">
+            {key === 'sem-data'
+              ? t('noDate')
+              : key === todayKey
+                ? t('today')
+                : dayLabel.format(new Date(dayItems[0]!.publishAt!))}
+          </h2>
+          <ul className="overflow-hidden rounded-lg border border-line">
+            {dayItems.map((item) => (
+              <li key={item.id} className="border-b border-line last:border-b-0">
+                <button
+                  type="button"
+                  onClick={() => onOpen(item.groupId)}
+                  className={cn(
+                    'flex w-full items-center gap-3 border-l-2 border-l-transparent bg-surface px-3 py-2.5 text-left transition-colors duration-200',
+                    'outline-none hover:border-l-accent hover:bg-surface-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent',
+                  )}
+                >
+                  <span className="relative shrink-0">
+                    <Avatar className="size-7">
+                      {item.channel.avatarUrl ? <AvatarImage src={item.channel.avatarUrl} alt="" /> : null}
+                      <AvatarFallback className="text-[11px]">
+                        {(item.channel.name ?? item.channel.provider).charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    {PROVIDER_ICONS[item.channel.provider] ? (
+                      <img
+                        src={PROVIDER_ICONS[item.channel.provider]}
+                        alt=""
+                        aria-hidden
+                        className="absolute -bottom-0.5 -right-0.5 size-3 rounded-sm border border-surface"
+                      />
+                    ) : null}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm text-ink">{item.text}</span>
+                    <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-graphite">
+                      <span className="truncate">{item.channel.name}</span>
+                      {item.mediaCount > 0 ? <span>· {t('media', { count: item.mediaCount })}</span> : null}
+                      {item.state === 'FAILED' && item.errorMessage ? (
+                        <span className="truncate text-state-failed">· {item.errorMessage}</span>
+                      ) : null}
+                    </span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-2">
+                    {item.group.awaitingApproval ? (
+                      <Badge variant="review">{t('awaitingApproval')}</Badge>
+                    ) : null}
+                    <Badge variant={stateBadgeVariant(item.state)}>
+                      {t.has(`state.${item.state}`) ? t(`state.${item.state}`) : item.state}
+                    </Badge>
+                    <span className="w-12 text-right text-[13px] font-semibold tabular-nums text-ink">
+                      {item.publishAt ? timeLabel.format(new Date(item.publishAt)) : '—'}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
+  );
+}

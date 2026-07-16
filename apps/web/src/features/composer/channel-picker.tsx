@@ -4,14 +4,17 @@ import { Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useChannels } from '@/features/channels/hooks';
 import { PROVIDER_ICONS } from '@/features/channels/provider-icon';
 import { cn } from '@/lib/utils';
 
-/** Grid de canais do composer (SPEC_FRONTEND §3.3 passo 1) — só ACTIVE entra. */
+/**
+ * Seleção de canais do composer (direção do Postiz): fileira de avatares —
+ * apagado = fora do post, colorido com check = dentro. Só ACTIVE seleciona.
+ */
 export function ChannelPicker({
   selectedIds,
   onToggle,
@@ -25,9 +28,10 @@ export function ChannelPicker({
 
   if (channels.isPending) {
     return (
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Skeleton className="h-16 rounded-md" />
-        <Skeleton className="h-16 rounded-md" />
+      <div className="flex gap-2">
+        <Skeleton className="size-11 rounded-full" />
+        <Skeleton className="size-11 rounded-full" />
+        <Skeleton className="size-11 rounded-full" />
       </div>
     );
   }
@@ -43,64 +47,63 @@ export function ChannelPicker({
   }
 
   return (
-    <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    <ul className="flex flex-wrap gap-2.5">
       {channels.data.map((ch) => {
         const active = ch.status === 'ACTIVE';
         const selected = selectedIds.includes(ch.id);
+        const name = ch.name ?? ch.username ?? ch.id;
         return (
           <li key={ch.id}>
-            <button
-              type="button"
-              disabled={!active}
-              aria-pressed={selected}
-              onClick={() => onToggle(ch.id)}
-              className={cn(
-                'flex w-full items-center gap-3 rounded-md border p-3 text-left transition-colors duration-200',
-                'outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
-                selected
-                  ? 'border-accent bg-accent-tint'
-                  : 'border-line bg-surface hover:border-accent',
-                !active && 'cursor-not-allowed opacity-60 hover:border-line',
-              )}
-            >
-              <span className="relative shrink-0">
-                <Avatar className="size-9">
-                  {ch.avatarUrl ? <AvatarImage src={ch.avatarUrl} alt="" /> : null}
-                  <AvatarFallback>{(ch.name ?? ch.username ?? '?').charAt(0)}</AvatarFallback>
-                </Avatar>
-                {PROVIDER_ICONS[ch.provider] ? (
-                  <img
-                    src={PROVIDER_ICONS[ch.provider]}
-                    alt=""
-                    aria-hidden
-                    className="absolute -bottom-0.5 -right-0.5 size-4 rounded-sm border border-surface"
-                  />
-                ) : null}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13px] font-semibold text-ink">
-                  {ch.name ?? ch.username ?? ch.id}
-                </span>
-                {!active ? (
-                  <Badge variant="review" className="mt-1">
-                    {tConn.has(`status.${ch.status}`) ? tConn(`status.${ch.status}`) : ch.status}
-                  </Badge>
-                ) : ch.username ? (
-                  <span className="block truncate text-xs text-graphite">
-                    @{ch.username.replace(/^@/, '')}
-                  </span>
-                ) : null}
-              </span>
-              <span
-                aria-hidden
-                className={cn(
-                  'grid size-5 shrink-0 place-items-center rounded-full border transition-colors duration-200',
-                  selected ? 'border-accent bg-accent text-paper' : 'border-line bg-surface',
-                )}
-              >
-                {selected ? <Check className="size-3" /> : null}
-              </span>
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  disabled={!active}
+                  aria-pressed={selected}
+                  aria-label={name}
+                  onClick={() => onToggle(ch.id)}
+                  className={cn(
+                    'relative block rounded-full outline-none transition-colors duration-200',
+                    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+                    !active && 'cursor-not-allowed',
+                  )}
+                >
+                  <Avatar
+                    className={cn(
+                      'size-11 border-2 transition-colors duration-200',
+                      selected ? 'border-accent' : 'border-line',
+                      !selected && 'opacity-50 grayscale',
+                      !active && 'opacity-30',
+                    )}
+                  >
+                    {ch.avatarUrl ? <AvatarImage src={ch.avatarUrl} alt="" /> : null}
+                    <AvatarFallback>{name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  {PROVIDER_ICONS[ch.provider] ? (
+                    <img
+                      src={PROVIDER_ICONS[ch.provider]}
+                      alt=""
+                      aria-hidden
+                      className={cn(
+                        'absolute -bottom-0.5 -right-0.5 size-4 rounded-sm border border-surface',
+                        !selected && 'opacity-60 grayscale',
+                      )}
+                    />
+                  ) : null}
+                  {selected ? (
+                    <span className="absolute -right-1 -top-1 grid size-4 place-items-center rounded-full bg-accent text-paper">
+                      <Check className="size-2.5" aria-hidden />
+                    </span>
+                  ) : null}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {name}
+                {!active
+                  ? ` — ${tConn.has(`status.${ch.status}`) ? tConn(`status.${ch.status}`) : ch.status}`
+                  : ''}
+              </TooltipContent>
+            </Tooltip>
           </li>
         );
       })}
