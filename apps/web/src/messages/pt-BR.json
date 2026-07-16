@@ -1,0 +1,120 @@
+{
+  "common": {
+    "appName": "manypost",
+    "loading": "Carregando…",
+    "retry": "Tentar de novo",
+    "cancel": "Cancelar",
+    "close": "Fechar",
+    "save": "Salvar",
+    "confirm": "Confirmar",
+    "genericError": "Algo deu errado. Tente de novo."
+  },
+  "validation": {
+    "required": "Campo obrigatório",
+    "email": "Informe um e-mail válido",
+    "passwordMin": "A senha precisa de pelo menos 12 caracteres"
+  },
+  "errors": {
+    "auth": {
+      "invalid_credentials": "E-mail ou senha incorretos.",
+      "email_taken": "Já existe uma conta com esse e-mail.",
+      "session_invalid": "Sua sessão expirou — entre de novo.",
+      "unauthorized": "Você não tem permissão para isso."
+    },
+    "channel": {
+      "connect_failed": "A rede recusou a conexão. Confira as credenciais e tente de novo."
+    },
+    "plan": {
+      "channel_limit": "Limite de canais do plano atingido."
+    },
+    "validation": {
+      "invalid_request": "Confira os campos destacados e tente de novo."
+    }
+  },
+  "auth": {
+    "heroTitle": "Vários posts. Várias redes. Um clique.",
+    "heroSubtitle": "Agende uma vez e o manypost publica por você, no horário certo, pelas APIs oficiais de cada rede.",
+    "loginTitle": "Entre na sua conta",
+    "loginSubtitle": "Agende e publique em todas as suas redes num lugar só.",
+    "registerTitle": "Crie sua conta",
+    "registerSubtitle": "Uma conta, todos os seus canais.",
+    "email": "E-mail",
+    "password": "Senha",
+    "passwordHint": "mínimo de 12 caracteres",
+    "name": "Seu nome",
+    "orgName": "Nome da organização",
+    "orgNameHint": "opcional — dá pra mudar depois",
+    "loginCta": "Entrar",
+    "registerCta": "Criar conta",
+    "noAccount": "Ainda não tem conta?",
+    "hasAccount": "Já tem conta?",
+    "goRegister": "Cadastre-se",
+    "goLogin": "Entre",
+    "socialDivider": "ou continue com",
+    "logout": "Sair"
+  },
+  "nav": {
+    "calendar": "Calendário",
+    "kanban": "Kanban",
+    "connections": "Conexões",
+    "media": "Mídia",
+    "notifications": "Notificações",
+    "settings": "Configurações"
+  },
+  "connections": {
+    "title": "Conexões",
+    "subtitle": "Conecte os canais onde o manypost vai publicar por você.",
+    "catalogTitle": "Redes disponíveis",
+    "channelsTitle": "Canais conectados",
+    "connect": "Conectar",
+    "reconnect": "Reconectar",
+    "disconnect": "Desconectar",
+    "retry": "Tentar de novo",
+    "channelActions": "Ações do canal",
+    "connectTitle": "Conectar {provider}",
+    "oauthHint": "Você será levado à rede para autorizar o acesso.",
+    "connected": "Canal conectado!",
+    "disconnected": "Canal desconectado.",
+    "disconnectTitle": "Desconectar {name}?",
+    "disconnectWarning": "Publicações futuras agendadas para este canal vão falhar. Nada do que já foi publicado é apagado.",
+    "empty": "Nenhum canal conectado ainda — escolha uma rede abaixo para começar.",
+    "catalogEmpty": "Nenhum provider configurado nesta instalação. Defina as credenciais no .env da API (docs/INTEGRATIONS_SETUP.md).",
+    "status": {
+      "ACTIVE": "Ativo",
+      "REFRESH_REQUIRED": "Reconexão necessária",
+      "DISABLED": "Desativado"
+    },
+    "capabilities": {
+      "threads": "threads",
+      "twoStep": "2 etapas"
+    },
+    "fields": {
+      "mastodon": {
+        "instance": "URL da instância (opcional)",
+        "instancePlaceholder": "https://mastodon.social"
+      },
+      "bluesky": {
+        "handle": "Handle",
+        "handlePlaceholder": "nome.bsky.social",
+        "appPassword": "App password",
+        "service": "PDS próprio (opcional)",
+        "servicePlaceholder": "https://bsky.social"
+      },
+      "telegram": {
+        "chat": "Canal ou grupo",
+        "chatPlaceholder": "@meucanal ou -100123456"
+      },
+      "discord": {
+        "webhookUrl": "URL do webhook do canal",
+        "webhookUrlPlaceholder": "https://discord.com/api/webhooks/…"
+      }
+    }
+  },
+  "placeholders": {
+    "calendar": "O calendário de publicações chega na próxima fatia — semana, mês, dia e lista, com drag para reagendar.",
+    "kanban": "O kanban chega em breve — colunas por estado, do rascunho ao publicado.",
+    "media": "A biblioteca de mídia chega em breve — upload, alt text e reuso nos posts.",
+    "notifications": "As notificações da organização vão aparecer aqui.",
+    "settings": "Equipe, API keys e webhooks — em breve."
+  }
+}
