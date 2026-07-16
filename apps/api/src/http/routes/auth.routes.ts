@@ -4,7 +4,7 @@ import { deleteCookie, getCookie } from 'hono/cookie';
 import { ErrorCodes } from '@manypost/contracts';
 import { DomainError } from '@manypost/core';
 import type { Container } from '../../container';
-import { setAuthCookies } from '../cookies';
+import { SESSION_HINT_COOKIE, setAuthCookies } from '../cookies';
 import { ACCESS_COOKIE, REFRESH_COOKIE, requireAuth } from '../middleware/auth';
 import type { AppEnv } from '../middleware/context';
 import { AUTH_SECURITY, createApp, errorResponses, jsonBody, jsonResponse } from '../openapi';
@@ -161,6 +161,7 @@ export function authRoutes(ctn: Container) {
     if (token) await ctn.auth.logout({ refreshToken: token });
     deleteCookie(c, ACCESS_COOKIE, { path: '/' });
     deleteCookie(c, REFRESH_COOKIE, { path: '/v1/auth' });
+    deleteCookie(c, SESSION_HINT_COOKIE, { path: '/' });
     return c.body(null, 204);
   });
 

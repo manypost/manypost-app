@@ -27,6 +27,14 @@ module.exports = {
       to: { path: '^(apps|packages/(core|db|providers|config))' },
     },
     {
+      name: 'web-consome-api-via-openapi',
+      severity: 'error',
+      comment:
+        'apps/web fala com o backend só pelo cliente OpenAPI gerado (SPEC_FRONTEND §1) — nunca importa pacotes internos de servidor',
+      from: { path: '^apps/web' },
+      to: { path: '^(apps/(api|worker)|packages/(core|db|providers|queue|config))' },
+    },
+    {
       name: 'domain-puro',
       severity: 'error',
       comment: 'domain só enxerga contratos (shared kernel de tipos) e tipos do runtime',
@@ -39,6 +47,7 @@ module.exports = {
   ],
   options: {
     doNotFollow: { path: 'node_modules' },
+    exclude: { path: '[\\\\/]\\.next[\\\\/]' },
     tsPreCompilationDeps: true,
   },
 };

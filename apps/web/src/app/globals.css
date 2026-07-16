@@ -1,0 +1,127 @@
+@import 'tailwindcss';
+
+/*
+ * Tokens do brand system — docs/brand/BRAND_SYSTEM.md §3 + tokens de estado
+ * aprovados em docs/brand/README.md §3. Este é o ÚNICO arquivo do app onde
+ * hex é permitido (critério de aceite docs/brand/README.md §4.1).
+ */
+:root {
+  --accent: #7c3aed;
+  --accent-hover: #6d28d9;
+  --accent-tint: #ede9fe;
+  --accent-on-dark: #c4b5fd;
+  --paper: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f5f5f7;
+  --night: #0a0a0a;
+  --ink: #111111;
+  --ink-soft: #262626;
+  --graphite: #6b6b70;
+  --mist: #8e8e96;
+  --line: #e2e2e7;
+
+  /* estados de publicação (rascunho é neutro: --graphite/--surface-2) */
+  --state-scheduled: #7c3aed;
+  --state-scheduled-tint: #ede9fe;
+  --state-publishing: #b45309;
+  --state-publishing-tint: #fef3c7;
+  --state-published: #15803d;
+  --state-published-tint: #dcfce7;
+  --state-failed: #b91c1c;
+  --state-failed-tint: #fee2e2;
+  --state-review: #a16207;
+  --state-review-tint: #fef9c3;
+}
+
+/*
+ * Tema Tailwind mapeado 1:1 dos tokens do brand (docs/brand/README.md §2):
+ * - radius somente 4/6/8px (BRAND §4); `rounded-full` segue existindo, mas é
+ *   permitido apenas em avatares
+ * - namespaces de sombra zerados: NENHUMA utility de shadow ou drop-shadow
+ *   existe neste app (BRAND §2.2 — hierarquia por borda e camada de fundo)
+ */
+@theme inline {
+  --font-sans:
+    var(--font-inter), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', roboto, sans-serif;
+  --font-display: var(--font-jakarta), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --color-background: var(--surface);
+  --color-foreground: var(--ink);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--ink);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--ink);
+  --color-primary: var(--accent);
+  --color-primary-hover: var(--accent-hover);
+  --color-primary-foreground: var(--paper);
+  --color-secondary: var(--surface-2);
+  --color-secondary-foreground: var(--ink);
+  --color-muted: var(--surface-2);
+  --color-muted-foreground: var(--graphite);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-tint: var(--accent-tint);
+  --color-accent-on-dark: var(--accent-on-dark);
+  --color-destructive: var(--state-failed);
+  --color-destructive-tint: var(--state-failed-tint);
+  --color-destructive-foreground: var(--paper);
+  --color-border: var(--line);
+  --color-input: var(--line);
+  --color-ring: var(--accent);
+
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-graphite: var(--graphite);
+  --color-mist: var(--mist);
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-night: var(--night);
+  --color-line: var(--line);
+
+  --color-state-scheduled: var(--state-scheduled);
+  --color-state-scheduled-tint: var(--state-scheduled-tint);
+  --color-state-publishing: var(--state-publishing);
+  --color-state-publishing-tint: var(--state-publishing-tint);
+  --color-state-published: var(--state-published);
+  --color-state-published-tint: var(--state-published-tint);
+  --color-state-failed: var(--state-failed);
+  --color-state-failed-tint: var(--state-failed-tint);
+  --color-state-review: var(--state-review);
+  --color-state-review-tint: var(--state-review-tint);
+
+  --radius-*: initial;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 8px;
+
+  --shadow-*: initial;
+  --inset-shadow-*: initial;
+  --drop-shadow-*: initial;
+  --text-shadow-*: initial;
+}
+
+/* entrada de overlays: só fade (nada de zoom/slide — simplicidade, BRAND §8.5) */
+@theme {
+  --animate-fade-in: fade-in 150ms ease;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+}
