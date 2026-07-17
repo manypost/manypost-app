@@ -32,14 +32,19 @@ const fieldsSchema = z.object({
   webhookUrl: z
     .string()
     .trim()
-    .refine((u) => WEBHOOK_RE.test(u), 'cole a URL do webhook do canal (Config do servidor → Integrações → Webhooks)'),
+    .refine((u) => WEBHOOK_RE.test(u), 'cole a URL do webhook do canal (Config do servidor → Integrações → Webhooks)')
+    .describe('URL de webhook do canal (Config do servidor → Integrações → Webhooks → Copiar URL)'),
 });
 
 const settingsSchema = z.object({
-  /** não expande previews de link no post (equivale ao SUPPRESS_EMBEDS) */
-  suppressEmbeds: z.boolean().default(false),
-  /** entrega silenciosa, sem push para os membros (SUPPRESS_NOTIFICATIONS) */
-  silent: z.boolean().default(false),
+  suppressEmbeds: z
+    .boolean()
+    .default(false)
+    .describe('Não expandir previews de link no post (SUPPRESS_EMBEDS)'),
+  silent: z
+    .boolean()
+    .default(false)
+    .describe('Entrega silenciosa, sem push para os membros (SUPPRESS_NOTIFICATIONS)'),
 });
 
 /** Reconstrói a URL canônica a partir do id+token (descarta host alternativo/versão). */

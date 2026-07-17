@@ -12,13 +12,14 @@
   --accent-on-dark: #c4b5fd;
   --paper: #ffffff;
   --surface: #ffffff;
-  --surface-2: #f5f5f7;
+  --canvas: #f6f6f9;
+  --surface-2: #eeeeef;
   --night: #0a0a0a;
   --ink: #111111;
   --ink-soft: #262626;
   --graphite: #6b6b70;
   --mist: #8e8e96;
-  --line: #e2e2e7;
+  --line: #d6d6df;
 
   /* estados de publicação (rascunho é neutro: --graphite/--surface-2) */
   --state-scheduled: #7c3aed;
@@ -45,7 +46,8 @@
     var(--font-inter), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', roboto, sans-serif;
   --font-display: var(--font-jakarta), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
-  --color-background: var(--surface);
+  --color-canvas: var(--canvas);
+  --color-background: var(--canvas);
   --color-foreground: var(--ink);
   --color-card: var(--surface);
   --color-card-foreground: var(--ink);
@@ -119,6 +121,8 @@
 @layer base {
   * {
     @apply border-border;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent;
   }
 
   body {
@@ -144,4 +148,28 @@
   height: 0;
   pointer-events: none;
   color: var(--mist);
+}
+
+/* Custom scrollbar para toda a aplicação (estilo moderno e elegante — fina e alinhada ao design system) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--line);
+  border-radius: 9999px;
+  transition: background-color 200ms ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--graphite);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }

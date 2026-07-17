@@ -438,6 +438,16 @@
               "images",
               "videos"
             ]
+          },
+          "settingsSchema": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "JSON Schema dos settings de publicação do provider — é o formato aceito em `settingsByChannel` do POST /v1/posts; a UI renderiza o formulário \"Configurações\" por canal a partir dele"
+          },
+          "connectionFieldsSchema": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "JSON Schema dos campos de conexão — é o formato aceito em `fields` do POST /v1/channels/connect; presente só quando o provider pede credenciais/instância (a UI renderiza o formulário de conexão a partir dele; ausente = OAuth sem campos)"
           }
         },
         "required": [
@@ -448,7 +458,8 @@
           "twoStepConnect",
           "connectType",
           "maxLength",
-          "media"
+          "media",
+          "settingsSchema"
         ]
       },
       "MediaRef": {
@@ -582,6 +593,86 @@
           "state",
           "publishAt",
           "publications"
+        ]
+      },
+      "PublicationThreadItem": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "delaySec": {
+            "type": "integer"
+          },
+          "media": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MediaRef"
+            }
+          }
+        },
+        "required": [
+          "text",
+          "delaySec",
+          "media"
+        ]
+      },
+      "PublicationDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Publication"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string",
+                "description": "texto do item 0 neste canal (override incluído)"
+              },
+              "settings": {
+                "type": "object",
+                "additionalProperties": {},
+                "description": "settings de publicação do canal (inclui defaults do settingsSchema)"
+              },
+              "thread": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PublicationThreadItem"
+                },
+                "description": "réplicas encadeadas (posições ≥ 1; vazio = post simples)"
+              }
+            },
+            "required": [
+              "text",
+              "settings",
+              "thread"
+            ]
+          }
+        ]
+      },
+      "PostGroupDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PostGroup"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "publications": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PublicationDetail"
+                }
+              },
+              "text": {
+                "type": "string",
+                "description": "texto base do grupo (sem overrides por canal)"
+              }
+            },
+            "required": [
+              "text"
+            ]
+          }
         ]
       },
       "ApprovalLink": {
@@ -2223,6 +2314,7 @@
           }
         ],
         "summary": "Detalhe de um grupo de post",
+        "description": "Além dos estados, expõe o conteúdo completo (texto base, texto/settings por canal e réplicas de thread) — é o que o composer usa p/ duplicar um post.",
         "parameters": [
           {
             "schema": {
@@ -2240,7 +2332,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PostGroup"
+                  "$ref": "#/components/schemas/PostGroupDetail"
                 }
               }
             }

@@ -2,7 +2,9 @@
 
 import { Placeholder } from '@tiptap/extensions';
 import { EditorContent, useEditor } from '@tiptap/react';
+import type { Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import { useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
 /**
@@ -30,6 +32,7 @@ export function ComposerEditor({
   label,
   autoFocus = false,
   className,
+  onEditorReady,
 }: {
   initialText: string;
   onChange: (text: string) => void;
@@ -37,6 +40,7 @@ export function ComposerEditor({
   label: string;
   autoFocus?: boolean;
   className?: string;
+  onEditorReady?: (editor: Editor | null) => void;
 }) {
   const editor = useEditor({
     immediatelyRender: false,
@@ -44,7 +48,7 @@ export function ComposerEditor({
     extensions: [
       StarterKit.configure({
         blockquote: false,
-        bold: false,
+        bold: {},
         bulletList: false,
         code: false,
         codeBlock: false,
@@ -52,7 +56,7 @@ export function ComposerEditor({
         gapcursor: false,
         heading: false,
         horizontalRule: false,
-        italic: false,
+        italic: {},
         link: false,
         listItem: false,
         listKeymap: false,
@@ -66,6 +70,13 @@ export function ComposerEditor({
     editorProps: { attributes: { 'aria-label': label } },
     onUpdate: ({ editor: e }) => onChange(e.getText({ blockSeparator: '\n' })),
   });
+
+  const onEditorReadyRef = useRef(onEditorReady);
+  onEditorReadyRef.current = onEditorReady;
+
+  useEffect(() => {
+    onEditorReadyRef.current?.(editor);
+  }, [editor]);
 
   return (
     <div

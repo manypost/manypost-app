@@ -109,6 +109,23 @@ check(ids.includes('bluesky'), 'bluesky sempre disponível (não precisa de env)
 check(ids.includes('mastodon'), 'mastodon sempre disponível');
 const bsky = providers.find((p) => p.id === 'bluesky');
 check(bsky?.connectType === 'fields', 'bluesky conecta por campos (app password)');
+// settingsSchema = JSON Schema dos settings de publicação (formulário "Configurações" do composer)
+check(
+  bsky?.settingsSchema?.type === 'object' && bsky?.settingsSchema?.properties?.langs !== undefined,
+  'catálogo expõe settingsSchema como JSON Schema (bluesky.langs presente)',
+);
+// connectionFieldsSchema = JSON Schema dos campos do connect (formulário de conexão da UI)
+check(
+  bsky?.connectionFieldsSchema?.properties?.handle !== undefined &&
+    (bsky?.connectionFieldsSchema?.required ?? []).includes('handle'),
+  'catálogo expõe connectionFieldsSchema (bluesky.handle obrigatório)',
+);
+const masto = providers.find((p) => p.id === 'mastodon');
+check(
+  masto?.connectionFieldsSchema?.properties?.instance !== undefined &&
+    !(masto?.connectionFieldsSchema?.required ?? []).includes('instance'),
+  'mastodon (OAuth 2 etapas) expõe instance como campo de conexão opcional',
+);
 // discord conecta por URL de webhook (sem env no servidor) → sempre disponível, por campos
 check(ids.includes('discord'), 'discord sempre disponível (webhook, não precisa de env)');
 check(
@@ -125,9 +142,12 @@ if (ids.includes('telegram')) {
 // linkedin/x (OAuth, credenciais de app no env) seguem a mesma regra do telegram
 for (const oauthId of ['linkedin', 'x']) {
   if (ids.includes(oauthId)) {
+    const entry = providers.find((p) => p.id === oauthId);
+    check(entry?.connectType === 'oauth', `${oauthId} conecta por OAuth`);
+    // OAuth puro (sem instância/credencial) → connect direto, sem formulário
     check(
-      providers.find((p) => p.id === oauthId)?.connectType === 'oauth',
-      `${oauthId} conecta por OAuth`,
+      entry?.connectionFieldsSchema === undefined,
+      `${oauthId} não expõe connectionFieldsSchema (OAuth sem campos)`,
     );
   } else {
     const off = await post('/v1/channels/connect', { provider: oauthId }, bearer);

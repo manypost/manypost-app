@@ -9,6 +9,12 @@
     "confirm": "Confirmar",
     "genericError": "Algo deu errado. Tente de novo."
   },
+  "dateTime": {
+    "pick": "Escolher data",
+    "time": "Hora",
+    "prevMonth": "Mês anterior",
+    "nextMonth": "Próximo mês"
+  },
   "validation": {
     "required": "Campo obrigatório",
     "email": "Informe um e-mail válido",
@@ -166,7 +172,64 @@
     "preview": {
       "title": "Preview",
       "noChannels": "Selecione canais para ver o preview.",
-      "startWriting": "Comece a escrever para ver o preview do post."
+      "startWriting": "Comece a escrever para ver o preview do post.",
+      "now": "agora",
+      "linkedin": {
+        "like": "Gostar",
+        "comment": "Comentar",
+        "repost": "Compartilhar",
+        "send": "Enviar"
+      }
+    },
+    "channelSettings": {
+      "title": "Configurações de {name}",
+      "default": "Padrão da rede",
+      "fields": {
+        "mastodon": { "visibility": "Visibilidade" },
+        "telegram": {
+          "disableLinkPreview": "Desativar preview de link",
+          "silent": "Envio silencioso"
+        },
+        "bluesky": { "langs": "Idiomas do post" },
+        "discord": {
+          "suppressEmbeds": "Ocultar previews de link",
+          "silent": "Envio silencioso"
+        },
+        "linkedin": { "visibility": "Visibilidade" },
+        "x": { "replySettings": "Quem pode responder" },
+        "fake": {
+          "failFirstAttempts": "Falhar as N primeiras tentativas (dev)",
+          "expireToken": "Simular token expirado (dev)",
+          "rejectContent": "Rejeitar o conteúdo (dev)",
+          "failFirstReplyAttempts": "Falhar as N primeiras réplicas (dev)"
+        }
+      },
+      "hints": {
+        "bluesky": { "langs": "Códigos BCP-47 separados por vírgula — ex.: pt, en" }
+      },
+      "options": {
+        "mastodon": {
+          "visibility": {
+            "public": "Público",
+            "unlisted": "Não listado",
+            "private": "Só seguidores"
+          }
+        },
+        "linkedin": {
+          "visibility": {
+            "PUBLIC": "Público",
+            "CONNECTIONS": "Só conexões"
+          }
+        },
+        "x": {
+          "replySettings": {
+            "following": "Contas que sigo",
+            "mentionedUsers": "Só contas mencionadas",
+            "subscribers": "Assinantes",
+            "verified": "Contas verificadas"
+          }
+        }
+      }
     },
     "issues": {
       "emptyText": "Escreva o texto do post.",
@@ -221,8 +284,13 @@
       "addChannel": "Conectar canal",
       "empty": "Nenhum canal conectado ainda — conecte o primeiro em Conexões.",
       "filterHint": "Clique num canal para filtrar o calendário.",
-      "clearFilter": "Limpar filtro"
+      "clearFilter": "Limpar filtro",
+      "mobileFilter": "Canais ({count})"
     },
+    "mobileAgendaTitle": "Agenda do Dia",
+    "mobileAgendaEmpty": "Nenhum post agendado para este dia.",
+    "mobileSwipeHint": "Deslize na horizontal para navegar pelas horas e dias da semana",
+    "selectedDayHint": "Toque em um dia no calendário acima para ver a agenda",
     "state": {
       "DRAFT": "Rascunho",
       "SCHEDULED": "Agendado",
@@ -328,6 +396,12 @@
     "cancelConfirm": "Cancelar publicação",
     "keep": "Manter",
     "cancelled": "Publicação cancelada.",
+    "duplicate": "Duplicar",
+    "duplicateTitle": "Substituir o rascunho do composer?",
+    "duplicateWarning": "Já existe um rascunho em andamento no composer. Duplicar esta publicação substitui aquele conteúdo.",
+    "duplicateConfirm": "Substituir e duplicar",
+    "duplicated": "Conteúdo carregado no composer — escolha o horário.",
+    "duplicateDropped": "{count, plural, one {# canal do post original não está mais disponível e ficou de fora} other {# canais do post original não estão mais disponíveis e ficaram de fora}}.",
     "approval": {
       "title": "Link de aprovação",
       "create": "Gerar link",

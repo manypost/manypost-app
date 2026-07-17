@@ -19,11 +19,24 @@ export interface ThreadItemDraft {
   mediaIds: string[];
 }
 
+/** Conteúdo completo p/ pré-preencher o composer de uma vez (duplicar post). */
+export interface ComposerPrefill {
+  text: string;
+  channelIds: string[];
+  overrides: Record<string, string>;
+  channelSettings: Record<string, Record<string, unknown>>;
+  mediaIds: string[];
+  thread: Array<Omit<ThreadItemDraft, 'key'>>;
+  requireApproval: boolean;
+}
+
 interface ComposerState {
   text: string;
   channelIds: string[];
   /** override do texto por canal (chave = channelId) — só os personalizados */
   overrides: Record<string, string>;
+  /** settings de publicação por canal (settingsByChannel do POST /v1/posts) — só os alterados */
+  channelSettings: Record<string, Record<string, unknown>>;
   /** mídia do post principal (ids da biblioteca) */
   mediaIds: string[];
   /** réplicas encadeadas (item 0 é o post principal, não entra aqui) */
@@ -38,6 +51,8 @@ interface ComposerState {
   toggleChannel: (id: string) => void;
   setOverride: (id: string, text: string) => void;
   clearOverride: (id: string) => void;
+  /** value undefined = volta ao padrão da rede (remove a chave) */
+  setChannelSetting: (id: string, key: string, value: unknown) => void;
   toggleMedia: (id: string) => void;
   removeMedia: (id: string) => void;
   addThreadItem: () => void;
@@ -48,6 +63,8 @@ interface ComposerState {
   setMode: (mode: ScheduleMode) => void;
   setPublishAtLocal: (value: string) => void;
   setRequireApproval: (value: boolean) => void;
+  /** substitui o rascunho inteiro (duplicar post) — horário fica vazio p/ o usuário escolher */
+  loadDraft: (draft: ComposerPrefill) => void;
   reset: () => void;
 }
 
@@ -55,6 +72,7 @@ const EMPTY = {
   text: '',
   channelIds: [] as string[],
   overrides: {} as Record<string, string>,
+  channelSettings: {} as Record<string, Record<string, unknown>>,
   mediaIds: [] as string[],
   thread: [] as ThreadItemDraft[],
   mode: 'schedule' as ScheduleMode,
@@ -78,11 +96,22 @@ export const useComposerStore = create<ComposerState>()(
         set((s) => {
           if (s.channelIds.includes(id)) {
             const { [id]: _, ...overrides } = s.overrides;
-            return { channelIds: s.channelIds.filter((c) => c !== id), overrides };
+            const { [id]: __, ...channelSettings } = s.channelSettings;
+            return { channelIds: s.channelIds.filter((c) => c !== id), overrides, channelSettings };
           }
           return { channelIds: [...s.channelIds, id] };
         }),
       setOverride: (id, text) => set((s) => ({ overrides: { ...s.overrides, [id]: text } })),
+      setChannelSetting: (id, key, value) =>
+        set((s) => {
+          const current = { ...(s.channelSettings[id] ?? {}) };
+          if (value === undefined) delete current[key];
+          else current[key] = value;
+          const channelSettings = { ...s.channelSettings };
+          if (Object.keys(current).length === 0) delete channelSettings[id];
+          else channelSettings[id] = current;
+          return { channelSettings };
+        }),
       clearOverride: (id) =>
         set((s) => {
           const { [id]: _, ...overrides } = s.overrides;
@@ -125,6 +154,13 @@ export const useComposerStore = create<ComposerState>()(
       setMode: (mode) => set({ mode }),
       setPublishAtLocal: (publishAtLocal) => set({ publishAtLocal }),
       setRequireApproval: (requireApproval) => set({ requireApproval }),
+      loadDraft: (draft) =>
+        set((s) => ({
+          ...EMPTY,
+          ...draft,
+          thread: draft.thread.map((item) => ({ key: newKey(), ...item })),
+          editorNonce: s.editorNonce + 1,
+        })),
       reset: () => set((s) => ({ ...EMPTY, editorNonce: s.editorNonce + 1 })),
     }),
     { name: 'mp-composer-draft' },

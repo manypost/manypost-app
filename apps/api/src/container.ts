@@ -140,6 +140,8 @@ export async function buildContainer(env: Env) {
         events: runtime.events,
       }),
       getGroup: (orgId: string, groupId: string) => repos.publishing.getGroup(orgId, groupId),
+      // sem orgId de propósito: só chamar com ids vindos de um getGroup org-scoped (como o preview de aprovação)
+      listItems: (publicationId: string) => repos.publishing.listItems(publicationId),
       feed: repos.publishing.listPublicationsFeed,
       retry: makeRetryPost({ publishing: repos.publishing, scheduler: runtime.scheduler }),
       cancel: makeCancelPost({

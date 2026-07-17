@@ -5,6 +5,7 @@ import {
   Check,
   Copy,
   ExternalLink,
+  Files,
   Link2,
   Pencil,
   RotateCcw,
@@ -26,7 +27,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { DateTimePicker } from '@/components/ui/date-time-picker';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -41,6 +42,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { useChannels } from '@/features/channels/hooks';
 import { PROVIDER_ICONS } from '@/features/channels/provider-icon';
+import { useDuplicatePost } from '@/features/composer/use-duplicate';
 import { MediaThumb } from '@/features/media/media-thumb';
 import { useApiErrorMessage } from '@/lib/api/errors';
 import type { components } from '@/lib/api/schema';
@@ -70,7 +72,7 @@ export function PostDetailSheet({
   onClose,
 }: {
   groupId: string | null;
-  /** itens do feed do grupo (texto/canal) — o GET do grupo não embute texto */
+  /** itens do feed do grupo (texto/canal) — evita esperar o GET do grupo p/ exibir */
   items: FeedItem[];
   onClose: () => void;
 }) {
@@ -83,6 +85,7 @@ export function PostDetailSheet({
   const reschedule = useReschedulePost();
   const cancel = useCancelPost();
   const retry = useRetryPost();
+  const duplicatePost = useDuplicatePost();
 
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState('');
@@ -160,7 +163,7 @@ export function PostDetailSheet({
           {dateLabel ? <p className="text-sm text-graphite">{dateLabel}</p> : null}
         </SheetHeader>
 
-        <div className="flex flex-col gap-6 p-6">
+        <div className="flex flex-col gap-5 sm:gap-6 p-4 sm:p-6">
           {/* conteúdo */}
           <section className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
@@ -190,11 +193,11 @@ export function PostDetailSheet({
                 />
                 <div className="flex flex-col gap-1">
                   <Label htmlFor="edit-publish-at">{t('when')}</Label>
-                  <Input
+                  <DateTimePicker
                     id="edit-publish-at"
-                    type="datetime-local"
                     value={editAt}
-                    onChange={(e) => setEditAt(e.target.value)}
+                    onChange={setEditAt}
+                    className="w-fit"
                   />
                 </div>
                 <div className="flex gap-2">
@@ -271,24 +274,61 @@ export function PostDetailSheet({
                   return (
                     <li
                       key={pub.id}
-                      className="flex items-center gap-3 rounded-md border border-line bg-surface p-3"
+                      className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3 rounded-md border border-line bg-surface p-3"
                     >
-                      <span className="relative shrink-0">
-                        <Avatar className="size-8">
-                          {avatarUrl ? <AvatarImage src={avatarUrl} alt="" /> : null}
-                          <AvatarFallback>{name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        {PROVIDER_ICONS[provider] ? (
-                          <img
-                            src={PROVIDER_ICONS[provider]}
-                            alt=""
-                            aria-hidden
-                            className="absolute -bottom-0.5 -right-0.5 size-3.5 rounded-sm border border-surface"
-                          />
-                        ) : null}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[13px] font-semibold text-ink">{name}</span>
+                      <div className="flex items-center justify-between gap-2 w-full sm:w-auto sm:shrink-0">
+                        <div className="flex items-center gap-2">
+                          <span className="relative shrink-0">
+                            <Avatar className="size-8">
+                              {avatarUrl ? <AvatarImage src={avatarUrl} alt="" /> : null}
+                              <AvatarFallback>{name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            {PROVIDER_ICONS[provider] ? (
+                              <img
+                                src={PROVIDER_ICONS[provider]}
+                                alt=""
+                                aria-hidden
+                                className="absolute -bottom-0.5 -right-0.5 size-3.5 rounded-sm border border-surface"
+                              />
+                            ) : null}
+                          </span>
+                          <span className="truncate text-[13px] font-semibold text-ink sm:hidden">{name}</span>
+                        </div>
+
+                        <span className="flex shrink-0 items-center gap-1 sm:hidden">
+                          <Badge variant={stateBadgeVariant(pub.state)} className="text-[10px]">
+                            {tCal.has(`state.${pub.state}`) ? tCal(`state.${pub.state}`) : pub.state}
+                          </Badge>
+                          {RETRYABLE_STATES.has(pub.state) && groupId ? (
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={t('retryChannel')}
+                              onClick={() =>
+                                retry.mutate(
+                                  { groupId, channelId: pub.channelId },
+                                  {
+                                    onSuccess: () => toast.success(t('retryStarted')),
+                                    onError: (err) => toast.error(errorMessage(err)),
+                                  },
+                                )
+                              }
+                            >
+                              <RotateCcw aria-hidden />
+                            </Button>
+                          ) : null}
+                          {pub.releaseUrl ? (
+                            <Button asChild variant="ghost" size="icon-sm" aria-label={tCal('view')}>
+                              <a href={pub.releaseUrl} target="_blank" rel="noreferrer noopener">
+                                <ExternalLink aria-hidden />
+                              </a>
+                            </Button>
+                          ) : null}
+                        </span>
+                      </div>
+
+                      <span className="min-w-0 flex-1 w-full sm:w-auto">
+                        <span className="hidden sm:block truncate text-[13px] font-semibold text-ink">{name}</span>
                         <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-graphite">
                           {pub.itemCount > 1 ? (
                             <span>
@@ -303,12 +343,12 @@ export function PostDetailSheet({
                           ) : null}
                         </span>
                         {pub.errorMessage && RETRYABLE_STATES.has(pub.state) ? (
-                          <span className="mt-0.5 block text-xs leading-relaxed text-state-failed">
+                          <span className="mt-0.5 block text-xs leading-relaxed text-state-failed break-words">
                             {pub.errorMessage}
                           </span>
                         ) : null}
                       </span>
-                      <span className="flex shrink-0 items-center gap-1">
+                      <span className="hidden sm:flex shrink-0 items-center gap-1">
                         <Badge variant={stateBadgeVariant(pub.state)}>
                           {tCal.has(`state.${pub.state}`) ? tCal(`state.${pub.state}`) : pub.state}
                         </Badge>
@@ -356,6 +396,16 @@ export function PostDetailSheet({
           {/* ações do grupo */}
           <Separator />
           <section className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              disabled={!groupId}
+              onClick={() => groupId && duplicatePost.duplicate(groupId)}
+            >
+              <Files aria-hidden />
+              {t('duplicate')}
+            </Button>
             {(group.data?.publications ?? []).some((p) => RETRYABLE_STATES.has(p.state)) && groupId ? (
               <Button
                 variant="outline"
@@ -389,6 +439,8 @@ export function PostDetailSheet({
             ) : null}
           </section>
         </div>
+
+        {duplicatePost.dialog}
 
         <AlertDialog open={confirmCancel} onOpenChange={setConfirmCancel}>
           <AlertDialogContent>

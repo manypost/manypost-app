@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { ChannelProvider, MediaRef, ProviderContext } from '@manypost/contracts';
+import { settingsJsonSchema } from '../src/shared/settings-json-schema';
 
 /** ctx com fetch mockado — providers nunca tocam a rede em teste (SPEC_INTEGRATIONS §7). */
 export function mockCtx(
@@ -56,6 +57,13 @@ export function runProviderContract(provider: ChannelProvider) {
       expect(() => provider.settingsSchema.safeParse({})).not.toThrow();
     });
 
+    test('settingsSchema é serializável p/ JSON Schema (catálogo /v1/channels/providers)', () => {
+      const json = settingsJsonSchema(provider.settingsSchema);
+      expect(json.type).toBe('object');
+      // round-trip: o catálogo devolve isso como JSON puro p/ a UI montar o formulário
+      expect(JSON.parse(JSON.stringify(json))).toEqual(json);
+    });
+
     test('classifyError: 429/5xx → transient, 401 → refresh-token, 4xx → permanent', () => {
       expect(provider.classifyError(429, '')).toBe('transient');
       expect(provider.classifyError(500, '')).toBe('transient');
@@ -96,6 +104,15 @@ export function runProviderContract(provider: ChannelProvider) {
         // provider de credenciais precisa dizer quais campos pedir
         expect(provider.connectionFieldsSchema).toBeDefined();
       }
+    });
+
+    test('connectionFieldsSchema (quando presente) é serializável p/ JSON Schema (catálogo)', () => {
+      if (!provider.connectionFieldsSchema) return;
+      const json = settingsJsonSchema(provider.connectionFieldsSchema);
+      expect(json.type).toBe('object');
+      // todo campo de conexão é visível na UI — precisa de properties nomeadas
+      expect(Object.keys((json.properties as object) ?? {}).length).toBeGreaterThan(0);
+      expect(JSON.parse(JSON.stringify(json))).toEqual(json);
     });
   });
 }

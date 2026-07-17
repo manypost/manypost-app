@@ -36,3 +36,5 @@ export {
   telegramProvider,
   xProvider,
 };
+
+export { settingsJsonSchema } from './shared/settings-json-schema';

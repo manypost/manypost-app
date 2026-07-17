@@ -1021,7 +1021,10 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Detalhe de um grupo de post */
+        /**
+         * Detalhe de um grupo de post
+         * @description Além dos estados, expõe o conteúdo completo (texto base, texto/settings por canal e réplicas de thread) — é o que o composer usa p/ duplicar um post.
+         */
         get: {
             parameters: {
                 query?: never;
@@ -1039,7 +1042,7 @@ export type paths = {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["PostGroup"];
+                        "application/json": components["schemas"]["PostGroupDetail"];
                     };
                 };
                 /** @description não autenticado */
@@ -2441,6 +2444,14 @@ export type components = {
                 images: components["schemas"]["ProviderMediaRule"];
                 videos: components["schemas"]["ProviderMediaRule"];
             };
+            /** @description JSON Schema dos settings de publicação do provider — é o formato aceito em `settingsByChannel` do POST /v1/posts; a UI renderiza o formulário "Configurações" por canal a partir dele */
+            settingsSchema: {
+                [key: string]: unknown;
+            };
+            /** @description JSON Schema dos campos de conexão — é o formato aceito em `fields` do POST /v1/channels/connect; presente só quando o provider pede credenciais/instância (a UI renderiza o formulário de conexão a partir dele; ausente = OAuth sem campos) */
+            connectionFieldsSchema?: {
+                [key: string]: unknown;
+            };
         };
         MediaRef: {
             mediaId?: string;
@@ -2474,6 +2485,26 @@ export type components = {
             /** Format: date-time */
             publishAt: string | null;
             publications: components["schemas"]["Publication"][];
+        };
+        PublicationThreadItem: {
+            text: string;
+            delaySec: number;
+            media: components["schemas"]["MediaRef"][];
+        };
+        PublicationDetail: components["schemas"]["Publication"] & {
+            /** @description texto do item 0 neste canal (override incluído) */
+            text: string;
+            /** @description settings de publicação do canal (inclui defaults do settingsSchema) */
+            settings: {
+                [key: string]: unknown;
+            };
+            /** @description réplicas encadeadas (posições ≥ 1; vazio = post simples) */
+            thread: components["schemas"]["PublicationThreadItem"][];
+        };
+        PostGroupDetail: components["schemas"]["PostGroup"] & {
+            publications?: components["schemas"]["PublicationDetail"][];
+            /** @description texto base do grupo (sem overrides por canal) */
+            text: string;
         };
         ApprovalLink: {
             /** @description token opaco ≥256 bits — só aparece aqui */

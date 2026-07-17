@@ -3,27 +3,29 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api/client';
 
+/** fetchers exportados p/ uso imperativo via queryClient (ex.: duplicar post) */
+export async function fetchProviders() {
+  const { data, error } = await api.GET('/v1/channels/providers');
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchChannels() {
+  const { data, error } = await api.GET('/v1/channels');
+  if (error) throw error;
+  return data;
+}
+
 export function useProviders() {
   return useQuery({
     queryKey: ['providers'],
-    queryFn: async () => {
-      const { data, error } = await api.GET('/v1/channels/providers');
-      if (error) throw error;
-      return data;
-    },
+    queryFn: fetchProviders,
     staleTime: Number.POSITIVE_INFINITY, // catálogo muda só com env da instalação
   });
 }
 
 export function useChannels() {
-  return useQuery({
-    queryKey: ['channels'],
-    queryFn: async () => {
-      const { data, error } = await api.GET('/v1/channels');
-      if (error) throw error;
-      return data;
-    },
-  });
+  return useQuery({ queryKey: ['channels'], queryFn: fetchChannels });
 }
 
 /**

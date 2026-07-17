@@ -32,16 +32,19 @@ export function usePublicationsFeed(
   });
 }
 
+/** fetcher exportado p/ uso imperativo via queryClient (ex.: duplicar post) */
+export async function fetchPostGroup(groupId: string) {
+  const { data, error } = await api.GET('/v1/posts/{groupId}', {
+    params: { path: { groupId } },
+  });
+  if (error) throw error;
+  return data;
+}
+
 export function usePostGroup(groupId: string | null) {
   return useQuery({
     queryKey: ['post-group', groupId],
-    queryFn: async () => {
-      const { data, error } = await api.GET('/v1/posts/{groupId}', {
-        params: { path: { groupId: groupId! } },
-      });
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => fetchPostGroup(groupId!),
     enabled: groupId !== null,
   });
 }

@@ -3,6 +3,7 @@ import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import type { ChannelProvider } from '@manypost/contracts';
 import { ErrorCodes } from '@manypost/contracts';
 import { DomainError } from '@manypost/core';
+import { settingsJsonSchema } from '@manypost/providers';
 import type { Container } from '../../container';
 import { requireAdmin, requireAuth } from '../middleware/auth';
 import { AUTH_SECURITY, createApp, errorResponses, jsonBody, jsonResponse } from '../openapi';
@@ -47,6 +48,17 @@ const ProviderInfo = z
       .int()
       .openapi({ description: 'limite base de caracteres (sem settings do canal — ex.: X verified pode ser maior)' }),
     media: z.object({ images: MediaRuleOut, videos: MediaRuleOut }),
+    settingsSchema: z.record(z.unknown()).openapi({
+      description:
+        'JSON Schema dos settings de publicação do provider — é o formato aceito em `settingsByChannel` do POST /v1/posts; a UI renderiza o formulário "Configurações" por canal a partir dele',
+    }),
+    connectionFieldsSchema: z
+      .record(z.unknown())
+      .optional()
+      .openapi({
+        description:
+          'JSON Schema dos campos de conexão — é o formato aceito em `fields` do POST /v1/channels/connect; presente só quando o provider pede credenciais/instância (a UI renderiza o formulário de conexão a partir dele; ausente = OAuth sem campos)',
+      }),
   })
   .openapi('ChannelProviderInfo');
 
@@ -120,6 +132,11 @@ export function channelRoutes(ctn: Container) {
           // limite base p/ contador do composer (settings do canal podem ampliar — ex.: X verified)
           maxLength: p.capabilities.maxLength(undefined),
           media: p.capabilities.media,
+          settingsSchema: settingsJsonSchema(p.settingsSchema),
+          // formulário de conexão auto-gerado na UI — ausente = OAuth puro, connect sem campos
+          ...(p.connectionFieldsSchema
+            ? { connectionFieldsSchema: settingsJsonSchema(p.connectionFieldsSchema) }
+            : {}),
         })),
     ),
   );

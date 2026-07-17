@@ -21,8 +21,10 @@ const SCOPES = ['openid', 'profile', 'w_member_social'];
 const MAX_LEN = 3000;
 
 const settingsSchema = z.object({
-  /** PUBLIC = qualquer pessoa; CONNECTIONS = só conexões do autor */
-  visibility: z.enum(['PUBLIC', 'CONNECTIONS']).default('PUBLIC'),
+  visibility: z
+    .enum(['PUBLIC', 'CONNECTIONS'])
+    .default('PUBLIC')
+    .describe('Quem vê o post — PUBLIC = qualquer pessoa; CONNECTIONS = só conexões'),
 });
 
 const versionHeaders = (accessToken: string) => ({

@@ -10,11 +10,15 @@ import { checkMediaRules } from '../shared/media-rules';
  *   rejectContent     — força erro permanente
  */
 const settingsSchema = z.object({
-  failFirstAttempts: z.number().int().min(0).default(0),
-  expireToken: z.boolean().default(false),
-  rejectContent: z.boolean().default(false),
-  /** falha transitória nas N primeiras réplicas de thread (testa retomada pelo cursor) */
-  failFirstReplyAttempts: z.number().int().min(0).default(0),
+  failFirstAttempts: z.number().int().min(0).default(0).describe('Falha transitória nas N primeiras tentativas (dev)'),
+  expireToken: z.boolean().default(false).describe('Simula token expirado (dev)'),
+  rejectContent: z.boolean().default(false).describe('Rejeita o conteúdo como erro permanente (dev)'),
+  failFirstReplyAttempts: z
+    .number()
+    .int()
+    .min(0)
+    .default(0)
+    .describe('Falha transitória nas N primeiras réplicas de thread — testa retomada pelo cursor (dev)'),
 });
 
 const attempts = new Map<string, number>();
