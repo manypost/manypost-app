@@ -6,7 +6,7 @@ import { z } from 'zod';
  */
 const EnvSchema = z
   .object({
-    MODE: z.enum(['api', 'worker', 'all']).default('all'),
+    MODE: z.enum(['api', 'worker', 'all', 'web', 'standalone', 'full']).default('all'),
     PORT: z.coerce.number().default(3000),
     PUBLIC_URL: z.string().url(),
 
