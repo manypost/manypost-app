@@ -26,7 +26,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { DateTimePicker } from '@/components/ui/date-time-picker';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -190,11 +190,11 @@ export function PostDetailSheet({
                 />
                 <div className="flex flex-col gap-1">
                   <Label htmlFor="edit-publish-at">{t('when')}</Label>
-                  <Input
+                  <DateTimePicker
                     id="edit-publish-at"
-                    type="datetime-local"
                     value={editAt}
-                    onChange={(e) => setEditAt(e.target.value)}
+                    onChange={setEditAt}
+                    className="w-fit"
                   />
                 </div>
                 <div className="flex gap-2">

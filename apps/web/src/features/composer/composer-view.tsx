@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { DateTimePicker } from '@/components/ui/date-time-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { HoverPopover } from '@/components/ui/hover-popover';
@@ -511,6 +512,7 @@ export function ComposerView() {
             textFor={textFor}
             mediaIds={store.mediaIds}
             thread={store.thread.map((item) => ({ text: item.text, mediaIds: item.mediaIds }))}
+            publishAt={publishAt}
           />
         </aside>
       </div>
@@ -539,13 +541,11 @@ export function ComposerView() {
             {uniqueIssues.length > 0 ? (
               <span className="text-xs text-graphite">{uniqueIssues[0]}</span>
             ) : null}
-            <Input
-              type="datetime-local"
+            <DateTimePicker
               value={store.publishAtLocal}
               min={toLocalInput(new Date())}
-              onChange={(e) => store.setPublishAtLocal(e.target.value)}
-              aria-label={t('modeSchedule')}
-              className="w-52"
+              onChange={store.setPublishAtLocal}
+              ariaLabel={t('modeSchedule')}
             />
             {!store.requireApproval ? (
               <Button

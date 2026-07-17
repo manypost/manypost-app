@@ -9,6 +9,12 @@
     "confirm": "Confirmar",
     "genericError": "Algo deu errado. Tente de novo."
   },
+  "dateTime": {
+    "pick": "Escolher data",
+    "time": "Hora",
+    "prevMonth": "Mês anterior",
+    "nextMonth": "Próximo mês"
+  },
   "validation": {
     "required": "Campo obrigatório",
     "email": "Informe um e-mail válido",
@@ -166,7 +172,14 @@
     "preview": {
       "title": "Preview",
       "noChannels": "Selecione canais para ver o preview.",
-      "startWriting": "Comece a escrever para ver o preview do post."
+      "startWriting": "Comece a escrever para ver o preview do post.",
+      "now": "agora",
+      "linkedin": {
+        "like": "Gostar",
+        "comment": "Comentar",
+        "repost": "Compartilhar",
+        "send": "Enviar"
+      }
     },
     "channelSettings": {
       "title": "Configurações de {name}",

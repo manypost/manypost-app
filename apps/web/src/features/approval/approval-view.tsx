@@ -6,15 +6,13 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Wordmark } from '@/components/brand/wordmark';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
-import { PROVIDER_ICONS } from '@/features/channels/provider-icon';
-import { MediaThumb } from '@/features/media/media-thumb';
+import { NetworkPreview } from '@/features/composer/network-preview';
 import { api } from '@/lib/api/client';
 import { useApiErrorMessage } from '@/lib/api/errors';
 import type { components } from '@/lib/api/schema';
@@ -202,64 +200,18 @@ function ApprovalContent({
         </div>
       ) : null}
 
-      {/* preview por rede — como será publicado */}
+      {/* preview por rede — mesmos componentes do composer (SPEC §3.6) */}
       <div className="flex flex-col gap-3">
         {data.publications.map((pub, pi) => (
-          <article key={pi} className="rounded-lg border border-line bg-surface p-4">
-            <div className="flex flex-col gap-3">
-              {pub.items.map((item, i) => (
-                <div key={i} className="relative flex gap-2.5">
-                  {i > 0 ? (
-                    <span aria-hidden className="absolute -top-3 bottom-full left-4 w-px bg-line" />
-                  ) : null}
-                  <span className="relative z-10 shrink-0">
-                    <Avatar className="size-9">
-                      {pub.channelAvatarUrl ? <AvatarImage src={pub.channelAvatarUrl} alt="" /> : null}
-                      <AvatarFallback className="text-[11px]">{pub.channelName.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    {PROVIDER_ICONS[pub.provider] ? (
-                      <img
-                        src={PROVIDER_ICONS[pub.provider]}
-                        alt=""
-                        aria-hidden
-                        className="absolute -bottom-0.5 -right-0.5 size-4 rounded-sm border border-surface"
-                      />
-                    ) : null}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="flex flex-wrap items-baseline gap-x-1.5">
-                      <span className="text-[13px] font-semibold text-ink">{pub.channelName}</span>
-                      {pub.channelUsername ? (
-                        <span className="text-xs text-graphite">
-                          @{pub.channelUsername.replace(/^@/, '')}
-                        </span>
-                      ) : null}
-                    </p>
-                    <p className="mt-0.5 whitespace-pre-wrap break-words text-sm leading-relaxed text-ink">
-                      {item.text}
-                    </p>
-                    {item.media.length > 0 ? (
-                      <ul className={cn('mt-2 grid gap-1.5', item.media.length === 1 ? 'grid-cols-1' : 'grid-cols-2')}>
-                        {item.media.map((m, mi) => (
-                          <li key={mi}>
-                            <MediaThumb
-                              url={m.url}
-                              mime={m.mime}
-                              alt={m.alt}
-                              className={cn(
-                                'w-full rounded-md border border-line',
-                                item.media.length === 1 ? 'max-h-64' : 'aspect-square',
-                              )}
-                            />
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </article>
+          <NetworkPreview
+            key={pi}
+            provider={pub.provider}
+            name={pub.channelName}
+            username={pub.channelUsername}
+            avatarUrl={pub.channelAvatarUrl}
+            publishAt={data.publishAt ? new Date(data.publishAt) : null}
+            entries={pub.items.map((item) => ({ text: item.text, media: item.media }))}
+          />
         ))}
       </div>
 
