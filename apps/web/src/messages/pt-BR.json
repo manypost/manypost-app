@@ -168,6 +168,56 @@
       "noChannels": "Selecione canais para ver o preview.",
       "startWriting": "Comece a escrever para ver o preview do post."
     },
+    "channelSettings": {
+      "title": "Configurações de {name}",
+      "default": "Padrão da rede",
+      "fields": {
+        "mastodon": { "visibility": "Visibilidade" },
+        "telegram": {
+          "disableLinkPreview": "Desativar preview de link",
+          "silent": "Envio silencioso"
+        },
+        "bluesky": { "langs": "Idiomas do post" },
+        "discord": {
+          "suppressEmbeds": "Ocultar previews de link",
+          "silent": "Envio silencioso"
+        },
+        "linkedin": { "visibility": "Visibilidade" },
+        "x": { "replySettings": "Quem pode responder" },
+        "fake": {
+          "failFirstAttempts": "Falhar as N primeiras tentativas (dev)",
+          "expireToken": "Simular token expirado (dev)",
+          "rejectContent": "Rejeitar o conteúdo (dev)",
+          "failFirstReplyAttempts": "Falhar as N primeiras réplicas (dev)"
+        }
+      },
+      "hints": {
+        "bluesky": { "langs": "Códigos BCP-47 separados por vírgula — ex.: pt, en" }
+      },
+      "options": {
+        "mastodon": {
+          "visibility": {
+            "public": "Público",
+            "unlisted": "Não listado",
+            "private": "Só seguidores"
+          }
+        },
+        "linkedin": {
+          "visibility": {
+            "PUBLIC": "Público",
+            "CONNECTIONS": "Só conexões"
+          }
+        },
+        "x": {
+          "replySettings": {
+            "following": "Contas que sigo",
+            "mentionedUsers": "Só contas mencionadas",
+            "subscribers": "Assinantes",
+            "verified": "Contas verificadas"
+          }
+        }
+      }
+    },
     "issues": {
       "emptyText": "Escreva o texto do post.",
       "noChannelSelected": "Selecione ao menos um canal.",

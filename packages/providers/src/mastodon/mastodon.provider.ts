@@ -23,7 +23,10 @@ const fieldsSchema = z.object({
 });
 
 const settingsSchema = z.object({
-  visibility: z.enum(['public', 'unlisted', 'private']).default('public'),
+  visibility: z
+    .enum(['public', 'unlisted', 'private'])
+    .default('public')
+    .describe('Visibilidade do toot na instância'),
 });
 
 interface Extra {

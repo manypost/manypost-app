@@ -20,11 +20,13 @@ const SCOPES = ['tweet.read', 'tweet.write', 'users.read', 'media.write', 'offli
 /** teto de 5MB por APPEND na API — 4MB deixa folga p/ o envelope multipart */
 const CHUNK_BYTES = 4 * 1024 * 1024;
 
+// `verified` NÃO entra aqui: é setting do CANAL (preenchido na conexão, lido
+// cru pelo maxLength) — no schema viraria um toggle enganoso no composer.
 const settingsSchema = z.object({
-  /** omitido = todo mundo pode responder */
-  replySettings: z.enum(['following', 'mentionedUsers', 'subscribers', 'verified']).optional(),
-  /** conta Premium (verified) tem limite de 4000 chars — preenchido na conexão */
-  verified: z.boolean().optional(),
+  replySettings: z
+    .enum(['following', 'mentionedUsers', 'subscribers', 'verified'])
+    .optional()
+    .describe('Quem pode responder — omitido = todo mundo'),
 });
 
 const b64url = (bytes: Uint8Array) =>

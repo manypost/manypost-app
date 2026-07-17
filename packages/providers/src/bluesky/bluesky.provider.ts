@@ -32,8 +32,10 @@ const fieldsSchema = z.object({
 });
 
 const settingsSchema = z.object({
-  /** idioma declarado no post (BCP-47) — melhora distribuição/tradução no cliente */
-  langs: z.array(z.string()).default(['pt']),
+  langs: z
+    .array(z.string())
+    .default(['pt'])
+    .describe('Idiomas do post (BCP-47) — melhora distribuição/tradução no cliente'),
 });
 
 const serviceOf = (settings: unknown) =>

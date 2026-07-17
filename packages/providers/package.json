@@ -7,6 +7,7 @@
   "main": "src/index.ts",
   "dependencies": {
     "@manypost/contracts": "workspace:*",
-    "zod": "^3.25.0"
+    "zod": "^3.25.0",
+    "zod-to-json-schema": "^3.24.0"
   }
 }

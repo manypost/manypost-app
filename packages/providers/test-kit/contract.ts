@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { ChannelProvider, MediaRef, ProviderContext } from '@manypost/contracts';
+import { settingsJsonSchema } from '../src/shared/settings-json-schema';
 
 /** ctx com fetch mockado — providers nunca tocam a rede em teste (SPEC_INTEGRATIONS §7). */
 export function mockCtx(
@@ -54,6 +55,13 @@ export function runProviderContract(provider: ChannelProvider) {
     test('settingsSchema aceita objeto vazio ou aplica defaults sem lançar', () => {
       // publicação sem settings explícitos é o caminho comum — não pode explodir
       expect(() => provider.settingsSchema.safeParse({})).not.toThrow();
+    });
+
+    test('settingsSchema é serializável p/ JSON Schema (catálogo /v1/channels/providers)', () => {
+      const json = settingsJsonSchema(provider.settingsSchema);
+      expect(json.type).toBe('object');
+      // round-trip: o catálogo devolve isso como JSON puro p/ a UI montar o formulário
+      expect(JSON.parse(JSON.stringify(json))).toEqual(json);
     });
 
     test('classifyError: 429/5xx → transient, 401 → refresh-token, 4xx → permanent', () => {

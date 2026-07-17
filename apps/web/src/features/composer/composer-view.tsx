@@ -21,6 +21,7 @@ import { toLocalInput } from '@/lib/datetime';
 import { cn } from '@/lib/utils';
 import type { Editor } from '@tiptap/react';
 import { ChannelPicker } from './channel-picker';
+import { ChannelSettingsCard } from './channel-settings';
 import { ComposerEditor } from './editor';
 import { FormattingToolbar } from './formatting-toolbar';
 import { useSchedulePost } from './hooks';
@@ -157,6 +158,11 @@ export function ComposerView() {
       const override = store.overrides[ch.id]?.trim();
       if (override && override !== store.text.trim()) textByChannel[ch.id] = override;
     }
+    const settingsByChannel: Record<string, Record<string, unknown>> = {};
+    for (const ch of selected) {
+      const settings = store.channelSettings[ch.id];
+      if (settings && Object.keys(settings).length > 0) settingsByChannel[ch.id] = settings;
+    }
     schedule.mutate(
       {
         text: store.text.trim(),
@@ -164,6 +170,7 @@ export function ComposerView() {
         publishAt: at.toISOString(),
         timezone,
         textByChannel,
+        settingsByChannel,
         mediaIds: store.mediaIds,
         thread: store.thread.map((item) => ({
           text: item.text.trim(),
@@ -304,6 +311,7 @@ export function ComposerView() {
             {selected.map((ch) => {
               const overridden = store.overrides[ch.id] !== undefined;
               const counter = counters.find((c) => c.channel.id === ch.id);
+              const providerInfo = providerOf(ch.provider);
               return (
                 <TabsContent key={ch.id} value={ch.id} className="flex flex-col gap-3">
                   {overridden ? (
@@ -378,6 +386,16 @@ export function ComposerView() {
                       </Button>
                     </div>
                   )}
+                  {providerInfo ? (
+                    <ChannelSettingsCard
+                      providerId={providerInfo.id}
+                      providerName={providerInfo.name}
+                      channelName={ch.name ?? ch.username ?? providerInfo.name}
+                      schema={providerInfo.settingsSchema}
+                      values={store.channelSettings[ch.id] ?? {}}
+                      onChange={(key, value) => store.setChannelSetting(ch.id, key, value)}
+                    />
+                  ) : null}
                 </TabsContent>
               );
             })}

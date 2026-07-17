@@ -2441,6 +2441,10 @@ export type components = {
                 images: components["schemas"]["ProviderMediaRule"];
                 videos: components["schemas"]["ProviderMediaRule"];
             };
+            /** @description JSON Schema dos settings de publicação do provider — é o formato aceito em `settingsByChannel` do POST /v1/posts; a UI renderiza o formulário "Configurações" por canal a partir dele */
+            settingsSchema: {
+                [key: string]: unknown;
+            };
         };
         MediaRef: {
             mediaId?: string;

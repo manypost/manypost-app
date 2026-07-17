@@ -154,7 +154,11 @@ export const makeSchedulePost = (deps: SchedulePostDeps) =>
       }
       const chItems =
         override === undefined ? items : items.map((t, i) => (i === 0 ? { ...t, text: override } : t));
-      const max = provider.capabilities.maxLength(parsed.data);
+      // mesmo merge do publish (decisão: canal+publicação) — X verified valida contra 4000 já no agendamento
+      const max = provider.capabilities.maxLength({
+        ...((ch.settings as Record<string, unknown> | null) ?? {}),
+        ...(parsed.data as Record<string, unknown>),
+      });
       for (const item of chItems) {
         if (item.text.length > max) {
           throw new DomainError(ErrorCodes.PostTooLong, `limite de ${max} caracteres em ${ch.name}`, {

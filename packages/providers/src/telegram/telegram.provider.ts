@@ -24,10 +24,14 @@ const fieldsSchema = z.object({
 });
 
 const settingsSchema = z.object({
-  /** desabilita o preview de link do Telegram no post */
-  disableLinkPreview: z.boolean().default(false),
-  /** entrega silenciosa (sem som de notificação para os inscritos) */
-  silent: z.boolean().default(false),
+  disableLinkPreview: z
+    .boolean()
+    .default(false)
+    .describe('Não mostrar o preview de link no post'),
+  silent: z
+    .boolean()
+    .default(false)
+    .describe('Entrega silenciosa (sem som de notificação para os inscritos)'),
 });
 
 interface TgChat {

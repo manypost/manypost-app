@@ -36,10 +36,14 @@ const fieldsSchema = z.object({
 });
 
 const settingsSchema = z.object({
-  /** não expande previews de link no post (equivale ao SUPPRESS_EMBEDS) */
-  suppressEmbeds: z.boolean().default(false),
-  /** entrega silenciosa, sem push para os membros (SUPPRESS_NOTIFICATIONS) */
-  silent: z.boolean().default(false),
+  suppressEmbeds: z
+    .boolean()
+    .default(false)
+    .describe('Não expandir previews de link no post (SUPPRESS_EMBEDS)'),
+  silent: z
+    .boolean()
+    .default(false)
+    .describe('Entrega silenciosa, sem push para os membros (SUPPRESS_NOTIFICATIONS)'),
 });
 
 /** Reconstrói a URL canônica a partir do id+token (descarta host alternativo/versão). */

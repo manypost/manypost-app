@@ -438,6 +438,11 @@
               "images",
               "videos"
             ]
+          },
+          "settingsSchema": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "JSON Schema dos settings de publicação do provider — é o formato aceito em `settingsByChannel` do POST /v1/posts; a UI renderiza o formulário \"Configurações\" por canal a partir dele"
           }
         },
         "required": [
@@ -448,7 +453,8 @@
           "twoStepConnect",
           "connectType",
           "maxLength",
-          "media"
+          "media",
+          "settingsSchema"
         ]
       },
       "MediaRef": {

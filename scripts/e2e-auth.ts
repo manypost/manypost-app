@@ -109,6 +109,11 @@ check(ids.includes('bluesky'), 'bluesky sempre disponível (não precisa de env)
 check(ids.includes('mastodon'), 'mastodon sempre disponível');
 const bsky = providers.find((p) => p.id === 'bluesky');
 check(bsky?.connectType === 'fields', 'bluesky conecta por campos (app password)');
+// settingsSchema = JSON Schema dos settings de publicação (formulário "Configurações" do composer)
+check(
+  bsky?.settingsSchema?.type === 'object' && bsky?.settingsSchema?.properties?.langs !== undefined,
+  'catálogo expõe settingsSchema como JSON Schema (bluesky.langs presente)',
+);
 // discord conecta por URL de webhook (sem env no servidor) → sempre disponível, por campos
 check(ids.includes('discord'), 'discord sempre disponível (webhook, não precisa de env)');
 check(
