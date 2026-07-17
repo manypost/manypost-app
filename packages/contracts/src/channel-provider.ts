@@ -52,6 +52,21 @@ export interface ExternalAccount {
   avatarUrl?: string;
 }
 
+/** Sub-conta/canal selecionável de uma conta já conectada (ex.: canal de texto de um
+ *  servidor Discord, página de uma conta LinkedIn). `channelSettings` é gravado no canal
+ *  ao selecionar a sub-conta (guildId/channelId etc.). */
+export interface SubAccount extends ExternalAccount {
+  channelSettings?: Record<string, unknown>;
+}
+
+/** Token de um canal já conectado + identidade da conta — entrada de `listSubAccounts`
+ *  (o worker/rota decifra o token e repassa a identidade gravada no upsert). */
+export type ConnectedToken = TokenSet & {
+  externalId: string;
+  name?: string;
+  channelSettings?: Record<string, unknown>;
+};
+
 /** Referência de mídia anexada a um item de publicação (content jsonb / PublishItem). */
 export interface MediaRef {
   type: 'image' | 'video';
@@ -125,7 +140,7 @@ export interface ChannelProvider {
   ): Promise<TokenSet & ExternalAccount & { channelSettings?: Record<string, unknown> }>;
   /** settings = merge canal+publicação (ex.: service do PDS no Bluesky, instance no Mastodon) */
   refreshToken(ctx: ProviderContext, refreshToken: string, settings?: unknown): Promise<TokenSet>;
-  listSubAccounts?(ctx: ProviderContext, token: TokenSet): Promise<ExternalAccount[]>;
+  listSubAccounts?(ctx: ProviderContext, token: ConnectedToken): Promise<SubAccount[]>;
 
   publish(
     ctx: ProviderContext,

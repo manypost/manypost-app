@@ -126,11 +126,15 @@ check(
     !(masto?.connectionFieldsSchema?.required ?? []).includes('instance'),
   'mastodon (OAuth 2 etapas) expõe instance como campo de conexão opcional',
 );
-// discord conecta por URL de webhook (sem env no servidor) → sempre disponível, por campos
-check(ids.includes('discord'), 'discord sempre disponível (webhook, não precisa de env)');
+// discord-webhook conecta por URL de webhook (sem env no servidor) → sempre disponível, por campos
+check(ids.includes('discord-webhook'), 'discord-webhook sempre disponível (webhook, não precisa de env)');
 check(
-  providers.find((p) => p.id === 'discord')?.connectType === 'fields',
-  'discord conecta por campos (URL do webhook)',
+  providers.find((p) => p.id === 'discord-webhook')?.connectType === 'fields',
+  'discord-webhook conecta por campos (URL do webhook)',
+);
+check(
+  providers.find((p) => p.id === 'discord-webhook')?.connectionFieldsSchema?.properties?.webhookUrl !== undefined,
+  'discord-webhook expõe connectionFieldsSchema (webhookUrl)',
 );
 // telegram só aparece com TELEGRAM_BOT_TOKEN; sem env → some do catálogo e connect dá 404
 if (ids.includes('telegram')) {
@@ -139,8 +143,8 @@ if (ids.includes('telegram')) {
   const off = await post('/v1/channels/connect', { provider: 'telegram' }, bearer);
   check(off.status === 404, 'provider sem env → connect 404 (capability.disabled)');
 }
-// linkedin/x (OAuth, credenciais de app no env) seguem a mesma regra do telegram
-for (const oauthId of ['linkedin', 'x']) {
+// discord (OAuth2+Bot), linkedin e x (credenciais de app no env) seguem a mesma regra do telegram
+for (const oauthId of ['discord', 'linkedin', 'x']) {
   if (ids.includes(oauthId)) {
     const entry = providers.find((p) => p.id === oauthId);
     check(entry?.connectType === 'oauth', `${oauthId} conecta por OAuth`);

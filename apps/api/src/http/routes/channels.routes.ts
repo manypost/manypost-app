@@ -203,11 +203,19 @@ export function channelRoutes(ctn: Container) {
     tags: ['channels'],
     security: AUTH_SECURITY,
     summary: 'Callback OAuth — troca o code pelo token e conecta o canal',
+    description:
+      'Alvo do redirect OAuth (aberto num popup pela UI). Conecta o canal e devolve uma página HTML que avisa o opener via postMessage (`manypost:oauth:success`) e fecha a janela.',
     request: {
       params: z.object({ provider: z.string() }),
       query: z.object({ code: z.string(), state: z.string() }),
     },
-    responses: { 201: jsonResponse('canal conectado', ChannelOut), ...errorResponses(401, 403, 404) },
+    responses: {
+      200: {
+        description: 'página HTML que fecha o popup e notifica o opener — o canal já foi conectado',
+        content: { 'text/html': { schema: z.string() } },
+      },
+      ...errorResponses(401, 403, 404),
+    },
   });
   app.use('/callback/:provider', requireAdmin());
   app.get('/callback/:provider', async (c) => {
@@ -239,7 +247,17 @@ export function channelRoutes(ctn: Container) {
       provider,
       account,
     });
-    return c.json(channel, 201);
+    return c.html(
+      `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Conectado!</title></head>` +
+        `<body style="font-family: system-ui, sans-serif; display: grid; place-content: center; height: 100vh; margin: 0; background: #0f172a; color: #f8fafc;">` +
+        `<script>` +
+        `if (window.opener) window.opener.postMessage({ type: 'manypost:oauth:success', channelId: ${JSON.stringify(channel.id)} }, '*');` +
+        `setTimeout(() => window.close(), 150);` +
+        `</script>` +
+        `<div style="text-align: center;"><p style="font-size: 18px; font-weight: bold;">Canal conectado com sucesso!</p><p style="font-size: 14px; opacity: 0.8;">Fechando janela automaticamente...</p></div>` +
+        `</body></html>`,
+      200,
+    );
   });
 
   app.openAPIRegistry.registerPath({
@@ -255,6 +273,35 @@ export function channelRoutes(ctn: Container) {
   app.delete('/:id', async (c) => {
     await ctn.channels.disconnect(c.get('principal').orgId, c.req.param('id'));
     return c.body(null, 204);
+  });
+
+  const ExternalAccountOut = z.object({
+    externalId: z.string(),
+    name: z.string(),
+    username: z.string().optional(),
+    avatarUrl: z.string().optional(),
+  });
+  app.openAPIRegistry.registerPath({
+    method: 'get',
+    path: '/{id}/sub-accounts',
+    tags: ['channels'],
+    security: AUTH_SECURITY,
+    summary: 'Lista sub-contas ou canais (ex: canais de texto do servidor Discord)',
+    request: { params: z.object({ id: z.string().uuid() }) },
+    responses: { 200: jsonResponse('lista de canais/sub-contas', z.array(ExternalAccountOut)), ...errorResponses(401, 403, 404) },
+  });
+  app.get('/:id/sub-accounts', async (c) => {
+    const list = await ctn.channels.list(c.get('principal').orgId);
+    const channel = list.find((ch) => ch.id === c.req.param('id'));
+    if (!channel) return c.json({ code: 'not_found', message: 'canal não encontrado' }, 404);
+    const provider = getAvailable(channel.provider);
+    const subAccounts = await ctn.channels.listSubAccounts(
+      c.get('principal').orgId,
+      channel.id,
+      provider,
+      ctxFor(provider),
+    );
+    return c.json(subAccounts, 200);
   });
 
   return app;

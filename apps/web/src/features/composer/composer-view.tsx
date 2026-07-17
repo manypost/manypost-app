@@ -389,6 +389,7 @@ export function ComposerView() {
                   )}
                   {providerInfo ? (
                     <ChannelSettingsCard
+                      channelId={ch.id}
                       providerId={providerInfo.id}
                       providerName={providerInfo.name}
                       channelName={ch.name ?? ch.username ?? providerInfo.name}

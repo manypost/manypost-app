@@ -30,6 +30,7 @@ import {
   makeListApiKeys,
   makeListChannels,
   makeListMedia,
+  makeListSubAccounts,
   makeListWebhooks,
   makeLogin,
   makeLoginWithIdentity,
@@ -128,6 +129,7 @@ export async function buildContainer(env: Env) {
       connect: makeConnectChannel({ channels: repos.channels, crypto }),
       list: makeListChannels({ channels: repos.channels }),
       disconnect: makeDisconnectChannel({ channels: repos.channels }),
+      listSubAccounts: makeListSubAccounts({ channels: repos.channels, crypto }),
     },
     posts: {
       schedule: makeSchedulePost({

@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 export const PROVIDER_ICONS: Record<string, string> = {
   devto: '/social/Devto.svg',
   discord: '/social/Discord.svg',
+  'discord-webhook': '/social/Discord.svg',
   dribbble: '/social/Dribbble.svg',
   facebook: '/social/Facebook.svg',
   gmb: '/social/Gmb.svg',

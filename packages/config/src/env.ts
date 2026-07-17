@@ -55,7 +55,9 @@ const EnvSchema = z
     // guia leigo em docs/INTEGRATIONS_SETUP.md). Bluesky/Mastodon não precisam de env.
     MASTODON_DEFAULT_INSTANCE: z.string().url().optional(), // pré-preenche a instância no connect
     TELEGRAM_BOT_TOKEN: z.string().optional(),
-    // Discord conecta por URL de webhook (colada na conexão) — sem env no servidor.
+    DISCORD_CLIENT_ID: z.string().optional(),
+    DISCORD_CLIENT_SECRET: z.string().optional(),
+    DISCORD_BOT_TOKEN: z.string().optional(),
     LINKEDIN_CLIENT_ID: z.string().optional(),
     LINKEDIN_CLIENT_SECRET: z.string().optional(),
     X_CLIENT_ID: z.string().optional(),
@@ -108,7 +110,11 @@ export function providerSecretsFromEnv(env: Env): Record<string, Record<string, 
   return {
     mastodon: prune({ defaultInstance: env.MASTODON_DEFAULT_INSTANCE }),
     telegram: prune({ botToken: env.TELEGRAM_BOT_TOKEN }),
-    // discord conecta por URL de webhook (sem requiredSecrets) — não precisa de entrada aqui
+    discord: prune({
+      clientId: env.DISCORD_CLIENT_ID,
+      clientSecret: env.DISCORD_CLIENT_SECRET,
+      botToken: env.DISCORD_BOT_TOKEN,
+    }),
     linkedin: prune({ clientId: env.LINKEDIN_CLIENT_ID, clientSecret: env.LINKEDIN_CLIENT_SECRET }),
     x: prune({ clientId: env.X_CLIENT_ID, clientSecret: env.X_CLIENT_SECRET }),
   };

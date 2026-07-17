@@ -15,13 +15,19 @@ import { checkMediaRules } from '../shared/media-rules';
 
 const API = 'https://api.telegram.org';
 
-/** @canal, t.me/canal ou id numérico (grupos são negativos, ex.: -100123...). */
+/** @canal, t.me/canal, id numérico ou comando /connect ABCD para auto-descoberta. */
 const fieldsSchema = z.object({
   chat: z
     .string()
     .min(2)
-    .transform((s) => s.trim().replace(/^https?:\/\/t\.me\//, '@').replace(/^@@/, '@'))
-    .describe('Canal ou grupo onde o bot da instalação é administrador — @nome, link t.me/… ou id numérico'),
+    .transform((s) => {
+      const trimmed = s.trim();
+      if (trimmed.startsWith('http://t.me/') || trimmed.startsWith('https://t.me/')) {
+        return trimmed.replace(/^https?:\/\/t\.me\//, '@').replace(/^@@/, '@');
+      }
+      return trimmed;
+    })
+    .describe('Código digitado no canal (/connect ABCD ou ABCD) após adicionar o bot como admin — ou @nome / ID numérico do canal'),
 });
 
 const settingsSchema = z.object({
@@ -162,12 +168,46 @@ export const telegramProvider: ChannelProvider = {
   connectionFieldsSchema: fieldsSchema,
   requiredSecrets: ['botToken'],
 
-  /** Conexão: valida que o bot da instalação é admin do chat e pode publicar. */
+  /** Conexão: valida que o bot da instalação é admin do chat e pode publicar (suporta /connect ABCD e @username/ID). */
   async connectWithFields(ctx, { fields }) {
     const botToken = ctx.secrets.botToken;
     if (!botToken) throw { status: 422, body: 'TELEGRAM_BOT_TOKEN ausente no servidor' };
     const { chat: chatRef } = fieldsSchema.parse(fields);
-    const chatId: string | number = /^-?\d+$/.test(chatRef) ? Number(chatRef) : chatRef;
+
+    let chatId: string | number = /^-?\d+$/.test(chatRef) ? Number(chatRef) : chatRef;
+
+    // Auto-descoberta (Paridade Postiz): se não for ID numérico nem começar com @, verificamos
+    // se o usuário enviou /connect ABCD ou ABCD no canal/grupo via getUpdates
+    if (typeof chatId === 'string' && !chatId.startsWith('@')) {
+      const code = chatId.replace(/^\/connect\s+/i, '').trim();
+      interface TgUpdate {
+        update_id: number;
+        message?: { message_id: number; text?: string; chat?: TgChat };
+        channel_post?: { message_id: number; text?: string; chat?: TgChat };
+      }
+      const updates = await api<TgUpdate[]>(ctx, botToken, 'getUpdates', {
+        allowed_updates: ['message', 'channel_post'],
+      });
+      const match = updates.find(
+        (u) =>
+          (u.message?.text?.trim().toLowerCase() === `/connect ${code.toLowerCase()}` && u.message?.chat?.id) ||
+          (u.channel_post?.text?.trim().toLowerCase() === `/connect ${code.toLowerCase()}` && u.channel_post?.chat?.id) ||
+          (u.message?.text?.trim().toLowerCase() === code.toLowerCase() && u.message?.chat?.id) ||
+          (u.channel_post?.text?.trim().toLowerCase() === code.toLowerCase() && u.channel_post?.chat?.id),
+      );
+      const matchedChatId = match?.message?.chat?.id || match?.channel_post?.chat?.id;
+      const matchedMsgId = match?.message?.message_id || match?.channel_post?.message_id;
+      if (!matchedChatId) {
+        throw {
+          status: 422,
+          body: `Comando "/connect ${code}" não encontrado nos últimos updates do bot. Verifique se adicionou o bot no canal/grupo como administrador e enviou a mensagem exata no chat.`,
+        };
+      }
+      chatId = matchedChatId;
+      if (matchedMsgId) {
+        await api(ctx, botToken, 'deleteMessage', { chat_id: matchedChatId, message_id: matchedMsgId }).catch(() => null);
+      }
+    }
 
     const chat = await api<TgChat>(ctx, botToken, 'getChat', { chat_id: chatId });
     if (chat.type === 'private') {

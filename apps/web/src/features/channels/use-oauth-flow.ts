@@ -12,6 +12,7 @@ export function useOauthFlow() {
   return async (url: string) => {
     const result = await openOauthPopup(url);
     await invalidate();
+    setTimeout(() => { void invalidate(); }, 500);
     if (result === 'done') toast.success(t('connected'));
   };
 }
