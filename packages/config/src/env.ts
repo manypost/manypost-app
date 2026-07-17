@@ -10,6 +10,24 @@ const EnvSchema = z
     PORT: z.coerce.number().default(3000),
     PUBLIC_URL: z.string().url(),
 
+    /**
+     * Flag de arquitetura 100% Open Source (monorepo unificado, estilo Postiz IS_GENERAL/IS_CLOUD):
+     * true = modo Community/Self-Hosted (recursos e limites comerciais liberados localmente);
+     * false = modo Managed/Cloud (ativa enforcement comercial de planos Grátis/Pro/Premium no SaaS)
+     */
+    IS_SELF_HOSTED: z
+      .union([z.boolean(), z.string()])
+      .default('true')
+      .transform((v) => v === true || v === 'true'),
+    /**
+     * Oculta botões de upgrade, telas de faturamento da Stripe e promoções de planos na UI (estilo Postiz DISALLOW_PLUS)
+     */
+    HIDE_BILLING: z
+      .union([z.boolean(), z.string()])
+      .default('true')
+      .transform((v) => v === true || v === 'true'),
+
+
     DATABASE_URL: z.string().min(1),
     REDIS_URL: z.string().min(1),
     /** auto = roda migrations no boot (advisory lock); off = útil em dev/smoke sem DB */

@@ -76,7 +76,7 @@ erDiagram
 - `oauth_apps` / `oauth_grants`: manypost como authorization server p/ MCP (client_id, client_secret_hash, redirect_uris, scopes; grants com code_hash + PKCE challenge, access_token_hash, expires) — *direção do Postiz*, com hashes em vez de tokens em claro
 - `idempotency_keys`: key, org_id, request_hash, response jsonb, expires_at
 
-Fora do MVP (deliberado, existiam no Postiz): marketplace (orders/messages/payouts), extensão, trending/stars, tabelas de agente (`mastra_*`) — memória de IA premium fica no banco do premium.
+Fora do MVP (deliberado, existiam no Postiz): marketplace (orders/messages/payouts), extensão, trending/stars, tabelas de agente (`mastra_*`) — memória de IA operacional é modelada na v2 dentro do próprio monorepo.
 
 ## 4. Índices críticos
 

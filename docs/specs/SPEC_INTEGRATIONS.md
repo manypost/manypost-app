@@ -113,7 +113,7 @@ Igual à direção do Postiz com três correções: state single-use com TTL, to
 
 ## 6. Analytics por provider
 
-`fetchAnalytics` on-demand com cache Redis 1h (*direção do Postiz*) **e** persistência diária em `channel_metrics` (job `analytics-cache`) para histórico do núcleo — série básica (followers, impressões, engajamento). Benchmarking/comparação/alertas = premium, original, consumindo essas séries via API pública.
+`fetchAnalytics` on-demand com cache Redis 1h (*direção do Postiz*) **e** persistência diária em `channel_metrics` (job `analytics-cache`) para histórico — série básica (followers, impressões, engajamento). Benchmarking/comparação/alertas vivem na camada avançada do monorepo, consumindo essas séries via API de domínio e sendo controlados por `PlanPolicy` no SaaS.
 
 ## 7. Suíte de contrato de provider (qualidade)
 

@@ -45,7 +45,7 @@ flowchart LR
 - Dados: `GET /v1/publications?from&to` agrupadas por grupo; polling leve (30s) + refetch on-focus.
 
 ### 3.2 Kanban (design original, núcleo AGPL)
-- Colunas fixas por estado do grupo: **Rascunho → Aguardando aprovação → Agendado → Publicado / Falhou**. (Aprovação multi-estágio configurável é premium; o núcleo tem só o gate simples rascunho→aprovado, permissão de `MEMBER` vs `ADMIN`.)
+- Colunas fixas por estado do grupo: **Rascunho → Aguardando aprovação → Agendado → Publicado / Falhou**. (Aprovação multi-estágio configurável é liberada no SaaS via `PlanPolicy` em planos Pro/Premium, ou para todas as instâncias em modo `IS_SELF_HOSTED=true`; a configuração padrão tem o gate simples rascunho→aprovado, permissão de `MEMBER` vs `ADMIN`.)
 - Card = grupo (conteúdo truncado, canais como avatares empilhados, horário, tags, badge de origem WEB/API/MCP).
 - Drag entre colunas = transição de estado quando permitida (ex.: Falhou → Agendado = retry); transições inválidas rejeitadas com toast explicando.
 - Coluna "Falhou" mostra `error_class` legível e ação "tentar novamente" por canal.
