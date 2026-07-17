@@ -11,8 +11,10 @@
 builder = "dockerfile"
 dockerfilePath = "docker/Dockerfile"
 
+# healthcheck em /login: no MODE=standalone a porta pública serve o Next (web);
+# /docs só existe na API interna (3100), que o web não proxeia — daria 404 no healthcheck.
 [deploy]
-healthcheckPath = "/docs"
-healthcheckTimeout = 120
+healthcheckPath = "/login"
+healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
