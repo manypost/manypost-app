@@ -157,8 +157,8 @@ Todo o conhecimento técnico do projeto está detalhadamente documentado na past
 | [**TESTING.md**](TESTING.md) | **Guia prático sem tecniquês:** Como clonar, subir o Docker e testar a API no navegador. |
 | [**docs/INTEGRATIONS_SETUP.md**](docs/INTEGRATIONS_SETUP.md) | **Guia passo a passo:** Como criar seus Apps e obter credenciais OAuth/API de cada rede social (Meta, X, Bluesky, Telegram, Discord, etc.). |
 | [**docs/POSTIZ_ANALYSIS.md**](docs/POSTIZ_ANALYSIS.md) | Análise técnica do Postiz (commit `84edda5`) e mapa explicativo da derivação das soluções. |
-| [**docs/DECISIONS.md**](docs/DECISIONS.md) | Registro de decisões arquiteturais congeladas v1 + adendo v1.1 (fronteiras AGPL/fechado, fila, concorrência, rate-limit). |
-| [**docs/PLANS.md**](docs/PLANS.md) | Matriz de planos (Grátis / Pro / Premium) no modelo open-core e mapeamento de gates. |
+| [**docs/DECISIONS.md**](docs/DECISIONS.md) | Registro de decisões arquiteturais v1 + adendo v1.1 + adendo Open Source v1.2 (monorepo unificado 100% aberto, fila, concorrência, rate-limit). |
+| [**docs/PLANS.md**](docs/PLANS.md) | Matriz de planos do serviço gerenciado (Grátis/Pro/Premium) e controle por feature flags no monorepo 100% open source. |
 | [**docs/specs/**](docs/specs/) | Especificações detalhadas por camada: Arquitetura, Backend, Frontend, Fila/Publicação, Integrações, Dados e MCP. |
 | [**docs/brand/**](docs/brand/) | **Identidade Visual:** `BRAND_SYSTEM.md` e guia de cores semânticas e tokens da UI do manypost. |
 
@@ -166,9 +166,9 @@ Todo o conhecimento técnico do projeto está detalhadamente documentado na past
 
 ## 🔒 Regras Invioláveis do Repositório
 
-Para manter o núcleo open source puro, limpo e com alta manutenibilidade, seguimos 4 regras inegociáveis via automações de CI (`bun run check`):
+Para manter o monorepo open source puro, limpo e com alta manutenibilidade, seguimos 4 regras inegociáveis via automações de CI (`bun run check`):
 
-1. **Self-Hosted 100% Funcional**: Este repositório roda de forma 100% autônoma e completa em modo self-hosted sem qualquer dependência ou flag de componente premium/código fechado.
+1. **Monorepo 100% Open Source (Community vs Cloud)**: Todo o projeto (aplicação, workers, APIs e contratos) é open source sob a licença AGPL-3.0. Não existe repositório privado paralelo (`manypost-premium`). A separação entre o modo comunitário gratuito (Self-Hosted) e o serviço gerenciado (SaaS Cloud) opera de forma limpa via variáveis de ambiente (`IS_SELF_HOSTED`, `HIDE_BILLING`), no mesmo padrão do Postiz.
 2. **Pureza do Core (`packages/core`)**: O pacote de domínio e use-cases (`packages/core`) não pode importar de `apps/*` nem de adaptadores de infraestrutura (verificado continuamente por `dependency-cruiser`).
 3. **Isolamento de IA**: Nenhum provedor de Inteligência Artificial nominal ou SDK de terceiro pode ser importado fora do módulo `infra/ai/*` (verificado via análise estática de grep).
 4. **Rastreabilidade de Derivação**: Todo código ou lógica diretamente reimplementada a partir de soluções do Postiz deve conter o comentário obrigatório: `// Derived from Postiz (AGPL-3.0): <caminho-original>`.

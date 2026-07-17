@@ -135,4 +135,4 @@ sequenceDiagram
 2. OpenAPI 3.1 gerado automaticamente cobre 100% das rotas públicas e autenticadas.
 3. Fluxo completo (conectar canal fake → agendar → publicar → webhook) verde em teste de integração.
 4. Lint impede: import de `apps/*` dentro de `packages/core`; repositório sem filtro de org; `catch` vazio.
-5. Nenhum código premium ou referência a provedor de IA nominal no repo (grep no CI).
+5. Nenhuma dependência externa ou repositório premium fechado (`@manypost-premium`) e nenhuma referência a provedor de IA nominal fora do adaptador `infra/ai/*` (grep no CI).

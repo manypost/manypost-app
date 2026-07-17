@@ -11,6 +11,4 @@ O núcleo do manypost reimplementa soluções do **Postiz** ([gitroomhq/postiz-a
 | Mapa default de concorrência por provider (X=1, Reddit=1, LinkedIn=2, Pinterest=3, YouTube=200, Instagram=400, Facebook=500) | valores `maxConcurrentJob` dos providers |
 | Padrão "MCP sobre o mesmo core" com OAuth de recurso protegido (RFC 9728 + PKCE) e auditoria da origem da mutação | `libraries/nestjs-libraries/src/chat/start.mcp.ts`, enum `CreationMethod` |
 
-**Regra de contribuição:** qualquer trecho portado de forma reconhecível do Postiz deve ser marcado no código com `// Derived from Postiz (AGPL-3.0): <caminho do arquivo upstream>`.
-
-Componentes premium do manypost (IA operacional, governança avançada, billing, admin) são implementação original, vivem em repositório separado e não derivam do Postiz.
+**Estratégia Open Source & Nuvem:** Todo o código do manypost (incluindo IA operacional, workspaces, governança, billing e admin) opera em um **Monorepo Único 100% Open Source (AGPL-3.0)**. A separação entre o uso comunitário gratuito (`IS_SELF_HOSTED=true`, `HIDE_BILLING=true`) e o serviço gerenciado na nuvem (`manypost Cloud`, onde os limites de planos e cobranças são ativados via `PlanPolicy`) é controlada por variáveis de ambiente, sem necessidade de repositório privado ou código fechado. Componentes operacionais exclusivos do produto são implementações originais e não derivam do Postiz.

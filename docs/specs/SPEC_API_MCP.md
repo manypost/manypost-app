@@ -94,7 +94,7 @@ Eventos: `post.published`, `post.failed`, `post.scheduled`, `channel.refresh_req
 
 ## 6. Autorização por papel (web)
 
-`OWNER` (tudo), `ADMIN` (tudo menos billing/excluir org), `MEMBER` (criar/editar rascunhos, não aprova nem conecta canais) — matriz endpoint×papel na tabela de rotas, avaliada no mesmo middleware de escopos. Papéis finos/custom = premium (original), via extension point de política (SPEC_ARCHITECTURE §5).
+`OWNER` (tudo), `ADMIN` (tudo menos billing/excluir org), `MEMBER` (criar/editar rascunhos, não aprova nem conecta canais) — matriz endpoint×papel na tabela de rotas, avaliada no mesmo middleware de escopos. Papéis finos/custom vivem no monorepo e são validados pelo `PlanPolicy` no SaaS ou liberados localmente em `IS_SELF_HOSTED=true` (SPEC_ARCHITECTURE §5).
 
 ## 7. Critérios de aceite
 

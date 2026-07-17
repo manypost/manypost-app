@@ -54,14 +54,14 @@ Env tipada com zod em `packages/config` (fail-fast com mensagem clara na var fal
 
 ## 5. CI/CD (GitHub Actions)
 
-1. **ci.yml** (PR): install (bun) → lint (+ regras de arquitetura: dependency-cruiser, greps de fronteira AGPL/premium e de provedores IA) → typecheck → testes unit/integração (services: postgres, redis) → migrations do zero → OpenAPI snapshot → build imagens.
+1. **ci.yml** (PR): install (bun) → lint (+ regras de arquitetura: dependency-cruiser, verificação de monorepo sem repo fechado `@manypost-premium` e greps de provedores IA) → typecheck → testes unit/integração (services: postgres, redis) → migrations do zero → OpenAPI snapshot → build imagens.
 2. **release.yml** (tag): build+push GHCR multi-arch, SBOM, changelog automático, publish `@manypost/contracts`.
 3. **e2e.yml** (nightly): compose completo + Playwright + provider fake; smoke de upgrade (volume da versão anterior → head).
-4. Repo premium tem CI próprio que consome `@manypost/contracts` publicado — nunca o código do núcleo.
+4. **Monorepo checks:** o CI valida continuamente a integridade dos contratos e a separação limpa entre `packages/core` e `apps/*`.
 
 ## 6. Critérios de aceite
 
-1. `docker compose up` do zero → onboarding funcional em < 5 min, sem variável premium.
+1. `docker compose up` do zero → onboarding funcional em < 5 min, com `IS_SELF_HOSTED=true` ativo por padrão.
 2. Derrubar Redis com posts agendados: publicação continua (com rate-limit degradado p/ default conservador) e nada é perdido.
 3. `correlationId` de um agendamento aparece em: log da api, log do worker, span OTel e entrega de webhook.
 4. `/metrics` expõe as métricas do §4 e os dashboards de referência renderizam.

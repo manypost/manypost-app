@@ -21,8 +21,8 @@
 | G5 | Componentes descritos para Astro (`<Button />` .astro) | App usa shadcn/ui | Tema shadcn no §2 traduz os tokens; os nomes de variantes da marca são preservados |
 
 ### Alinhamento marca ↔ roadmap (RESOLVIDO em DECISIONS v1.1 + docs/PLANS.md)
-- **Análise de concorrentes / benchmarking** (BRAND §1.C) → confirmado pelo owner como feature do produto; **código fechado** (v2+), entra na matriz de planos quando pronta (PLANS PL4). Marketing do MVP AGPL não a promete.
-- **Papéis Criador/Revisor/Gestor + histórico** (BRAND §1.D) → workspaces/permissões/auditoria do **plano Premium** (código fechado, v3); núcleo tem OWNER/ADMIN/MEMBER + aprovação de 1 estágio.
+- **Análise de concorrentes / benchmarking** (BRAND §1.C) → confirmado pelo owner como feature do produto; **código aberto no monorepo** (gates no SaaS em v2+), entra na matriz de planos quando pronta (PLANS PL4). Marketing do MVP não a promete.
+- **Papéis Criador/Revisor/Gestor + histórico** (BRAND §1.D) → workspaces/permissões/auditoria do **plano Premium no SaaS** (monorepo 100% aberto, v3); núcleo comunitário tem OWNER/ADMIN/MEMBER + aprovação de 1 estágio.
 - **Links públicos de aprovação de cliente sem login** (BRAND §1.D) → **✅ aprovado para o núcleo AGPL** (DECISIONS v1.1 §12), gate Pro+ no gerenciado; fase 1 do roadmap.
 - **Colunas do kanban** na marca (Ideação, Rascunho, Em Revisão, Aprovado pelo Cliente, Agendado, Publicado): mapeamento v1 — Ideação+Rascunho → `DRAFT`; Em Revisão → aguardando aprovação (interna ou por link público); Aprovado pelo Cliente → resultado do link público; Agendado → `SCHEDULED`; Publicado → `PUBLISHED` (+ coluna Falhou, que a marca omite mas o app precisa). "Kanban básico" do plano Grátis: definição pendente (PLANS PL2).
 

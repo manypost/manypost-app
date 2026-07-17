@@ -1,4 +1,4 @@
-# CLAUDE.md — manypost (núcleo AGPL)
+# CLAUDE.md — manypost (100% Open Source / AGPL-3.0 Monorepo)
 
 Plataforma de agendamento/publicação multicanal. **O wordmark é sempre `manypost`, em caixa baixa — inclusive em início de frase e `<title>`.**
 
@@ -16,14 +16,14 @@ Plataforma de agendamento/publicação multicanal. **O wordmark é sempre `manyp
 | Providers de rede social | `docs/specs/SPEC_INTEGRATIONS.md` + `docs/principal/platform-gates.md` |
 | Docs de usuário: credenciais das redes | `docs/principal/INTEGRATIONS_SETUP.md` (linguagem leiga — manter assim) |
 | Banco | `docs/specs/SPEC_DATA.md` |
-| Decisões já tomadas (não re-litigar) | `docs/principal/DECISIONS.md` (v1 + adendo v1.1) |
-| Planos do SaaS e gates de feature | `docs/principal/PLANS.md` — "plano Premium" (tier) ≠ "código fechado" (repo privado) |
-| Origem/licença | `ATTRIBUTION.md` — derivado do Postiz (AGPL-3.0) |
+| Decisões já tomadas (não re-litigar) | `docs/principal/DECISIONS.md` (v1 + adendo v1.1 + adendo Open Source v1.2) |
+| Planos do SaaS e gates de feature | `docs/principal/PLANS.md` — enforcement via feature flags `IS_SELF_HOSTED`/`HIDE_BILLING` no monorepo 100% aberto |
+| Origem/licença | `ATTRIBUTION.md` — derivado do Postiz (AGPL-3.0), monorepo unificado 100% open source |
 
 ## Regras invioláveis
 
-1. **AGPL/premium:** nada neste repo importa ou referencia código premium; o núcleo roda 100% self-hosted sozinho.
-2. **Fronteiras:** `packages/core` não importa de `apps/*` nem de `packages/{db,providers}` (CI: dependency-cruiser). `packages/contracts` contém só tipos/schemas/constantes — zero lógica — e **não é publicado** até o parecer jurídico (DECISIONS §1c).
+1. **100% Open Source (Monorepo Único):** todo o código da aplicação (inclusive IA operacional, workspaces e enforcement de billing) vive no monorepo sob AGPL-3.0. A separação entre uso grátis self-hosted e SaaS na nuvem ocorre via variáveis de ambiente (`IS_SELF_HOSTED`, `HIDE_BILLING`).
+2. **Fronteiras:** `packages/core` não importa de `apps/*` nem de `packages/{db,providers}` (CI: dependency-cruiser). `packages/contracts` está sob AGPL-3.0 junto com o monorepo e contém só tipos/schemas/constantes — zero lógica.
 3. **Multi-tenant:** todo repositório/query filtra por `org_id`.
 4. **IA agnóstica:** nenhum provedor nominal (openai/anthropic/etc.) fora de `infra/ai/*` (CI: `bun run check:ai-providers`). Toda operação de IA passa pelo BudgetGuard.
 5. **Segurança:** tokens de canal cifrados (AES-256-GCM, `ENCRYPTION_KEY` ≠ `JWT_SECRET`); nunca logar tokens; nunca repostar em incerteza (`NEEDS_REVIEW`).
