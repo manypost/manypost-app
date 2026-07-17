@@ -251,39 +251,42 @@ export function CalendarView() {
 
       <div className="flex min-w-0 flex-1 flex-col gap-4">
         {/* toolbar */}
-        <div className="flex flex-wrap items-center gap-3">
-          {view !== 'lista' ? (
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon-sm" aria-label={t('previous')} onClick={() => navigate(-1)}>
-                <ChevronLeft aria-hidden />
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setParams({ data: null })}>
-                {t('today')}
-              </Button>
-              <Button variant="ghost" size="icon-sm" aria-label={t('next')} onClick={() => navigate(1)}>
-                <ChevronRight aria-hidden />
-              </Button>
-            </div>
-          ) : null}
-          <span className="text-sm font-semibold capitalize text-ink">{periodLabel}</span>
+        {/* toolbar responsiva com abas padronizadas */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <div className="flex items-center justify-between gap-2 w-full sm:w-auto">
+            {view !== 'lista' ? (
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon-sm" aria-label={t('previous')} onClick={() => navigate(-1)}>
+                  <ChevronLeft aria-hidden />
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setParams({ data: null })}>
+                  {t('today')}
+                </Button>
+                <Button variant="ghost" size="icon-sm" aria-label={t('next')} onClick={() => navigate(1)}>
+                  <ChevronRight aria-hidden />
+                </Button>
+              </div>
+            ) : null}
+            <span className="text-sm font-semibold capitalize text-ink sm:ml-2 truncate max-w-[200px] sm:max-w-none">{periodLabel}</span>
+          </div>
 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto sm:ml-auto">
             {view === 'lista' ? (
-              <Tabs value={listFilter} onValueChange={(v) => setParams({ estado: v === 'todos' ? null : v })}>
-                <TabsList>
-                  <TabsTrigger value="todos">{t('filter.all')}</TabsTrigger>
-                  <TabsTrigger value="agendados">{t('filter.scheduled')}</TabsTrigger>
-                  <TabsTrigger value="rascunhos">{t('filter.drafts')}</TabsTrigger>
-                  <TabsTrigger value="publicados">{t('filter.published')}</TabsTrigger>
+              <Tabs value={listFilter} onValueChange={(v) => setParams({ estado: v === 'todos' ? null : v })} className="w-full sm:w-auto">
+                <TabsList className="grid w-full grid-cols-4 sm:flex sm:w-auto h-11 sm:h-10 p-1">
+                  <TabsTrigger value="todos" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-[13px] font-semibold truncate">{t('filter.all')}</TabsTrigger>
+                  <TabsTrigger value="agendados" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-[13px] font-semibold truncate">{t('filter.scheduled')}</TabsTrigger>
+                  <TabsTrigger value="rascunhos" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-[13px] font-semibold truncate">{t('filter.drafts')}</TabsTrigger>
+                  <TabsTrigger value="publicados" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-[13px] font-semibold truncate">{t('filter.published')}</TabsTrigger>
                 </TabsList>
               </Tabs>
             ) : null}
-            <Tabs value={view} onValueChange={(v) => setParams({ visao: v === 'semana' ? null : v })}>
-              <TabsList>
-                <TabsTrigger value="dia">{t('viewDay')}</TabsTrigger>
-                <TabsTrigger value="semana">{t('viewWeek')}</TabsTrigger>
-                <TabsTrigger value="mes">{t('viewMonth')}</TabsTrigger>
-                <TabsTrigger value="lista">{t('viewList')}</TabsTrigger>
+            <Tabs value={view} onValueChange={(v) => setParams({ visao: v === 'semana' ? null : v })} className="w-full sm:w-auto">
+              <TabsList className="grid w-full grid-cols-4 sm:flex sm:w-auto h-11 sm:h-10 p-1">
+                <TabsTrigger value="dia" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-[13px] font-semibold truncate">{t('viewDay')}</TabsTrigger>
+                <TabsTrigger value="semana" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-[13px] font-semibold truncate">{t('viewWeek')}</TabsTrigger>
+                <TabsTrigger value="mes" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-[13px] font-semibold truncate">{t('viewMonth')}</TabsTrigger>
+                <TabsTrigger value="lista" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-[13px] font-semibold truncate">{t('viewList')}</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -376,37 +379,56 @@ function ListView({ items, onOpen }: { items: FeedItem[]; onOpen: (groupId: stri
                   type="button"
                   onClick={() => onOpen(item.groupId)}
                   className={cn(
-                    'flex w-full items-center gap-3 border-l-2 border-l-transparent bg-surface px-3 py-2.5 text-left transition-colors duration-200',
-                    'outline-none hover:border-l-accent hover:bg-surface-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent',
+                    'flex w-full flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3 border-l-2 border-l-transparent bg-surface p-3 sm:px-3 sm:py-2.5 text-left transition-colors duration-200',
+                    'outline-none hover:border-l-accent hover:bg-surface-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent active:bg-surface-2',
                   )}
                 >
-                  <span className="relative shrink-0">
-                    <Avatar className="size-7">
-                      {item.channel.avatarUrl ? <AvatarImage src={item.channel.avatarUrl} alt="" /> : null}
-                      <AvatarFallback className="text-[11px]">
-                        {(item.channel.name ?? item.channel.provider).charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    {PROVIDER_ICONS[item.channel.provider] ? (
-                      <img
-                        src={PROVIDER_ICONS[item.channel.provider]}
-                        alt=""
-                        aria-hidden
-                        className="absolute -bottom-0.5 -right-0.5 size-3 rounded-sm border border-surface"
-                      />
-                    ) : null}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm text-ink">{item.text}</span>
-                    <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-graphite">
-                      <span className="truncate">{item.channel.name}</span>
-                      {item.mediaCount > 0 ? <span>· {t('media', { count: item.mediaCount })}</span> : null}
+                  <div className="flex items-center justify-between gap-2 w-full sm:w-auto sm:shrink-0">
+                    <div className="flex items-center gap-2">
+                      <span className="relative shrink-0">
+                        <Avatar className="size-7">
+                          {item.channel.avatarUrl ? <AvatarImage src={item.channel.avatarUrl} alt="" /> : null}
+                          <AvatarFallback className="text-[11px]">
+                            {(item.channel.name ?? item.channel.provider).charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        {PROVIDER_ICONS[item.channel.provider] ? (
+                          <img
+                            src={PROVIDER_ICONS[item.channel.provider]}
+                            alt=""
+                            aria-hidden
+                            className="absolute -bottom-0.5 -right-0.5 size-3 rounded-sm border border-surface"
+                          />
+                        ) : null}
+                      </span>
+                      <span className="font-semibold text-xs text-ink sm:hidden">{item.channel.name}</span>
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-1.5 sm:hidden">
+                      {item.group.awaitingApproval ? (
+                        <Badge variant="review" className="text-[10px] px-1.5 py-0">{t('awaitingApproval')}</Badge>
+                      ) : null}
+                      <Badge variant={stateBadgeVariant(item.state)} className="text-[10px] px-1.5 py-0">
+                        {t.has(`state.${item.state}`) ? t(`state.${item.state}`) : item.state}
+                      </Badge>
+                      <span className="text-xs font-semibold tabular-nums text-ink ml-1">
+                        {item.publishAt ? timeLabel.format(new Date(item.publishAt)) : '—'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <span className="min-w-0 flex-1 w-full sm:w-auto">
+                    <span className="block text-sm font-medium text-ink line-clamp-2 sm:truncate sm:font-normal">{item.text}</span>
+                    <span className="mt-1 sm:mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-graphite">
+                      <span className="hidden sm:inline truncate">{item.channel.name}</span>
+                      {item.mediaCount > 0 ? <span>{t('media', { count: item.mediaCount })}</span> : null}
                       {item.state === 'FAILED' && item.errorMessage ? (
                         <span className="truncate text-state-failed">· {item.errorMessage}</span>
                       ) : null}
                     </span>
                   </span>
-                  <span className="flex shrink-0 items-center gap-2">
+
+                  <span className="hidden sm:flex shrink-0 items-center gap-2">
                     {item.group.awaitingApproval ? (
                       <Badge variant="review">{t('awaitingApproval')}</Badge>
                     ) : null}

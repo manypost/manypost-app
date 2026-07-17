@@ -160,7 +160,7 @@ export function PostDetailSheet({
           {dateLabel ? <p className="text-sm text-graphite">{dateLabel}</p> : null}
         </SheetHeader>
 
-        <div className="flex flex-col gap-6 p-6">
+        <div className="flex flex-col gap-5 sm:gap-6 p-4 sm:p-6">
           {/* conteúdo */}
           <section className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
@@ -271,24 +271,61 @@ export function PostDetailSheet({
                   return (
                     <li
                       key={pub.id}
-                      className="flex items-center gap-3 rounded-md border border-line bg-surface p-3"
+                      className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3 rounded-md border border-line bg-surface p-3"
                     >
-                      <span className="relative shrink-0">
-                        <Avatar className="size-8">
-                          {avatarUrl ? <AvatarImage src={avatarUrl} alt="" /> : null}
-                          <AvatarFallback>{name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        {PROVIDER_ICONS[provider] ? (
-                          <img
-                            src={PROVIDER_ICONS[provider]}
-                            alt=""
-                            aria-hidden
-                            className="absolute -bottom-0.5 -right-0.5 size-3.5 rounded-sm border border-surface"
-                          />
-                        ) : null}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[13px] font-semibold text-ink">{name}</span>
+                      <div className="flex items-center justify-between gap-2 w-full sm:w-auto sm:shrink-0">
+                        <div className="flex items-center gap-2">
+                          <span className="relative shrink-0">
+                            <Avatar className="size-8">
+                              {avatarUrl ? <AvatarImage src={avatarUrl} alt="" /> : null}
+                              <AvatarFallback>{name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            {PROVIDER_ICONS[provider] ? (
+                              <img
+                                src={PROVIDER_ICONS[provider]}
+                                alt=""
+                                aria-hidden
+                                className="absolute -bottom-0.5 -right-0.5 size-3.5 rounded-sm border border-surface"
+                              />
+                            ) : null}
+                          </span>
+                          <span className="truncate text-[13px] font-semibold text-ink sm:hidden">{name}</span>
+                        </div>
+
+                        <span className="flex shrink-0 items-center gap-1 sm:hidden">
+                          <Badge variant={stateBadgeVariant(pub.state)} className="text-[10px]">
+                            {tCal.has(`state.${pub.state}`) ? tCal(`state.${pub.state}`) : pub.state}
+                          </Badge>
+                          {RETRYABLE_STATES.has(pub.state) && groupId ? (
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label={t('retryChannel')}
+                              onClick={() =>
+                                retry.mutate(
+                                  { groupId, channelId: pub.channelId },
+                                  {
+                                    onSuccess: () => toast.success(t('retryStarted')),
+                                    onError: (err) => toast.error(errorMessage(err)),
+                                  },
+                                )
+                              }
+                            >
+                              <RotateCcw aria-hidden />
+                            </Button>
+                          ) : null}
+                          {pub.releaseUrl ? (
+                            <Button asChild variant="ghost" size="icon-sm" aria-label={tCal('view')}>
+                              <a href={pub.releaseUrl} target="_blank" rel="noreferrer noopener">
+                                <ExternalLink aria-hidden />
+                              </a>
+                            </Button>
+                          ) : null}
+                        </span>
+                      </div>
+
+                      <span className="min-w-0 flex-1 w-full sm:w-auto">
+                        <span className="hidden sm:block truncate text-[13px] font-semibold text-ink">{name}</span>
                         <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-graphite">
                           {pub.itemCount > 1 ? (
                             <span>
@@ -303,12 +340,12 @@ export function PostDetailSheet({
                           ) : null}
                         </span>
                         {pub.errorMessage && RETRYABLE_STATES.has(pub.state) ? (
-                          <span className="mt-0.5 block text-xs leading-relaxed text-state-failed">
+                          <span className="mt-0.5 block text-xs leading-relaxed text-state-failed break-words">
                             {pub.errorMessage}
                           </span>
                         ) : null}
                       </span>
-                      <span className="flex shrink-0 items-center gap-1">
+                      <span className="hidden sm:flex shrink-0 items-center gap-1">
                         <Badge variant={stateBadgeVariant(pub.state)}>
                           {tCal.has(`state.${pub.state}`) ? tCal(`state.${pub.state}`) : pub.state}
                         </Badge>

@@ -221,8 +221,13 @@
       "addChannel": "Conectar canal",
       "empty": "Nenhum canal conectado ainda — conecte o primeiro em Conexões.",
       "filterHint": "Clique num canal para filtrar o calendário.",
-      "clearFilter": "Limpar filtro"
+      "clearFilter": "Limpar filtro",
+      "mobileFilter": "Canais ({count})"
     },
+    "mobileAgendaTitle": "Agenda do Dia",
+    "mobileAgendaEmpty": "Nenhum post agendado para este dia.",
+    "mobileSwipeHint": "Deslize na horizontal para navegar pelas horas e dias da semana",
+    "selectedDayHint": "Toque em um dia no calendário acima para ver a agenda",
     "state": {
       "DRAFT": "Rascunho",
       "SCHEDULED": "Agendado",
