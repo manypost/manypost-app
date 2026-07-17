@@ -179,7 +179,7 @@ export function MonthGrid({
   const days = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i));
 
   return (
-    <div className="overflow-hidden rounded-lg border border-line">
+    <div className="overflow-hidden rounded-lg border border-line bg-surface">
       <div className="grid grid-cols-7 border-b border-line bg-surface-2">
         {days.slice(0, 7).map((d) => (
           <span
@@ -328,7 +328,7 @@ export function TimeGrid({
   const cols = `56px repeat(${days.length}, minmax(0, 1fr))`;
 
   return (
-    <div className="overflow-hidden rounded-lg border border-line">
+    <div className="overflow-hidden rounded-lg border border-line bg-surface">
       <div ref={scrollRef} className="max-h-[calc(100dvh-220px)] overflow-y-auto">
         {/* cabeçalho dos dias — fixo durante a rolagem */}
         <div className="sticky top-0 z-10 grid border-b border-line bg-surface-2" style={{ gridTemplateColumns: cols }}>

@@ -47,66 +47,68 @@ export function ChannelPicker({
   }
 
   return (
-    <ul className="flex flex-wrap gap-2.5">
-      {channels.data.map((ch) => {
-        const active = ch.status === 'ACTIVE';
-        const selected = selectedIds.includes(ch.id);
-        const name = ch.name ?? ch.username ?? ch.id;
-        return (
-          <li key={ch.id}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  disabled={!active}
-                  aria-pressed={selected}
-                  aria-label={name}
-                  onClick={() => onToggle(ch.id)}
-                  className={cn(
-                    'relative block rounded-full outline-none transition-colors duration-200',
-                    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
-                    !active && 'cursor-not-allowed',
-                  )}
-                >
-                  <Avatar
+    <div className="rounded-lg border border-line bg-surface p-3">
+      <ul className="flex flex-wrap gap-2.5">
+        {channels.data.map((ch) => {
+          const active = ch.status === 'ACTIVE';
+          const selected = selectedIds.includes(ch.id);
+          const name = ch.name ?? ch.username ?? ch.id;
+          return (
+            <li key={ch.id}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    disabled={!active}
+                    aria-pressed={selected}
+                    aria-label={name}
+                    onClick={() => onToggle(ch.id)}
                     className={cn(
-                      'size-11 border-2 transition-colors duration-200',
-                      selected ? 'border-accent' : 'border-line',
-                      !selected && 'opacity-50 grayscale',
-                      !active && 'opacity-30',
+                      'relative block rounded-full outline-none transition-colors duration-200',
+                      'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+                      !active && 'cursor-not-allowed',
                     )}
                   >
-                    {ch.avatarUrl ? <AvatarImage src={ch.avatarUrl} alt="" /> : null}
-                    <AvatarFallback>{name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  {PROVIDER_ICONS[ch.provider] ? (
-                    <img
-                      src={PROVIDER_ICONS[ch.provider]}
-                      alt=""
-                      aria-hidden
+                    <Avatar
                       className={cn(
-                        'absolute -bottom-0.5 -right-0.5 size-4 rounded-sm border border-surface',
-                        !selected && 'opacity-60 grayscale',
+                        'size-11 border-2 transition-colors duration-200',
+                        selected ? 'border-accent' : 'border-line',
+                        !selected && 'opacity-50 grayscale',
+                        !active && 'opacity-30',
                       )}
-                    />
-                  ) : null}
-                  {selected ? (
-                    <span className="absolute -right-1 -top-1 grid size-4 place-items-center rounded-full bg-accent text-paper">
-                      <Check className="size-2.5" aria-hidden />
-                    </span>
-                  ) : null}
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {name}
-                {!active
-                  ? ` — ${tConn.has(`status.${ch.status}`) ? tConn(`status.${ch.status}`) : ch.status}`
-                  : ''}
-              </TooltipContent>
-            </Tooltip>
-          </li>
-        );
-      })}
-    </ul>
+                    >
+                      {ch.avatarUrl ? <AvatarImage src={ch.avatarUrl} alt="" /> : null}
+                      <AvatarFallback>{name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    {PROVIDER_ICONS[ch.provider] ? (
+                      <img
+                        src={PROVIDER_ICONS[ch.provider]}
+                        alt=""
+                        aria-hidden
+                        className={cn(
+                          'absolute -bottom-0.5 -right-0.5 size-4 rounded-sm border border-surface',
+                          !selected && 'opacity-60 grayscale',
+                        )}
+                      />
+                    ) : null}
+                    {selected ? (
+                      <span
+                        aria-hidden
+                        className="absolute -right-1 -top-1 grid size-4 place-items-center rounded-full bg-accent text-paper shadow-none"
+                      >
+                        <Check className="size-2.5" strokeWidth={3} />
+                      </span>
+                    ) : null}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {name} {!active ? `(${tConn('status.disabled')})` : ''}
+                </TooltipContent>
+              </Tooltip>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }

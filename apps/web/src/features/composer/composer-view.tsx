@@ -247,7 +247,7 @@ export function ComposerView() {
   );
 
   return (
-    <div className="flex min-h-[calc(100dvh-7rem)] flex-col">
+    <div className="flex min-h-[calc(100dvh-7rem)] flex-col justify-between">
       <div className="grid flex-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         {/* coluna principal */}
         <div className="flex min-w-0 flex-col gap-5">
@@ -290,7 +290,7 @@ export function ComposerView() {
                   label={t('editorLabel')}
                   autoFocus
                   className="border-0 focus-within:border-0"
-                  onEditorReady={setGlobalEditor}
+                  onEditorReady={(ed) => setGlobalEditor((prev) => (prev === ed ? prev : ed))}
                 />
                 <div className="flex flex-wrap items-center gap-1 border-t border-line px-2 py-1.5">
                   <MediaPicker selectedIds={store.mediaIds} onToggle={store.toggleMedia} />
@@ -331,7 +331,7 @@ export function ComposerView() {
                         placeholder={t('placeholder')}
                         label={t('channelEditorLabel', { name: ch.name ?? ch.id })}
                         className="border-0 focus-within:border-0"
-                        onEditorReady={(ed) => setChannelEditors((prev) => ({ ...prev, [ch.id]: ed }))}
+                        onEditorReady={(ed) => setChannelEditors((prev) => (prev[ch.id] === ed ? prev : { ...prev, [ch.id]: ed }))}
                       />
                       <div className="flex flex-wrap items-center justify-between gap-1 border-t border-line px-2 py-1.5">
                         <div className="flex flex-wrap items-center gap-1">
@@ -343,12 +343,12 @@ export function ComposerView() {
                             className={cn(
                               'flex shrink-0 items-center gap-1.5 rounded-sm border px-2 py-1 text-[11px] font-semibold tabular-nums outline-none transition-colors duration-200',
                               'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
-                              counter?.over || (store.overrides[ch.id] !== undefined && store.overrides[ch.id].trim().length === 0)
+                              counter?.over || (store.overrides[ch.id] !== undefined && store.overrides[ch.id]?.trim().length === 0)
                                 ? 'border-state-failed bg-state-failed-tint text-state-failed'
                                 : 'border-line bg-surface text-graphite hover:border-ink',
                             )}
                           >
-                            {counter?.over || (store.overrides[ch.id] !== undefined && store.overrides[ch.id].trim().length === 0) ? (
+                            {counter?.over || (store.overrides[ch.id] !== undefined && store.overrides[ch.id]?.trim().length === 0) ? (
                               <CircleAlert className="size-3.5" aria-hidden />
                             ) : null}
                             {counter?.len}
@@ -401,7 +401,7 @@ export function ComposerView() {
                         placeholder={t('threadPlaceholder')}
                         label={t('threadItem', { index: i + 1 })}
                         className="border-0 focus-within:border-0 [&_.tiptap]:min-h-16"
-                        onEditorReady={(ed) => setChannelEditors((prev) => ({ ...prev, [item.key]: ed }))}
+                        onEditorReady={(ed) => setChannelEditors((prev) => (prev[item.key] === ed ? prev : { ...prev, [item.key]: ed }))}
                       />
                       <div className="flex flex-wrap items-center gap-1 border-t border-line px-2 py-1.5">
                         <MediaPicker
@@ -498,7 +498,7 @@ export function ComposerView() {
       </div>
 
       {/* rodapé de ações (Postiz: data + rascunho + CTA) */}
-      <div className="sticky bottom-0 z-10 -mx-6 mt-8 border-t border-line bg-surface px-6 py-3">
+      <div className="sticky -bottom-4 z-10 -mx-6 -mb-6 mt-auto border-t border-line bg-surface px-6 py-4 shadow-none">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <div className="flex items-center gap-2">
             <Checkbox

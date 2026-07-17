@@ -4,7 +4,7 @@ import { Placeholder } from '@tiptap/extensions';
 import { EditorContent, useEditor } from '@tiptap/react';
 import type { Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
 /**
@@ -48,7 +48,7 @@ export function ComposerEditor({
     extensions: [
       StarterKit.configure({
         blockquote: false,
-        bold: true,
+        bold: {},
         bulletList: false,
         code: false,
         codeBlock: false,
@@ -56,7 +56,7 @@ export function ComposerEditor({
         gapcursor: false,
         heading: false,
         horizontalRule: false,
-        italic: true,
+        italic: {},
         link: false,
         listItem: false,
         listKeymap: false,
@@ -71,9 +71,12 @@ export function ComposerEditor({
     onUpdate: ({ editor: e }) => onChange(e.getText({ blockSeparator: '\n' })),
   });
 
+  const onEditorReadyRef = useRef(onEditorReady);
+  onEditorReadyRef.current = onEditorReady;
+
   useEffect(() => {
-    onEditorReady?.(editor);
-  }, [editor, onEditorReady]);
+    onEditorReadyRef.current?.(editor);
+  }, [editor]);
 
   return (
     <div

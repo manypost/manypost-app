@@ -29,7 +29,7 @@ export function ChannelsPanel({
   const channels = useChannels();
 
   return (
-    <aside className="flex w-full shrink-0 flex-col gap-3 lg:w-60">
+    <aside className="flex h-fit max-h-[calc(100dvh-7rem)] w-full shrink-0 flex-col gap-3 rounded-lg border border-line bg-surface p-4 lg:sticky lg:top-20 lg:w-64">
       <h2 className="text-base font-semibold tracking-[-0.2px] text-ink">{t('title')}</h2>
       <div className="flex gap-2">
         <Button asChild size="sm" className="flex-1 gap-1.5">
@@ -60,7 +60,7 @@ export function ChannelsPanel({
           {t('empty')}
         </p>
       ) : (
-        <ul className="flex flex-col gap-1" aria-label={t('filterHint')}>
+        <ul className="flex flex-col gap-1 overflow-y-auto" aria-label={t('filterHint')}>
           {channels.data!.map((ch) => {
             const selected = selectedIds.includes(ch.id);
             const needsAttention = ch.status !== 'ACTIVE';

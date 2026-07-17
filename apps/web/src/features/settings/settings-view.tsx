@@ -177,7 +177,7 @@ export function SettingsView() {
             {t('noKeys')}
           </p>
         ) : (
-          <ul className="overflow-hidden rounded-lg border border-line">
+          <ul className="overflow-hidden rounded-lg border border-line bg-surface">
             {apiKeys.data.map((key) => (
               <li
                 key={key.id}
@@ -239,7 +239,7 @@ export function SettingsView() {
             {t('noWebhooks')}
           </p>
         ) : (
-          <ul className="overflow-hidden rounded-lg border border-line">
+          <ul className="overflow-hidden rounded-lg border border-line bg-surface">
             {webhooks.data.map((hook) => (
               <li
                 key={hook.id}

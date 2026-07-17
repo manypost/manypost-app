@@ -242,7 +242,7 @@ export function CalendarView() {
   );
 
   return (
-    <div className="flex flex-col gap-6 lg:flex-row">
+    <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
       <ChannelsPanel
         selectedIds={channelFilter}
         onToggle={toggleChannel}
@@ -369,7 +369,7 @@ function ListView({ items, onOpen }: { items: FeedItem[]; onOpen: (groupId: stri
                 ? t('today')
                 : dayLabel.format(new Date(dayItems[0]!.publishAt!))}
           </h2>
-          <ul className="overflow-hidden rounded-lg border border-line">
+          <ul className="overflow-hidden rounded-lg border border-line bg-surface">
             {dayItems.map((item) => (
               <li key={item.id} className="border-b border-line last:border-b-0">
                 <button
