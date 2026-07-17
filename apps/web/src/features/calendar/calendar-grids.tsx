@@ -570,7 +570,7 @@ export function TimeGrid({
       {/* --- MOBILE ONLY (< md): Seletor da Semana espaçoso + Linha do Tempo do Dia focada --- */}
       <div className="flex md:hidden flex-col gap-3">
         {isWeekView ? (
-          <div className="overflow-hidden rounded-lg border border-line bg-surface p-2 shadow-sm">
+          <div className="overflow-hidden rounded-lg border border-line bg-surface p-2">
             <div className="grid grid-cols-7 gap-1">
               {days.map((date) => {
                 const key = dayKey(date);
@@ -584,7 +584,7 @@ export function TimeGrid({
                     onClick={() => setMobileSelectedKey(key)}
                     className={cn(
                       'flex flex-col items-center justify-start min-h-[56px] py-1.5 px-0.5 rounded-md transition-all outline-none focus-visible:outline-2 focus-visible:outline-accent',
-                      isSelected && 'bg-accent-tint border border-accent shadow-xs scale-105',
+                      isSelected && 'bg-accent-tint border border-accent',
                       !isSelected && 'hover:bg-surface-2',
                     )}
                   >
@@ -632,7 +632,7 @@ export function TimeGrid({
         ) : null}
 
         {/* Cabeçalho do dia ativo com respiro visual */}
-        <div className="flex items-center justify-between rounded-lg border border-line bg-surface p-3.5 shadow-xs">
+        <div className="flex items-center justify-between rounded-lg border border-line bg-surface p-3.5">
           <div className="flex flex-col min-w-0">
             <span className="text-xs font-bold uppercase tracking-wider text-accent">
               {isWeekView ? 'Linha do Tempo 24h' : 'Visão do Dia'}
@@ -661,7 +661,7 @@ export function TimeGrid({
         </div>
 
         {/* Linha do Tempo 24h para o dia único no mobile (respiro visual, slots de 56px, chips 100% de largura) */}
-        <div className="overflow-hidden rounded-lg border border-line bg-surface shadow-xs">
+        <div className="overflow-hidden rounded-lg border border-line bg-surface">
           <div ref={scrollRefMobile} className="max-h-[calc(100dvh-280px)] overflow-y-auto">
             {Array.from({ length: 24 }, (_, hour) => {
               const slotEnd = new Date(mobileActiveDate);

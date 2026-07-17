@@ -92,7 +92,7 @@ export function ChannelsPanel({
                       'flex shrink-0 items-center gap-2.5 rounded-md border px-3.5 py-2 text-left outline-none transition-all duration-200 min-h-[42px]',
                       'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent active:scale-[0.98]',
                       selected
-                        ? 'border-accent bg-accent-tint font-bold text-accent shadow-sm'
+                        ? 'border-accent bg-accent-tint font-bold text-accent'
                         : 'border-line bg-surface hover:bg-surface-2 text-ink',
                     )}
                   >
