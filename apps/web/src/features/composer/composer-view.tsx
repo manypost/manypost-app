@@ -1,6 +1,6 @@
 'use client';
 
-import { CircleAlert, Plus, Trash2 } from 'lucide-react';
+import { CircleAlert, Lock, LockOpen, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { HoverPopover } from '@/components/ui/hover-popover';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useChannels, useProviders } from '@/features/channels/hooks';
@@ -19,8 +19,10 @@ import { useMediaList } from '@/features/media/hooks';
 import { useApiErrorMessage } from '@/lib/api/errors';
 import { toLocalInput } from '@/lib/datetime';
 import { cn } from '@/lib/utils';
+import type { Editor } from '@tiptap/react';
 import { ChannelPicker } from './channel-picker';
 import { ComposerEditor } from './editor';
+import { FormattingToolbar } from './formatting-toolbar';
 import { useSchedulePost } from './hooks';
 import { MediaPicker, MediaStrip } from './media-picker';
 import { validateMediaForProvider } from './media-validation';
@@ -46,6 +48,8 @@ export function ComposerView() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const [activeTab, setActiveTab] = useState('global');
+  const [globalEditor, setGlobalEditor] = useState<Editor | null>(null);
+  const [channelEditors, setChannelEditors] = useState<Record<string, Editor | null>>({});
 
   // primeiro uso: sugere a próxima hora cheia
   useEffect(() => {
@@ -181,61 +185,65 @@ export function ComposerView() {
     );
   };
 
-  /** contador do canto do editor (Postiz): pill que abre a validação por canal */
+  const uniqueIssues = Array.from(new Set(issues));
+
+  /** conteúdo da validação no hover-popover */
+  const validationContent = (
+    <div className="flex flex-col gap-2">
+      {counters.length > 0 ? (
+        <ul className="flex flex-col gap-1">
+          {counters.map(({ channel, max, len, over }) => (
+            <li
+              key={channel.id}
+              className={cn(
+                'flex items-center justify-between gap-2 text-xs tabular-nums',
+                over ? 'font-semibold text-state-failed' : 'text-graphite',
+              )}
+            >
+              <span className="flex min-w-0 items-center gap-1.5">
+                {PROVIDER_ICONS[channel.provider] ? (
+                  <img src={PROVIDER_ICONS[channel.provider]} alt="" aria-hidden className="size-3.5 rounded-sm" />
+                ) : null}
+                <span className="truncate">{channel.name ?? channel.id}</span>
+              </span>
+              {len}
+              {max !== undefined ? `/${max}` : ''}
+            </li>
+          ))}
+        </ul>
+      ) : !uniqueIssues.includes(t('issues.noChannelSelected')) ? (
+        <p className="text-xs leading-relaxed text-graphite">{t('issues.noChannelSelected')}</p>
+      ) : null}
+      {uniqueIssues.length > 0 ? (
+        <ul className={cn('flex flex-col gap-1', counters.length > 0 ? 'border-t border-line pt-2' : '')}>
+          {uniqueIssues.map((issue) => (
+            <li key={issue} className="text-xs leading-relaxed text-state-failed">
+              {issue}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+
+  /** contador do canto do editor (Postiz): pill que abre a validação por canal ou erros via hover */
   const counterPill = (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className={cn(
-            'ml-auto flex shrink-0 items-center gap-1.5 rounded-sm border px-2 py-1 text-[11px] font-semibold tabular-nums outline-none transition-colors duration-200',
-            'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
-            counterInvalid
-              ? 'border-state-failed bg-state-failed-tint text-state-failed'
-              : 'border-line bg-surface text-graphite hover:border-ink',
-          )}
-        >
-          {counterInvalid ? <CircleAlert className="size-3.5" aria-hidden /> : null}
-          {globalLen}
-          {minMax !== undefined ? `/${minMax}` : ''}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="flex w-80 flex-col gap-2 p-3">
-        {counters.length === 0 ? (
-          <p className="text-xs leading-relaxed text-graphite">{t('issues.noChannelSelected')}</p>
-        ) : (
-          <ul className="flex flex-col gap-1">
-            {counters.map(({ channel, max, len, over }) => (
-              <li
-                key={channel.id}
-                className={cn(
-                  'flex items-center justify-between gap-2 text-xs tabular-nums',
-                  over ? 'font-semibold text-state-failed' : 'text-graphite',
-                )}
-              >
-                <span className="flex min-w-0 items-center gap-1.5">
-                  {PROVIDER_ICONS[channel.provider] ? (
-                    <img src={PROVIDER_ICONS[channel.provider]} alt="" aria-hidden className="size-3.5 rounded-sm" />
-                  ) : null}
-                  <span className="truncate">{channel.name ?? channel.id}</span>
-                </span>
-                {len}
-                {max !== undefined ? `/${max}` : ''}
-              </li>
-            ))}
-          </ul>
+    <HoverPopover align="end" className="flex w-80 flex-col gap-2 p-3" content={validationContent}>
+      <button
+        type="button"
+        className={cn(
+          'ml-auto flex shrink-0 items-center gap-1.5 rounded-sm border px-2 py-1 text-[11px] font-semibold tabular-nums outline-none transition-colors duration-200',
+          'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
+          counterInvalid
+            ? 'border-state-failed bg-state-failed-tint text-state-failed'
+            : 'border-line bg-surface text-graphite hover:border-ink',
         )}
-        {issues.length > 0 ? (
-          <ul className="flex flex-col gap-1 border-t border-line pt-2">
-            {issues.map((issue) => (
-              <li key={issue} className="text-xs leading-relaxed text-state-failed">
-                {issue}
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </PopoverContent>
-    </Popover>
+      >
+        {counterInvalid ? <CircleAlert className="size-3.5" aria-hidden /> : null}
+        {globalLen}
+        {minMax !== undefined ? `/${minMax}` : ''}
+      </button>
+    </HoverPopover>
   );
 
   return (
@@ -282,9 +290,11 @@ export function ComposerView() {
                   label={t('editorLabel')}
                   autoFocus
                   className="border-0 focus-within:border-0"
+                  onEditorReady={setGlobalEditor}
                 />
-                <div className="flex items-center gap-2 border-t border-line px-2 py-1.5">
+                <div className="flex flex-wrap items-center gap-1 border-t border-line px-2 py-1.5">
                   <MediaPicker selectedIds={store.mediaIds} onToggle={store.toggleMedia} />
+                  <FormattingToolbar editor={globalEditor} />
                   {counterPill}
                 </div>
               </div>
@@ -296,18 +306,24 @@ export function ComposerView() {
               const counter = counters.find((c) => c.channel.id === ch.id);
               return (
                 <TabsContent key={ch.id} value={ch.id} className="flex flex-col gap-3">
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id={`override-${ch.id}`}
-                      checked={overridden}
-                      onCheckedChange={(checked) =>
-                        checked ? store.setOverride(ch.id, store.text) : store.clearOverride(ch.id)
-                      }
-                    />
-                    <Label htmlFor={`override-${ch.id}`}>{t('customize')}</Label>
-                  </div>
                   {overridden ? (
                     <div className="rounded-md border border-line bg-surface transition-colors duration-200 focus-within:border-accent">
+                      <div className="flex items-center justify-between border-b border-line bg-surface-2/60 px-3 py-1.5">
+                        <span className="flex items-center gap-1.5 text-xs font-semibold text-ink">
+                          <LockOpen className="size-3.5 text-accent" aria-hidden />
+                          Personalizando para {ch.name ?? ch.id}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => store.clearOverride(ch.id)}
+                          className="h-6 gap-1 px-2 text-[11px] font-semibold text-graphite hover:bg-surface hover:text-ink"
+                        >
+                          <Lock className="size-3" aria-hidden />
+                          Usar texto global
+                        </Button>
+                      </div>
                       <ComposerEditor
                         key={`${ch.id}-${store.editorNonce}`}
                         initialText={store.overrides[ch.id] ?? ''}
@@ -315,25 +331,51 @@ export function ComposerView() {
                         placeholder={t('placeholder')}
                         label={t('channelEditorLabel', { name: ch.name ?? ch.id })}
                         className="border-0 focus-within:border-0"
+                        onEditorReady={(ed) => setChannelEditors((prev) => ({ ...prev, [ch.id]: ed }))}
                       />
-                      <div className="flex items-center justify-end gap-2 border-t border-line px-2 py-1.5">
-                        <span
-                          className={cn(
-                            'text-[11px] font-semibold tabular-nums',
-                            counter?.over ? 'text-state-failed' : 'text-graphite',
-                          )}
-                          aria-live="polite"
-                        >
-                          {counter?.len}
-                          {counter?.max !== undefined ? `/${counter.max}` : ''}
-                        </span>
+                      <div className="flex flex-wrap items-center justify-between gap-1 border-t border-line px-2 py-1.5">
+                        <div className="flex flex-wrap items-center gap-1">
+                          <FormattingToolbar editor={channelEditors[ch.id] ?? null} />
+                        </div>
+                        <HoverPopover align="end" className="flex w-80 flex-col gap-2 p-3" content={validationContent}>
+                          <button
+                            type="button"
+                            className={cn(
+                              'flex shrink-0 items-center gap-1.5 rounded-sm border px-2 py-1 text-[11px] font-semibold tabular-nums outline-none transition-colors duration-200',
+                              'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
+                              counter?.over || (store.overrides[ch.id] !== undefined && store.overrides[ch.id].trim().length === 0)
+                                ? 'border-state-failed bg-state-failed-tint text-state-failed'
+                                : 'border-line bg-surface text-graphite hover:border-ink',
+                            )}
+                          >
+                            {counter?.over || (store.overrides[ch.id] !== undefined && store.overrides[ch.id].trim().length === 0) ? (
+                              <CircleAlert className="size-3.5" aria-hidden />
+                            ) : null}
+                            {counter?.len}
+                            {counter?.max !== undefined ? `/${counter.max}` : ''}
+                          </button>
+                        </HoverPopover>
                       </div>
                     </div>
                   ) : (
-                    <div className="rounded-md border border-dashed border-line bg-surface-2 px-3 py-2">
-                      <p className="whitespace-pre-wrap text-sm leading-relaxed text-graphite">
-                        {store.text.trim() ? store.text : t('customizeHint')}
+                    <div className="flex min-h-[240px] flex-col items-center justify-center rounded-md border border-line bg-surface p-6 text-center transition-colors duration-200">
+                      <div className="mb-3 flex size-10 items-center justify-center rounded-full border border-line bg-surface-2 text-ink">
+                        <Lock className="size-4" aria-hidden />
+                      </div>
+                      <p className="text-sm font-semibold text-ink">Edição global ativa</p>
+                      <p className="mt-1 max-w-sm text-xs leading-relaxed text-graphite">
+                        Clique no botão abaixo para sair da edição global e personalizar o texto exclusivamente para este canal.
                       </p>
+                      <Button
+                        type="button"
+                        variant="primary"
+                        size="sm"
+                        onClick={() => store.setOverride(ch.id, store.text)}
+                        className="mt-4 gap-1.5 font-semibold"
+                      >
+                        <LockOpen className="size-3.5" aria-hidden />
+                        Personalizar conteúdo
+                      </Button>
                     </div>
                   )}
                 </TabsContent>
@@ -359,12 +401,14 @@ export function ComposerView() {
                         placeholder={t('threadPlaceholder')}
                         label={t('threadItem', { index: i + 1 })}
                         className="border-0 focus-within:border-0 [&_.tiptap]:min-h-16"
+                        onEditorReady={(ed) => setChannelEditors((prev) => ({ ...prev, [item.key]: ed }))}
                       />
-                      <div className="flex flex-wrap items-center gap-2 border-t border-line px-2 py-1.5">
+                      <div className="flex flex-wrap items-center gap-1 border-t border-line px-2 py-1.5">
                         <MediaPicker
                           selectedIds={item.mediaIds}
                           onToggle={(mediaId) => store.toggleThreadMedia(item.key, mediaId)}
                         />
+                        <FormattingToolbar editor={channelEditors[item.key] ?? null} />
                         <div className="flex items-center gap-1.5">
                           <Label htmlFor={`delay-${item.key}`} className="text-xs text-graphite">
                             {t('threadDelay')}
@@ -381,15 +425,22 @@ export function ComposerView() {
                           />
                           <span className="text-xs text-mist">s</span>
                         </div>
-                        <span
-                          className={cn(
-                            'ml-auto text-[11px] font-semibold tabular-nums',
-                            over ? 'text-state-failed' : 'text-graphite',
-                          )}
-                        >
-                          {len}
-                          {minMax !== undefined ? `/${minMax}` : ''}
-                        </span>
+                        <HoverPopover align="end" className="flex w-80 flex-col gap-2 p-3" content={validationContent}>
+                          <button
+                            type="button"
+                            className={cn(
+                              'ml-auto flex shrink-0 items-center gap-1.5 rounded-sm border px-2 py-1 text-[11px] font-semibold tabular-nums outline-none transition-colors duration-200',
+                              'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
+                              over || len === 0
+                                ? 'border-state-failed bg-state-failed-tint text-state-failed'
+                                : 'border-line bg-surface text-graphite hover:border-ink',
+                            )}
+                          >
+                            {over || len === 0 ? <CircleAlert className="size-3.5" aria-hidden /> : null}
+                            {len}
+                            {minMax !== undefined ? `/${minMax}` : ''}
+                          </button>
+                        </HoverPopover>
                         <Button
                           variant="ghost"
                           size="icon-sm"
@@ -467,8 +518,8 @@ export function ComposerView() {
           </Button>
 
           <div className="ml-auto flex flex-wrap items-center gap-2">
-            {issues.length > 0 ? (
-              <span className="text-xs text-graphite">{issues[0]}</span>
+            {uniqueIssues.length > 0 ? (
+              <span className="text-xs text-graphite">{uniqueIssues[0]}</span>
             ) : null}
             <Input
               type="datetime-local"
