@@ -10,5 +10,6 @@ RUN bun install --frozen-lockfile || bun install
 # Pré-compila o frontend (Next.js) caso o container seja executado com MODE=web
 RUN cd apps/web && bun run build || true
 EXPOSE 3000
-CMD ["sh", "-c", "if [ \"$MODE\" = \"web\" ]; then cd apps/web && bun run start --port ${PORT:-3000}; elif [ \"$MODE\" = \"worker\" ]; then bun run apps/worker/src/main.ts; elif [ \"$MODE\" = \"api\" ]; then bun run apps/api/src/main.ts; else bun run apps/worker/src/main.ts & bun run apps/api/src/main.ts; fi"]
+CMD ["sh", "-c", "if [ \"$MODE\" = \"web\" ]; then cd apps/web && bun run start --port ${PORT:-3000}; elif [ \"$MODE\" = \"standalone\" ] || [ \"$MODE\" = \"full\" ]; then bun run apps/worker/src/main.ts & PORT=3100 bun run apps/api/src/main.ts & PORT=${PORT:-3000} API_URL=http://localhost:3100 cd apps/web && bun run start; elif [ \"$MODE\" = \"worker\" ]; then bun run apps/worker/src/main.ts; elif [ \"$MODE\" = \"api\" ]; then bun run apps/api/src/main.ts; else bun run apps/worker/src/main.ts & bun run apps/api/src/main.ts; fi"]
+
 
