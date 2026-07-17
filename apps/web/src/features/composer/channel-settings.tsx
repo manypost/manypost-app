@@ -188,8 +188,20 @@ export function ChannelSettingsCard({
   const baseId = useId();
 
   const properties = (schema as SettingsJsonSchema).properties ?? {};
+  const required = new Set((schema as SettingsJsonSchema).required ?? []);
   const keys = Object.keys(properties);
   if (keys.length === 0) return null;
+
+  const renderLabel = (key: string) => (
+    <Label htmlFor={`${baseId}-${key}`}>
+      {label(key)}
+      {required.has(key) ? (
+        <span aria-hidden className="ml-0.5 text-state-failed">
+          *
+        </span>
+      ) : null}
+    </Label>
+  );
 
   const touched = Object.keys(values).length > 0;
   const label = (key: string) =>
@@ -239,7 +251,7 @@ export function ChannelSettingsCard({
               return (
                 <div key={key} className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 flex-col gap-0.5">
-                    <Label htmlFor={fieldId}>{label(key)}</Label>
+                    {renderLabel(key)}
                     {description ? (
                       <span className="text-xs leading-relaxed text-graphite">{description}</span>
                     ) : null}
@@ -315,7 +327,7 @@ export function ChannelSettingsCard({
 
             return (
               <div key={key} className="flex flex-col gap-1.5">
-                <Label htmlFor={fieldId}>{label(key)}</Label>
+                {renderLabel(key)}
                 {inner}
                 {description ? (
                   <span className="text-xs leading-relaxed text-graphite">{description}</span>

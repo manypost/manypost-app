@@ -226,17 +226,24 @@ export function postRoutes(ctn: Container) {
   });
 
   const PatchBody = z
-    .object({ text: z.string().min(1).max(10_000).optional(), publishAt: z.string().datetime().optional() })
-    .refine((b) => b.text !== undefined || b.publishAt !== undefined, {
-      message: 'informe text e/ou publishAt',
-    });
+    .object({
+      text: z.string().min(1).max(10_000).optional(),
+      publishAt: z.string().datetime().optional(),
+      settingsByChannel: z.record(z.unknown()).optional(),
+    })
+    .refine(
+      (b) => b.text !== undefined || b.publishAt !== undefined || b.settingsByChannel !== undefined,
+      { message: 'informe text, publishAt e/ou settingsByChannel' },
+    );
 
   app.openAPIRegistry.registerPath({
     method: 'patch',
     path: '/{groupId}',
     tags: ['posts'],
     security: AUTH_SECURITY,
-    summary: 'Edita texto e/ou horário (re-agenda com nova versão de job)',
+    summary: 'Edita texto, horário e/ou settings por canal (re-agenda com nova versão de job)',
+    description:
+      'Editar `text` sobrescreve o content de TODAS as publicações (overrides resetam). `settingsByChannel` (chave = channelId) faz merge nos settings de publicação do canal e é validado por provider.',
     request: { params: GroupParam, ...jsonBody(PatchBody) },
     responses: { 200: jsonResponse('grupo re-agendado', GroupOut), ...errorResponses(400, 401, 404) },
   });
@@ -247,6 +254,7 @@ export function postRoutes(ctn: Container) {
       groupId: c.req.param('groupId'),
       ...(body.text !== undefined ? { text: body.text } : {}),
       ...(body.publishAt ? { publishAt: new Date(body.publishAt) } : {}),
+      ...(body.settingsByChannel ? { settingsByChannel: body.settingsByChannel } : {}),
     });
     return c.json(serializeGroup(group!));
   });

@@ -11,7 +11,6 @@ import {
 } from '@dnd-kit/core';
 import { CircleAlert } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -20,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PROVIDER_ICONS } from '@/features/channels/provider-icon';
+import { useComposerModal } from '@/features/composer/use-composer-modal';
 import { PostDetailSheet } from '@/features/publications/post-detail-sheet';
 import { usePublicationsFeed, useRetryPost } from '@/features/publications/hooks';
 import { useApiErrorMessage } from '@/lib/api/errors';
@@ -188,6 +188,7 @@ export function KanbanView() {
   const t = useTranslations('kanban');
   const errorMessage = useApiErrorMessage();
   const retry = useRetryPost();
+  const openComposer = useComposerModal((s) => s.openComposer);
 
   // janela: últimos 30 dias em diante (pipeline recente + tudo que está por vir)
   const [from] = useState(() => {
@@ -279,8 +280,8 @@ export function KanbanView() {
     return (
       <div className="rounded-lg border border-dashed border-line bg-surface-2 px-6 py-12 text-center">
         <p className="text-sm leading-relaxed text-graphite">{t('empty')}</p>
-        <Button asChild size="sm" className="mt-4">
-          <Link href="/compor">{t('newPost')}</Link>
+        <Button size="sm" className="mt-4" onClick={() => openComposer()}>
+          {t('newPost')}
         </Button>
       </div>
     );

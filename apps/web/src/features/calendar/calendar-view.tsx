@@ -9,7 +9,6 @@ import {
 } from '@dnd-kit/core';
 import { ChevronLeft, ChevronRight, CircleAlert, Files, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -31,6 +30,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PROVIDER_ICONS } from '@/features/channels/provider-icon';
 import { useComposerStore } from '@/features/composer/store';
+import { useComposerModal } from '@/features/composer/use-composer-modal';
 import { useDuplicatePost } from '@/features/composer/use-duplicate';
 import { PostDetailSheet } from '@/features/publications/post-detail-sheet';
 import { useCancelPost, usePublicationsFeed, useReschedulePost } from '@/features/publications/hooks';
@@ -64,6 +64,7 @@ export function CalendarView() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const reschedule = useReschedulePost();
+  const openComposer = useComposerModal((s) => s.openComposer);
 
   // ---- estado persistido na URL (?visao&data&canais&estado) ----
   const rawView = searchParams.get('visao');
@@ -199,7 +200,7 @@ export function CalendarView() {
     return map;
   }, [items]);
 
-  // ---- "+" no slot: pré-preenche o composer e abre /compor ----
+  // ---- "+" no slot: pré-preenche o composer e abre o popup ----
   const scheduleAt = useCallback(
     (date: Date) => {
       // nunca sugerir horário no passado — cai para daqui a ~10 min
@@ -211,9 +212,9 @@ export function CalendarView() {
       const composer = useComposerStore.getState();
       composer.setMode('schedule');
       composer.setPublishAtLocal(toLocalInput(target));
-      router.push('/compor');
+      openComposer();
     },
-    [router],
+    [openComposer],
   );
 
   // ---- painel de detalhe ----
@@ -403,13 +404,14 @@ function ListView({
   const t = useTranslations('calendar');
   const tPost = useTranslations('postDetail');
   const locale = useLocale();
+  const openComposer = useComposerModal((s) => s.openComposer);
 
   if (items.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-line bg-surface-2 px-6 py-12 text-center">
         <p className="text-sm leading-relaxed text-graphite">{t('empty')}</p>
-        <Button asChild size="sm" className="mt-4">
-          <Link href="/compor">{t('newPost')}</Link>
+        <Button size="sm" className="mt-4" onClick={() => openComposer()}>
+          {t('newPost')}
         </Button>
       </div>
     );
