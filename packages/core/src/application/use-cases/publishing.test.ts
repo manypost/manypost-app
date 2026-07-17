@@ -248,6 +248,9 @@ function makeFakes(provider: ChannelProvider) {
             p.jobVersion++;
             if (d.baseContent) p.content = d.baseContent;
             if (d.publishAt) p.publishAt = d.publishAt;
+            if (d.settingsByChannel?.[p.channelId]) {
+              p.settings = { ...((p.settings as object) ?? {}), ...d.settingsByChannel[p.channelId] };
+            }
             return { id: p.id, channelId: p.channelId, jobVersion: p.jobVersion, publishAt: p.publishAt! };
           });
       },
@@ -573,6 +576,39 @@ describe('cancelar e editar agendados', () => {
     await expect(
       makeReschedulePost(f as any)({ orgId: 'org-1', groupId, text: 'tarde demais' }),
     ).rejects.toMatchObject({ code: 'post.invalid_transition' });
+  });
+
+  test('editar settings por canal: merge em publications.settings e re-agenda (versão sobe)', async () => {
+    const channelId = f._state.pubs[0]!.channelId;
+    const before = f._state.pubs[0]!.jobVersion;
+    await makeReschedulePost(f as any)({
+      orgId: 'org-1',
+      groupId,
+      settingsByChannel: { [channelId]: { tag: 'promo' } },
+    });
+    expect(f._state.pubs[0]!.settings).toMatchObject({ tag: 'promo' });
+    expect(f._state.pubs[0]!.jobVersion).toBe(before + 1);
+  });
+
+  test('editar settings inválidos por provider → post.invalid_settings', async () => {
+    const channelId = f._state.pubs[0]!.channelId;
+    await expect(
+      makeReschedulePost(f as any)({
+        orgId: 'org-1',
+        groupId,
+        settingsByChannel: { [channelId]: { tag: 123 } },
+      }),
+    ).rejects.toMatchObject({ code: 'post.invalid_settings' });
+  });
+
+  test('settingsByChannel referenciando canal fora do grupo → not_found', async () => {
+    await expect(
+      makeReschedulePost(f as any)({
+        orgId: 'org-1',
+        groupId,
+        settingsByChannel: { 'canal-fantasma': { tag: 'x' } },
+      }),
+    ).rejects.toMatchObject({ code: 'common.not_found' });
   });
 });
 

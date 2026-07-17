@@ -260,6 +260,20 @@ export function makePublishingRepository(db: Db): PublishingRepository {
             jobVersion: publications.jobVersion,
             publishAt: publications.publishAt,
           });
+        // settings por canal: merge jsonb (||) nas publicações já re-agendadas (SCHEDULED)
+        for (const [channelId, settings] of Object.entries(d.settingsByChannel ?? {})) {
+          await tx
+            .update(publications)
+            .set({ settings: sql`${publications.settings} || ${JSON.stringify(settings)}::jsonb` })
+            .where(
+              and(
+                eq(publications.groupId, groupId),
+                eq(publications.orgId, orgId),
+                eq(publications.channelId, channelId),
+                eq(publications.state, 'SCHEDULED'),
+              ),
+            );
+        }
         return rows.map((r) => ({ ...r, publishAt: r.publishAt ?? d.publishAt ?? new Date() }));
       });
     },
@@ -289,6 +303,20 @@ export function makePublishingRepository(db: Db): PublishingRepository {
             ...(d.publishAt ? { publishAt: d.publishAt } : {}),
           })
           .where(and(eq(publications.groupId, groupId), eq(publications.state, 'DRAFT')));
+        // settings por canal: merge jsonb (||) nas publicações DRAFT
+        for (const [channelId, settings] of Object.entries(d.settingsByChannel ?? {})) {
+          await tx
+            .update(publications)
+            .set({ settings: sql`${publications.settings} || ${JSON.stringify(settings)}::jsonb` })
+            .where(
+              and(
+                eq(publications.groupId, groupId),
+                eq(publications.orgId, orgId),
+                eq(publications.channelId, channelId),
+                eq(publications.state, 'DRAFT'),
+              ),
+            );
+        }
         return true;
       });
     },

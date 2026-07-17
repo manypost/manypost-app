@@ -17,10 +17,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLogout, useMe } from '@/features/auth/hooks';
+import { useComposerModal } from '@/features/composer/use-composer-modal';
 import { NotificationsMenu } from '@/features/notifications/notifications-menu';
 
 const MOBILE_NAV = [
-  { href: '/compor', key: 'compose', icon: PenSquare },
   { href: '/calendario', key: 'calendar', icon: CalendarDays },
   { href: '/kanban', key: 'kanban', icon: SquareKanban },
   { href: '/conexoes', key: 'connections', icon: Plug },
@@ -44,6 +44,7 @@ export function Topbar() {
   const pathname = usePathname();
   const { data: me, isPending } = useMe();
   const logout = useLogout();
+  const openComposer = useComposerModal((s) => s.openComposer);
   const title = TITLE_BY_PATH.find(({ prefix }) => pathname.startsWith(prefix));
 
   const user = me?.user;
@@ -64,6 +65,10 @@ export function Topbar() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
+            <DropdownMenuItem onSelect={() => openComposer()}>
+              <PenSquare aria-hidden />
+              {t('nav.compose')}
+            </DropdownMenuItem>
             {MOBILE_NAV.map(({ href, key, icon: Icon }) => (
               <DropdownMenuItem key={href} asChild>
                 <Link href={href}>
@@ -82,6 +87,10 @@ export function Topbar() {
       </h1>
 
       <div className="flex items-center gap-2">
+      <Button size="sm" className="gap-1.5" onClick={() => openComposer()}>
+        <PenSquare aria-hidden />
+        <span className="hidden sm:inline">{t('calendar.newPost')}</span>
+      </Button>
       <NotificationsMenu />
       {isPending ? (
         <Skeleton className="size-8 rounded-full" />

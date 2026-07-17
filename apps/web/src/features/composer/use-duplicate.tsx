@@ -2,7 +2,6 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import {
@@ -21,16 +20,17 @@ import { fetchPostGroup } from '@/features/publications/hooks';
 import { useApiErrorMessage } from '@/lib/api/errors';
 import { buildDuplicatePrefill } from './duplicate';
 import { useComposerStore } from './store';
+import { useComposerModal } from './use-composer-modal';
 
 /**
  * Duplicar um post de qualquer lugar (sheet de detalhe, cards do calendário):
- * busca o detalhe do grupo, monta o rascunho no store e navega p/ /compor.
+ * busca o detalhe do grupo, monta o rascunho no store e abre o popup do composer.
  * Se já houver rascunho em andamento, pede confirmação antes de substituir —
  * quem usa o hook precisa renderizar `dialog` junto.
  */
 export function useDuplicatePost() {
   const t = useTranslations('postDetail');
-  const router = useRouter();
+  const openComposer = useComposerModal((s) => s.openComposer);
   const queryClient = useQueryClient();
   const errorMessage = useApiErrorMessage();
   const [pendingGroupId, setPendingGroupId] = useState<string | null>(null);
@@ -60,7 +60,7 @@ export function useDuplicatePost() {
       useComposerStore.getState().loadDraft(prefill);
       if (droppedChannels > 0) toast.info(t('duplicateDropped', { count: droppedChannels }));
       toast.success(t('duplicated'));
-      router.push('/compor');
+      openComposer();
     } catch (err) {
       toast.error(errorMessage(err));
     }

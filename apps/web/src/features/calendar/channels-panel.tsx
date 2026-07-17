@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useChannels } from '@/features/channels/hooks';
 import { PROVIDER_ICONS } from '@/features/channels/provider-icon';
+import { useComposerModal } from '@/features/composer/use-composer-modal';
 import { cn } from '@/lib/utils';
 
 /**
@@ -27,17 +28,16 @@ export function ChannelsPanel({
   const t = useTranslations('calendar.panel');
   const tConn = useTranslations('connections');
   const channels = useChannels();
+  const openComposer = useComposerModal((s) => s.openComposer);
 
   return (
     <>
       {/* --- MOBILE ONLY (< lg): Barra ergonômica com respiro visual + Seletor de canais --- */}
       <div className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4 lg:hidden">
         <div className="flex items-center gap-2">
-          <Button asChild size="sm" className="flex-1 gap-2 font-semibold py-5">
-            <Link href="/compor">
-              <PenSquare className="size-4" aria-hidden />
-              {t('createPost')}
-            </Link>
+          <Button size="sm" className="flex-1 gap-2 font-semibold py-5" onClick={() => openComposer()}>
+            <PenSquare className="size-4" aria-hidden />
+            {t('createPost')}
           </Button>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -129,11 +129,9 @@ export function ChannelsPanel({
       <aside className="hidden h-fit max-h-[calc(100dvh-7rem)] w-full shrink-0 flex-col gap-3 rounded-lg border border-line bg-surface p-4 lg:sticky lg:top-20 lg:flex lg:w-64">
         <h2 className="text-base font-semibold tracking-[-0.2px] text-ink">{t('title')}</h2>
         <div className="flex gap-2">
-          <Button asChild size="sm" className="flex-1 gap-1.5">
-            <Link href="/compor">
-              <PenSquare aria-hidden />
-              {t('createPost')}
-            </Link>
+          <Button size="sm" className="flex-1 gap-1.5" onClick={() => openComposer()}>
+            <PenSquare aria-hidden />
+            {t('createPost')}
           </Button>
           <Tooltip>
             <TooltipTrigger asChild>

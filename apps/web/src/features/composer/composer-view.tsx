@@ -2,9 +2,18 @@
 
 import { CircleAlert, Lock, LockOpen, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -32,15 +41,16 @@ import { PostPreview } from './post-preview';
 import { useComposerStore } from './store';
 
 /**
- * Composer (SPEC_FRONTEND §3.3, direção do Postiz): avatares p/ escolher
- * canais → abas global/por canal → editor com toolbar e contador no canto →
- * thread empilhada → preview ao vivo à direita → rodapé com data e CTA.
- * Estado no Zustand com persist (rascunho sobrevive a F5).
+ * Composer (SPEC_FRONTEND §3.3, direção do Postiz): vive dentro do popup
+ * (composer-modal). Avatares p/ escolher canais → abas global/por canal →
+ * editor com toolbar e contador no canto → thread empilhada → preview ao vivo →
+ * rodapé mobile-first com data e CTAs. Estado no Zustand com persist (rascunho
+ * sobrevive a F5). O corpo rola; o rodapé fica fixo no pé do popup.
+ * `onDone` fecha o popup (submit ok ou descartar).
  */
-export function ComposerView() {
+export function ComposerView({ onDone }: { onDone: () => void }) {
   const t = useTranslations('composer');
   const errorMessage = useApiErrorMessage();
-  const router = useRouter();
   const store = useComposerStore();
   const channels = useChannels();
   const providers = useProviders();
@@ -52,6 +62,7 @@ export function ComposerView() {
   const [activeTab, setActiveTab] = useState('global');
   const [globalEditor, setGlobalEditor] = useState<Editor | null>(null);
   const [channelEditors, setChannelEditors] = useState<Record<string, Editor | null>>({});
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   // primeiro uso: sugere a próxima hora cheia
   useEffect(() => {
@@ -63,12 +74,16 @@ export function ComposerView() {
 
   if (!mounted) {
     return (
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="flex flex-col gap-6">
-          <Skeleton className="h-12 rounded-lg" />
-          <Skeleton className="h-56 rounded-lg" />
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="flex flex-col gap-6">
+              <Skeleton className="h-12 rounded-lg" />
+              <Skeleton className="h-56 rounded-lg" />
+            </div>
+            <Skeleton className="h-64 rounded-lg" />
+          </div>
         </div>
-        <Skeleton className="h-64 rounded-lg" />
       </div>
     );
   }
@@ -133,6 +148,25 @@ export function ComposerView() {
     }
   }
 
+  // settings obrigatórias por canal (ex.: canal do Discord) — o servidor revalida
+  for (const ch of selected) {
+    const info = providerOf(ch.provider);
+    const required = (info?.settingsSchema as { required?: string[] } | undefined)?.required ?? [];
+    const chSettings = store.channelSettings[ch.id] ?? {};
+    for (const key of required) {
+      const v = chSettings[key];
+      const missing =
+        v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0);
+      if (missing) {
+        const field =
+          info && t.has(`channelSettings.fields.${info.id}.${key}`)
+            ? t(`channelSettings.fields.${info.id}.${key}`)
+            : key;
+        issues.push(t('issues.missingSetting', { name: ch.name ?? ch.id, field }));
+      }
+    }
+  }
+
   if (store.thread.length > 0 && threadUnsupportedNames.length > 0) {
     issues.push(t('issues.threadUnsupported', { channels: threadUnsupportedNames.join(', ') }));
   }
@@ -186,7 +220,7 @@ export function ComposerView() {
             store.requireApproval ? t('draftCreated') : now ? t('publishedNow') : t('scheduled'),
           );
           store.reset();
-          router.push('/calendario');
+          onDone();
         },
         onError: (err) => toast.error(errorMessage(err)),
       },
@@ -255,272 +289,276 @@ export function ComposerView() {
   );
 
   return (
-    <div className="flex min-h-[calc(100dvh-7rem)] flex-col justify-between">
-      <div className="grid flex-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-        {/* coluna principal */}
-        <div className="flex min-w-0 flex-col gap-5">
-          <ChannelPicker selectedIds={store.channelIds} onToggle={store.toggleChannel} />
+    <div className="flex min-h-0 flex-1 flex-col">
+      {/* corpo rolável */}
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
+          {/* coluna principal */}
+          <div className="flex min-w-0 flex-col gap-5">
+            <ChannelPicker selectedIds={store.channelIds} onToggle={store.toggleChannel} />
 
-          <Tabs
-            value={
-              activeTab === 'global' || selected.some((ch) => ch.id === activeTab)
-                ? activeTab
-                : 'global'
-            }
-            onValueChange={setActiveTab}
-          >
-            <TabsList>
-              <TabsTrigger value="global">{t('globalTab')}</TabsTrigger>
-              {selected.map((ch) => (
-                <TabsTrigger key={ch.id} value={ch.id}>
-                  <Avatar className="size-4">
-                    {ch.avatarUrl ? <AvatarImage src={ch.avatarUrl} alt="" /> : null}
-                    <AvatarFallback className="text-[9px]">
-                      {(ch.name ?? '?').charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  {ch.name ?? ch.username ?? ch.id}
-                  {store.overrides[ch.id] !== undefined ? (
-                    <span aria-hidden className="size-1.5 rounded-full bg-accent" />
-                  ) : null}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+            <Tabs
+              value={
+                activeTab === 'global' || selected.some((ch) => ch.id === activeTab)
+                  ? activeTab
+                  : 'global'
+              }
+              onValueChange={setActiveTab}
+            >
+              <TabsList className="flex-wrap">
+                <TabsTrigger value="global">{t('globalTab')}</TabsTrigger>
+                {selected.map((ch) => (
+                  <TabsTrigger key={ch.id} value={ch.id}>
+                    <Avatar className="size-4">
+                      {ch.avatarUrl ? <AvatarImage src={ch.avatarUrl} alt="" /> : null}
+                      <AvatarFallback className="text-[9px]">
+                        {(ch.name ?? '?').charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    {ch.name ?? ch.username ?? ch.id}
+                    {store.overrides[ch.id] !== undefined ? (
+                      <span aria-hidden className="size-1.5 rounded-full bg-accent" />
+                    ) : null}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
 
-            <TabsContent value="global" className="flex flex-col gap-3">
-              {/* cartão do editor com toolbar embaixo (Postiz) */}
-              <div className="rounded-md border border-line bg-surface transition-colors duration-200 focus-within:border-accent">
-                <ComposerEditor
-                  key={`global-${store.editorNonce}`}
-                  initialText={store.text}
-                  onChange={store.setText}
-                  placeholder={t('placeholder')}
-                  label={t('editorLabel')}
-                  autoFocus
-                  className="border-0 focus-within:border-0"
-                  onEditorReady={(ed) => setGlobalEditor((prev) => (prev === ed ? prev : ed))}
-                />
-                <div className="flex flex-wrap items-center gap-1 border-t border-line px-2 py-1.5">
-                  <MediaPicker selectedIds={store.mediaIds} onToggle={store.toggleMedia} />
-                  <FormattingToolbar editor={globalEditor} />
-                  {counterPill}
+              <TabsContent value="global" className="flex flex-col gap-3">
+                {/* cartão do editor com toolbar embaixo (Postiz) */}
+                <div className="rounded-md border border-line bg-surface transition-colors duration-200 focus-within:border-accent">
+                  <ComposerEditor
+                    key={`global-${store.editorNonce}`}
+                    initialText={store.text}
+                    onChange={store.setText}
+                    placeholder={t('placeholder')}
+                    label={t('editorLabel')}
+                    autoFocus
+                    className="border-0 focus-within:border-0"
+                    onEditorReady={(ed) => setGlobalEditor((prev) => (prev === ed ? prev : ed))}
+                  />
+                  <div className="flex flex-wrap items-center gap-1 border-t border-line px-2 py-1.5">
+                    <MediaPicker selectedIds={store.mediaIds} onToggle={store.toggleMedia} />
+                    <FormattingToolbar editor={globalEditor} />
+                    {counterPill}
+                  </div>
                 </div>
-              </div>
-              <MediaStrip mediaIds={store.mediaIds} onRemove={store.removeMedia} />
-            </TabsContent>
+                <MediaStrip mediaIds={store.mediaIds} onRemove={store.removeMedia} />
+              </TabsContent>
 
-            {selected.map((ch) => {
-              const overridden = store.overrides[ch.id] !== undefined;
-              const counter = counters.find((c) => c.channel.id === ch.id);
-              const providerInfo = providerOf(ch.provider);
-              return (
-                <TabsContent key={ch.id} value={ch.id} className="flex flex-col gap-3">
-                  {overridden ? (
-                    <div className="rounded-md border border-line bg-surface transition-colors duration-200 focus-within:border-accent">
-                      <div className="flex items-center justify-between border-b border-line bg-surface-2/60 px-3 py-1.5">
-                        <span className="flex items-center gap-1.5 text-xs font-semibold text-ink">
-                          <LockOpen className="size-3.5 text-accent" aria-hidden />
-                          Personalizando para {ch.name ?? ch.id}
-                        </span>
+              {selected.map((ch) => {
+                const overridden = store.overrides[ch.id] !== undefined;
+                const counter = counters.find((c) => c.channel.id === ch.id);
+                const providerInfo = providerOf(ch.provider);
+                return (
+                  <TabsContent key={ch.id} value={ch.id} className="flex flex-col gap-3">
+                    {overridden ? (
+                      <div className="rounded-md border border-line bg-surface transition-colors duration-200 focus-within:border-accent">
+                        <div className="flex items-center justify-between border-b border-line bg-surface-2/60 px-3 py-1.5">
+                          <span className="flex items-center gap-1.5 text-xs font-semibold text-ink">
+                            <LockOpen className="size-3.5 text-accent" aria-hidden />
+                            Personalizando para {ch.name ?? ch.id}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => store.clearOverride(ch.id)}
+                            className="h-6 gap-1 px-2 text-[11px] font-semibold text-graphite hover:bg-surface hover:text-ink"
+                          >
+                            <Lock className="size-3" aria-hidden />
+                            Usar texto global
+                          </Button>
+                        </div>
+                        <ComposerEditor
+                          key={`${ch.id}-${store.editorNonce}`}
+                          initialText={store.overrides[ch.id] ?? ''}
+                          onChange={(text) => store.setOverride(ch.id, text)}
+                          placeholder={t('placeholder')}
+                          label={t('channelEditorLabel', { name: ch.name ?? ch.id })}
+                          className="border-0 focus-within:border-0"
+                          onEditorReady={(ed) => setChannelEditors((prev) => (prev[ch.id] === ed ? prev : { ...prev, [ch.id]: ed }))}
+                        />
+                        <div className="flex flex-wrap items-center justify-between gap-1 border-t border-line px-2 py-1.5">
+                          <div className="flex flex-wrap items-center gap-1">
+                            <FormattingToolbar editor={channelEditors[ch.id] ?? null} />
+                          </div>
+                          <HoverPopover align="end" className="flex w-80 flex-col gap-2 p-3" content={validationContent}>
+                            <button
+                              type="button"
+                              className={cn(
+                                'flex shrink-0 items-center gap-1.5 rounded-sm border px-2 py-1 text-[11px] font-semibold tabular-nums outline-none transition-colors duration-200',
+                                'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
+                                counter?.over || (store.overrides[ch.id] !== undefined && store.overrides[ch.id]?.trim().length === 0)
+                                  ? 'border-state-failed bg-state-failed-tint text-state-failed'
+                                  : 'border-line bg-surface text-graphite hover:border-ink',
+                              )}
+                            >
+                              {counter?.over || (store.overrides[ch.id] !== undefined && store.overrides[ch.id]?.trim().length === 0) ? (
+                                <CircleAlert className="size-3.5" aria-hidden />
+                              ) : null}
+                              {counter?.len}
+                              {counter?.max !== undefined ? `/${counter.max}` : ''}
+                            </button>
+                          </HoverPopover>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex min-h-[240px] flex-col items-center justify-center rounded-md border border-line bg-surface p-6 text-center transition-colors duration-200">
+                        <div className="mb-3 flex size-10 items-center justify-center rounded-full border border-line bg-surface-2 text-ink">
+                          <Lock className="size-4" aria-hidden />
+                        </div>
+                        <p className="text-sm font-semibold text-ink">Edição global ativa</p>
+                        <p className="mt-1 max-w-sm text-xs leading-relaxed text-graphite">
+                          Clique no botão abaixo para sair da edição global e personalizar o texto exclusivamente para este canal.
+                        </p>
                         <Button
                           type="button"
-                          variant="ghost"
+                          variant="primary"
                           size="sm"
-                          onClick={() => store.clearOverride(ch.id)}
-                          className="h-6 gap-1 px-2 text-[11px] font-semibold text-graphite hover:bg-surface hover:text-ink"
+                          onClick={() => store.setOverride(ch.id, store.text)}
+                          className="mt-4 gap-1.5 font-semibold"
                         >
-                          <Lock className="size-3" aria-hidden />
-                          Usar texto global
+                          <LockOpen className="size-3.5" aria-hidden />
+                          Personalizar conteúdo
                         </Button>
                       </div>
-                      <ComposerEditor
-                        key={`${ch.id}-${store.editorNonce}`}
-                        initialText={store.overrides[ch.id] ?? ''}
-                        onChange={(text) => store.setOverride(ch.id, text)}
-                        placeholder={t('placeholder')}
-                        label={t('channelEditorLabel', { name: ch.name ?? ch.id })}
-                        className="border-0 focus-within:border-0"
-                        onEditorReady={(ed) => setChannelEditors((prev) => (prev[ch.id] === ed ? prev : { ...prev, [ch.id]: ed }))}
+                    )}
+                    {providerInfo ? (
+                      <ChannelSettingsCard
+                        channelId={ch.id}
+                        providerId={providerInfo.id}
+                        providerName={providerInfo.name}
+                        channelName={ch.name ?? ch.username ?? providerInfo.name}
+                        schema={providerInfo.settingsSchema}
+                        values={store.channelSettings[ch.id] ?? {}}
+                        onChange={(key, value) => store.setChannelSetting(ch.id, key, value)}
                       />
-                      <div className="flex flex-wrap items-center justify-between gap-1 border-t border-line px-2 py-1.5">
-                        <div className="flex flex-wrap items-center gap-1">
-                          <FormattingToolbar editor={channelEditors[ch.id] ?? null} />
-                        </div>
-                        <HoverPopover align="end" className="flex w-80 flex-col gap-2 p-3" content={validationContent}>
-                          <button
-                            type="button"
-                            className={cn(
-                              'flex shrink-0 items-center gap-1.5 rounded-sm border px-2 py-1 text-[11px] font-semibold tabular-nums outline-none transition-colors duration-200',
-                              'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
-                              counter?.over || (store.overrides[ch.id] !== undefined && store.overrides[ch.id]?.trim().length === 0)
-                                ? 'border-state-failed bg-state-failed-tint text-state-failed'
-                                : 'border-line bg-surface text-graphite hover:border-ink',
-                            )}
-                          >
-                            {counter?.over || (store.overrides[ch.id] !== undefined && store.overrides[ch.id]?.trim().length === 0) ? (
-                              <CircleAlert className="size-3.5" aria-hidden />
-                            ) : null}
-                            {counter?.len}
-                            {counter?.max !== undefined ? `/${counter.max}` : ''}
-                          </button>
-                        </HoverPopover>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex min-h-[240px] flex-col items-center justify-center rounded-md border border-line bg-surface p-6 text-center transition-colors duration-200">
-                      <div className="mb-3 flex size-10 items-center justify-center rounded-full border border-line bg-surface-2 text-ink">
-                        <Lock className="size-4" aria-hidden />
-                      </div>
-                      <p className="text-sm font-semibold text-ink">Edição global ativa</p>
-                      <p className="mt-1 max-w-sm text-xs leading-relaxed text-graphite">
-                        Clique no botão abaixo para sair da edição global e personalizar o texto exclusivamente para este canal.
-                      </p>
-                      <Button
-                        type="button"
-                        variant="primary"
-                        size="sm"
-                        onClick={() => store.setOverride(ch.id, store.text)}
-                        className="mt-4 gap-1.5 font-semibold"
-                      >
-                        <LockOpen className="size-3.5" aria-hidden />
-                        Personalizar conteúdo
-                      </Button>
-                    </div>
-                  )}
-                  {providerInfo ? (
-                    <ChannelSettingsCard
-                      channelId={ch.id}
-                      providerId={providerInfo.id}
-                      providerName={providerInfo.name}
-                      channelName={ch.name ?? ch.username ?? providerInfo.name}
-                      schema={providerInfo.settingsSchema}
-                      values={store.channelSettings[ch.id] ?? {}}
-                      onChange={(key, value) => store.setChannelSetting(ch.id, key, value)}
-                    />
-                  ) : null}
-                </TabsContent>
-              );
-            })}
-          </Tabs>
-
-          {/* thread (réplicas encadeadas) */}
-          {selected.length > 0 && !threadSupported && store.thread.length === 0 ? null : (
-            <div className="flex flex-col gap-3">
-              {store.thread.map((item, i) => {
-                const len = item.text.trim().length;
-                const over = minMax !== undefined && len > minMax;
-                return (
-                  <div key={item.key} className="relative pl-6">
-                    {/* conector vertical da thread */}
-                    <span aria-hidden className="absolute bottom-0 left-2.5 top-0 w-px bg-line" />
-                    <div className="rounded-md border border-line bg-surface transition-colors duration-200 focus-within:border-accent">
-                      <ComposerEditor
-                        key={`${item.key}-${store.editorNonce}`}
-                        initialText={item.text}
-                        onChange={(text) => store.setThreadText(item.key, text)}
-                        placeholder={t('threadPlaceholder')}
-                        label={t('threadItem', { index: i + 1 })}
-                        className="border-0 focus-within:border-0 [&_.tiptap]:min-h-16"
-                        onEditorReady={(ed) => setChannelEditors((prev) => (prev[item.key] === ed ? prev : { ...prev, [item.key]: ed }))}
-                      />
-                      <div className="flex flex-wrap items-center gap-1 border-t border-line px-2 py-1.5">
-                        <MediaPicker
-                          selectedIds={item.mediaIds}
-                          onToggle={(mediaId) => store.toggleThreadMedia(item.key, mediaId)}
-                        />
-                        <FormattingToolbar editor={channelEditors[item.key] ?? null} />
-                        <div className="flex items-center gap-1.5">
-                          <Label htmlFor={`delay-${item.key}`} className="text-xs text-graphite">
-                            {t('threadDelay')}
-                          </Label>
-                          <Input
-                            id={`delay-${item.key}`}
-                            type="number"
-                            min={0}
-                            max={600}
-                            step={15}
-                            value={item.delaySec}
-                            onChange={(e) => store.setThreadDelay(item.key, Number(e.target.value))}
-                            className="h-7 w-18 text-xs"
-                          />
-                          <span className="text-xs text-mist">s</span>
-                        </div>
-                        <HoverPopover align="end" className="flex w-80 flex-col gap-2 p-3" content={validationContent}>
-                          <button
-                            type="button"
-                            className={cn(
-                              'ml-auto flex shrink-0 items-center gap-1.5 rounded-sm border px-2 py-1 text-[11px] font-semibold tabular-nums outline-none transition-colors duration-200',
-                              'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
-                              over || len === 0
-                                ? 'border-state-failed bg-state-failed-tint text-state-failed'
-                                : 'border-line bg-surface text-graphite hover:border-ink',
-                            )}
-                          >
-                            {over || len === 0 ? <CircleAlert className="size-3.5" aria-hidden /> : null}
-                            {len}
-                            {minMax !== undefined ? `/${minMax}` : ''}
-                          </button>
-                        </HoverPopover>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label={t('threadRemove')}
-                          className="text-graphite hover:text-state-failed"
-                          onClick={() => store.removeThreadItem(item.key)}
-                        >
-                          <Trash2 aria-hidden />
-                        </Button>
-                      </div>
-                      {item.mediaIds.length > 0 ? (
-                        <div className="border-t border-line p-2">
-                          <MediaStrip
-                            mediaIds={item.mediaIds}
-                            onRemove={(mediaId) => store.toggleThreadMedia(item.key, mediaId)}
-                            size="sm"
-                          />
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
+                    ) : null}
+                  </TabsContent>
                 );
               })}
+            </Tabs>
 
-              {threadSupported ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-fit gap-1.5 bg-accent-tint text-accent hover:bg-accent-tint hover:text-accent-hover"
-                  disabled={store.thread.length >= 24}
-                  onClick={() => store.addThreadItem()}
-                >
-                  <Plus aria-hidden />
-                  {t('threadAdd')}
-                </Button>
-              ) : store.thread.length > 0 ? (
-                <p className="text-[13px] leading-relaxed text-state-failed">
-                  {t('threadUnavailable', { channels: threadUnsupportedNames.join(', ') })}
-                </p>
-              ) : null}
-            </div>
-          )}
+            {/* thread (réplicas encadeadas) */}
+            {selected.length > 0 && !threadSupported && store.thread.length === 0 ? null : (
+              <div className="flex flex-col gap-3">
+                {store.thread.map((item, i) => {
+                  const len = item.text.trim().length;
+                  const over = minMax !== undefined && len > minMax;
+                  return (
+                    <div key={item.key} className="relative pl-6">
+                      {/* conector vertical da thread */}
+                      <span aria-hidden className="absolute bottom-0 left-2.5 top-0 w-px bg-line" />
+                      <div className="rounded-md border border-line bg-surface transition-colors duration-200 focus-within:border-accent">
+                        <ComposerEditor
+                          key={`${item.key}-${store.editorNonce}`}
+                          initialText={item.text}
+                          onChange={(text) => store.setThreadText(item.key, text)}
+                          placeholder={t('threadPlaceholder')}
+                          label={t('threadItem', { index: i + 1 })}
+                          className="border-0 focus-within:border-0 [&_.tiptap]:min-h-16"
+                          onEditorReady={(ed) => setChannelEditors((prev) => (prev[item.key] === ed ? prev : { ...prev, [item.key]: ed }))}
+                        />
+                        <div className="flex flex-wrap items-center gap-1 border-t border-line px-2 py-1.5">
+                          <MediaPicker
+                            selectedIds={item.mediaIds}
+                            onToggle={(mediaId) => store.toggleThreadMedia(item.key, mediaId)}
+                          />
+                          <FormattingToolbar editor={channelEditors[item.key] ?? null} />
+                          <div className="flex items-center gap-1.5">
+                            <Label htmlFor={`delay-${item.key}`} className="text-xs text-graphite">
+                              {t('threadDelay')}
+                            </Label>
+                            <Input
+                              id={`delay-${item.key}`}
+                              type="number"
+                              min={0}
+                              max={600}
+                              step={15}
+                              value={item.delaySec}
+                              onChange={(e) => store.setThreadDelay(item.key, Number(e.target.value))}
+                              className="h-7 w-18 text-xs"
+                            />
+                            <span className="text-xs text-mist">s</span>
+                          </div>
+                          <HoverPopover align="end" className="flex w-80 flex-col gap-2 p-3" content={validationContent}>
+                            <button
+                              type="button"
+                              className={cn(
+                                'ml-auto flex shrink-0 items-center gap-1.5 rounded-sm border px-2 py-1 text-[11px] font-semibold tabular-nums outline-none transition-colors duration-200',
+                                'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
+                                over || len === 0
+                                  ? 'border-state-failed bg-state-failed-tint text-state-failed'
+                                  : 'border-line bg-surface text-graphite hover:border-ink',
+                              )}
+                            >
+                              {over || len === 0 ? <CircleAlert className="size-3.5" aria-hidden /> : null}
+                              {len}
+                              {minMax !== undefined ? `/${minMax}` : ''}
+                            </button>
+                          </HoverPopover>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={t('threadRemove')}
+                            className="text-graphite hover:text-state-failed"
+                            onClick={() => store.removeThreadItem(item.key)}
+                          >
+                            <Trash2 aria-hidden />
+                          </Button>
+                        </div>
+                        {item.mediaIds.length > 0 ? (
+                          <div className="border-t border-line p-2">
+                            <MediaStrip
+                              mediaIds={item.mediaIds}
+                              onRemove={(mediaId) => store.toggleThreadMedia(item.key, mediaId)}
+                              size="sm"
+                            />
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {threadSupported ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-fit gap-1.5 bg-accent-tint text-accent hover:bg-accent-tint hover:text-accent-hover"
+                    disabled={store.thread.length >= 24}
+                    onClick={() => store.addThreadItem()}
+                  >
+                    <Plus aria-hidden />
+                    {t('threadAdd')}
+                  </Button>
+                ) : store.thread.length > 0 ? (
+                  <p className="text-[13px] leading-relaxed text-state-failed">
+                    {t('threadUnavailable', { channels: threadUnsupportedNames.join(', ') })}
+                  </p>
+                ) : null}
+              </div>
+            )}
+          </div>
+
+          {/* preview ao vivo */}
+          <aside className="flex flex-col gap-3 self-start lg:sticky lg:top-0 lg:border-l lg:border-line lg:pl-6">
+            <h2 className="text-base font-semibold tracking-[-0.2px] text-ink">{t('preview.title')}</h2>
+            <PostPreview
+              channels={selected}
+              textFor={textFor}
+              mediaIds={store.mediaIds}
+              thread={store.thread.map((item) => ({ text: item.text, mediaIds: item.mediaIds }))}
+              publishAt={publishAt}
+            />
+          </aside>
         </div>
-
-        {/* preview ao vivo */}
-        <aside className="flex flex-col gap-3 lg:sticky lg:top-20 lg:border-l lg:border-line lg:pl-6">
-          <h2 className="text-base font-semibold tracking-[-0.2px] text-ink">{t('preview.title')}</h2>
-          <PostPreview
-            channels={selected}
-            textFor={textFor}
-            mediaIds={store.mediaIds}
-            thread={store.thread.map((item) => ({ text: item.text, mediaIds: item.mediaIds }))}
-            publishAt={publishAt}
-          />
-        </aside>
       </div>
 
-      {/* rodapé de ações (Postiz: data + rascunho + CTA) */}
-      <div className="sticky -bottom-4 z-10 -mx-6 -mb-6 mt-auto border-t border-line bg-surface px-6 py-4 shadow-none">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      {/* rodapé de ações mobile-first: no mobile empilha (CTA primário no topo);
+          no desktop vira uma linha com os CTAs à direita (Postiz: data + rascunho + CTA) */}
+      <footer className="shrink-0 border-t border-line bg-surface px-4 py-3 sm:px-6 sm:py-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-2">
           <div className="flex items-center gap-2">
             <Checkbox
               id="require-approval"
@@ -529,28 +567,33 @@ export function ComposerView() {
             />
             <Label htmlFor="require-approval">{t('approval')}</Label>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => store.reset()}
-            disabled={schedule.isPending}
-          >
-            {t('discard')}
-          </Button>
 
-          <div className="ml-auto flex flex-wrap items-center gap-2">
-            {uniqueIssues.length > 0 ? (
-              <span className="text-xs text-graphite">{uniqueIssues[0]}</span>
-            ) : null}
-            <DateTimePicker
-              value={store.publishAtLocal}
-              min={toLocalInput(new Date())}
-              onChange={store.setPublishAtLocal}
-              ariaLabel={t('modeSchedule')}
-            />
+          <DateTimePicker
+            value={store.publishAtLocal}
+            min={toLocalInput(new Date())}
+            onChange={store.setPublishAtLocal}
+            ariaLabel={t('modeSchedule')}
+            className="w-full sm:w-auto"
+          />
+
+          {uniqueIssues.length > 0 ? (
+            <span className="text-xs leading-relaxed text-graphite">{uniqueIssues[0]}</span>
+          ) : null}
+
+          <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row sm:items-center">
+            {/* descartar = mesmo padrão do "publicar agora" (outline), mas hover danger + confirmação */}
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto hover:border-state-failed hover:bg-state-failed-tint hover:text-state-failed"
+              disabled={schedule.isPending}
+              onClick={() => setConfirmDiscard(true)}
+            >
+              {t('discard')}
+            </Button>
             {!store.requireApproval ? (
               <Button
                 variant="outline"
+                className="w-full sm:w-auto"
                 disabled={issues.length > 0}
                 isLoading={schedule.isPending}
                 onClick={() => submit(true)}
@@ -559,6 +602,7 @@ export function ComposerView() {
               </Button>
             ) : null}
             <Button
+              className="w-full sm:w-auto"
               disabled={issues.length > 0 || scheduleIssues.length > 0}
               isLoading={schedule.isPending}
               onClick={() => submit(false)}
@@ -567,7 +611,29 @@ export function ComposerView() {
             </Button>
           </div>
         </div>
-      </div>
+      </footer>
+
+      {/* confirmação de descarte (pedido do owner: sempre perguntar) */}
+      <AlertDialog open={confirmDiscard} onOpenChange={setConfirmDiscard}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('discardConfirmTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('discardConfirmBody')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('discardKeep')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                store.reset();
+                setConfirmDiscard(false);
+                onDone();
+              }}
+            >
+              {t('discardConfirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -554,7 +554,14 @@ export const makeCancelPost = (deps: Pick<MutatePostDeps, 'publishing' | 'schedu
 
 /** Edita texto/horário do que ainda está pendente (equivalente ao TERMINATE_EXISTING do Postiz). */
 export const makeReschedulePost = (deps: MutatePostDeps) =>
-  async (input: { orgId: string; groupId: string; text?: string; publishAt?: Date }) => {
+  async (input: {
+    orgId: string;
+    groupId: string;
+    text?: string;
+    publishAt?: Date;
+    /** settings de publicação por canal (chave = channelId) — merge sobre o existente e valida por provider */
+    settingsByChannel?: Record<string, unknown>;
+  }) => {
     const group = await deps.publishing.getGroup(input.orgId, input.groupId);
     if (!group) throw new DomainError(ErrorCodes.NotFound, 'post não encontrado');
     if (group.publications.some((p) => p.state === 'PUBLISHING')) {
@@ -581,12 +588,50 @@ export const makeReschedulePost = (deps: MutatePostDeps) =>
       }
     }
 
+    // settings por canal: merge sobre o que já existe e valida no schema do provider
+    // (mesma semântica do agendamento — required não pode "sumir" ao editar um único campo)
+    const validatedSettings: Record<string, unknown> = {};
+    if (input.settingsByChannel && Object.keys(input.settingsByChannel).length > 0) {
+      const ids = Object.keys(input.settingsByChannel);
+      const pendingByChannel = new Map(pending.map((p) => [p.channelId, p]));
+      const channelById = new Map(
+        (await deps.channels.findMany(input.orgId, ids)).map((c) => [c.id, c]),
+      );
+      for (const [channelId, patch] of Object.entries(input.settingsByChannel)) {
+        const pub = pendingByChannel.get(channelId);
+        if (!pub) {
+          throw new DomainError(ErrorCodes.NotFound, 'settingsByChannel referencia canal fora do grupo', {
+            channelId,
+          });
+        }
+        const ch = channelById.get(channelId);
+        const provider = ch ? deps.registry.get(ch.provider) : undefined;
+        if (!provider) {
+          throw new DomainError(ErrorCodes.CapabilityDisabled, `provider indisponível`, { channelId });
+        }
+        const merged = {
+          ...((pub.settings as Record<string, unknown> | null) ?? {}),
+          ...((patch as Record<string, unknown> | null) ?? {}),
+        };
+        const parsed = provider.settingsSchema.safeParse(merged);
+        if (!parsed.success) {
+          throw new DomainError(ErrorCodes.PostInvalidSettings, 'settings inválidos para o canal', {
+            channelId,
+            issues: parsed.error.issues.map((i) => i.message),
+          });
+        }
+        validatedSettings[channelId] = parsed.data;
+      }
+    }
+    const hasSettings = Object.keys(validatedSettings).length > 0;
+
     if (isDraft) {
       // rascunho continua rascunho (a aprovação é quem agenda); editar invalida o
       // link pendente — o cliente não pode aprovar um conteúdo que não viu
       await deps.publishing.updateDraftGroup(input.orgId, input.groupId, {
         ...(text !== undefined ? { baseContent: { text } } : {}),
         ...(input.publishAt ? { publishAt: input.publishAt } : {}),
+        ...(hasSettings ? { settingsByChannel: validatedSettings } : {}),
       });
       await deps.approvals?.revokePending(input.orgId, input.groupId);
       return deps.publishing.getGroup(input.orgId, input.groupId);
@@ -595,6 +640,7 @@ export const makeReschedulePost = (deps: MutatePostDeps) =>
     const updated = await deps.publishing.rescheduleGroup(input.orgId, input.groupId, {
       ...(text !== undefined ? { baseContent: { text } } : {}),
       ...(input.publishAt ? { publishAt: input.publishAt } : {}),
+      ...(hasSettings ? { settingsByChannel: validatedSettings } : {}),
     });
     for (const pub of updated) {
       await deps.scheduler

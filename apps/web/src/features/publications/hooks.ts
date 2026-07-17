@@ -57,16 +57,24 @@ function useInvalidatePost() {
   };
 }
 
-/** PATCH texto/horário — editar `text` sobrescreve TODAS as publicações do grupo (overrides resetam). */
+/** PATCH texto/horário/settings — editar `text` sobrescreve TODAS as publicações do grupo (overrides resetam). */
 export function useReschedulePost() {
   const invalidate = useInvalidatePost();
   return useMutation({
-    mutationFn: async (input: { groupId: string; text?: string; publishAt?: string }) => {
+    mutationFn: async (input: {
+      groupId: string;
+      text?: string;
+      publishAt?: string;
+      settingsByChannel?: Record<string, Record<string, unknown>>;
+    }) => {
       const { data, error } = await api.PATCH('/v1/posts/{groupId}', {
         params: { path: { groupId: input.groupId } },
         body: {
           ...(input.text !== undefined ? { text: input.text } : {}),
           ...(input.publishAt !== undefined ? { publishAt: input.publishAt } : {}),
+          ...(input.settingsByChannel && Object.keys(input.settingsByChannel).length > 0
+            ? { settingsByChannel: input.settingsByChannel }
+            : {}),
         },
       });
       if (error) throw error;

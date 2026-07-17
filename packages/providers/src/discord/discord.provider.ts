@@ -26,13 +26,13 @@ const OAUTH_ME_URL = 'https://discord.com/api/oauth2/@me';
 const POSTABLE_CHANNEL_TYPES = new Set([0, 5, 15]);
 
 const settingsSchema = z.object({
-  // opcional de propósito: sem canal escolhido o publish usa o canal padrão do servidor
-  // (gravado na conexão) ou auto-descobre o 1º canal de texto onde o bot pode postar.
-  // Se fosse obrigatório, o agendamento sem canal escolhido falharia na validação de settings.
+  // OBRIGATÓRIO (decisão do owner): o usuário escolhe o canal por post no composer
+  // (SubAccountsField lista os canais do servidor). Sem auto-descoberta nem default —
+  // o agendamento sem canal escolhido falha na validação de settings, e a UI acusa e bloqueia.
   channelId: z
     .string()
-    .optional()
-    .describe('ID do canal de texto (#geral ou ID numérico) para onde o post será enviado — vazio usa o canal padrão do servidor'),
+    .min(1)
+    .describe('ID do canal de texto (#geral ou ID numérico) para onde o post será enviado'),
   suppressEmbeds: z
     .boolean()
     .default(false)
@@ -139,13 +139,6 @@ async function fetchPostableChannels(
   return list.filter((c) => POSTABLE_CHANNEL_TYPES.has(c.type)).map((c) => ({ id: c.id, name: c.name }));
 }
 
-/** true quando o erro do Discord é de permissão/canal restrito (não adianta tentar de novo). */
-const isChannelPermissionError = (err: unknown): boolean => {
-  const e = err as { status?: number; body?: string } | undefined;
-  const body = String(e?.body ?? '');
-  return e?.status === 403 || /Missing Access|Missing Permissions|50001|50013|Unknown Channel/i.test(body);
-};
-
 export const discordProvider: ChannelProvider = {
   id: 'discord',
   name: 'Discord',
@@ -220,13 +213,7 @@ export const discordProvider: ChannelProvider = {
       : undefined;
     const username = bot?.username;
 
-    // Melhor esforço: pré-seleciona o 1º canal onde o bot pode postar (o usuário troca depois).
-    let defaultChannelId: string | undefined;
-    if (guildId && ctx.secrets.botToken) {
-      const channels = await fetchPostableChannels(ctx, ctx.secrets.botToken, guildId).catch(() => []);
-      defaultChannelId = channels[0]?.id;
-    }
-
+    // Sem default de canal (decisão do owner): o canal é escolhido por post no composer.
     return {
       accessToken: tokenData.access_token,
       ...(tokenData.refresh_token ? { refreshToken: tokenData.refresh_token } : {}),
@@ -236,7 +223,7 @@ export const discordProvider: ChannelProvider = {
       name,
       ...(username ? { username } : {}),
       ...(avatarUrl ? { avatarUrl } : {}),
-      channelSettings: { guildId, chatType: 'guild', ...(defaultChannelId ? { channelId: defaultChannelId } : {}) },
+      channelSettings: { guildId, chatType: 'guild' },
     };
   },
 
@@ -289,45 +276,18 @@ export const discordProvider: ChannelProvider = {
     const botToken = ctx.secrets.botToken;
     if (!botToken) throw { status: 422, body: 'DISCORD_BOT_TOKEN ausente no servidor para publicar' };
 
-    // Canal escolhido nas configurações vence. Sem ele, auto-descobre os canais postáveis
-    // do servidor e tenta cada um até um aceitar (permissões variam por canal) — "Tudo Pronto".
-    let channelId = cfg.channelId;
-    let candidates: string[] = [];
-    if (!channelId && cfg.guildId) {
-      candidates = (await fetchPostableChannels(ctx, botToken, cfg.guildId).catch(() => [])).map((c) => c.id);
-      channelId = candidates[0];
-    }
+    // Canal escolhido nas configurações do post (obrigatório, sem auto-descoberta).
+    const channelId = cfg.channelId;
     if (!channelId) {
       throw {
         status: 422,
-        body: 'Canal do Discord não encontrado ou selecionado. Escolha o canal nas Configurações do post ou verifique se o bot tem acesso a algum canal de texto do servidor.',
+        body: 'Canal do Discord não selecionado. Escolha o canal nas Configurações do post.',
       };
     }
 
-    const tryChannels = !cfg.channelId && candidates.length > 1 ? candidates : [channelId];
     const results: PublishResult[] = [];
     for (const item of items) {
-      let lastErr: unknown;
-      let posted = false;
-      for (const cid of tryChannels) {
-        try {
-          results.push(await executeBotPost(ctx, botToken, cid, cfg.guildId, item, cfg.flags));
-          posted = true;
-          break;
-        } catch (err) {
-          lastErr = err;
-          if (isChannelPermissionError(err) && tryChannels.length > 1) continue; // canal restrito → próximo
-          throw err;
-        }
-      }
-      if (!posted) {
-        throw (
-          lastErr ?? {
-            status: 422,
-            body: 'O Bot do Discord não tem permissão para postar em nenhum canal de texto do servidor. Conceda a permissão de Enviar Mensagens ao bot no Discord.',
-          }
-        );
-      }
+      results.push(await executeBotPost(ctx, botToken, channelId, cfg.guildId, item, cfg.flags));
     }
     return results;
   },

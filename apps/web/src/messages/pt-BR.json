@@ -148,6 +148,10 @@
     "submitSchedule": "Agendar",
     "submitDraft": "Salvar rascunho",
     "discard": "Descartar rascunho",
+    "discardConfirmTitle": "Descartar este rascunho?",
+    "discardConfirmBody": "Todo o conteúdo escrito aqui será apagado e o popup será fechado. Não dá para desfazer.",
+    "discardConfirm": "Descartar",
+    "discardKeep": "Continuar editando",
     "scheduled": "Post agendado!",
     "publishedNow": "Publicação disparada!",
     "draftCreated": "Rascunho criado — aguardando aprovação.",
@@ -192,6 +196,7 @@
         },
         "bluesky": { "langs": "Idiomas do post" },
         "discord": {
+          "channelId": "Canal do Discord",
           "suppressEmbeds": "Ocultar previews de link",
           "silent": "Envio silencioso"
         },
@@ -234,6 +239,7 @@
     "issues": {
       "emptyText": "Escreva o texto do post.",
       "noChannelSelected": "Selecione ao menos um canal.",
+      "missingSetting": "{field} é obrigatório em {name}.",
       "overLimit": "Texto acima do limite em: {channels}.",
       "noDate": "Escolha data e horário.",
       "pastDate": "Escolha um horário no futuro.",
@@ -379,6 +385,9 @@
     "title": "Publicação",
     "content": "Conteúdo",
     "channels": "Canais",
+    "preview": "Preview",
+    "previewEmpty": "Sem conteúdo para pré-visualizar.",
+    "settings": "Configurações por canal",
     "edit": "Editar",
     "editResetsOverrides": "Este grupo tem texto personalizado por canal — salvar aqui sobrescreve o texto de TODOS os canais.",
     "when": "Data e horário",
