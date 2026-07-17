@@ -31,6 +31,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PROVIDER_ICONS } from '@/features/channels/provider-icon';
 import { useComposerStore } from '@/features/composer/store';
+import { useComposerModal } from '@/features/composer/use-composer-modal';
 import { useDuplicatePost } from '@/features/composer/use-duplicate';
 import { PostDetailSheet } from '@/features/publications/post-detail-sheet';
 import { useCancelPost, usePublicationsFeed, useReschedulePost } from '@/features/publications/hooks';
@@ -199,22 +200,19 @@ export function CalendarView() {
     return map;
   }, [items]);
 
-  // ---- "+" no slot: pré-preenche o composer e abre /compor ----
-  const scheduleAt = useCallback(
-    (date: Date) => {
-      // nunca sugerir horário no passado — cai para daqui a ~10 min
-      let target = date;
-      if (target.getTime() <= Date.now()) {
-        target = new Date(Date.now() + 10 * 60_000);
-        target.setMinutes(Math.ceil(target.getMinutes() / 5) * 5, 0, 0);
-      }
-      const composer = useComposerStore.getState();
-      composer.setMode('schedule');
-      composer.setPublishAtLocal(toLocalInput(target));
-      router.push('/compor');
-    },
-    [router],
-  );
+  // ---- "+" no slot: pré-preenche o composer e abre o modal de criação ----
+  const scheduleAt = useCallback((date: Date) => {
+    // nunca sugerir horário no passado — cai para daqui a ~10 min
+    let target = date;
+    if (target.getTime() <= Date.now()) {
+      target = new Date(Date.now() + 10 * 60_000);
+      target.setMinutes(Math.ceil(target.getMinutes() / 5) * 5, 0, 0);
+    }
+    const composer = useComposerStore.getState();
+    composer.setMode('schedule');
+    composer.setPublishAtLocal(toLocalInput(target));
+    useComposerModal.getState().openComposer();
+  }, []);
 
   // ---- painel de detalhe ----
   const [openGroupId, setOpenGroupId] = useState<string | null>(null);
@@ -408,8 +406,12 @@ function ListView({
     return (
       <div className="rounded-lg border border-dashed border-line bg-surface-2 px-6 py-12 text-center">
         <p className="text-sm leading-relaxed text-graphite">{t('empty')}</p>
-        <Button asChild size="sm" className="mt-4">
-          <Link href="/compor">{t('newPost')}</Link>
+        <Button
+          size="sm"
+          className="mt-4"
+          onClick={() => useComposerModal.getState().openComposer()}
+        >
+          {t('newPost')}
         </Button>
       </div>
     );

@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLogout, useMe } from '@/features/auth/hooks';
+import { useComposerModal } from '@/features/composer/use-composer-modal';
 import { NotificationsMenu } from '@/features/notifications/notifications-menu';
 
 const MOBILE_NAV = [
@@ -64,14 +65,25 @@ export function Topbar() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
-            {MOBILE_NAV.map(({ href, key, icon: Icon }) => (
-              <DropdownMenuItem key={href} asChild>
-                <Link href={href}>
+            {MOBILE_NAV.map(({ href, key, icon: Icon }) =>
+              key === 'compose' ? (
+                // criar post é modal, não rota — abre o composer sobre a página atual
+                <DropdownMenuItem
+                  key={href}
+                  onSelect={() => useComposerModal.getState().openComposer()}
+                >
                   <Icon aria-hidden />
                   {t(`nav.${key}`)}
-                </Link>
-              </DropdownMenuItem>
-            ))}
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem key={href} asChild>
+                  <Link href={href}>
+                    <Icon aria-hidden />
+                    {t(`nav.${key}`)}
+                  </Link>
+                </DropdownMenuItem>
+              ),
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
         <Wordmark />

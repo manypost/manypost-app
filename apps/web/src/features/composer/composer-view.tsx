@@ -5,6 +5,16 @@ import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -37,8 +47,13 @@ import { useComposerStore } from './store';
  * thread empilhada → preview ao vivo à direita → rodapé com data e CTA.
  * Estado no Zustand com persist (rascunho sobrevive a F5).
  */
-export function ComposerView() {
+/**
+ * Tela de criação de post. `onDone` = está dentro do modal (ComposerModal): publicar/agendar/
+ * descartar fecha o popup. Sem `onDone` (rota /compor), navega para o calendário no submit.
+ */
+export function ComposerView({ onDone }: { onDone?: () => void } = {}) {
   const t = useTranslations('composer');
+  const tSettings = useTranslations('composer.channelSettings');
   const errorMessage = useApiErrorMessage();
   const router = useRouter();
   const store = useComposerStore();
@@ -48,6 +63,7 @@ export function ComposerView() {
   const schedule = useSchedulePost();
 
   const [mounted, setMounted] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   useEffect(() => setMounted(true), []);
   const [activeTab, setActiveTab] = useState('global');
   const [globalEditor, setGlobalEditor] = useState<Editor | null>(null);
@@ -113,6 +129,28 @@ export function ComposerView() {
   }
   const overNames = counters.filter((c) => c.over).map((c) => c.channel.name ?? c.channel.id);
   if (overNames.length > 0) issues.push(t('issues.overLimit', { channels: overNames.join(', ') }));
+
+  // settings obrigatórias não preenchidas (ex.: canal do Discord) — acusadas no indicador,
+  // genérico via `required` do JSON Schema do settingsSchema de cada provider (catálogo)
+  for (const ch of selected) {
+    const info = providerOf(ch.provider);
+    const schema = info?.settingsSchema as
+      | { required?: string[]; properties?: Record<string, { title?: string }> }
+      | undefined;
+    if (!schema?.required?.length) continue;
+    const values = (store.channelSettings[ch.id] ?? {}) as Record<string, unknown>;
+    for (const key of schema.required) {
+      const v = values[key];
+      const missing =
+        v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0);
+      if (missing) {
+        const field = tSettings.has(`fields.${info!.id}.${key}`)
+          ? tSettings(`fields.${info!.id}.${key}`)
+          : (schema.properties?.[key]?.title ?? key);
+        issues.push(t('issues.missingSetting', { name: ch.name ?? ch.id, field }));
+      }
+    }
+  }
 
   if (selectedMedia.length > 0) {
     const seen = new Set<string>();
@@ -186,7 +224,8 @@ export function ComposerView() {
             store.requireApproval ? t('draftCreated') : now ? t('publishedNow') : t('scheduled'),
           );
           store.reset();
-          router.push('/calendario');
+          if (onDone) onDone();
+          else router.push('/calendario');
         },
         onError: (err) => toast.error(errorMessage(err)),
       },
@@ -255,7 +294,12 @@ export function ComposerView() {
   );
 
   return (
-    <div className="flex min-h-[calc(100dvh-7rem)] flex-col justify-between">
+    <div
+      className={cn(
+        'flex flex-col justify-between',
+        onDone ? 'min-h-full' : 'min-h-[calc(100dvh-7rem)]',
+      )}
+    >
       <div className="grid flex-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         {/* coluna principal */}
         <div className="flex min-w-0 flex-col gap-5">
@@ -518,56 +562,94 @@ export function ComposerView() {
         </aside>
       </div>
 
-      {/* rodapé de ações (Postiz: data + rascunho + CTA) */}
-      <div className="sticky -bottom-4 z-10 -mx-6 -mb-6 mt-auto border-t border-line bg-surface px-6 py-4 shadow-none">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="require-approval"
-              checked={store.requireApproval}
-              onCheckedChange={(checked) => store.setRequireApproval(checked === true)}
-            />
-            <Label htmlFor="require-approval">{t('approval')}</Label>
+      {/* rodapé de ações (Postiz: data + rascunho + CTA) — mobile-first */}
+      <div className="sticky -bottom-4 z-10 -mx-4 -mb-4 mt-auto border-t border-line bg-surface px-4 py-3 shadow-none sm:-mx-6 sm:-mb-6 sm:px-6 sm:py-4">
+        {/* erro (mobile: em cima, largura total; desktop: fica ao lado das CTAs) */}
+        {uniqueIssues.length > 0 ? (
+          <p className="mb-2.5 flex items-start gap-1.5 text-xs leading-relaxed text-state-failed sm:hidden">
+            <CircleAlert className="size-3.5 shrink-0 translate-y-px" aria-hidden />
+            {uniqueIssues[0]}
+          </p>
+        ) : null}
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-2">
+          <div className="flex items-center justify-between gap-2 sm:justify-start">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="require-approval"
+                checked={store.requireApproval}
+                onCheckedChange={(checked) => store.setRequireApproval(checked === true)}
+              />
+              <Label htmlFor="require-approval">{t('approval')}</Label>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 hover:border-destructive hover:bg-destructive/10 hover:text-destructive sm:h-[38px] sm:px-5 sm:text-[13px]"
+              onClick={() => setConfirmDiscard(true)}
+              disabled={schedule.isPending}
+            >
+              <Trash2 aria-hidden />
+              {t('discard')}
+            </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => store.reset()}
-            disabled={schedule.isPending}
-          >
-            {t('discard')}
-          </Button>
 
-          <div className="ml-auto flex flex-wrap items-center gap-2">
+          <div className="flex flex-col gap-2 sm:ml-auto sm:flex-row sm:flex-wrap sm:items-center">
             {uniqueIssues.length > 0 ? (
-              <span className="text-xs text-graphite">{uniqueIssues[0]}</span>
+              <span className="hidden text-xs text-graphite sm:inline">{uniqueIssues[0]}</span>
             ) : null}
             <DateTimePicker
               value={store.publishAtLocal}
               min={toLocalInput(new Date())}
               onChange={store.setPublishAtLocal}
               ariaLabel={t('modeSchedule')}
+              className="w-full sm:w-auto"
             />
-            {!store.requireApproval ? (
+            <div className="flex gap-2">
+              {!store.requireApproval ? (
+                <Button
+                  variant="outline"
+                  className="flex-1 sm:flex-none"
+                  disabled={issues.length > 0}
+                  isLoading={schedule.isPending}
+                  onClick={() => submit(true)}
+                >
+                  {t('submitNow')}
+                </Button>
+              ) : null}
               <Button
-                variant="outline"
-                disabled={issues.length > 0}
+                className="flex-1 sm:flex-none"
+                disabled={issues.length > 0 || scheduleIssues.length > 0}
                 isLoading={schedule.isPending}
-                onClick={() => submit(true)}
+                onClick={() => submit(false)}
               >
-                {t('submitNow')}
+                {store.requireApproval ? t('submitDraft') : t('submitSchedule')}
               </Button>
-            ) : null}
-            <Button
-              disabled={issues.length > 0 || scheduleIssues.length > 0}
-              isLoading={schedule.isPending}
-              onClick={() => submit(false)}
-            >
-              {store.requireApproval ? t('submitDraft') : t('submitSchedule')}
-            </Button>
+            </div>
           </div>
         </div>
       </div>
+
+      <AlertDialog open={confirmDiscard} onOpenChange={setConfirmDiscard}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('discardTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('discardWarning')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('discardKeep')}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-paper hover:bg-destructive/90"
+              onClick={() => {
+                store.reset();
+                setConfirmDiscard(false);
+                onDone?.();
+              }}
+            >
+              {t('discardConfirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -11,7 +11,7 @@ import {
 } from '@dnd-kit/core';
 import { CircleAlert } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import Link from 'next/link';
+import { useComposerModal } from '@/features/composer/use-composer-modal';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -279,8 +279,8 @@ export function KanbanView() {
     return (
       <div className="rounded-lg border border-dashed border-line bg-surface-2 px-6 py-12 text-center">
         <p className="text-sm leading-relaxed text-graphite">{t('empty')}</p>
-        <Button asChild size="sm" className="mt-4">
-          <Link href="/compor">{t('newPost')}</Link>
+        <Button size="sm" className="mt-4" onClick={() => useComposerModal.getState().openComposer()}>
+          {t('newPost')}
         </Button>
       </div>
     );

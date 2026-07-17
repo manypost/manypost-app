@@ -554,7 +554,14 @@ export const makeCancelPost = (deps: Pick<MutatePostDeps, 'publishing' | 'schedu
 
 /** Edita texto/horário do que ainda está pendente (equivalente ao TERMINATE_EXISTING do Postiz). */
 export const makeReschedulePost = (deps: MutatePostDeps) =>
-  async (input: { orgId: string; groupId: string; text?: string; publishAt?: Date }) => {
+  async (input: {
+    orgId: string;
+    groupId: string;
+    text?: string;
+    publishAt?: Date;
+    /** settings de publicação por canal (chave = channelId) — validadas pelo settingsSchema do provider */
+    settingsByChannel?: Record<string, unknown>;
+  }) => {
     const group = await deps.publishing.getGroup(input.orgId, input.groupId);
     if (!group) throw new DomainError(ErrorCodes.NotFound, 'post não encontrado');
     if (group.publications.some((p) => p.state === 'PUBLISHING')) {
@@ -568,16 +575,45 @@ export const makeReschedulePost = (deps: MutatePostDeps) =>
       throw new DomainError(ErrorCodes.PostInvalidTransition, 'nada pendente para editar');
     }
 
+    // canais/providers dos pendentes — carregados 1x (validação de texto e/ou settings)
+    let channelsCache: Awaited<ReturnType<typeof deps.channels.findMany>> | undefined;
+    const loadChannels = async () =>
+      (channelsCache ??= await deps.channels.findMany(input.orgId, pending.map((p) => p.channelId)));
+
     const text = input.text?.trim();
     if (text !== undefined) {
       if (!text) throw new DomainError(ErrorCodes.PostEmptyContent, 'conteúdo vazio');
-      const channels = await deps.channels.findMany(input.orgId, pending.map((p) => p.channelId));
-      for (const ch of channels) {
+      for (const ch of await loadChannels()) {
         const provider = deps.registry.get(ch.provider);
         const max = provider?.capabilities.maxLength(undefined) ?? Infinity;
         if (text.length > max) {
           throw new DomainError(ErrorCodes.PostTooLong, `limite de ${max} caracteres em ${ch.name}`);
         }
+      }
+    }
+
+    // settings por canal: valida cada uma pelo settingsSchema do provider (mesma semântica do schedule)
+    let settingsByChannel: Record<string, Record<string, unknown>> | undefined;
+    if (input.settingsByChannel && Object.keys(input.settingsByChannel).length > 0) {
+      const byId = new Map((await loadChannels()).map((c) => [c.id, c]));
+      settingsByChannel = {};
+      for (const [channelId, raw] of Object.entries(input.settingsByChannel)) {
+        const ch = byId.get(channelId);
+        if (!ch) {
+          throw new DomainError(ErrorCodes.NotFound, 'canal não pertence ao grupo ou não está pendente', {
+            channelId,
+          });
+        }
+        const provider = deps.registry.get(ch.provider);
+        if (!provider) throw new DomainError(ErrorCodes.NotFound, `provider ${ch.provider} desconhecido`);
+        const parsed = provider.settingsSchema.safeParse(raw);
+        if (!parsed.success) {
+          throw new DomainError(ErrorCodes.PostInvalidSettings, 'settings inválidos para o canal', {
+            channelId,
+            issues: parsed.error.issues.map((i) => i.message),
+          });
+        }
+        settingsByChannel[channelId] = parsed.data as Record<string, unknown>;
       }
     }
 
@@ -587,6 +623,7 @@ export const makeReschedulePost = (deps: MutatePostDeps) =>
       await deps.publishing.updateDraftGroup(input.orgId, input.groupId, {
         ...(text !== undefined ? { baseContent: { text } } : {}),
         ...(input.publishAt ? { publishAt: input.publishAt } : {}),
+        ...(settingsByChannel ? { settingsByChannel } : {}),
       });
       await deps.approvals?.revokePending(input.orgId, input.groupId);
       return deps.publishing.getGroup(input.orgId, input.groupId);
@@ -595,6 +632,7 @@ export const makeReschedulePost = (deps: MutatePostDeps) =>
     const updated = await deps.publishing.rescheduleGroup(input.orgId, input.groupId, {
       ...(text !== undefined ? { baseContent: { text } } : {}),
       ...(input.publishAt ? { publishAt: input.publishAt } : {}),
+      ...(settingsByChannel ? { settingsByChannel } : {}),
     });
     for (const pub of updated) {
       await deps.scheduler

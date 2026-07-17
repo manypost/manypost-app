@@ -248,6 +248,8 @@ function makeFakes(provider: ChannelProvider) {
             p.jobVersion++;
             if (d.baseContent) p.content = d.baseContent;
             if (d.publishAt) p.publishAt = d.publishAt;
+            const s = d.settingsByChannel?.[p.channelId];
+            if (s) p.settings = { ...(p.settings ?? {}), ...s };
             return { id: p.id, channelId: p.channelId, jobVersion: p.jobVersion, publishAt: p.publishAt! };
           });
       },
@@ -565,6 +567,40 @@ describe('cancelar e editar agendados', () => {
     await expect(
       makeReschedulePost(f as any)({ orgId: 'org-1', groupId, text: '  ' }),
     ).rejects.toMatchObject({ code: 'post.empty_content' });
+  });
+
+  test('editar settings por canal: valida pelo settingsSchema, faz merge e sobe a versão', async () => {
+    const before = f._state.pubs[0]!.jobVersion;
+    const channelId = f._state.pubs[0]!.channelId;
+    await makeReschedulePost(f as any)({
+      orgId: 'org-1',
+      groupId,
+      settingsByChannel: { [channelId]: { tag: 'promo' } },
+    });
+    const pub = f._state.pubs[0]!;
+    expect(pub.jobVersion).toBe(before + 1);
+    expect(pub.settings).toMatchObject({ tag: 'promo' });
+  });
+
+  test('editar settings inválidas → post.invalid_settings', async () => {
+    const channelId = f._state.pubs[0]!.channelId;
+    await expect(
+      makeReschedulePost(f as any)({
+        orgId: 'org-1',
+        groupId,
+        settingsByChannel: { [channelId]: { tag: 123 } },
+      }),
+    ).rejects.toMatchObject({ code: 'post.invalid_settings' });
+  });
+
+  test('editar settings de canal fora do grupo → not_found', async () => {
+    await expect(
+      makeReschedulePost(f as any)({
+        orgId: 'org-1',
+        groupId,
+        settingsByChannel: { 'canal-fantasma': { tag: 'x' } },
+      }),
+    ).rejects.toMatchObject({ code: 'common.not_found' });
   });
 
   test('publicado não pode ser editado', async () => {

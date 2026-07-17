@@ -1086,6 +1086,11 @@ export type paths = {
                         text?: string;
                         /** Format: date-time */
                         publishAt?: string;
+                        settingsByChannel?: {
+                            [key: string]: {
+                                [key: string]: unknown;
+                            };
+                        };
                     };
                 };
             };
