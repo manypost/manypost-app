@@ -1,0 +1,16 @@
+# Configuração padrão do Railway para o manypost (SPEC_INFRA §3)
+# Por padrão, usa o Dockerfile do repositório, onde a variável $MODE decide o serviço:
+#   MODE=all    -> API + Worker no mesmo container (padrão para self-host/teste)
+#   MODE=api    -> Apenas a API
+#   MODE=worker -> Apenas o Worker de processamento em background
+#   MODE=web    -> Frontend Next.js
+
+[build]
+builder = "dockerfile"
+dockerfilePath = "docker/Dockerfile"
+
+[deploy]
+healthcheckPath = "/docs"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

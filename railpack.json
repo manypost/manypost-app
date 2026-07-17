@@ -1,0 +1,13 @@
+{
+  "$schema": "https://railpack.com/schema.json",
+  "provider": "bun",
+  "build": {
+    "commands": [
+      "bun install --frozen-lockfile || bun install",
+      "cd apps/web && bun run build || true"
+    ]
+  },
+  "deploy": {
+    "startCommand": "if [ \"$MODE\" = \"web\" ]; then cd apps/web && bun run start --port ${PORT:-3000}; elif [ \"$MODE\" = \"worker\" ]; then bun run apps/worker/src/main.ts; elif [ \"$MODE\" = \"api\" ]; then bun run apps/api/src/main.ts; else bun run apps/worker/src/main.ts & bun run apps/api/src/main.ts; fi"
+  }
+}
