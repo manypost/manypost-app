@@ -308,6 +308,29 @@ check(flakyDone.publications[0].attemptCount >= 2,
   `retry consumiu tentativa (veio ${flakyDone.publications[0].attemptCount})`);
 check(flakyDone.publications[0].lastPublishedIndex === 1, 'cursor completo após retry');
 
+// ---- 9b) GET de detalhe expõe o conteúdo p/ duplicar (texto/override/settings/thread) ----
+const dupSrc = await schedule({
+  text: 'texto base p/ duplicar',
+  channelIds: [channel.id],
+  publishAt: new Date(Date.now() + 3_600_000).toISOString(),
+  textByChannel: { [channel.id]: 'texto personalizado deste canal' },
+  settingsByChannel: { [channel.id]: { failFirstAttempts: 2 } },
+  thread: [{ text: 'réplica p/ duplicar', delaySec: 30 }],
+  requireApproval: true,
+});
+check(dupSrc.status === 201, `fonte p/ duplicar → 201 (veio ${dupSrc.status})`);
+const dupDetail = (await (await fetch(`${BASE}/v1/posts/${dupSrc.body.id}`, { headers: auth })).json()) as any;
+check(dupDetail.text === 'texto base p/ duplicar', 'detalhe: texto base do grupo');
+check(dupDetail.publications[0].text === 'texto personalizado deste canal', 'detalhe: texto por canal (override)');
+check(dupDetail.publications[0].settings?.failFirstAttempts === 2, 'detalhe: settings da publicação');
+check(
+  dupDetail.publications[0].thread?.length === 1 &&
+    dupDetail.publications[0].thread[0].text === 'réplica p/ duplicar' &&
+    dupDetail.publications[0].thread[0].delaySec === 30,
+  'detalhe: réplicas de thread com delay',
+);
+await fetch(`${BASE}/v1/posts/${dupSrc.body.id}/cancel`, { method: 'POST', headers: auth });
+
 // ---- 10) aprovação por link público (DECISIONS v1.1 §12): sem login, por token ----
 const draft = await schedule({
   text: 'post aguardando aprovação do cliente',

@@ -1,7 +1,7 @@
 'use client';
 
 import { useDraggable, useDroppable } from '@dnd-kit/core';
-import { Plus } from 'lucide-react';
+import { Files, Plus, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -11,7 +11,11 @@ import { PROVIDER_ICONS } from '@/features/channels/provider-icon';
 import type { components } from '@/lib/api/schema';
 import { addDays, dayKey, sameDay } from '@/lib/datetime';
 import { cn } from '@/lib/utils';
-import { type StateBadgeVariant, stateBadgeVariant } from '@/features/publications/state';
+import {
+  CANCELLABLE_STATES,
+  type StateBadgeVariant,
+  stateBadgeVariant,
+} from '@/features/publications/state';
 
 export type FeedItem = components['schemas']['FeedItem'];
 
@@ -30,17 +34,26 @@ export const isDraggable = (item: FeedItem) =>
   (item.group.state === 'SCHEDULED' || (item.group.state === 'DRAFT' && !item.group.awaitingApproval)) &&
   item.publishAt !== null;
 
-/** Chip de publicação (avatar do canal + horário + cor de estado). */
+/**
+ * Chip de publicação (avatar do canal + horário + cor de estado). Com
+ * onDuplicate/onRemove, o hover/foco revela ações rápidas no canto direito
+ * (fade de opacidade 0.2s — sem deslocamento; remover só em estados canceláveis).
+ */
 export function CalendarChip({
   item,
   onOpen,
+  onDuplicate,
+  onRemove,
   compact = false,
 }: {
   item: FeedItem;
   onOpen: (groupId: string) => void;
+  onDuplicate?: (groupId: string) => void;
+  onRemove?: (groupId: string) => void;
   compact?: boolean;
 }) {
   const locale = useLocale();
+  const tPost = useTranslations('postDetail');
   const draggable = isDraggable(item);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: item.id,
@@ -54,42 +67,86 @@ export function CalendarChip({
       )
     : '—';
 
+  const removable = onRemove !== undefined && CANCELLABLE_STATES.has(item.group.state);
+  const hasActions = onDuplicate !== undefined || removable;
+
   return (
-    <button
-      ref={setNodeRef}
-      type="button"
-      onClick={() => onOpen(item.groupId)}
-      {...listeners}
-      {...attributes}
+    <div
       className={cn(
-        'flex w-full items-center gap-1.5 overflow-hidden rounded-sm border border-line border-l-2 bg-surface px-1.5 py-1 text-left outline-none transition-colors duration-200',
+        'group/chip relative flex w-full items-center overflow-hidden rounded-sm border border-line border-l-2 bg-surface transition-colors duration-200',
         CHIP_BORDER[stateBadgeVariant(item.state)],
-        'hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent active:bg-surface-2',
-        draggable ? 'cursor-grab' : 'cursor-pointer',
+        'hover:border-accent focus-within:border-accent active:bg-surface-2',
         isDragging && 'opacity-40',
+        hasActions && 'min-w-0',
       )}
     >
-      <span className="relative shrink-0">
-        <Avatar className="size-4">
-          {item.channel.avatarUrl ? <AvatarImage src={item.channel.avatarUrl} alt="" /> : null}
-          <AvatarFallback className="text-[9px]">
-            {(item.channel.name ?? item.channel.provider).charAt(0)}
-          </AvatarFallback>
-        </Avatar>
-        {PROVIDER_ICONS[item.channel.provider] ? (
-          <img
-            src={PROVIDER_ICONS[item.channel.provider]}
-            alt=""
-            aria-hidden
-            className="absolute -bottom-1 -right-1 size-2.5 rounded-sm"
-          />
+      <button
+        ref={setNodeRef}
+        type="button"
+        onClick={() => onOpen(item.groupId)}
+        {...listeners}
+        {...attributes}
+        className={cn(
+          'flex min-w-0 flex-1 items-center gap-1.5 px-1.5 py-1 text-left outline-none transition-colors duration-200',
+          'focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-accent',
+          draggable ? 'cursor-grab' : 'cursor-pointer',
+        )}
+      >
+        <span className="relative shrink-0">
+          <Avatar className="size-4">
+            {item.channel.avatarUrl ? <AvatarImage src={item.channel.avatarUrl} alt="" /> : null}
+            <AvatarFallback className="text-[9px]">
+              {(item.channel.name ?? item.channel.provider).charAt(0)}
+            </AvatarFallback>
+          </Avatar>
+          {PROVIDER_ICONS[item.channel.provider] ? (
+            <img
+              src={PROVIDER_ICONS[item.channel.provider]}
+              alt=""
+              aria-hidden
+              className="absolute -bottom-1 -right-1 size-2.5 rounded-sm"
+            />
+          ) : null}
+        </span>
+        <span className="shrink-0 text-[11px] font-semibold tabular-nums text-ink">{time}</span>
+        {!compact ? (
+          <span className="min-w-0 flex-1 truncate text-[11px] text-graphite">{item.text}</span>
         ) : null}
-      </span>
-      <span className="shrink-0 text-[11px] font-semibold tabular-nums text-ink">{time}</span>
-      {!compact ? (
-        <span className="min-w-0 flex-1 truncate text-[11px] text-graphite">{item.text}</span>
+      </button>
+
+      {hasActions && !isDragging ? (
+        <span
+          className={cn(
+            'absolute right-0 top-0 bottom-0 flex items-center gap-0.5 bg-surface px-1',
+            'pointer-events-none opacity-0 transition-opacity duration-200 motion-reduce:transition-none',
+            'focus-within:pointer-events-auto focus-within:opacity-100 group-hover/chip:pointer-events-auto group-hover/chip:opacity-100 group-hover/chip:bg-surface',
+          )}
+        >
+          {onDuplicate ? (
+            <button
+              type="button"
+              aria-label={tPost('duplicate')}
+              title={tPost('duplicate')}
+              onClick={() => onDuplicate(item.groupId)}
+              className="grid size-5 place-items-center rounded-sm text-graphite outline-none transition-colors duration-200 hover:bg-surface-2 hover:text-ink focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-accent"
+            >
+              <Files className="size-3" aria-hidden />
+            </button>
+          ) : null}
+          {removable ? (
+            <button
+              type="button"
+              aria-label={tPost('cancelPost')}
+              title={tPost('cancelPost')}
+              onClick={() => onRemove!(item.groupId)}
+              className="grid size-5 place-items-center rounded-sm text-graphite outline-none transition-colors duration-200 hover:bg-state-failed-tint hover:text-state-failed focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-accent"
+            >
+              <Trash2 className="size-3" aria-hidden />
+            </button>
+          ) : null}
+        </span>
       ) : null}
-    </button>
+    </div>
   );
 }
 
@@ -167,12 +224,16 @@ export function MonthGrid({
   itemsByDay,
   onOpen,
   onSchedule,
+  onDuplicate,
+  onRemove,
 }: {
   gridStart: Date;
   anchorMonth: number;
   itemsByDay: Map<string, FeedItem[]>;
   onOpen: (groupId: string) => void;
   onSchedule: (date: Date) => void;
+  onDuplicate?: (groupId: string) => void;
+  onRemove?: (groupId: string) => void;
 }) {
   const t = useTranslations('calendar');
   const locale = useLocale();
@@ -237,7 +298,14 @@ export function MonthGrid({
                 }
               >
                 {items.slice(0, MAX_VISIBLE_MONTH).map((item) => (
-                  <CalendarChip key={item.id} item={item} onOpen={onOpen} compact />
+                  <CalendarChip
+                    key={item.id}
+                    item={item}
+                    onOpen={onOpen}
+                    onDuplicate={onDuplicate}
+                    onRemove={onRemove}
+                    compact
+                  />
                 ))}
                 {overflow > 0 ? (
                   <Popover>
@@ -251,7 +319,13 @@ export function MonthGrid({
                     </PopoverTrigger>
                     <PopoverContent className="flex w-64 flex-col gap-1 p-2" align="start">
                       {items.map((item) => (
-                        <CalendarChip key={item.id} item={item} onOpen={onOpen} />
+                        <CalendarChip
+                          key={item.id}
+                          item={item}
+                          onOpen={onOpen}
+                          onDuplicate={onDuplicate}
+                          onRemove={onRemove}
+                        />
                       ))}
                     </PopoverContent>
                   </Popover>
@@ -376,7 +450,13 @@ export function MonthGrid({
           ) : (
             <div className="flex flex-col gap-2">
               {selectedItems.map((item) => (
-                <CalendarChip key={item.id} item={item} onOpen={onOpen} />
+                <CalendarChip
+                  key={item.id}
+                  item={item}
+                  onOpen={onOpen}
+                  onDuplicate={onDuplicate}
+                  onRemove={onRemove}
+                />
               ))}
               <Button
                 variant="outline"
@@ -443,11 +523,15 @@ export function TimeGrid({
   itemsByDay,
   onOpen,
   onSchedule,
+  onDuplicate,
+  onRemove,
 }: {
   days: Date[];
   itemsByDay: Map<string, FeedItem[]>;
   onOpen: (groupId: string) => void;
   onSchedule: (date: Date) => void;
+  onDuplicate?: (groupId: string) => void;
+  onRemove?: (groupId: string) => void;
 }) {
   const t = useTranslations('calendar');
   const locale = useLocale();
@@ -556,7 +640,13 @@ export function TimeGrid({
                     onSchedule={onSchedule}
                   >
                     {(byHour.get(`${dayKey(date)}-${hour}`) ?? []).map((item) => (
-                      <CalendarChip key={item.id} item={item} onOpen={onOpen} />
+                      <CalendarChip
+                        key={item.id}
+                        item={item}
+                        onOpen={onOpen}
+                        onDuplicate={onDuplicate}
+                        onRemove={onRemove}
+                      />
                     ))}
                   </HourCell>
                 );
@@ -689,7 +779,13 @@ export function TimeGrid({
                     onSchedule={onSchedule}
                   >
                     {slotItems.map((item) => (
-                      <CalendarChip key={item.id} item={item} onOpen={onOpen} />
+                      <CalendarChip
+                        key={item.id}
+                        item={item}
+                        onOpen={onOpen}
+                        onDuplicate={onDuplicate}
+                        onRemove={onRemove}
+                      />
                     ))}
                   </HourCell>
                 </div>

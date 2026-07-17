@@ -19,6 +19,17 @@ export interface ThreadItemDraft {
   mediaIds: string[];
 }
 
+/** Conteúdo completo p/ pré-preencher o composer de uma vez (duplicar post). */
+export interface ComposerPrefill {
+  text: string;
+  channelIds: string[];
+  overrides: Record<string, string>;
+  channelSettings: Record<string, Record<string, unknown>>;
+  mediaIds: string[];
+  thread: Array<Omit<ThreadItemDraft, 'key'>>;
+  requireApproval: boolean;
+}
+
 interface ComposerState {
   text: string;
   channelIds: string[];
@@ -52,6 +63,8 @@ interface ComposerState {
   setMode: (mode: ScheduleMode) => void;
   setPublishAtLocal: (value: string) => void;
   setRequireApproval: (value: boolean) => void;
+  /** substitui o rascunho inteiro (duplicar post) — horário fica vazio p/ o usuário escolher */
+  loadDraft: (draft: ComposerPrefill) => void;
   reset: () => void;
 }
 
@@ -141,6 +154,13 @@ export const useComposerStore = create<ComposerState>()(
       setMode: (mode) => set({ mode }),
       setPublishAtLocal: (publishAtLocal) => set({ publishAtLocal }),
       setRequireApproval: (requireApproval) => set({ requireApproval }),
+      loadDraft: (draft) =>
+        set((s) => ({
+          ...EMPTY,
+          ...draft,
+          thread: draft.thread.map((item) => ({ key: newKey(), ...item })),
+          editorNonce: s.editorNonce + 1,
+        })),
       reset: () => set((s) => ({ ...EMPTY, editorNonce: s.editorNonce + 1 })),
     }),
     { name: 'mp-composer-draft' },

@@ -5,6 +5,7 @@ import {
   Check,
   Copy,
   ExternalLink,
+  Files,
   Link2,
   Pencil,
   RotateCcw,
@@ -41,6 +42,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { useChannels } from '@/features/channels/hooks';
 import { PROVIDER_ICONS } from '@/features/channels/provider-icon';
+import { useDuplicatePost } from '@/features/composer/use-duplicate';
 import { MediaThumb } from '@/features/media/media-thumb';
 import { useApiErrorMessage } from '@/lib/api/errors';
 import type { components } from '@/lib/api/schema';
@@ -70,7 +72,7 @@ export function PostDetailSheet({
   onClose,
 }: {
   groupId: string | null;
-  /** itens do feed do grupo (texto/canal) — o GET do grupo não embute texto */
+  /** itens do feed do grupo (texto/canal) — evita esperar o GET do grupo p/ exibir */
   items: FeedItem[];
   onClose: () => void;
 }) {
@@ -83,6 +85,7 @@ export function PostDetailSheet({
   const reschedule = useReschedulePost();
   const cancel = useCancelPost();
   const retry = useRetryPost();
+  const duplicatePost = useDuplicatePost();
 
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState('');
@@ -393,6 +396,16 @@ export function PostDetailSheet({
           {/* ações do grupo */}
           <Separator />
           <section className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              disabled={!groupId}
+              onClick={() => groupId && duplicatePost.duplicate(groupId)}
+            >
+              <Files aria-hidden />
+              {t('duplicate')}
+            </Button>
             {(group.data?.publications ?? []).some((p) => RETRYABLE_STATES.has(p.state)) && groupId ? (
               <Button
                 variant="outline"
@@ -426,6 +439,8 @@ export function PostDetailSheet({
             ) : null}
           </section>
         </div>
+
+        {duplicatePost.dialog}
 
         <AlertDialog open={confirmCancel} onOpenChange={setConfirmCancel}>
           <AlertDialogContent>

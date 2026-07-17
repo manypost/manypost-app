@@ -396,6 +396,12 @@
     "cancelConfirm": "Cancelar publicação",
     "keep": "Manter",
     "cancelled": "Publicação cancelada.",
+    "duplicate": "Duplicar",
+    "duplicateTitle": "Substituir o rascunho do composer?",
+    "duplicateWarning": "Já existe um rascunho em andamento no composer. Duplicar esta publicação substitui aquele conteúdo.",
+    "duplicateConfirm": "Substituir e duplicar",
+    "duplicated": "Conteúdo carregado no composer — escolha o horário.",
+    "duplicateDropped": "{count, plural, one {# canal do post original não está mais disponível e ficou de fora} other {# canais do post original não estão mais disponíveis e ficaram de fora}}.",
     "approval": {
       "title": "Link de aprovação",
       "create": "Gerar link",

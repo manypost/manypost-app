@@ -3,17 +3,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api/client';
 
-export function useMediaList() {
-  return useQuery({
-    queryKey: ['media'],
-    queryFn: async () => {
-      const { data, error } = await api.GET('/v1/media', {
-        params: { query: { limit: '200' } },
-      });
-      if (error) throw error;
-      return data;
-    },
+/** fetcher exportado p/ uso imperativo via queryClient (ex.: duplicar post) */
+export async function fetchMediaList() {
+  const { data, error } = await api.GET('/v1/media', {
+    params: { query: { limit: '200' } },
   });
+  if (error) throw error;
+  return data;
+}
+
+export function useMediaList() {
+  return useQuery({ queryKey: ['media'], queryFn: fetchMediaList });
 }
 
 /**

@@ -50,6 +50,33 @@ const serializeGroup = (g: NonNullable<Awaited<ReturnType<Container['posts']['ge
   })),
 });
 
+/** GET de detalhe = serializeGroup + conteúdo (texto/settings/thread) — o que o composer
+ *  precisa p/ duplicar. Itens de thread só custam query quando itemCount > 1. */
+const serializeGroupDetail = async (
+  g: NonNullable<Awaited<ReturnType<Container['posts']['getGroup']>>>,
+  listItems: Container['posts']['listItems'],
+) => {
+  const base = serializeGroup(g);
+  const publications = await Promise.all(
+    g.publications.map(async (p, i) => {
+      const items = (p.itemCount ?? 1) > 1 ? await listItems(p.id) : [];
+      return {
+        ...base.publications[i]!,
+        text: p.content.text,
+        settings: (p.settings as Record<string, unknown> | null) ?? {},
+        thread: items
+          .filter((it) => it.position > 0)
+          .map((it) => ({ text: it.content.text, delaySec: it.delaySec, media: it.media })),
+      };
+    }),
+  );
+  return {
+    ...base,
+    text: (g.baseContent as { text?: string } | null)?.text ?? '',
+    publications,
+  };
+};
+
 // ---- schemas de resposta (documentação; serializeGroup é a fonte em runtime) ----
 const MediaRefOut = z
   .object({
@@ -89,6 +116,37 @@ const GroupOut = z
     publications: z.array(PublicationOut),
   })
   .openapi('PostGroup');
+
+// ---- detalhe (GET): conteúdo completo p/ o composer duplicar um post ----
+const ThreadItemOut = z
+  .object({
+    text: z.string(),
+    delaySec: z.number().int(),
+    media: z.array(MediaRefOut),
+  })
+  .openapi('PublicationThreadItem');
+
+const PublicationDetailOut = PublicationOut.extend({
+  text: z.string().openapi({ description: 'texto do item 0 neste canal (override incluído)' }),
+  settings: z
+    .record(z.unknown())
+    .openapi({ description: 'settings de publicação do canal (inclui defaults do settingsSchema)' }),
+  thread: z
+    .array(ThreadItemOut)
+    .openapi({ description: 'réplicas encadeadas (posições ≥ 1; vazio = post simples)' }),
+}).openapi('PublicationDetail');
+
+// objeto completo (não .extend) — extend vira allOf e o publications sairia
+// opcional no OpenAPI, quebrando a inferência do cliente gerado
+const GroupDetailOut = z
+  .object({
+    id: z.string(),
+    state: z.string().openapi({ example: 'SCHEDULED' }),
+    publishAt: z.string().datetime().nullable(),
+    text: z.string().openapi({ description: 'texto base do grupo (sem overrides por canal)' }),
+    publications: z.array(PublicationDetailOut),
+  })
+  .openapi('PostGroupDetail');
 
 const ApprovalLinkOut = z
   .object({
@@ -156,13 +214,15 @@ export function postRoutes(ctn: Container) {
     tags: ['posts'],
     security: AUTH_SECURITY,
     summary: 'Detalhe de um grupo de post',
+    description:
+      'Além dos estados, expõe o conteúdo completo (texto base, texto/settings por canal e réplicas de thread) — é o que o composer usa p/ duplicar um post.',
     request: { params: GroupParam },
-    responses: { 200: jsonResponse('grupo', GroupOut), ...errorResponses(401, 404) },
+    responses: { 200: jsonResponse('grupo', GroupDetailOut), ...errorResponses(401, 404) },
   });
   app.get('/:groupId', async (c) => {
     const group = await ctn.posts.getGroup(c.get('principal').orgId, c.req.param('groupId'));
     if (!group) throw new DomainError(ErrorCodes.NotFound, 'post não encontrado');
-    return c.json(serializeGroup(group));
+    return c.json(await serializeGroupDetail(group, ctn.posts.listItems));
   });
 
   const PatchBody = z

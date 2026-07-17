@@ -7,13 +7,23 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { ChevronLeft, ChevronRight, CircleAlert } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CircleAlert, Files, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,9 +31,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PROVIDER_ICONS } from '@/features/channels/provider-icon';
 import { useComposerStore } from '@/features/composer/store';
+import { useDuplicatePost } from '@/features/composer/use-duplicate';
 import { PostDetailSheet } from '@/features/publications/post-detail-sheet';
-import { usePublicationsFeed, useReschedulePost } from '@/features/publications/hooks';
-import { stateBadgeVariant } from '@/features/publications/state';
+import { useCancelPost, usePublicationsFeed, useReschedulePost } from '@/features/publications/hooks';
+import { CANCELLABLE_STATES, stateBadgeVariant } from '@/features/publications/state';
 import { useApiErrorMessage } from '@/lib/api/errors';
 import { addDays, dayKey, startOfMonth, startOfWeek, toLocalInput } from '@/lib/datetime';
 import { cn } from '@/lib/utils';
@@ -212,6 +223,21 @@ export function CalendarView() {
     [items, openGroupId],
   );
 
+  // ---- ações rápidas dos cards (duplicar/remover sem abrir o painel) ----
+  const tPost = useTranslations('postDetail');
+  const duplicatePost = useDuplicatePost();
+  const cancel = useCancelPost();
+  const [removeGroupId, setRemoveGroupId] = useState<string | null>(null);
+  const confirmRemove = () => {
+    const id = removeGroupId;
+    setRemoveGroupId(null);
+    if (!id) return;
+    cancel.mutate(id, {
+      onSuccess: () => toast.success(tPost('cancelled')),
+      onError: (err) => toast.error(errorMessage(err)),
+    });
+  };
+
   // ---- navegação por período ----
   const navigate = (dir: -1 | 1) => {
     const next =
@@ -314,15 +340,24 @@ export function CalendarView() {
                 itemsByDay={itemsByDay}
                 onOpen={setOpenGroupId}
                 onSchedule={scheduleAt}
+                onDuplicate={duplicatePost.duplicate}
+                onRemove={setRemoveGroupId}
               />
             ) : view === 'lista' ? (
-              <ListView items={items} onOpen={setOpenGroupId} />
+              <ListView
+                items={items}
+                onOpen={setOpenGroupId}
+                onDuplicate={duplicatePost.duplicate}
+                onRemove={setRemoveGroupId}
+              />
             ) : (
               <TimeGrid
                 days={weekDays}
                 itemsByDay={itemsByDay}
                 onOpen={setOpenGroupId}
                 onSchedule={scheduleAt}
+                onDuplicate={duplicatePost.duplicate}
+                onRemove={setRemoveGroupId}
               />
             )}
           </DndContext>
@@ -330,13 +365,43 @@ export function CalendarView() {
       </div>
 
       <PostDetailSheet groupId={openGroupId} items={openItems} onClose={() => setOpenGroupId(null)} />
+
+      {duplicatePost.dialog}
+
+      <AlertDialog
+        open={removeGroupId !== null}
+        onOpenChange={(open) => !open && setRemoveGroupId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{tPost('cancelTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{tPost('cancelWarning')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tPost('keep')}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRemove}>{tPost('cancelConfirm')}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
 
-/** Modo lista (paridade Postiz): dias como cabeçalho, linhas com hora à direita. */
-function ListView({ items, onOpen }: { items: FeedItem[]; onOpen: (groupId: string) => void }) {
+/** Modo lista (paridade Postiz): dias como cabeçalho, linhas com hora à direita;
+ *  hover revela duplicar/remover no canto direito (como nos chips das grades). */
+function ListView({
+  items,
+  onOpen,
+  onDuplicate,
+  onRemove,
+}: {
+  items: FeedItem[];
+  onOpen: (groupId: string) => void;
+  onDuplicate?: (groupId: string) => void;
+  onRemove?: (groupId: string) => void;
+}) {
   const t = useTranslations('calendar');
+  const tPost = useTranslations('postDetail');
   const locale = useLocale();
 
   if (items.length === 0) {
@@ -373,8 +438,10 @@ function ListView({ items, onOpen }: { items: FeedItem[]; onOpen: (groupId: stri
                 : dayLabel.format(new Date(dayItems[0]!.publishAt!))}
           </h2>
           <ul className="overflow-hidden rounded-lg border border-line bg-surface">
-            {dayItems.map((item) => (
-              <li key={item.id} className="border-b border-line last:border-b-0">
+            {dayItems.map((item) => {
+              const removable = onRemove !== undefined && CANCELLABLE_STATES.has(item.group.state);
+              return (
+              <li key={item.id} className="group/row relative overflow-hidden border-b border-line last:border-b-0">
                 <button
                   type="button"
                   onClick={() => onOpen(item.groupId)}
@@ -440,8 +507,42 @@ function ListView({ items, onOpen }: { items: FeedItem[]; onOpen: (groupId: stri
                     </span>
                   </span>
                 </button>
+
+                {onDuplicate !== undefined || removable ? (
+                  <span
+                    className={cn(
+                      'absolute right-0 top-0 bottom-0 hidden items-center gap-1 bg-surface px-3 sm:flex',
+                      'pointer-events-none opacity-0 transition-opacity duration-200 motion-reduce:transition-none',
+                      'focus-within:pointer-events-auto focus-within:opacity-100 group-hover/row:pointer-events-auto group-hover/row:opacity-100 group-hover/row:bg-surface-2 focus-within:bg-surface-2',
+                    )}
+                  >
+                    {onDuplicate !== undefined ? (
+                      <button
+                        type="button"
+                        aria-label={tPost('duplicate')}
+                        title={tPost('duplicate')}
+                        onClick={() => onDuplicate(item.groupId)}
+                        className="grid size-7 place-items-center rounded-sm text-graphite outline-none transition-colors duration-200 hover:bg-surface hover:text-ink focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-accent"
+                      >
+                        <Files className="size-3.5" aria-hidden />
+                      </button>
+                    ) : null}
+                    {removable ? (
+                      <button
+                        type="button"
+                        aria-label={tPost('cancelPost')}
+                        title={tPost('cancelPost')}
+                        onClick={() => onRemove!(item.groupId)}
+                        className="grid size-7 place-items-center rounded-sm text-graphite outline-none transition-colors duration-200 hover:bg-state-failed-tint hover:text-state-failed focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-accent"
+                      >
+                        <Trash2 className="size-3.5" aria-hidden />
+                      </button>
+                    ) : null}
+                  </span>
+                ) : null}
               </li>
-            ))}
+            );
+            })}
           </ul>
         </section>
       ))}
