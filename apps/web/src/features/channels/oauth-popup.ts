@@ -21,22 +21,49 @@ export function openOauthPopup(url: string): Promise<'done' | 'closed'> {
       window.location.href = url;
       return; // a promise nunca resolve — a página está saindo
     }
+
+    let finished = false;
+    const finish = (result: 'done' | 'closed') => {
+      if (finished) return;
+      finished = true;
+      window.clearInterval(timer);
+      window.removeEventListener('message', onMessage);
+      if (popup && !popup.closed) {
+        try {
+          popup.close();
+        } catch {
+          /* ignore */
+        }
+      }
+      resolve(result);
+    };
+
+    const onMessage = (e: MessageEvent) => {
+      if (e.data?.type === 'manypost:oauth:success' || e.data?.type === 'manypost:oauth:done') {
+        finish('done');
+      }
+    };
+    window.addEventListener('message', onMessage);
+
     const timer = window.setInterval(() => {
       if (popup.closed) {
-        window.clearInterval(timer);
-        resolve('closed');
+        // Se fechou via window.close() do HTML ou pelo usuário, e estamos com onMessage processado ou pós-callback
+        finish('closed');
         return;
       }
       try {
-        // cross-origin lança enquanto o popup está na rede social — esperado
         if (popup.location.pathname.startsWith('/v1/channels/callback/')) {
-          window.clearInterval(timer);
-          popup.close();
-          resolve('done');
+          // Apenas fechamos e marcamos done quando o DOM da página de callback estiver completamente carregado ou indicar sucesso
+          if (popup.document.readyState === 'complete') {
+            const text = popup.document.body?.innerText ?? '';
+            if (text.includes('Conectado!') || text.includes('sucesso') || text.includes('id')) {
+              finish('done');
+            }
+          }
         }
       } catch {
-        /* ainda no domínio da rede */
+        /* ainda no domínio da rede social */
       }
-    }, 400);
+    }, 300);
   });
 }

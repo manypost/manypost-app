@@ -1,5 +1,6 @@
 'use client';
 
+import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, Settings2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId, useState } from 'react';
@@ -25,6 +26,7 @@ interface FieldSchema {
   minimum?: number;
   maximum?: number;
   items?: { type?: string };
+  format?: string;
 }
 
 interface SettingsJsonSchema {
@@ -113,6 +115,51 @@ function EnumField({
   );
 }
 
+function SubAccountsField({
+  id,
+  channelId,
+  value,
+  onChange,
+}: {
+  id: string;
+  channelId?: string;
+  value: unknown;
+  onChange: (value: unknown) => void;
+}) {
+  const { data: channels = [], isLoading } = useQuery({
+    queryKey: ['sub-accounts', channelId],
+    queryFn: async () => {
+      if (!channelId) return [];
+      const res = await fetch(`/v1/channels/${channelId}/sub-accounts`, { credentials: 'include' });
+      if (!res.ok) return [];
+      return (await res.json()) as Array<{ externalId: string; name: string }>;
+    },
+    enabled: Boolean(channelId),
+    staleTime: 60_000,
+  });
+
+  const current = typeof value === 'string' && value !== '' ? value : UNSET;
+
+  return (
+    <Select
+      value={current}
+      onValueChange={(v) => onChange(v === UNSET ? undefined : v)}
+    >
+      <SelectTrigger id={id} className="w-full sm:w-64">
+        <SelectValue placeholder={isLoading ? 'Buscando canais disponíveis...' : 'Selecione o canal do Discord...'} />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={UNSET}>-- Selecione um canal --</SelectItem>
+        {channels.map((c) => (
+          <SelectItem key={c.externalId} value={c.externalId}>
+            {c.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 /**
  * Configurações por canal do composer (paridade Postiz ref 8): acordeão que
  * renderiza o formulário a partir do `settingsSchema` (JSON Schema) do catálogo
@@ -120,6 +167,7 @@ function EnumField({
  * valores alterados viram `settingsByChannel` no POST /v1/posts.
  */
 export function ChannelSettingsCard({
+  channelId,
   providerId,
   providerName,
   channelName,
@@ -127,6 +175,7 @@ export function ChannelSettingsCard({
   values,
   onChange,
 }: {
+  channelId?: string;
   providerId: string;
   providerName: string;
   channelName: string;
@@ -207,6 +256,16 @@ export function ChannelSettingsCard({
             }
 
             const inner = (() => {
+              if (providerId === 'discord' && key === 'channelId') {
+                return (
+                  <SubAccountsField
+                    id={fieldId}
+                    channelId={channelId}
+                    value={value}
+                    onChange={(v) => onChange(key, v)}
+                  />
+                );
+              }
               if (field.enum) {
                 return (
                   <EnumField

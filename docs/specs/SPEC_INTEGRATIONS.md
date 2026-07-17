@@ -90,26 +90,25 @@ Igual à direção do Postiz com três correções: state single-use com TTL, to
 **Onda 3:** GMB, Slack, WordPress, Tumblr, VK, demais conforme demanda.
 
 ### Requisitos e gates operacionais por plataforma (pré-requisito de roadmap, não código)
-
-| Plataforma | Publicação (docs oficiais) | Gate de aprovação / custo | Impacto |
+| Rede | Gate atual | Complexidade de auditoria | Observação |
 |---|---|---|---|
-| **Meta (FB/IG/Threads)** | Graph API: Pages `feed/photos/videos`; IG Content Publishing (container → publish, mídia por URL pública!); Threads API | **App Review** obrigatório (permissions `pages_manage_posts`, `instagram_content_publish`...), Business Verification, screencasts | Semanas de processo; exige app em produção demonstrável. IG: mídia precisa estar em URL pública (S3/R2 com URL assinada) |
-| **X (Twitter)** | API v2 `POST /2/tweets`, mídia via chunked upload (v1.1/v2) | **Custo**: Free tier ~500 posts/mês/app; Basic ~US$200/mês; write exige app aprovado no portal | **Decidido (DECISIONS §6): traga-sua-chave nos DOIS modos** (self-host e gerenciado) até demanda medida; absorção no COGS é decisão futura (P3) |
-| **TikTok** | Content Posting API (`INBOX` vs `DIRECT_POST`) | **Auditoria obrigatória** para Direct Post; sem ela, posts ficam privados/rascunho | Sem auditoria não há publicação real — bloquear feature até aprovação |
-| **YouTube** | Data API `videos.insert` | Quota 10k units/dia (upload = 1600); *audit* p/ aumento; vídeos de apps não verificados ficam privados até compliance | Quota é o rate-limit dominante (Postiz usa maxConcurrent=200) |
+| **Meta** (IG/FB/Threads) | Meta App Review (vídeo, screencast, termos) + Business Verification | Alta (~3–4 semanas) | Exige CNPJ, docs e vídeo demonstrando post; *direção do Postiz* p/ isolamento de app |
+| **YouTube** | Google Cloud API Verification + Quota audit | Alta (~3 semanas + form de cota) | Vídeo demonstrando OAuth e uso |
+| **TikTok** | TikTok for Developers audit (Content Posting API) | Alta (~2–3 semanas) | Rigoroso para post público |
+| **X** | BYO-key em self-host; App pago (Basic/Pro) para SaaS volume | Baixa p/ BYO; alta de custo p/ SaaS | Paridade de limite via `maxConcurrent=1` |
 | **LinkedIn** | Posts API (`w_member_social`, `w_organization_social`) | Community Management API exige programa de parceiro p/ orgs; member post é aberto | Página corporativa pode exigir parceria |
 | **Pinterest** | `POST /v5/pins` | Trial access → standard access mediante revisão | Rate baixo em trial |
 | **Reddit** | `POST /api/submit` | Sem review formal; rate ~1 req/s, regras por subreddit | maxConcurrent=1 (como Postiz) |
-| **Mastodon/Bluesky/Discord/Telegram/Slack** | REST aberto / app password / bot token / webhook | Sem gates | Ideais para MVP e testes E2E reais |
-| **GMB** | Business Profile API | Aprovação de acesso à API (form) | Processo lento |
+| **Mastodon/Bluesky/Discord/Telegram/Slack** | REST aberto / app password / bot token (`/connect` auto-discovery e OAuth2 Bot) / webhook | Sem gates | Ideais para MVP e testes E2E reais (experiência "Tudo Pronto") |
 
 **Requisito operacional:** `docs/platform-gates.md` no repo rastreia o status de cada gate (conta dev, app id, review, custo) como pré-condição de release de cada provider — auditável.
 
-## 5. Two-step connect, instâncias custom e credenciais próprias
+## 5. Two-step connect, auto-descoberta e credenciais próprias
 
-- **2 passos** (Meta/YouTube/LinkedIn Page): estado `PENDING_ACCOUNT_SELECTION` no channel até `listSubAccounts` + seleção. *Direção do Postiz (`isBetweenSteps`).* 
+- **2 passos (`twoStepConnect: true`)** (Meta, YouTube, LinkedIn Page e **Discord OAuth2+Bot**): estado `PENDING_ACCOUNT_SELECTION` no channel até `listSubAccounts` + seleção da sub-conta/canal. *Direção do Postiz (`isBetweenSteps`).* 
+- **Auto-descoberta por comando (`/connect ABCD`)** (Telegram): o usuário adiciona o bot como admin do canal e envia `/connect ABCD`; o provider busca via `getUpdates` e apaga a mensagem automaticamente (`deleteMessage`).
 - **Instância custom** (Mastodon, Lemmy): `connectionFieldsSchema` pede URL da instância; client_id/secret por instância registrados dinamicamente e cifrados.
-- **Credenciais próprias** (WordPress, Bluesky app password): mesmos campos, sem OAuth — armazenadas como TokenSet cifrado.
+- **Credenciais próprias / Webhook** (WordPress, Bluesky app password, Discord Webhook via `id: discord-webhook`): conexão sem redirecionamento OAuth — armazenadas como TokenSet cifrado.
 
 ## 6. Analytics por provider
 

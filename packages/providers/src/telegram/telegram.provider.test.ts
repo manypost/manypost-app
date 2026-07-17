@@ -74,6 +74,37 @@ describe('telegram: conexão por campos', () => {
       status: 422,
     });
   });
+
+  test('auto-descoberta por comando /connect ABCD no canal (paridade Postiz)', async () => {
+    const ctx = route({
+      getUpdates: (b) => {
+        expect(b.allowed_updates).toEqual(['message', 'channel_post']);
+        return okApi([
+          {
+            update_id: 1,
+            channel_post: {
+              message_id: 99,
+              text: '/connect W9X2',
+              chat: CHAT,
+            },
+          },
+        ]);
+      },
+      deleteMessage: (b) => {
+        expect(b).toEqual({ chat_id: -1001234, message_id: 99 });
+        return okApi(true);
+      },
+      getChat: (b) => {
+        expect(b.chat_id).toBe(-1001234);
+        return okApi(CHAT);
+      },
+      getMe: () => okApi({ id: 42, username: 'mp_bot' }),
+      getChatMember: () => okApi({ status: 'administrator', can_post_messages: true }),
+    });
+    const account = await p.connectWithFields!(ctx, { fields: { chat: 'W9X2' } });
+    expect(account.externalId).toBe('-1001234');
+    expect(account.name).toBe('Meu Canal');
+  });
 });
 
 describe('telegram: publicação (golden bodies)', () => {

@@ -1,4 +1,10 @@
-import type { ChannelProvider, ExternalAccount, TokenSet } from '@manypost/contracts';
+import type {
+  ChannelProvider,
+  ConnectedToken,
+  ExternalAccount,
+  ProviderContext,
+  TokenSet,
+} from '@manypost/contracts';
 import { ErrorCodes } from '@manypost/contracts';
 import { DomainError } from '../../domain/shared/result';
 import type { CryptoService } from '../ports/crypto';
@@ -65,4 +71,25 @@ export const makeDisconnectChannel = (deps: Pick<ChannelDeps, 'channels'>) =>
   async (orgId: string, id: string) => {
     const ok = await deps.channels.softDelete(orgId, id);
     if (!ok) throw new DomainError(ErrorCodes.NotFound, 'canal não encontrado');
+  };
+
+export const makeListSubAccounts = (deps: ChannelDeps) =>
+  async (orgId: string, channelId: string, provider: ChannelProvider, ctx: ProviderContext) => {
+    const list = await deps.channels.list(orgId);
+    const row = list.find((c) => c.id === channelId);
+    if (!row) throw new DomainError(ErrorCodes.NotFound, 'canal não encontrado');
+    if (!provider.listSubAccounts) return [];
+
+    const aad = channelAad(orgId, row.provider, row.externalId);
+    const accessToken = await deps.crypto.decrypt(row.tokenEnc, aad, row.tokenKeyVersion);
+    const refreshToken = row.refreshTokenEnc ? await deps.crypto.decrypt(row.refreshTokenEnc, aad, row.tokenKeyVersion) : undefined;
+    const token: ConnectedToken = {
+      accessToken,
+      ...(refreshToken ? { refreshToken } : {}),
+      externalId: row.externalId,
+      name: row.name ?? '',
+      scopes: row.scopes,
+      channelSettings: (row.settings as Record<string, unknown>) ?? {},
+    };
+    return provider.listSubAccounts(ctx, token);
   };

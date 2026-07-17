@@ -358,6 +358,7 @@ const PREVIEWS: Record<string, ComponentType<{ p: NetworkProps }>> = {
   linkedin: LinkedinPreview,
   telegram: TelegramPreview,
   discord: DiscordPreview,
+  'discord-webhook': DiscordPreview,
 };
 
 export function NetworkPreview({
