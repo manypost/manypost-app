@@ -206,4 +206,4 @@ app.get('/', (c) =>
 // Fase 1 restante: providers onda 1, semáforo+métricas, analytics, public-v1 e /mcp.
 console.log(`manypost api (MODE=${env.MODE}) on :${env.PORT}`);
 
-export default { port: env.PORT, fetch: app.fetch };
+export default { port: env.PORT, hostname: '0.0.0.0', fetch: app.fetch };
