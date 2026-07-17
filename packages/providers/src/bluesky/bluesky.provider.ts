@@ -21,14 +21,19 @@ const fieldsSchema = z.object({
   handle: z
     .string()
     .min(1)
-    .transform((h) => h.trim().replace(/^@/, '')),
-  appPassword: z.string().min(1),
+    .transform((h) => h.trim().replace(/^@/, ''))
+    .describe('Handle da conta (ex.: nome.bsky.social)'),
+  appPassword: z
+    .string()
+    .min(1)
+    .describe('App password criada em Configurações → App passwords — não é a senha da conta'),
   /** PDS custom (self-host do atproto); default bsky.social */
   service: z
     .string()
     .url()
     .transform((u) => u.replace(/\/+$/, ''))
-    .optional(),
+    .optional()
+    .describe('URL do PDS próprio (self-host) — vazio usa bsky.social'),
 });
 
 const settingsSchema = z.object({

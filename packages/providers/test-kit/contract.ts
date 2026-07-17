@@ -105,5 +105,14 @@ export function runProviderContract(provider: ChannelProvider) {
         expect(provider.connectionFieldsSchema).toBeDefined();
       }
     });
+
+    test('connectionFieldsSchema (quando presente) é serializável p/ JSON Schema (catálogo)', () => {
+      if (!provider.connectionFieldsSchema) return;
+      const json = settingsJsonSchema(provider.connectionFieldsSchema);
+      expect(json.type).toBe('object');
+      // todo campo de conexão é visível na UI — precisa de properties nomeadas
+      expect(Object.keys((json.properties as object) ?? {}).length).toBeGreaterThan(0);
+      expect(JSON.parse(JSON.stringify(json))).toEqual(json);
+    });
   });
 }

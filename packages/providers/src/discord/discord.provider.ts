@@ -32,7 +32,8 @@ const fieldsSchema = z.object({
   webhookUrl: z
     .string()
     .trim()
-    .refine((u) => WEBHOOK_RE.test(u), 'cole a URL do webhook do canal (Config do servidor → Integrações → Webhooks)'),
+    .refine((u) => WEBHOOK_RE.test(u), 'cole a URL do webhook do canal (Config do servidor → Integrações → Webhooks)')
+    .describe('URL de webhook do canal (Config do servidor → Integrações → Webhooks → Copiar URL)'),
 });
 
 const settingsSchema = z.object({

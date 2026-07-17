@@ -20,7 +20,8 @@ const fieldsSchema = z.object({
   chat: z
     .string()
     .min(2)
-    .transform((s) => s.trim().replace(/^https?:\/\/t\.me\//, '@').replace(/^@@/, '@')),
+    .transform((s) => s.trim().replace(/^https?:\/\/t\.me\//, '@').replace(/^@@/, '@'))
+    .describe('Canal ou grupo onde o bot da instalação é administrador — @nome, link t.me/… ou id numérico'),
 });
 
 const settingsSchema = z.object({

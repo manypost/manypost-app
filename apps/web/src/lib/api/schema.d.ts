@@ -2445,6 +2445,10 @@ export type components = {
             settingsSchema: {
                 [key: string]: unknown;
             };
+            /** @description JSON Schema dos campos de conexão — é o formato aceito em `fields` do POST /v1/channels/connect; presente só quando o provider pede credenciais/instância (a UI renderiza o formulário de conexão a partir dele; ausente = OAuth sem campos) */
+            connectionFieldsSchema?: {
+                [key: string]: unknown;
+            };
         };
         MediaRef: {
             mediaId?: string;

@@ -443,6 +443,11 @@
             "type": "object",
             "additionalProperties": {},
             "description": "JSON Schema dos settings de publicação do provider — é o formato aceito em `settingsByChannel` do POST /v1/posts; a UI renderiza o formulário \"Configurações\" por canal a partir dele"
+          },
+          "connectionFieldsSchema": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "JSON Schema dos campos de conexão — é o formato aceito em `fields` do POST /v1/channels/connect; presente só quando o provider pede credenciais/instância (a UI renderiza o formulário de conexão a partir dele; ausente = OAuth sem campos)"
           }
         },
         "required": [

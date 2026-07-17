@@ -19,7 +19,8 @@ const fieldsSchema = z.object({
     .string()
     .url()
     .transform((u) => u.replace(/\/+$/, ''))
-    .optional(),
+    .optional()
+    .describe('URL da sua instância (ex.: https://mastodon.social) — vazio usa a instância padrão do servidor, se definida'),
 });
 
 const settingsSchema = z.object({

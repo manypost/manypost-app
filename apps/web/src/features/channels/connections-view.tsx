@@ -28,7 +28,7 @@ import { useApiErrorMessage } from '@/lib/api/errors';
 import { cn } from '@/lib/utils';
 import { ConnectDialog } from './connect-dialog';
 import { useChannels, useConnectChannel, useDisconnectChannel, useProviders } from './hooks';
-import { PROVIDER_FIELDS } from './provider-fields';
+import { connectionFields } from './provider-fields';
 import { PROVIDER_ICONS, ProviderIcon } from './provider-icon';
 import { useOauthFlow } from './use-oauth-flow';
 
@@ -39,6 +39,7 @@ type ProviderInfo = {
   threads: boolean;
   twoStepConnect: boolean;
   connectType: 'fields' | 'oauth';
+  connectionFieldsSchema?: Record<string, unknown>;
 };
 type Channel = {
   id: string;
@@ -66,9 +67,9 @@ export function ConnectionsView() {
   const [fieldsProvider, setFieldsProvider] = useState<ProviderInfo | null>(null);
   const [toDisconnect, setToDisconnect] = useState<Channel | null>(null);
 
-  /** Com campos mapeados → dialog; OAuth puro → direto pro popup. */
+  /** Com campos de conexão no catálogo → dialog; OAuth puro → direto pro popup. */
   const startConnect = async (provider: ProviderInfo) => {
-    if (PROVIDER_FIELDS[provider.id]?.length) {
+    if (provider.connectType === 'fields' || connectionFields(provider.connectionFieldsSchema).length > 0) {
       setFieldsProvider(provider);
       return;
     }

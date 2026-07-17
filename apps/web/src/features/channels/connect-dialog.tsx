@@ -17,6 +17,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -25,10 +26,15 @@ import {
 import { Input } from '@/components/ui/input';
 import { useApiErrorMessage } from '@/lib/api/errors';
 import { useConnectChannel, useInvalidateChannels } from './hooks';
-import { PROVIDER_FIELDS } from './provider-fields';
+import { connectionFields } from './provider-fields';
 import { useOauthFlow } from './use-oauth-flow';
 
-type Provider = { id: string; name: string; connectType: 'fields' | 'oauth' };
+type Provider = {
+  id: string;
+  name: string;
+  connectType: 'fields' | 'oauth';
+  connectionFieldsSchema?: Record<string, unknown>;
+};
 
 /**
  * Formulário de conexão p/ providers com campos (credenciais ou instância
@@ -51,7 +57,7 @@ export function ConnectDialog({
   const invalidate = useInvalidateChannels();
   const runOauth = useOauthFlow();
 
-  const fields = PROVIDER_FIELDS[provider.id] ?? [];
+  const fields = connectionFields(provider.connectionFieldsSchema);
   const form = useForm<Record<string, string>>({
     defaultValues: Object.fromEntries(fields.map((f) => [f.name, ''])),
   });
@@ -104,7 +110,12 @@ export function ConnectDialog({
                 rules={f.required ? { required: tv('required') } : undefined}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t(`fields.${provider.id}.${f.name}`)}</FormLabel>
+                    <FormLabel>
+                      {/* label do i18n; provider ainda sem tradução cai no nome do campo */}
+                      {t.has(`fields.${provider.id}.${f.name}`)
+                        ? t(`fields.${provider.id}.${f.name}`)
+                        : f.name}
+                    </FormLabel>
                     <FormControl>
                       <Input
                         type={f.type === 'password' ? 'password' : f.type === 'url' ? 'url' : 'text'}
@@ -116,6 +127,7 @@ export function ConnectDialog({
                         {...field}
                       />
                     </FormControl>
+                    {f.description ? <FormDescription>{f.description}</FormDescription> : null}
                     <FormMessage />
                   </FormItem>
                 )}

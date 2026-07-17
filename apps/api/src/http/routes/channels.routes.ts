@@ -52,6 +52,13 @@ const ProviderInfo = z
       description:
         'JSON Schema dos settings de publicação do provider — é o formato aceito em `settingsByChannel` do POST /v1/posts; a UI renderiza o formulário "Configurações" por canal a partir dele',
     }),
+    connectionFieldsSchema: z
+      .record(z.unknown())
+      .optional()
+      .openapi({
+        description:
+          'JSON Schema dos campos de conexão — é o formato aceito em `fields` do POST /v1/channels/connect; presente só quando o provider pede credenciais/instância (a UI renderiza o formulário de conexão a partir dele; ausente = OAuth sem campos)',
+      }),
   })
   .openapi('ChannelProviderInfo');
 
@@ -126,6 +133,10 @@ export function channelRoutes(ctn: Container) {
           maxLength: p.capabilities.maxLength(undefined),
           media: p.capabilities.media,
           settingsSchema: settingsJsonSchema(p.settingsSchema),
+          // formulário de conexão auto-gerado na UI — ausente = OAuth puro, connect sem campos
+          ...(p.connectionFieldsSchema
+            ? { connectionFieldsSchema: settingsJsonSchema(p.connectionFieldsSchema) }
+            : {}),
         })),
     ),
   );
