@@ -186,7 +186,13 @@
       },
       "tiktok": {
         "sound": "som original",
-        "media": "vídeo"
+        "media": "Nenhum vídeo adicionado",
+        "mediaHint": "Envie um vídeo ou foto acima",
+        "captionPlaceholder": "Escreva a legenda para pré-visualizar no vídeo…",
+        "likes": "87.4K",
+        "comments": "1243",
+        "bookmarks": "3401",
+        "shares": "1092"
       }
     },
     "channelSettings": {
@@ -206,6 +212,18 @@
         },
         "linkedin": { "visibility": "Visibilidade" },
         "x": { "replySettings": "Quem pode responder" },
+        "tiktok": {
+          "privacyLevel": "Visibilidade do post",
+          "contentPostingMethod": "Método de publicação",
+          "title": "Título (apenas fotos)",
+          "disableComment": "Desativar comentários",
+          "disableDuet": "Desativar gravação de Duetos",
+          "disableStitch": "Desativar Costura (Stitch)",
+          "brandContentToggle": "Conteúdo de marca (parceria paga)",
+          "brandOrganicToggle": "Promover própria marca",
+          "videoMadeWithAi": "Conteúdo gerado por IA (AIGC)",
+          "autoAddMusic": "Adicionar música em alta automaticamente (apenas fotos)"
+        },
         "fake": {
           "failFirstAttempts": "Falhar as N primeiras tentativas (dev)",
           "expireToken": "Simular token expirado (dev)",
@@ -214,7 +232,19 @@
         }
       },
       "hints": {
-        "bluesky": { "langs": "Códigos BCP-47 separados por vírgula — ex.: pt, en" }
+        "bluesky": { "langs": "Códigos BCP-47 separados por vírgula — ex.: pt, en" },
+        "tiktok": {
+          "privacyLevel": "Define quem poderá visualizar o post no TikTok. (Nota: aplicativos sem auditoria de Direct Post aprovada pelo TikTok só permitem publicar como 'Privado / Somente eu')",
+          "contentPostingMethod": "Publicação direta envia o post para o feed imediatamente; Enviar para Caixa de Entrada manda como rascunho para o aplicativo do TikTok no seu celular para finalização",
+          "title": "Título exibido no topo do carrossel de fotos (máximo de 90 caracteres)",
+          "disableComment": "Bloqueia comentários de outros usuários no seu post",
+          "disableDuet": "Impede que outros usuários gravem duetos com este vídeo",
+          "disableStitch": "Impede que outros usuários recortem e usem trechos deste vídeo",
+          "brandContentToggle": "Ative caso o conteúdo seja patrocinado, publicidade ou parceria com marca de terceiros",
+          "brandOrganicToggle": "Ative se a publicação promove seu próprio negócio, serviço ou marca pessoal",
+          "videoMadeWithAi": "Exibe o selo oficial de Conteúdo Gerado por IA do TikTok no vídeo",
+          "autoAddMusic": "Permite que o algoritmo do TikTok escolha e adicione uma música em alta às suas fotos"
+        }
       },
       "options": {
         "mastodon": {
@@ -236,6 +266,18 @@
             "mentionedUsers": "Só contas mencionadas",
             "subscribers": "Assinantes",
             "verified": "Contas verificadas"
+          }
+        },
+        "tiktok": {
+          "privacyLevel": {
+            "PUBLIC_TO_EVERYONE": "Público (Todos)",
+            "MUTUAL_FOLLOW_FRIENDS": "Amigos (Seguidores mútuos)",
+            "FOLLOWER_OF_CREATOR": "Seguidores do criador",
+            "SELF_ONLY": "Privado (Somente eu)"
+          },
+          "contentPostingMethod": {
+            "DIRECT_POST": "Publicação direta no perfil",
+            "UPLOAD": "Enviar para Caixa de Entrada (Rascunho no celular)"
           }
         }
       }

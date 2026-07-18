@@ -36,29 +36,29 @@ const settingsSchema = z.object({
     .enum(['PUBLIC_TO_EVERYONE', 'MUTUAL_FOLLOW_FRIENDS', 'FOLLOWER_OF_CREATOR', 'SELF_ONLY'])
     .default('SELF_ONLY')
     .describe(
-      'Quem vê o post. Apps sem a auditoria de Direct Post aprovada só publicam como "Somente eu" (SELF_ONLY).',
+      'Visibilidade da publicação no TikTok. (Nota: aplicativos sem auditoria de Direct Post aprovada só permitem publicar como "Privado / Somente eu").',
     ),
   contentPostingMethod: z
     .enum(['DIRECT_POST', 'UPLOAD'])
     .default('DIRECT_POST')
     .describe(
-      'DIRECT_POST publica direto no perfil; UPLOAD envia como rascunho para a caixa de entrada do app do TikTok (o usuário finaliza no celular).',
+      'Publicação direta no perfil ou envio para a Caixa de Entrada como rascunho no celular para finalização e edição.',
     ),
   title: z
     .string()
     .max(90)
     .optional()
-    .describe('Título (apenas posts de foto, máx. 90 caracteres). Em vídeos a legenda é o texto do post.'),
-  disableComment: z.boolean().default(false).describe('Desativar comentários.'),
-  disableDuet: z.boolean().default(false).describe('Desativar Duetos (apenas vídeo).'),
-  disableStitch: z.boolean().default(false).describe('Desativar Stitch (apenas vídeo).'),
+    .describe('Título exibido no topo do carrossel de fotos (máximo de 90 caracteres). Em vídeos, a legenda principal é o texto do post.'),
+  disableComment: z.boolean().default(false).describe('Desativar comentários na publicação.'),
+  disableDuet: z.boolean().default(false).describe('Desativar gravação de Duetos (apenas para vídeos).'),
+  disableStitch: z.boolean().default(false).describe('Desativar Costura/Stitch com trechos do vídeo (apenas para vídeos).'),
   brandContentToggle: z
     .boolean()
     .default(false)
-    .describe('Conteúdo de marca: parceria paga / publicidade de terceiros.'),
-  brandOrganicToggle: z.boolean().default(false).describe('Promoção da sua própria marca.'),
-  videoMadeWithAi: z.boolean().default(false).describe('Conteúdo gerado por IA (AIGC) — apenas vídeo.'),
-  autoAddMusic: z.boolean().default(false).describe('Adicionar música automaticamente (apenas fotos).'),
+    .describe('Conteúdo de marca: ative se a publicação for patrocinada, publicidade ou parceria paga com terceiros.'),
+  brandOrganicToggle: z.boolean().default(false).describe('Promover própria marca: ative se o conteúdo promove o seu próprio negócio ou marca.'),
+  videoMadeWithAi: z.boolean().default(false).describe('Conteúdo gerado por IA (AIGC): exibe o selo oficial de Inteligência Artificial no vídeo.'),
+  autoAddMusic: z.boolean().default(false).describe('Adicionar música em alta automaticamente (apenas para carrosséis de fotos).'),
 });
 
 type Settings = z.infer<typeof settingsSchema>;
