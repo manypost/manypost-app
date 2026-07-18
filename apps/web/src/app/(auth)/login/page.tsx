@@ -17,13 +17,16 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
   return (
     <div className="flex flex-col gap-6">
       <header>
+        <p className="mb-2 text-[12px] font-bold uppercase tracking-[0.12em] text-accent">
+          {t('loginKicker')}
+        </p>
         <h1 className="font-display text-[26px] font-semibold tracking-[-0.5px] text-ink">
           {t('loginTitle')}
         </h1>
         <p className="mt-1 text-sm leading-relaxed text-graphite">{t('loginSubtitle')}</p>
       </header>
-      <LoginForm nextPath={de} />
       <SocialButtons />
+      <LoginForm nextPath={de} />
       <p className="text-center text-[13px] text-graphite">
         {t('noAccount')}{' '}
         <Link
