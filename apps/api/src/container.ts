@@ -51,6 +51,7 @@ import { providerRegistry } from '@manypost/providers';
 import { createPublishingRuntime } from '@manypost/queue';
 import { bunPasswordHasher } from './infra/auth/password.hasher';
 import { makeJwtSigner } from './infra/auth/token.signer';
+import { createPrometheusMetrics } from './infra/metrics/prometheus';
 import { makeLocalMediaStorage } from './infra/storage/local.storage';
 
 export type Container = Awaited<ReturnType<typeof buildContainer>>;
@@ -92,6 +93,9 @@ export async function buildContainer(env: Env) {
   // provider indisponível quando faltam os requiredSecrets dele
   const providerSecrets = providerSecretsFromEnv(env);
 
+  // métricas Prometheus (SPEC_INFRA §4): o sink alimenta publish/recover; a apps/api expõe /metrics
+  const metrics = createPrometheusMetrics();
+
   const runtime = await createPublishingRuntime({
     databaseUrl: env.DATABASE_URL,
     redisUrl: env.REDIS_URL,
@@ -103,6 +107,7 @@ export async function buildContainer(env: Env) {
     retryBaseSec: env.PUBLISH_RETRY_BASE_SEC,
     allowPrivateWebhookUrls: env.WEBHOOKS_ALLOW_PRIVATE,
     providerSecrets,
+    metrics: metrics.sink,
   });
 
   return {
@@ -114,6 +119,7 @@ export async function buildContainer(env: Env) {
     storage,
     registry: providerRegistry,
     providerSecrets,
+    metrics,
     runtime,
     media: {
       upload: makeUploadMedia(mediaDeps),

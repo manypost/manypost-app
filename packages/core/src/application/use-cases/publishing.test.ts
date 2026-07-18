@@ -823,6 +823,77 @@ describe('rate-limit por janela (SPEC_QUEUE §6)', () => {
   });
 });
 
+describe('semáforo de concorrência (maxConcurrent, SPEC_QUEUE §6)', () => {
+  const okWindow = { acquire: async () => ({ ok: true as const }) };
+
+  test('slot negado: re-enfileira com :sem:, NÃO consome tentativa nem publica', async () => {
+    await connect(f, prov.provider);
+    const group = await schedule();
+    const pubId = group!.publications[0]!.id;
+    const denied: unknown[][] = [];
+    const limiter = {
+      ...okWindow,
+      acquireSlot: async () => ({ ok: false as const, retryAfterSec: 3 }),
+      releaseSlot: async () => {},
+    };
+    const metrics = { onRateLimitDenied: (p: string, r: string) => denied.push([p, r]) };
+    await makePublishPublication({
+      ...(f as any),
+      retryBaseSec: 1,
+      rateLimiter: limiter,
+      metrics,
+    })(pubId);
+    const pub = f._state.pubs[0]!;
+    expect(pub.state).toBe('SCHEDULED'); // não reivindicou
+    expect(pub.attemptCount).toBe(0);
+    expect(f._state.jobs.at(-1)!.opts.singletonKey).toContain(':sem:');
+    expect(prov.callCount()).toBe(0);
+    expect(denied).toEqual([['fake', 'concurrency']]);
+  });
+
+  test('slot concedido: publica e libera o slot exatamente uma vez ao terminar', async () => {
+    await connect(f, prov.provider);
+    const group = await schedule();
+    const pubId = group!.publications[0]!.id;
+    let acquired = 0;
+    const released: string[] = [];
+    const results: string[] = [];
+    const limiter = {
+      ...okWindow,
+      acquireSlot: async () => {
+        acquired++;
+        return { ok: true as const };
+      },
+      releaseSlot: async (key: string) => {
+        released.push(key);
+      },
+    };
+    const metrics = { onPublicationResult: (_p: string, s: string) => results.push(s) };
+    await makePublishPublication({
+      ...(f as any),
+      retryBaseSec: 1,
+      rateLimiter: limiter,
+      metrics,
+    })(pubId);
+    expect(f._state.pubs[0]!.state).toBe('PUBLISHED');
+    expect(acquired).toBe(1);
+    expect(released).toEqual(['sem:p:fake']); // liberado 1x, com a chave do provider
+    expect(results).toEqual(['published']);
+  });
+
+  test('provider maxConcurrent > 0 mas limiter sem acquireSlot: publica normal (semáforo é opcional)', async () => {
+    await connect(f, prov.provider);
+    const group = await schedule();
+    const pubId = group!.publications[0]!.id;
+    await makePublishPublication({
+      ...(f as any),
+      retryBaseSec: 1,
+      rateLimiter: okWindow, // só janela, sem acquireSlot/releaseSlot
+    })(pubId);
+    expect(f._state.pubs[0]!.state).toBe('PUBLISHED');
+  });
+});
+
 describe('recover scanner', () => {
   test('SCHEDULED vencida sem job é re-enfileirada', async () => {
     await connect(f, prov.provider);

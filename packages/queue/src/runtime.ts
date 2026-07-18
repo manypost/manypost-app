@@ -5,6 +5,7 @@ import type {
   ChannelRepository,
   CryptoService,
   JobScheduler,
+  MetricsSink,
   PublishingRepository,
   RateLimiter,
   WebhookRepository,
@@ -38,6 +39,8 @@ export interface PublishingRuntimeOpts {
   allowPrivateWebhookUrls?: boolean;
   /** secrets de app por provider (env → ctx.secrets do worker) */
   providerSecrets?: Record<string, Record<string, string>>;
+  /** coletor de métricas (SPEC_INFRA §4) — publish/recover incrementam contadores */
+  metrics?: MetricsSink;
 }
 
 export interface PublishingRuntime {
@@ -49,6 +52,8 @@ export interface PublishingRuntime {
   events: ReturnType<typeof makeEmitEvent>;
   publish: (publicationId: string, v?: number) => Promise<void>;
   recover: () => Promise<{ due: number; stuck: number }>;
+  /** profundidade das filas (jobs created/retry) p/ o gauge do /metrics — SPEC_INFRA §4 */
+  queueDepths(): Promise<Record<string, number>>;
   startWorker(): Promise<void>;
   stop(): Promise<void>;
 }
@@ -104,6 +109,7 @@ export async function createPublishingRuntime(
     scheduler,
     retryBaseSec: opts.retryBaseSec,
     ...(rateLimiter ? { rateLimiter } : {}),
+    ...(opts.metrics ? { metrics: opts.metrics } : {}),
     ...(opts.providerSecrets ? { secrets: opts.providerSecrets } : {}),
     events,
     log,
@@ -115,6 +121,8 @@ export async function createPublishingRuntime(
     crypto: opts.crypto,
     scheduler,
     retryBaseSec: opts.retryBaseSec,
+    ...(rateLimiter ? { rateLimiter } : {}),
+    ...(opts.metrics ? { metrics: opts.metrics } : {}),
     ...(opts.providerSecrets ? { secrets: opts.providerSecrets } : {}),
     events,
     log,
@@ -135,6 +143,24 @@ export async function createPublishingRuntime(
     events,
     publish,
     recover,
+    async queueDepths() {
+      try {
+        const rows = await sqlc<{ name: string; count: string }[]>`
+          SELECT name, count(*)::text AS count FROM pgboss.job
+          WHERE state IN ('created', 'retry') GROUP BY name`;
+        const out: Record<string, number> = {
+          [PUBLISH_QUEUE]: 0,
+          [THREAD_QUEUE]: 0,
+          [RECOVER_QUEUE]: 0,
+          [WEBHOOK_QUEUE]: 0,
+        };
+        for (const r of rows) out[r.name] = Number(r.count);
+        return out;
+      } catch (err) {
+        log('warn', 'queueDepths falhou (métrica inofensiva)', { err: String(err) });
+        return {};
+      }
+    },
     async startWorker() {
       await boss.work<{ publicationId: string; v?: number }>(PUBLISH_QUEUE, async (jobs) => {
         for (const job of jobs) {
@@ -174,6 +200,8 @@ export async function createPublishingRuntime(
       });
       await boss.work(RECOVER_QUEUE, async () => {
         const out = await recover();
+        opts.metrics?.onRecovered('due', out.due);
+        opts.metrics?.onRecovered('stuck', out.stuck);
         if (out.due || out.stuck) log('warn', 'recover-scan agiu', out);
       });
       await boss.schedule(RECOVER_QUEUE, '* * * * *', {}, {}); // barato: índices parciais
