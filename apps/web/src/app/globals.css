@@ -130,6 +130,45 @@
   }
 }
 
+/*
+ * Superfície de auth — entrada orquestrada (uma vez, no mount) e palco escuro.
+ * A animação só existe fora de prefers-reduced-motion; sob redução tudo já
+ * nasce visível (sem estado inicial opaco). Só translate/opacity de entrada —
+ * a regra de "sem translate no hover" (BRAND §2.3) continua valendo p/ hover.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .auth-rise {
+    animation: auth-rise 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes auth-rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+/* Grade sutil do palco escuro — evoca o calendário/agenda do produto (tokens
+   via color-mix; hairlines de --paper sobre --night). */
+.auth-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--paper) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--paper) 5%, transparent) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+/* Linhas do "leque" (um post → várias redes) — traço uniforme em qualquer escala */
+.auth-fan-line {
+  stroke: color-mix(in srgb, var(--accent-on-dark) 55%, transparent);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
 /* células passadas do calendário: hachura sutil com tokens (direção do Postiz) */
 .cal-past {
   background-image: repeating-linear-gradient(

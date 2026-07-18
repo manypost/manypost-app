@@ -122,7 +122,7 @@ export function ConnectionsView() {
               const provider = providers.data?.find((p) => p.id === ch.provider);
               return (
                 <li key={ch.id}>
-                  <Card className="group flex items-center gap-3 p-3 transition-all hover:border-accent/40 hover:bg-surface-2/30 hover:shadow-sm">
+                  <Card className="group flex items-center gap-3 p-3 transition-colors duration-200 hover:border-accent/40 hover:bg-surface-2/30">
                     <span className="relative shrink-0">
                       <Avatar className="size-10">
                         {ch.avatarUrl ? <AvatarImage src={ch.avatarUrl} alt="" /> : null}
@@ -220,8 +220,8 @@ export function ConnectionsView() {
                     disabled={connecting}
                     aria-label={t('connectTitle', { provider: p.name })}
                     className={cn(
-                      'group flex h-full w-full items-center gap-3 rounded-lg border border-line bg-surface p-3 text-left outline-none transition-all duration-200',
-                      'hover:border-accent/40 hover:bg-surface-2 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+                      'group flex h-full w-full items-center gap-3 rounded-lg border border-line bg-surface p-3 text-left outline-none transition-colors duration-200',
+                      'hover:border-accent/40 hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
                       'disabled:cursor-progress disabled:opacity-60',
                     )}
                   >

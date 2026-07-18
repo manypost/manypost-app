@@ -18,6 +18,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useApiErrorMessage } from '@/lib/api/errors';
 import { useLogin } from './hooks';
+import { PasswordInput } from './password-input';
 
 export function LoginForm({ nextPath }: { nextPath?: string }) {
   const t = useTranslations('auth');
@@ -67,7 +68,7 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
             <FormItem>
               <FormLabel>{t('password')}</FormLabel>
               <FormControl>
-                <Input type="password" autoComplete="current-password" {...field} />
+                <PasswordInput autoComplete="current-password" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

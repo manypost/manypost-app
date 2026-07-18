@@ -19,6 +19,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { useApiErrorMessage } from '@/lib/api/errors';
 import { useRegister } from './hooks';
+import { PasswordInput } from './password-input';
+import { PasswordStrength } from './password-strength';
 
 export function RegisterForm() {
   const t = useTranslations('auth');
@@ -36,6 +38,7 @@ export function RegisterForm() {
     resolver: zodResolver(schema),
     defaultValues: { name: '', email: '', password: '', orgName: '' },
   });
+  const passwordValue = form.watch('password');
 
   return (
     <Form {...form}>
@@ -85,8 +88,9 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>{t('password')}</FormLabel>
               <FormControl>
-                <Input type="password" autoComplete="new-password" {...field} />
+                <PasswordInput autoComplete="new-password" {...field} />
               </FormControl>
+              <PasswordStrength value={passwordValue} />
               <FormDescription>{t('passwordHint')}</FormDescription>
               <FormMessage />
             </FormItem>
