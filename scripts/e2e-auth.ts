@@ -143,8 +143,8 @@ if (ids.includes('telegram')) {
   const off = await post('/v1/channels/connect', { provider: 'telegram' }, bearer);
   check(off.status === 404, 'provider sem env → connect 404 (capability.disabled)');
 }
-// discord (OAuth2+Bot), linkedin e x (credenciais de app no env) seguem a mesma regra do telegram
-for (const oauthId of ['discord', 'linkedin', 'x']) {
+// discord (OAuth2+Bot), linkedin, x e tiktok (credenciais de app no env) seguem a mesma regra do telegram
+for (const oauthId of ['discord', 'linkedin', 'x', 'tiktok']) {
   if (ids.includes(oauthId)) {
     const entry = providers.find((p) => p.id === oauthId);
     check(entry?.connectType === 'oauth', `${oauthId} conecta por OAuth`);
@@ -157,6 +157,27 @@ for (const oauthId of ['discord', 'linkedin', 'x']) {
     const off = await post('/v1/channels/connect', { provider: oauthId }, bearer);
     check(off.status === 404, `${oauthId} sem env → connect 404 (capability.disabled)`);
   }
+}
+
+// tiktok disponível → connect devolve a URL de consentimento real do TikTok (client_key + PKCE S256)
+if (ids.includes('tiktok')) {
+  const entry = providers.find((p) => p.id === 'tiktok');
+  check(entry?.threads === false && entry?.editor === 'plain', 'tiktok: sem thread, editor plano');
+  check(
+    entry?.settingsSchema?.properties?.privacyLevel !== undefined &&
+      entry?.settingsSchema?.properties?.contentPostingMethod !== undefined,
+    'tiktok expõe settingsSchema de compliance (privacyLevel/contentPostingMethod)',
+  );
+  const res = await post('/v1/channels/connect', { provider: 'tiktok' }, bearer);
+  const url = ((await res.json()) as { url?: string })?.url;
+  const u = url ? new URL(url) : undefined;
+  check(
+    u?.origin + (u?.pathname ?? '') === 'https://www.tiktok.com/v2/auth/authorize/' &&
+      !!u?.searchParams.get('client_key') &&
+      u?.searchParams.get('code_challenge_method') === 'S256' &&
+      (u?.searchParams.get('scope') ?? '').includes('video.publish'),
+    'tiktok connect → URL de autorização do TikTok com client_key + PKCE + escopo video.publish',
+  );
 }
 
 if (failures > 0) {

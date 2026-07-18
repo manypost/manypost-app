@@ -7,6 +7,7 @@ import {
   Globe,
   Heart,
   MessageCircle,
+  Music,
   Repeat2,
   Send,
   Share,
@@ -351,6 +352,71 @@ function DiscordPreview({ p }: { p: NetworkProps }) {
   );
 }
 
+/**
+ * TikTok: vídeo/foto em retrato + rail vertical de ações (avatar, curtir, comentar,
+ * salvar, compartilhar) + nome/@handle, legenda e linha de som. Sem thread (a rede não
+ * tem réplica encadeada) — só o item principal. Minimalista do brand (tokens, sem cor de rede).
+ */
+function TiktokPreview({ p }: { p: NetworkProps }) {
+  const t = useTranslations('composer.preview.tiktok');
+  const main = p.entries[0];
+  if (!main) return null;
+  const { media } = main;
+  return (
+    <article className="rounded-lg border border-line bg-surface p-3">
+      <div className="flex gap-3">
+        <div className="relative w-32 shrink-0 overflow-hidden rounded-md border border-line bg-surface-2">
+          {media.length > 0 ? (
+            <MediaThumb
+              url={media[0]!.url}
+              mime={media[0]!.mime}
+              alt={media[0]!.alt}
+              className="aspect-[9/16] w-full object-cover"
+            />
+          ) : (
+            <span
+              aria-hidden
+              className="flex aspect-[9/16] w-full items-center justify-center px-2 text-center text-[11px] text-mist"
+            >
+              {t('media')}
+            </span>
+          )}
+          {media.length > 1 ? (
+            <span
+              aria-hidden
+              className="absolute right-1.5 top-1.5 rounded-sm bg-ink/70 px-1.5 text-[10px] font-semibold text-paper"
+            >
+              1/{media.length}
+            </span>
+          ) : null}
+        </div>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <p className="text-[13px] font-semibold leading-tight text-ink">{p.name}</p>
+          {p.username ? (
+            <p className="text-xs leading-tight text-graphite">@{p.username.replace(/^@/, '')}</p>
+          ) : null}
+          {main.text ? (
+            <p className="mt-1 line-clamp-4 whitespace-pre-wrap break-words text-sm leading-relaxed text-ink">
+              {main.text}
+            </p>
+          ) : null}
+          <p aria-hidden className="mt-1.5 flex items-center gap-1 text-xs text-graphite">
+            <Music className="size-3 shrink-0" /> {t('sound')}
+          </p>
+          <span className="mt-1 text-[11px] text-mist">{p.timeLabel}</span>
+        </div>
+        <div aria-hidden className="flex flex-col items-center justify-end gap-3 text-mist">
+          <ChannelAvatar name={p.name} avatarUrl={p.avatarUrl} provider={p.provider} className="size-8" />
+          <Heart className="size-4" />
+          <MessageCircle className="size-4" />
+          <Bookmark className="size-4" />
+          <Share className="size-4" />
+        </div>
+      </div>
+    </article>
+  );
+}
+
 const PREVIEWS: Record<string, ComponentType<{ p: NetworkProps }>> = {
   x: XPreview,
   bluesky: BlueskyPreview,
@@ -359,6 +425,7 @@ const PREVIEWS: Record<string, ComponentType<{ p: NetworkProps }>> = {
   telegram: TelegramPreview,
   discord: DiscordPreview,
   'discord-webhook': DiscordPreview,
+  tiktok: TiktokPreview,
 };
 
 export function NetworkPreview({

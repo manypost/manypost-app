@@ -183,6 +183,10 @@
         "comment": "Comentar",
         "repost": "Compartilhar",
         "send": "Enviar"
+      },
+      "tiktok": {
+        "sound": "som original",
+        "media": "vídeo"
       }
     },
     "channelSettings": {
@@ -248,6 +252,7 @@
       "threadEmpty": "O item {index} da thread está vazio.",
       "threadOverLimit": "O item {index} da thread passou do limite de caracteres.",
       "threadDelay": "A espera do item {index} deve ficar entre 0 e 600 segundos.",
+      "requiresMedia": "{name} exige um vídeo ou pelo menos uma foto.",
       "media": {
         "tooManyImages": "{name} aceita no máximo {max, plural, =0 {nenhuma imagem} one {# imagem} other {# imagens}}.",
         "tooManyVideos": "{name} aceita no máximo {max, plural, =0 {nenhum vídeo} one {# vídeo} other {# vídeos}}.",
