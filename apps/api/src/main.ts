@@ -36,7 +36,37 @@ if (env.MODE !== 'api') {
 const app = createApp();
 
 app.use('*', correlationId());
+
+// Latência/status por rota → histograma Prometheus (SPEC_INFRA §4). Usa o PADRÃO da rota
+// (c.req.routePath, ex.: /v1/posts/:groupId) e não o path com ids — cardinália limitada.
+app.use('*', async (c, next) => {
+  const start = performance.now();
+  try {
+    await next();
+  } finally {
+    ctn.metrics.observeHttp(
+      c.req.method,
+      c.req.routePath ?? c.req.path,
+      c.res.status,
+      (performance.now() - start) / 1000,
+    );
+  }
+});
+
 app.onError(errorHandler);
+
+// /metrics (SPEC_INFRA §4): exposição Prometheus. Se METRICS_TOKEN estiver setado, exige
+// Authorization: Bearer <token>; senão fica aberto (self-hosted em rede privada). A profundidade
+// da fila é lida sob demanda (pull) logo antes de renderizar. Não entra no /openapi.json.
+app.get('/metrics', async (c) => {
+  if (env.METRICS_TOKEN && c.req.header('authorization') !== `Bearer ${env.METRICS_TOKEN}`) {
+    return c.text('unauthorized', 401);
+  }
+  ctn.metrics.setQueueDepth(await ctn.runtime.queueDepths());
+  c.header('content-type', 'text/plain; version=0.0.4; charset=utf-8');
+  c.header('cache-control', 'no-store');
+  return c.body(ctn.metrics.render());
+});
 
 // Schemes de autenticação referenciados pelas rotas protegidas (SPEC_API_MCP §1-2).
 app.openAPIRegistry.registerComponent('securitySchemes', 'bearerAuth', {
@@ -116,7 +146,7 @@ const OPENAPI_DOC = {
   ],
 };
 const HTTP_METHODS = new Set(['get', 'post', 'put', 'patch', 'delete']);
-const NON_API_PATHS = new Set(['/', '/docs', '/openapi.json']);
+const NON_API_PATHS = new Set(['/', '/docs', '/openapi.json', '/metrics']);
 
 app.get('/openapi.json', (c) => {
   const doc = app.getOpenAPI31Document(OPENAPI_DOC);
@@ -203,7 +233,7 @@ app.get('/', (c) =>
 </html>`),
 );
 
-// Fase 1 restante: providers onda 1, semáforo+métricas, analytics, public-v1 e /mcp.
+// Fase 1 restante: analytics, public-v1 e /mcp.
 console.log(`manypost api (MODE=${env.MODE}) on :${env.PORT}`);
 
 export default { port: env.PORT, hostname: '0.0.0.0', fetch: app.fetch };

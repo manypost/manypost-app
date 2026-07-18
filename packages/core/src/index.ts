@@ -10,6 +10,7 @@ export * from './application/ports/events';
 export * from './application/ports/media';
 export * from './application/ports/publishing';
 export * from './application/ports/rate-limiter';
+export * from './application/ports/metrics';
 export * from './application/ports/realtime';
 export * from './application/ports/approvals';
 export * from './application/tokens';
