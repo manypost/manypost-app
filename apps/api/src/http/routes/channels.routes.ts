@@ -42,6 +42,9 @@ const ProviderInfo = z
     editor: z.boolean(),
     threads: z.boolean(),
     twoStepConnect: z.boolean(),
+    requiresMedia: z
+      .boolean()
+      .openapi({ description: 'rede que não aceita post só-texto (ex.: TikTok exige vídeo/foto)' }),
     connectType: z.enum(['fields', 'oauth']).openapi({ description: 'fields = credenciais; oauth = redirect' }),
     maxLength: z
       .number()
@@ -127,6 +130,7 @@ export function channelRoutes(ctn: Container) {
           editor: p.capabilities.editor,
           threads: p.capabilities.threads,
           twoStepConnect: p.capabilities.twoStepConnect,
+          requiresMedia: p.capabilities.requiresMedia ?? false,
           /** fields = credenciais direto no app (Bluesky/Telegram); oauth = redirect */
           connectType: p.connectWithFields ? 'fields' : 'oauth',
           // limite base p/ contador do composer (settings do canal podem ampliar — ex.: X verified)

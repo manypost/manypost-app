@@ -146,6 +146,13 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
         }
       }
     }
+  } else {
+    // redes que não aceitam post só-texto (ex.: TikTok) — o servidor revalida no agendamento
+    for (const ch of selected) {
+      if (providerOf(ch.provider)?.requiresMedia) {
+        issues.push(t('issues.requiresMedia', { name: ch.name ?? ch.id }));
+      }
+    }
   }
 
   // settings obrigatórias por canal (ex.: canal do Discord) — o servidor revalida

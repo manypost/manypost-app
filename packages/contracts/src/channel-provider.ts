@@ -22,6 +22,8 @@ export interface ChannelCapabilities {
   analytics: boolean;
   twoStepConnect: boolean;
   customInstance: boolean;
+  /** rede que NÃO aceita post só-texto (ex.: TikTok exige um vídeo ou foto) — ausente/false = texto puro ok */
+  requiresMedia?: boolean;
 }
 
 export interface RateWindow {

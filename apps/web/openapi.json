@@ -412,6 +412,10 @@
           "twoStepConnect": {
             "type": "boolean"
           },
+          "requiresMedia": {
+            "type": "boolean",
+            "description": "rede que não aceita post só-texto (ex.: TikTok exige vídeo/foto)"
+          },
           "connectType": {
             "type": "string",
             "enum": [
@@ -456,6 +460,7 @@
           "editor",
           "threads",
           "twoStepConnect",
+          "requiresMedia",
           "connectType",
           "maxLength",
           "media",
