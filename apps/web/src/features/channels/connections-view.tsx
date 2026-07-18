@@ -88,7 +88,7 @@ export function ConnectionsView() {
   };
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className="flex flex-col gap-8">
       <section aria-labelledby="channels-title" className="flex flex-col gap-4">
         <h2 id="channels-title" className="text-base font-semibold tracking-[-0.2px] text-ink">
           {t('channelsTitle')}
@@ -117,62 +117,65 @@ export function ConnectionsView() {
             <p className="text-sm leading-relaxed text-graphite">{t('empty')}</p>
           </div>
         ) : (
-          <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {channels.data.map((ch) => {
               const provider = providers.data?.find((p) => p.id === ch.provider);
               return (
                 <li key={ch.id}>
-                  <Card className="flex items-center gap-3 p-4">
+                  <Card className="group flex items-center gap-3 p-3 transition-all hover:border-accent/40 hover:bg-surface-2/30 hover:shadow-sm">
                     <span className="relative shrink-0">
                       <Avatar className="size-10">
                         {ch.avatarUrl ? <AvatarImage src={ch.avatarUrl} alt="" /> : null}
                         <AvatarFallback>{(ch.name ?? ch.username ?? '?').charAt(0)}</AvatarFallback>
                       </Avatar>
                       {PROVIDER_ICONS[ch.provider] ? (
-                        // badge da rede sobre o avatar da conta (padrão multi-rede)
                         <img
                           src={PROVIDER_ICONS[ch.provider]}
                           alt=""
                           aria-hidden
-                          className="absolute -bottom-0.5 -right-0.5 size-4 rounded-sm border border-surface"
+                          className="absolute -bottom-0.5 -right-0.5 size-4 rounded-sm border-2 border-surface bg-surface"
                         />
                       ) : null}
                     </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[13px] font-semibold text-ink">
-                        {ch.name ?? ch.username ?? ch.id}
-                      </p>
-                      <p className="truncate text-xs text-graphite">
+                    
+                    <div className="flex min-w-0 flex-1 flex-col justify-center">
+                      <div className="flex items-center gap-2">
+                        <p className="truncate text-[13px] font-medium text-ink">
+                          {ch.name ?? ch.username ?? ch.id}
+                        </p>
+                        <Badge variant={STATUS_VARIANT[ch.status] ?? 'neutral'} className="h-4 px-1 text-[9px] uppercase tracking-wider">
+                          {t.has(`status.${ch.status}`) ? t(`status.${ch.status}`) : ch.status}
+                        </Badge>
+                      </div>
+                      <p className="mt-0.5 truncate text-[11px] text-graphite">
                         {provider?.name ?? ch.provider}
                         {ch.username ? ` · @${ch.username.replace(/^@/, '')}` : ''}
                       </p>
-                      <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                        <Badge variant={STATUS_VARIANT[ch.status] ?? 'neutral'}>
-                          {t.has(`status.${ch.status}`) ? t(`status.${ch.status}`) : ch.status}
-                        </Badge>
-                        {ch.status === 'REFRESH_REQUIRED' ? (
-                          <Button variant="outline" size="sm" onClick={() => reconnect(ch)}>
-                            {t('reconnect')}
-                          </Button>
-                        ) : null}
-                      </div>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon-sm" aria-label={t('channelActions')}>
-                          <EllipsisVertical aria-hidden />
+
+                    <div className="flex shrink-0 items-center gap-1">
+                      {ch.status === 'REFRESH_REQUIRED' ? (
+                        <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => reconnect(ch)}>
+                          {t('reconnect')}
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onSelect={() => setToDisconnect(ch)}
-                          className="text-state-failed focus:text-state-failed [&_svg]:text-state-failed"
-                        >
-                          <Unplug aria-hidden />
-                          {t('disconnect')}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                      ) : null}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon-sm" className="size-7" aria-label={t('channelActions')}>
+                            <EllipsisVertical className="size-4" aria-hidden />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onSelect={() => setToDisconnect(ch)}
+                            className="text-state-failed focus:text-state-failed [&_svg]:text-state-failed"
+                          >
+                            <Unplug aria-hidden />
+                            {t('disconnect')}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </Card>
                 </li>
               );
@@ -206,8 +209,7 @@ export function ConnectionsView() {
             <p className="text-sm leading-relaxed text-graphite">{t('catalogEmpty')}</p>
           </div>
         ) : (
-          // tiles centrados (direção do Postiz: clique na rede para conectar)
-          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {providers.data.map((p) => {
               const connecting = connect.isPending && connect.variables?.provider === p.id;
               return (
@@ -218,16 +220,20 @@ export function ConnectionsView() {
                     disabled={connecting}
                     aria-label={t('connectTitle', { provider: p.name })}
                     className={cn(
-                      'flex h-full w-full flex-col items-center gap-2.5 rounded-lg border border-line bg-surface px-4 py-6 outline-none transition-colors duration-200',
-                      'hover:border-accent hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+                      'group flex h-full w-full items-center gap-3 rounded-lg border border-line bg-surface p-3 text-left outline-none transition-all duration-200',
+                      'hover:border-accent/40 hover:bg-surface-2 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
                       'disabled:cursor-progress disabled:opacity-60',
                     )}
                   >
-                    <ProviderIcon provider={p.id} name={p.name} className="size-10" />
-                    <span className="text-[13px] font-semibold text-ink">{p.name}</span>
-                    {p.threads ? (
-                      <Badge className="mt-auto">{t('capabilities.threads')}</Badge>
-                    ) : null}
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-line bg-surface-2 transition-colors group-hover:bg-surface">
+                      <ProviderIcon provider={p.id} name={p.name} className="size-5" />
+                    </div>
+                    <div className="flex flex-1 flex-col overflow-hidden">
+                      <span className="truncate text-[13px] font-medium text-ink">{p.name}</span>
+                      <span className="truncate text-xs text-graphite">
+                        {p.threads ? t('capabilities.threads') : t('connect')}
+                      </span>
+                    </div>
                   </button>
                 </li>
               );
