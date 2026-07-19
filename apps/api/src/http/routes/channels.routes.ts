@@ -3,10 +3,10 @@ import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import type { ChannelProvider } from '@manypost/contracts';
 import { ErrorCodes } from '@manypost/contracts';
 import { DomainError } from '@manypost/core';
-import { settingsJsonSchema } from '@manypost/providers';
 import type { Container } from '../../container';
 import { requireAdmin, requireAuth } from '../middleware/auth';
 import { AUTH_SECURITY, createApp, errorResponses, jsonBody, jsonResponse } from '../openapi';
+import { isProviderAvailable, providerCatalogEntry } from './shared/provider-catalog';
 
 const CONNECT_COOKIE = 'mp_ch_state';
 const ConnectBody = z.object({ provider: z.string().min(1), fields: z.unknown().optional() });
@@ -83,8 +83,7 @@ export function channelRoutes(ctn: Container) {
     now: () => new Date(),
     secrets: ctn.providerSecrets[provider.id] ?? {},
   });
-  const available = (p: ChannelProvider) =>
-    (p.requiredSecrets ?? []).every((k) => ctn.providerSecrets[p.id]?.[k]);
+  const available = (p: ChannelProvider) => isProviderAvailable(p, ctn.providerSecrets);
   const getAvailable = (id: string) => {
     const provider = ctn.registry.get(id);
     if (!provider) throw new DomainError(ErrorCodes.CapabilityDisabled, 'provider indisponível');
@@ -120,29 +119,7 @@ export function channelRoutes(ctn: Container) {
   });
   // catálogo de providers DISPONÍVEIS (sem env necessária o provider some — como o login social)
   app.get('/providers', (c) =>
-    c.json(
-      ctn.registry
-        .list()
-        .filter(available)
-        .map((p) => ({
-          id: p.id,
-          name: p.name,
-          editor: p.capabilities.editor,
-          threads: p.capabilities.threads,
-          twoStepConnect: p.capabilities.twoStepConnect,
-          requiresMedia: p.capabilities.requiresMedia ?? false,
-          /** fields = credenciais direto no app (Bluesky/Telegram); oauth = redirect */
-          connectType: p.connectWithFields ? 'fields' : 'oauth',
-          // limite base p/ contador do composer (settings do canal podem ampliar — ex.: X verified)
-          maxLength: p.capabilities.maxLength(undefined),
-          media: p.capabilities.media,
-          settingsSchema: settingsJsonSchema(p.settingsSchema),
-          // formulário de conexão auto-gerado na UI — ausente = OAuth puro, connect sem campos
-          ...(p.connectionFieldsSchema
-            ? { connectionFieldsSchema: settingsJsonSchema(p.connectionFieldsSchema) }
-            : {}),
-        })),
-    ),
+    c.json(ctn.registry.list().filter(available).map(providerCatalogEntry)),
   );
 
   app.openAPIRegistry.registerPath({

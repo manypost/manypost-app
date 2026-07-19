@@ -1,0 +1,138 @@
+export {}; // módulo (top-level await)
+
+/**
+ * E2E do servidor MCP (SPEC_API_MCP §5/§7.3): fala o protocolo Streamable HTTP de verdade
+ * (initialize → mcp-session-id → tools/list → tools/call) contra /mcp, autenticando por API key
+ * com escopo `mcp`. Cobre: descoberta de tools, list_channels, schedule_post (origem MCP +
+ * audit_log actor_type=MCP), get_post, e recusa de credencial sem o escopo. Requer API MODE=all.
+ */
+const BASE = process.env.BASE_URL ?? 'http://localhost:3991';
+
+let failures = 0;
+function check(cond: unknown, msg: string) {
+  if (cond) console.log(`  ok: ${msg}`);
+  else {
+    failures++;
+    console.error(`  FALHOU: ${msg}`);
+  }
+}
+
+// ---- setup: conta (OWNER) + canal fake + API key com escopo mcp ----
+const email = `mcp-${Date.now()}@test.dev`;
+const reg = await fetch(`${BASE}/v1/auth/register`, {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({ email, password: 'senha-e2e-super-forte-123', name: 'MCP' }),
+});
+const { accessToken } = (await reg.json()) as any;
+const jwt = { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' };
+
+const connect = await fetch(`${BASE}/v1/channels/connect`, { method: 'POST', headers: jwt, body: JSON.stringify({ provider: 'fake' }) });
+const stateCookie = connect.headers.get('set-cookie')?.split(';')[0] ?? '';
+const cbq = new URL(((await connect.json()) as any).url).searchParams;
+await fetch(`${BASE}/v1/channels/callback/fake?code=${cbq.get('code')}&state=${cbq.get('state')}`, { headers: { ...jwt, cookie: stateCookie } });
+const channel = ((await (await fetch(`${BASE}/v1/channels`, { headers: jwt })).json()) as any[])[0];
+check(channel?.provider === 'fake', 'setup: canal fake conectado');
+
+async function createKey(name: string, scopes: string[]) {
+  const res = await fetch(`${BASE}/v1/api-keys`, { method: 'POST', headers: jwt, body: JSON.stringify({ name, scopes }) });
+  return ((await res.json()) as any).apiKey as string;
+}
+const mcpKey = await createKey('e2e-mcp', ['mcp']);
+
+// ---- cliente MCP Streamable HTTP (hand-rolled) ----
+let sessionId: string | undefined;
+const MCP_HEADERS = () => ({
+  'content-type': 'application/json',
+  accept: 'application/json, text/event-stream',
+  authorization: `Bearer ${mcpKey}`,
+  ...(sessionId ? { 'mcp-session-id': sessionId } : {}),
+});
+function parseBody(ct: string, body: string): any {
+  if (!body) return null;
+  if (ct.includes('text/event-stream')) {
+    const data = body.split('\n').filter((l) => l.startsWith('data:')).pop();
+    return data ? JSON.parse(data.slice(5).trim()) : null;
+  }
+  return JSON.parse(body);
+}
+async function rpc(id: number, method: string, params: unknown, key = mcpKey) {
+  const headers: Record<string, string> = {
+    'content-type': 'application/json',
+    accept: 'application/json, text/event-stream',
+    authorization: `Bearer ${key}`,
+    ...(sessionId ? { 'mcp-session-id': sessionId } : {}),
+  };
+  const res = await fetch(`${BASE}/mcp`, { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id, method, params }) });
+  const sid = res.headers.get('mcp-session-id');
+  if (sid) sessionId = sid;
+  const msg = parseBody(res.headers.get('content-type') ?? '', await res.text());
+  return { status: res.status, msg };
+}
+async function callTool(id: number, name: string, args: object) {
+  const { status, msg } = await rpc(id, 'tools/call', { name, arguments: args });
+  const text = msg?.result?.content?.find((x: any) => x.type === 'text')?.text;
+  // erro de validação de input do MCP vem como texto simples (não-JSON) — parse defensivo
+  let data: any;
+  try {
+    data = text ? JSON.parse(text) : undefined;
+  } catch {
+    data = undefined;
+  }
+  // isError pode vir no result (tool) OU o request inteiro pode ter falhado (msg.error)
+  return { status, msg, data, isError: !!msg?.result?.isError || !!msg?.error };
+}
+
+// ---- 1) initialize → sessão ----
+const init = await rpc(1, 'initialize', {
+  protocolVersion: '2025-06-18',
+  capabilities: {},
+  clientInfo: { name: 'e2e-mcp', version: '1.0' },
+});
+check(init.status === 200, `initialize → 200 (veio ${init.status})`);
+check(init.msg?.result?.serverInfo?.name === 'manypost', 'serverInfo.name = manypost');
+check(!!sessionId, 'mcp-session-id devolvido no initialize');
+await fetch(`${BASE}/mcp`, { method: 'POST', headers: MCP_HEADERS(), body: JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) });
+
+// ---- 2) tools/list ----
+const tools = await rpc(2, 'tools/list', {});
+const toolNames: string[] = (tools.msg?.result?.tools ?? []).map((t: any) => t.name);
+check(toolNames.includes('list_channels'), 'tools/list expõe list_channels');
+check(toolNames.includes('schedule_post'), 'tools/list expõe schedule_post');
+check(['get_post', 'update_post', 'cancel_post', 'upload_media_from_url'].every((n) => toolNames.includes(n)), 'tools/list expõe get/update/cancel/upload');
+
+// ---- 3) list_channels ----
+const chTool = await callTool(3, 'list_channels', {});
+check(chTool.status === 200 && Array.isArray(chTool.data), 'list_channels → array');
+check(chTool.data?.some((x: any) => x.id === channel.id && x.provider === 'fake'), 'list_channels traz o canal fake');
+
+// ---- 4) schedule_post (origem MCP) ----
+const future = new Date(Date.now() + 3_600_000).toISOString();
+const sched = await callTool(4, 'schedule_post', { text: 'agendado via MCP', channelIds: [channel.id], publishAt: future });
+check(sched.status === 200 && !sched.isError, 'schedule_post não retornou erro');
+const groupId = sched.data?.id;
+check(sched.data?.state === 'SCHEDULED', `grupo SCHEDULED (veio ${sched.data?.state})`);
+
+// origem MCP visível no feed (via JWT) + get_post via MCP
+const feed = (await (await fetch(`${BASE}/v1/publications`, { headers: jwt })).json()) as any;
+const feedItem = feed.items?.find((it: any) => it.groupId === groupId);
+check(feedItem?.group.origin === 'MCP', `origin = MCP no feed (veio ${feedItem?.group.origin})`);
+
+const got = await callTool(5, 'get_post', { groupId });
+check(got.data?.id === groupId, 'get_post devolve o grupo agendado');
+
+// ---- 5) validação de tool (uuid inválido → isError, não derruba a sessão) ----
+const bad = await callTool(6, 'get_post', { groupId: 'nao-e-uuid' });
+check(bad.isError || bad.status !== 200, 'get_post com id inválido → erro de tool (isError)');
+
+// ---- 6) credencial SEM escopo mcp é barrada no /mcp ----
+const noScopeKey = await createKey('e2e-mcp-noscope', ['posts:read']);
+const denied = await rpc(99, 'initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'x', version: '1' } }, noScopeKey);
+check(denied.status === 403, `API key sem escopo mcp → 403 (veio ${denied.status})`);
+
+// ---- 7) audit_log gravado com actor_type=MCP ----
+// (checado fora do script via psql — aqui só sinalizamos o groupId p/ conferência)
+console.log(`  info: grupo criado via MCP p/ conferência de auditoria: ${groupId}`);
+
+console.log(failures ? `\n❌ ${failures} FALHA(S)` : '\n✅ TUDO OK (servidor MCP /mcp)');
+if (failures) process.exit(1);
