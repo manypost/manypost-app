@@ -4,6 +4,7 @@ import type {
   ChannelProviderRegistry,
   ChannelRepository,
   CryptoService,
+  IdempotencyStore,
   JobScheduler,
   MetricsSink,
   PublishingRepository,
@@ -21,6 +22,7 @@ import {
   makePublishPublication,
   makeRecoverDue,
 } from '@manypost/core';
+import { makeRedisIdempotencyStore } from './redis-idempotency';
 import { makeRedisRateLimiter } from './redis-rate-limiter';
 import { makeRedisRealtimeBus } from './redis-realtime-bus';
 
@@ -47,6 +49,8 @@ export interface PublishingRuntime {
   scheduler: JobScheduler;
   /** compartilhado com a API (ex.: rate-limit da superfície pública de aprovação) */
   rateLimiter?: RateLimiter;
+  /** idempotência de POSTs da API pública (SPEC_API_MCP §3) — sem Redis fica indefinido (falha aberta) */
+  idempotency?: IdempotencyStore;
   /** bus pub/sub p/ SSE — worker publica, API assina (mesmo objeto em MODE=all) */
   realtime?: ReturnType<typeof makeRedisRealtimeBus>;
   events: ReturnType<typeof makeEmitEvent>;
@@ -94,6 +98,7 @@ export async function createPublishingRuntime(
   };
 
   const rateLimiter = opts.redisUrl ? makeRedisRateLimiter(opts.redisUrl) : undefined;
+  const idempotency = opts.redisUrl ? makeRedisIdempotencyStore(opts.redisUrl) : undefined;
   const realtime = opts.redisUrl ? makeRedisRealtimeBus(opts.redisUrl) : undefined;
   const events = makeEmitEvent({
     webhooks: opts.webhooks,
@@ -139,6 +144,7 @@ export async function createPublishingRuntime(
   return {
     scheduler,
     ...(rateLimiter ? { rateLimiter } : {}),
+    ...(idempotency ? { idempotency } : {}),
     ...(realtime ? { realtime } : {}),
     events,
     publish,
@@ -212,6 +218,7 @@ export async function createPublishingRuntime(
     async stop() {
       await boss.stop({ graceful: true });
       await rateLimiter?.close();
+      await idempotency?.close();
       await realtime?.close();
       await sqlc.end();
     },

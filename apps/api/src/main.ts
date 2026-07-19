@@ -12,9 +12,11 @@ import { approvalPublicRoutes } from './http/routes/approvals-public.routes';
 import { authRoutes } from './http/routes/auth.routes';
 import { channelRoutes } from './http/routes/channels.routes';
 import { eventRoutes } from './http/routes/events.routes';
+import { mcpRoutes } from './http/routes/mcp.routes';
 import { mediaRoutes, publicUploadRoutes } from './http/routes/media.routes';
 import { notificationRoutes } from './http/routes/notifications.routes';
 import { postRoutes } from './http/routes/posts.routes';
+import { publicV1Routes } from './http/routes/public/public-v1.routes';
 import { publicationRoutes } from './http/routes/publications.routes';
 import { socialAuthRoutes } from './http/routes/social-auth.routes';
 import { webhookRoutes } from './http/routes/webhooks.routes';
@@ -117,6 +119,8 @@ app.route('/v1/webhooks', webhookRoutes(ctn));
 app.route('/v1/notifications', notificationRoutes(ctn));
 app.route('/uploads', publicUploadRoutes(ctn)); // arquivos públicos (chaves UUID, não enumeráveis)
 app.route('/public/approval', approvalPublicRoutes(ctn)); // aprovação por token, sem login (§12)
+app.route('/public/v1', publicV1Routes(ctn)); // API pública p/ máquinas (escopos + rate-limit + idempotência)
+app.route('/mcp', mcpRoutes(ctn)); // servidor MCP (Streamable HTTP) — auth por API key escopo mcp
 
 // OpenAPI: cada rota é documentada com schemas reais de request/response/erro via
 // createRoute (auth/api-keys/health) ou app.openAPIRegistry.registerPath (o restante,
@@ -143,6 +147,11 @@ const OPENAPI_DOC = {
     { name: 'notifications', description: 'notificações da organização' },
     { name: 'events', description: 'stream SSE em tempo real' },
     { name: 'approvals', description: 'superfície pública de aprovação por token' },
+    { name: 'public-posts', description: 'API pública /public/v1 — posts (escopos posts:*)' },
+    { name: 'public-publications', description: 'API pública /public/v1 — feed de publicações (posts:read)' },
+    { name: 'public-channels', description: 'API pública /public/v1 — canais (channels:*)' },
+    { name: 'public-media', description: 'API pública /public/v1 — mídia (media:write)' },
+    { name: 'public-webhooks', description: 'API pública /public/v1 — webhooks (webhooks:manage)' },
   ],
 };
 const HTTP_METHODS = new Set(['get', 'post', 'put', 'patch', 'delete']);
@@ -233,7 +242,8 @@ app.get('/', (c) =>
 </html>`),
 );
 
-// Fase 1 restante: analytics, public-v1 e /mcp.
+// Fase 1 restante: analytics (get_channel_analytics / GET /channels/{id}/analytics), IA
+// (generate_content) e OAuth 2.1 do MCP (hoje o /mcp autentica por API key escopo mcp).
 console.log(`manypost api (MODE=${env.MODE}) on :${env.PORT}`);
 
 export default { port: env.PORT, hostname: '0.0.0.0', fetch: app.fetch };

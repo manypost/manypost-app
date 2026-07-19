@@ -7,6 +7,8 @@ export interface Principal {
   userId?: string;
   role?: MemberRole;
   scopes?: string[];
+  /** id da API key (só quando kind === 'api_key') — usado no rate-limit por credencial e na auditoria */
+  apiKeyId?: string;
 }
 
 export type AppEnv = {

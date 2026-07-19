@@ -1,6 +1,6 @@
 import type { MiddlewareHandler } from 'hono';
 import { getCookie } from 'hono/cookie';
-import { ErrorCodes } from '@manypost/contracts';
+import { type ApiScope, ErrorCodes } from '@manypost/contracts';
 import { API_KEY_PREFIX, DomainError, type TokenSigner } from '@manypost/core';
 import type { AppEnv } from './context';
 
@@ -9,7 +9,9 @@ export const REFRESH_COOKIE = 'mp_rt';
 
 interface AuthMiddlewareDeps {
   signer: TokenSigner;
-  verifyApiKey: (key: string) => Promise<{ orgId: string; scopes: string[] } | null>;
+  verifyApiKey: (
+    key: string,
+  ) => Promise<{ orgId: string; scopes: string[]; apiKeyId: string } | null>;
 }
 
 /** Autenticação unificada: JWT (cookie ou Bearer) ou API key (SPEC_API_MCP §1-2). */
@@ -22,7 +24,12 @@ export const requireAuth = (deps: AuthMiddlewareDeps): MiddlewareHandler<AppEnv>
     if (token?.startsWith(API_KEY_PREFIX)) {
       const key = await deps.verifyApiKey(token);
       if (key) {
-        c.set('principal', { kind: 'api_key', orgId: key.orgId, scopes: key.scopes });
+        c.set('principal', {
+          kind: 'api_key',
+          orgId: key.orgId,
+          scopes: key.scopes,
+          apiKeyId: key.apiKeyId,
+        });
         return next();
       }
     } else if (token) {
@@ -48,3 +55,24 @@ export const requireAdmin = (): MiddlewareHandler<AppEnv> => async (c, next) => 
   }
   await next();
 };
+
+/**
+ * Exige que a credencial tenha TODOS os escopos listados (SPEC_API_MCP §1/§6 — "mesmo
+ * middleware de escopos"). Vale só para API keys (máquinas): o humano (JWT/cookie) é regido
+ * pelo papel, não por escopos, então passa direto aqui — a autorização fina dele é `requireAdmin`
+ * e a matriz papel×endpoint. Escopo faltando → 403 problem+json.
+ */
+export const requireScope = (...needed: ApiScope[]): MiddlewareHandler<AppEnv> =>
+  async (c, next) => {
+    const p = c.get('principal');
+    if (p.kind === 'api_key') {
+      const have = new Set(p.scopes ?? []);
+      if (needed.some((s) => !have.has(s))) {
+        throw new DomainError(
+          ErrorCodes.Forbidden,
+          `escopo insuficiente: esta API key precisa de ${needed.join(', ')}`,
+        );
+      }
+    }
+    await next();
+  };
