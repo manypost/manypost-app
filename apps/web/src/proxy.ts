@@ -32,6 +32,6 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  // /v1, /uploads e /public são proxy p/ a API; estáticos e _next ficam de fora
-  matcher: ['/((?!v1|uploads|public|_next|favicon\\.ico|.*\\..*).*)'],
+  // /v1, /uploads, /public e /mcp são proxy p/ a API; estáticos e _next ficam de fora
+  matcher: ['/((?!v1|uploads|public|mcp|_next|favicon\\.ico|.*\\..*).*)'],
 };
