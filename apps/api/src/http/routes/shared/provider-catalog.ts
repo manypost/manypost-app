@@ -1,4 +1,4 @@
-import type { ChannelProvider } from '@manypost/contracts';
+import { PROVIDER_REQUIRED_FEATURE, type ChannelProvider } from '@manypost/contracts';
 import { settingsJsonSchema } from '@manypost/providers';
 
 /** Provider disponível = todos os requiredSecrets dele presentes no env (como o login social). */
@@ -25,6 +25,10 @@ export const providerCatalogEntry = (p: ChannelProvider) => ({
   maxLength: p.capabilities.maxLength(undefined),
   media: p.capabilities.media,
   settingsSchema: settingsJsonSchema(p.settingsSchema),
+  // rede que exige plano no gerenciado (hoje só o X) — a UI marca o cartão com "Pro"
+  ...(PROVIDER_REQUIRED_FEATURE[p.id]
+    ? { requiredFeature: PROVIDER_REQUIRED_FEATURE[p.id] }
+    : {}),
   // formulário de conexão auto-gerado na UI — ausente = OAuth puro, connect sem campos
   ...(p.connectionFieldsSchema
     ? { connectionFieldsSchema: settingsJsonSchema(p.connectionFieldsSchema) }

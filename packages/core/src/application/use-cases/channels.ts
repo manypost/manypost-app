@@ -5,9 +5,10 @@ import type {
   ProviderContext,
   TokenSet,
 } from '@manypost/contracts';
-import { ErrorCodes } from '@manypost/contracts';
+import { ErrorCodes, PROVIDER_REQUIRED_FEATURE } from '@manypost/contracts';
 import { DomainError } from '../../domain/shared/result';
 import type { CryptoService } from '../ports/crypto';
+import type { PlanPolicy } from '../ports/plan-policy';
 import type { ChannelRecord, ChannelRepository } from '../ports/publishing';
 
 /** AAD estável por chave natural (id do canal só existe após o insert). */
@@ -31,6 +32,8 @@ export function sanitizeChannel(c: ChannelRecord) {
 export interface ChannelDeps {
   channels: ChannelRepository;
   crypto: CryptoService;
+  /** limites comerciais do gerenciado; ausente = self-hosted (nada é barrado) */
+  plan?: PlanPolicy;
 }
 
 export const makeConnectChannel = (deps: ChannelDeps) =>
@@ -40,6 +43,21 @@ export const makeConnectChannel = (deps: ChannelDeps) =>
     account: TokenSet & ExternalAccount & { channelSettings?: Record<string, unknown> };
   }) => {
     const { orgId, provider, account } = input;
+
+    if (deps.plan) {
+      // reconectar canal existente não consome vaga (só refaz o token) — mas rede paga
+      // continua exigindo o plano: quem caiu para o Grátis não recola o X.
+      const reconnect = (await deps.channels.list(orgId)).some(
+        (c) => c.provider === provider.id && c.externalId === account.externalId,
+      );
+      const requiredFeature = PROVIDER_REQUIRED_FEATURE[provider.id];
+      if (!reconnect) {
+        await deps.plan.assert(orgId, { kind: 'channel', provider: provider.id });
+      } else if (requiredFeature) {
+        await deps.plan.assert(orgId, { kind: 'feature', feature: requiredFeature });
+      }
+    }
+
     const aad = channelAad(orgId, provider.id, account.externalId);
     const token = await deps.crypto.encrypt(account.accessToken, aad);
     const refresh = account.refreshToken

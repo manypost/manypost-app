@@ -16,9 +16,18 @@ export const ErrorCodes = {
   MediaUnsupportedType: 'media.unsupported_type',
   MediaTooLarge: 'media.too_large',
   MediaFetchFailed: 'media.fetch_failed',
-  // plano/limites
+  // plano/limites (impostos só no gerenciado — IS_SELF_HOSTED=false)
   PlanChannelLimit: 'plan.channel_limit',
+  PlanPostsLimit: 'plan.posts_limit',
+  /** feature do catálogo travada no plano atual — detail: { feature, requiredTier } */
+  PlanFeatureLocked: 'plan.feature_locked',
+  /** rede não incluída no plano (X no Grátis) — detail: { provider, requiredTier } */
+  PlanProviderLocked: 'plan.provider_locked',
   RateLimited: 'rate.limited',
+  // billing (Stripe — só no gerenciado)
+  BillingDisabled: 'billing.disabled',
+  BillingNoSubscription: 'billing.no_subscription',
+  BillingProviderError: 'billing.provider_error',
   // ia
   AiBudgetExceeded: 'ai.budget_exceeded',
   CapabilityDisabled: 'capability.disabled',

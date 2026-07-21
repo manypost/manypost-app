@@ -38,11 +38,13 @@
       "invalid_media": "Uma das mídias não é aceita por um dos canais.",
       "invalid_settings": "As opções de um dos canais são inválidas."
     },
-    "plan": {
-      "channel_limit": "Limite de canais do plano atingido."
-    },
     "validation": {
       "invalid_request": "Confira os campos destacados e tente de novo."
+    },
+    "billing": {
+      "no_subscription": "Não há assinatura ativa nesta marca.",
+      "provider_error": "A operadora de pagamento não respondeu. Tente de novo em instantes.",
+      "disabled": "Cobrança não está habilitada nesta instalação."
     }
   },
   "auth": {
@@ -114,7 +116,8 @@
     "connections": "Conexões",
     "media": "Mídia",
     "notifications": "Notificações",
-    "settings": "Configurações"
+    "settings": "Configurações",
+    "plans": "Planos"
   },
   "connections": {
     "title": "Conexões",
@@ -239,19 +242,27 @@
       "title": "Configurações de {name}",
       "default": "Padrão da rede",
       "fields": {
-        "mastodon": { "visibility": "Visibilidade" },
+        "mastodon": {
+          "visibility": "Visibilidade"
+        },
         "telegram": {
           "disableLinkPreview": "Desativar preview de link",
           "silent": "Envio silencioso"
         },
-        "bluesky": { "langs": "Idiomas do post" },
+        "bluesky": {
+          "langs": "Idiomas do post"
+        },
         "discord": {
           "channelId": "Canal do Discord",
           "suppressEmbeds": "Ocultar previews de link",
           "silent": "Envio silencioso"
         },
-        "linkedin": { "visibility": "Visibilidade" },
-        "x": { "replySettings": "Quem pode responder" },
+        "linkedin": {
+          "visibility": "Visibilidade"
+        },
+        "x": {
+          "replySettings": "Quem pode responder"
+        },
         "tiktok": {
           "privacyLevel": "Visibilidade do post",
           "contentPostingMethod": "Método de publicação",
@@ -272,7 +283,9 @@
         }
       },
       "hints": {
-        "bluesky": { "langs": "Códigos BCP-47 separados por vírgula — ex.: pt, en" },
+        "bluesky": {
+          "langs": "Códigos BCP-47 separados por vírgula — ex.: pt, en"
+        },
         "tiktok": {
           "privacyLevel": "Define quem poderá visualizar o post no TikTok. (Nota: aplicativos sem auditoria de Direct Post aprovada pelo TikTok só permitem publicar como 'Privado / Somente eu')",
           "contentPostingMethod": "Publicação direta envia o post para o feed imediatamente; Enviar para Caixa de Entrada manda como rascunho para o aplicativo do TikTok no seu celular para finalização",
@@ -557,5 +570,145 @@
     "published": "Post publicado!",
     "failed": "Uma publicação falhou — veja no calendário.",
     "refreshRequired": "O canal {name} precisa ser reconectado."
+  },
+  "billing": {
+    "title": "Planos",
+    "headline": "Uma marca, todas as suas redes.",
+    "subheadline": "Você paga por marca gerenciada, não por rede conectada. Conecte o Instagram, o LinkedIn e o TikTok da mesma marca sem pagar três vezes.",
+    "monthly": "Mensal",
+    "yearly": "Anual",
+    "yearlyDiscount": "−21%",
+    "perMonth": "/mês",
+    "freeForever": "Para sempre. Sem cartão de crédito.",
+    "currentPlan": "Seu plano",
+    "choosePlan": "Assinar o {plan}",
+    "switchPlan": "Mudar para o {plan}",
+    "downgradeHint": "Para voltar ao Grátis, cancele a assinatura acima.",
+    "manage": "Gerenciar pagamento",
+    "cancel": "Cancelar assinatura",
+    "resume": "Retomar assinatura",
+    "cancelTitle": "Cancelar a assinatura?",
+    "cancelWarning": "Você continua com o plano até o fim do período já pago. Depois disso a marca volta ao Grátis: 3 redes, 15 posts por mês e sem X.",
+    "cancelFeedbackLabel": "O que faltou? (opcional)",
+    "cancelScheduled": "Assinatura cancelada — o plano vale até {date}.",
+    "cancelImmediate": "Assinatura encerrada.",
+    "resumed": "Assinatura retomada.",
+    "planChanged": "Plano alterado.",
+    "checkoutBack": "Pagamento confirmado — bem-vindo ao {plan}!",
+    "checkoutCanceled": "Checkout cancelado. Nada foi cobrado.",
+    "statusTitle": "Sua assinatura",
+    "statusActive": "Ativa",
+    "statusTrialing": "Em teste",
+    "statusPastDue": "Pagamento em atraso",
+    "statusCanceled": "Cancelada",
+    "statusIncomplete": "Aguardando pagamento",
+    "renewsAt": "Renova em {date}",
+    "endsAt": "Acesso até {date}",
+    "pastDueHint": "Não conseguimos cobrar seu cartão. Atualize os dados de pagamento para não perder o plano.",
+    "usageTitle": "Uso desta marca",
+    "usageChannels": "Redes conectadas",
+    "usagePosts": "Posts no mês",
+    "unlimited": "ilimitado",
+    "invoicesTitle": "Faturas",
+    "noInvoices": "Nenhuma fatura ainda.",
+    "invoiceReceipt": "Ver recibo",
+    "selfHostedTitle": "Instalação self-hosted",
+    "selfHostedBody": "Esta instalação roda o manypost Community: todos os recursos liberados, sem cobrança e sem limites de plano.",
+    "lockedFeature": "Disponível no plano {plan}.",
+    "seePlans": "Ver planos",
+    "plans": {
+      "FREE": {
+        "tagline": "Para publicar em mais de uma rede sem pagar nada.",
+        "bullets": [
+          "1 marca",
+          "Até 3 redes conectadas",
+          "15 posts por mês",
+          "Kanban, timeline e calendário",
+          "Publicação pelas APIs oficiais das redes"
+        ],
+        "excluded": [
+          "Não inclui X (Twitter)",
+          "Não inclui recursos de IA"
+        ]
+      },
+      "PRO": {
+        "badge": "Inclui API e MCP",
+        "tagline": "Para quem publica todo dia e quer automatizar o fluxo.",
+        "bullets": [
+          "tudo do free",
+          "1 marca, todas as redes — inclusive X",
+          "Posts ilimitados, sob política de uso justo",
+          "Aprovação por link público",
+          "Analytics de alcance, engajamento e crescimento",
+          "API REST e servidor MCP",
+          "IA: adapta o tom e o formato de cada rede",
+          "IA: sugere o melhor horário por rede",
+          "Suporte prioritário"
+        ],
+        "excluded": []
+      },
+      "PREMIUM": {
+        "badge": "Inclui IA avançada",
+        "tagline": "Para quem opera várias marcas e responde em escala.",
+        "bullets": [
+          "Tudo do Pro",
+          "Workspaces, permissões e auditoria",
+          "IA: rascunho multicanal a partir de uma ideia",
+          "IA: monta e otimiza o calendário da semana",
+          "IA: responde comentários e DMs num lugar só",
+          "IA: classifica e direciona mensagens",
+          "IA: acompanha campanhas e gera relatórios",
+          "IA: avisa quando um post perde engajamento"
+        ],
+        "excluded": []
+      }
+    },
+    "perYear": "{total}/ano",
+    "billedMonthlyShort": "cobrado todo mês",
+    "currentPlanHint": "É o plano que você usa hoje.",
+    "footerPaid": "{price}/mês por marca · {billed}"
+  },
+  "onboarding": {
+    "welcome": "Conta criada!",
+    "headline": "Uma marca, todas as suas redes.",
+    "headlineAccent": "todas as suas redes",
+    "subheadline": "Você paga por marca gerenciada, não por rede conectada. Conecte o Instagram, o LinkedIn e o TikTok da mesma marca sem pagar três vezes.",
+    "trust": {
+      "free": "Comece de graça, sem cartão de crédito",
+      "cancel": "Cancele quando quiser, direto nas configurações",
+      "official": "Publicação pelas APIs oficiais das redes"
+    },
+    "compareTitle": "−40% no mensal",
+    "compareBody": "A manypost custa R$ 29,90 por marca no plano mensal. A mLabs cobra R$ 49,90.",
+    "chooseTitle": "Escolha seu plano",
+    "chooseHint": "Dá para trocar de plano — ou cancelar — quando quiser.",
+    "recommended": "Recomendado",
+    "includes": "O que entra no {plan}",
+    "startFree": "Começar de graça",
+    "subscribe": "Assinar o {plan}",
+    "continueFree": "Continuar no Grátis",
+    "footerFree": "Sem cartão de crédito. Você troca de plano quando quiser.",
+    "footerPaid": "{price}/mês por marca · {billed}",
+    "billedMonthly": "cobrado todo mês",
+    "billedYearly": "cobrado uma vez por ano ({total})",
+    "faqTitle": "Perguntas rápidas",
+    "faq": [
+      {
+        "q": "Vou ser cobrado agora?",
+        "a": "Só se você escolher o Pro ou o Premium. O plano Grátis é permanente e não pede cartão de crédito."
+      },
+      {
+        "q": "O que acontece se eu passar dos 15 posts do Grátis?",
+        "a": "O agendamento do 16º post do mês é bloqueado até virar o mês ou até você assinar. Nada é publicado sem você mandar, e nenhum post agendado se perde."
+      },
+      {
+        "q": "Posso trocar de plano depois?",
+        "a": "Pode, a qualquer momento. Na troca cobramos apenas a diferença proporcional ao tempo que falta do período já pago."
+      },
+      {
+        "q": "E se eu cancelar?",
+        "a": "Você continua com o plano até o fim do período já pago. Depois a marca volta ao Grátis: 3 redes, 15 posts por mês e sem X."
+      }
+    ]
   }
 }

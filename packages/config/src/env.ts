@@ -27,6 +27,14 @@ const EnvSchema = z
       .default('true')
       .transform((v) => v === true || v === 'true'),
 
+    // Cobrança (Stripe) — só no gerenciado. Sem STRIPE_SECRET_KEY o billing fica desligado
+    // e o PlanPolicy libera tudo, mesmo com IS_SELF_HOSTED=false (equivale ao gate por
+    // STRIPE_PUBLISHABLE_KEY do Postiz): instalação sem cobrança não se auto-bloqueia.
+    STRIPE_SECRET_KEY: z.string().optional(),
+    /** `whsec_…` do endpoint de webhook (Stripe Dashboard → Developers → Webhooks) */
+    STRIPE_WEBHOOK_SECRET: z.string().optional(),
+    /** dias de teste grátis na assinatura; 0 = sem trial (a landing já vende o plano Grátis) */
+    BILLING_TRIAL_DAYS: z.coerce.number().min(0).max(90).default(0),
 
     DATABASE_URL: z.string().min(1),
     REDIS_URL: z.string().min(1),
@@ -92,6 +100,14 @@ const EnvSchema = z
   });
 
 export type Env = z.infer<typeof EnvSchema>;
+
+/**
+ * Fronteira Community × Cloud (DECISIONS §15). Cobrança e enforcement de plano só existem
+ * quando a instalação é gerenciada E tem Stripe configurada. Em qualquer outro caso o
+ * `PlanPolicy` responde `allowed` para tudo e a UI esconde o billing.
+ */
+export const isBillingEnabled = (env: Env): boolean =>
+  !env.IS_SELF_HOSTED && !env.HIDE_BILLING && Boolean(env.STRIPE_SECRET_KEY);
 
 export function loadEnv(source: Record<string, string | undefined> = process.env): Env {
   const parsed = EnvSchema.safeParse(source);

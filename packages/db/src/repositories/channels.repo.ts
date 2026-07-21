@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 import type { ChannelRecord, ChannelRepository } from '@manypost/core';
 import type { Db } from '../index';
 import { channels } from '../schema';
@@ -45,10 +45,13 @@ export function makeChannelRepository(db: Db): ChannelRepository {
       return toRecord(row!);
     },
     async list(orgId) {
+      // ordem estável por conexão: a UI lista sempre igual e o downgrade de plano
+      // desativa os canais MAIS RECENTES primeiro (billing.ts applyTierLimits)
       const rows = await db
         .select()
         .from(channels)
-        .where(and(eq(channels.orgId, orgId), isNull(channels.deletedAt)));
+        .where(and(eq(channels.orgId, orgId), isNull(channels.deletedAt)))
+        .orderBy(asc(channels.createdAt));
       return rows.map(toRecord);
     },
     async findMany(orgId, ids) {

@@ -8,6 +8,7 @@ import type { EventPublisher } from '../ports/events';
 import type { JobScheduler } from '../ports/job-scheduler';
 import type { MediaRepository, MediaStorage } from '../ports/media';
 import type { MetricsSink } from '../ports/metrics';
+import type { PlanPolicy } from '../ports/plan-policy';
 import type { RateLimiter, RateWindowSpec } from '../ports/rate-limiter';
 import type { ChannelRepository, PublishingRepository } from '../ports/publishing';
 import { randomToken } from '../tokens';
@@ -40,6 +41,8 @@ export interface SchedulePostDeps {
   media?: MediaRepository;
   storage?: MediaStorage;
   events?: EventPublisher;
+  /** limites comerciais do gerenciado; ausente = self-hosted (nada é barrado) */
+  plan?: PlanPolicy;
   log?: (level: string, msg: string, data?: object) => void;
 }
 
@@ -61,6 +64,9 @@ export const makeSchedulePost = (deps: SchedulePostDeps) =>
     /** true = nasce DRAFT aguardando aprovação por link (DECISIONS v1.1 §12) — sem job até aprovar */
     requireApproval?: boolean;
   }) => {
+    // teto de posts do plano (Grátis: 15/mês) — falha antes de qualquer escrita
+    await deps.plan?.assert(input.orgId, { kind: 'post' });
+
     // item 0 = post principal; itens seguintes = réplicas da thread
     const rawItems = [
       { text: input.text, mediaIds: input.mediaIds ?? [], delaySec: 0 },

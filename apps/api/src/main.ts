@@ -10,6 +10,8 @@ import { createApp } from './http/openapi';
 import { apiKeyRoutes } from './http/routes/api-keys.routes';
 import { approvalPublicRoutes } from './http/routes/approvals-public.routes';
 import { authRoutes } from './http/routes/auth.routes';
+import { billingRoutes } from './http/routes/billing.routes';
+import { capabilityRoutes } from './http/routes/capabilities.routes';
 import { channelRoutes } from './http/routes/channels.routes';
 import { eventRoutes } from './http/routes/events.routes';
 import { mcpRoutes } from './http/routes/mcp.routes';
@@ -19,6 +21,7 @@ import { postRoutes } from './http/routes/posts.routes';
 import { publicV1Routes } from './http/routes/public/public-v1.routes';
 import { publicationRoutes } from './http/routes/publications.routes';
 import { socialAuthRoutes } from './http/routes/social-auth.routes';
+import { stripeWebhookRoutes } from './http/routes/stripe-webhook.routes';
 import { webhookRoutes } from './http/routes/webhooks.routes';
 
 const env = loadEnv();
@@ -117,6 +120,12 @@ app.route('/v1/events', eventRoutes(ctn)); // SSE
 app.route('/v1/media', mediaRoutes(ctn));
 app.route('/v1/webhooks', webhookRoutes(ctn));
 app.route('/v1/notifications', notificationRoutes(ctn));
+app.route('/v1/capabilities', capabilityRoutes(ctn)); // plano/features desta org (sempre existe)
+if (ctn.billing) {
+  // gerenciado apenas (IS_SELF_HOSTED=false + Stripe): em self-hosted estas rotas não existem
+  app.route('/v1/billing', billingRoutes(ctn));
+  app.route('/v1/stripe', stripeWebhookRoutes(ctn));
+}
 app.route('/uploads', publicUploadRoutes(ctn)); // arquivos públicos (chaves UUID, não enumeráveis)
 app.route('/public/approval', approvalPublicRoutes(ctn)); // aprovação por token, sem login (§12)
 app.route('/public/v1', publicV1Routes(ctn)); // API pública p/ máquinas (escopos + rate-limit + idempotência)
@@ -146,6 +155,8 @@ const OPENAPI_DOC = {
     { name: 'webhooks', description: 'webhooks de saída assinados' },
     { name: 'notifications', description: 'notificações da organização' },
     { name: 'events', description: 'stream SSE em tempo real' },
+    { name: 'capabilities', description: 'plano, features e limites da organização' },
+    { name: 'billing', description: 'assinatura e cobrança (só no serviço gerenciado)' },
     { name: 'approvals', description: 'superfície pública de aprovação por token' },
     { name: 'public-posts', description: 'API pública /public/v1 — posts (escopos posts:*)' },
     { name: 'public-publications', description: 'API pública /public/v1 — feed de publicações (posts:read)' },

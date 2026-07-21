@@ -440,5 +440,15 @@ export function makePublishingRepository(db: Db): PublishingRepository {
       }
       await db.update(postGroups).set({ state }).where(eq(postGroups.id, groupId));
     },
+
+    async countGroupsSince(orgId, since) {
+      // conta POSTS (grupos), não publicações: "15 posts por mês" no Grátis é por post,
+      // independente de quantas redes ele saiu. Cancelado continua contando (consumiu a cota).
+      const [row] = await db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(postGroups)
+        .where(and(eq(postGroups.orgId, orgId), gte(postGroups.createdAt, since)));
+      return row?.n ?? 0;
+    },
   };
 }

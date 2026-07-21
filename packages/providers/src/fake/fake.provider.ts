@@ -47,15 +47,19 @@ export const fakeProvider: ChannelProvider = {
     return { url: `${redirectUri}?fake=1&state=${state}&code=fake-code`, state };
   },
 
-  async exchangeCode(_ctx, _input) {
+  async exchangeCode(_ctx, input) {
+    // `code=fake-code` (padrão) sempre resolve a MESMA conta — é o que os E2E existentes
+    // usam para exercitar reconexão/upsert. Um sufixo (`fake-code-b`) vira uma conta
+    // distinta, o que permite testar cenários com vários canais (ex.: teto de plano).
+    const suffix = input.code.startsWith('fake-code-') ? input.code.slice('fake-code-'.length) : '';
     return {
       accessToken: `fake-access-${crypto.randomUUID()}`,
       refreshToken: `fake-refresh-${crypto.randomUUID()}`,
       expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
       scopes: ['read', 'write'],
-      externalId: 'fake-user-1',
-      name: 'Fake User',
-      username: 'fakeuser',
+      externalId: suffix ? `fake-user-${suffix}` : 'fake-user-1',
+      name: suffix ? `Fake User ${suffix}` : 'Fake User',
+      username: suffix ? `fakeuser-${suffix}` : 'fakeuser',
     };
   },
 

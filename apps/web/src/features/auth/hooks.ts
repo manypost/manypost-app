@@ -62,8 +62,9 @@ export function useRegister() {
     },
     onSuccess: () => {
       queryClient.clear();
-      // onboarding: conta nova vai direto conectar o 1º canal (SPEC_FRONTEND §2)
-      router.replace('/conexoes');
+      // conta nova cai no onboarding: escolher plano (gerenciado) ou seguir no Grátis.
+      // Em self-hosted a própria tela reencaminha para /conexoes (não há o que vender).
+      router.replace('/boas-vindas');
       router.refresh();
     },
   });

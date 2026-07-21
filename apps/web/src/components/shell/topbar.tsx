@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, CalendarDays, Image as ImageIcon, LogOut, Menu, PenSquare, Plug, Settings, SquareKanban } from 'lucide-react';
+import { Bell, CalendarDays, CreditCard, Image as ImageIcon, LogOut, Menu, PenSquare, Plug, Settings, SquareKanban } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLogout, useMe } from '@/features/auth/hooks';
+import { usePlanFeatures } from '@/features/billing/hooks';
 import { useComposerModal } from '@/features/composer/use-composer-modal';
 import { NotificationsMenu } from '@/features/notifications/notifications-menu';
 
@@ -36,6 +37,7 @@ const TITLE_BY_PATH: Array<{ prefix: string; key: string }> = [
   { prefix: '/midia', key: 'nav.media' },
   { prefix: '/notificacoes', key: 'nav.notifications' },
   { prefix: '/configuracoes', key: 'nav.settings' },
+  { prefix: '/planos', key: 'nav.plans' },
   { prefix: '/compor', key: 'nav.compose' },
 ];
 
@@ -46,6 +48,10 @@ export function Topbar() {
   const logout = useLogout();
   const openComposer = useComposerModal((s) => s.openComposer);
   const title = TITLE_BY_PATH.find(({ prefix }) => pathname.startsWith(prefix));
+  const { billingEnabled } = usePlanFeatures();
+  const mobileNav = billingEnabled
+    ? [...MOBILE_NAV, { href: '/planos', key: 'plans', icon: CreditCard } as const]
+    : MOBILE_NAV;
 
   const user = me?.user;
   const initials = (user?.name ?? user?.email ?? '?')
@@ -69,7 +75,7 @@ export function Topbar() {
               <PenSquare aria-hidden />
               {t('nav.compose')}
             </DropdownMenuItem>
-            {MOBILE_NAV.map(({ href, key, icon: Icon }) => (
+            {mobileNav.map(({ href, key, icon: Icon }) => (
               <DropdownMenuItem key={href} asChild>
                 <Link href={href}>
                   <Icon aria-hidden />

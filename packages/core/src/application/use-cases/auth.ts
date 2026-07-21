@@ -1,6 +1,7 @@
 import { ErrorCodes } from '@manypost/contracts';
 import { DomainError } from '../../domain/shared/result';
 import type { PasswordHasher, TokenSigner } from '../ports/auth';
+import type { PlanPolicy } from '../ports/plan-policy';
 import type {
   ApiKeyRepository,
   AuthIdentityRepository,
@@ -225,10 +226,14 @@ export const makeLogout = (deps: Pick<AuthDeps, 'sessions'>) =>
 
 export interface ApiKeyDeps {
   apiKeys: ApiKeyRepository;
+  /** limites comerciais do gerenciado; ausente = self-hosted (nada é barrado) */
+  plan?: PlanPolicy;
 }
 
 export const makeCreateApiKey = (deps: ApiKeyDeps) =>
   async (input: { orgId: string; name: string; scopes: string[] }) => {
+    // "API REST e servidor MCP" é linha do Pro na landing
+    await deps.plan?.assert(input.orgId, { kind: 'apiKey', scopes: input.scopes });
     const secret = randomToken(32);
     const plainKey = `${API_KEY_PREFIX}${secret}`;
     const record = await deps.apiKeys.create({

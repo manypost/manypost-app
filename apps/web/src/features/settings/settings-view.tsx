@@ -30,6 +30,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMe } from '@/features/auth/hooks';
+import { PlanLockNotice, usePlanLocked } from '@/features/billing/plan-lock';
 import { useApiErrorMessage } from '@/lib/api/errors';
 import { relativeTime } from '@/lib/datetime';
 import {
@@ -107,6 +108,8 @@ export function SettingsView() {
   const locale = useLocale();
   const errorMessage = useApiErrorMessage();
   const me = useMe();
+  // "API REST e servidor MCP" (chaves e webhooks) é linha do Pro no gerenciado
+  const apiLocked = usePlanLocked('public_api');
 
   // ---- API keys ----
   const apiKeys = useApiKeys();
@@ -157,12 +160,18 @@ export function SettingsView() {
       <section className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <SectionTitle icon={KeyRound}>{t('apiKeysTitle')}</SectionTitle>
-          <Button size="sm" className="gap-1.5" onClick={() => setKeyDialogOpen(true)}>
+          <Button
+            size="sm"
+            className="gap-1.5"
+            disabled={apiLocked}
+            onClick={() => setKeyDialogOpen(true)}
+          >
             <Plus aria-hidden />
             {t('newKey')}
           </Button>
         </div>
         <p className="-mt-2 text-[13px] leading-relaxed text-graphite">{t('apiKeysHint')}</p>
+        <PlanLockNotice feature="public_api" />
 
         {freshKey ? <SecretOnce value={freshKey} onDismiss={() => setFreshKey(null)} /> : null}
 
@@ -219,12 +228,18 @@ export function SettingsView() {
       <section className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <SectionTitle icon={WebhookIcon}>{t('webhooksTitle')}</SectionTitle>
-          <Button size="sm" className="gap-1.5" onClick={() => setHookDialogOpen(true)}>
+          <Button
+            size="sm"
+            className="gap-1.5"
+            disabled={apiLocked}
+            onClick={() => setHookDialogOpen(true)}
+          >
             <Plus aria-hidden />
             {t('newWebhook')}
           </Button>
         </div>
         <p className="-mt-2 text-[13px] leading-relaxed text-graphite">{t('webhooksHint')}</p>
+        <PlanLockNotice feature="public_api" />
 
         {freshSecret ? <SecretOnce value={freshSecret} onDismiss={() => setFreshSecret(null)} /> : null}
 

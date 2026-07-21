@@ -5,6 +5,7 @@ import { DomainError } from '../../domain/shared/result';
 import type { CryptoService } from '../ports/crypto';
 import type { EventPublisher, WebhookRecord, WebhookRepository } from '../ports/events';
 import type { JobScheduler } from '../ports/job-scheduler';
+import type { PlanPolicy } from '../ports/plan-policy';
 import type { RealtimePublisher } from '../ports/realtime';
 import { randomToken } from '../tokens';
 
@@ -43,10 +44,14 @@ export interface WebhookDeps {
   webhooks: WebhookRepository;
   crypto: CryptoService;
   allowPrivateUrls?: boolean;
+  /** limites comerciais do gerenciado; ausente = self-hosted (nada é barrado) */
+  plan?: PlanPolicy;
 }
 
 export const makeCreateWebhook = (deps: WebhookDeps) =>
   async (input: { orgId: string; name: string; url: string; events: string[]; channelIds?: string[] }) => {
+    // webhooks de saída entram na linha "API REST e servidor MCP" do Pro
+    await deps.plan?.assert(input.orgId, { kind: 'webhook' });
     await assertPublicUrl(input.url, deps.allowPrivateUrls);
     const secret = `whsec_${randomToken(24)}`;
     const enc = await deps.crypto.encrypt(secret, webhookAad(input.orgId));

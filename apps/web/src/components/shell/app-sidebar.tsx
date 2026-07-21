@@ -3,6 +3,7 @@
 import {
   Bell,
   CalendarDays,
+  CreditCard,
   Image as ImageIcon,
   PanelLeftClose,
   PanelLeftOpen,
@@ -17,6 +18,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Wordmark } from '@/components/brand/wordmark';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { usePlanFeatures } from '@/features/billing/hooks';
 import { useNotifications } from '@/features/notifications/hooks';
 import { cn } from '@/lib/utils';
 import type { IconType } from '@/types';
@@ -32,6 +34,13 @@ const FOOTER_NAV: Array<{ href: string; key: string; icon: IconType }> = [
   { href: '/notificacoes', key: 'notifications', icon: Bell },
   { href: '/configuracoes', key: 'settings', icon: Settings },
 ];
+
+/** Só no gerenciado: em self-hosted não existe cobrança, então "Planos" nem aparece. */
+const BILLING_NAV: { href: string; key: string; icon: IconType } = {
+  href: '/planos',
+  key: 'plans',
+  icon: CreditCard,
+};
 
 function RailItem({
   href,
@@ -95,6 +104,8 @@ export function AppSidebar() {
   const pathname = usePathname();
   const notifications = useNotifications();
   const unread = (notifications.data ?? []).some((n) => !n.readAt);
+  const { billingEnabled } = usePlanFeatures();
+  const footerNav = billingEnabled ? [BILLING_NAV, ...FOOTER_NAV] : FOOTER_NAV;
 
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -201,7 +212,7 @@ export function AppSidebar() {
             isCollapsed ? 'w-full items-center' : 'w-full',
           )}
         >
-          {FOOTER_NAV.map(({ href, key, icon }) => (
+          {footerNav.map(({ href, key, icon }) => (
             <RailItem
               key={href}
               href={href}

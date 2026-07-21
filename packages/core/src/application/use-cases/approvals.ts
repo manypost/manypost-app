@@ -9,6 +9,7 @@ import type {
 } from '../ports/approvals';
 import type { EventPublisher } from '../ports/events';
 import type { JobScheduler } from '../ports/job-scheduler';
+import type { PlanPolicy } from '../ports/plan-policy';
 import type { RealtimePublisher } from '../ports/realtime';
 import type { ChannelRepository, PublishingRepository } from '../ports/publishing';
 import { randomToken, sha256Hex } from '../tokens';
@@ -24,6 +25,8 @@ export interface ApprovalLinkDeps {
   approvals: ApprovalLinkRepository;
   publishing: PublishingRepository;
   audit?: AuditLogRepository;
+  /** limites comerciais do gerenciado; ausente = self-hosted (nada é barrado) */
+  plan?: PlanPolicy;
 }
 
 /** Cria o link público do grupo (só para rascunhos). Criar de novo revoga o anterior. */
@@ -35,6 +38,9 @@ export const makeCreateApprovalLink = (deps: ApprovalLinkDeps) =>
     actorId?: string | null;
     expiresInHours?: number;
   }) => {
+    // "Aprovação por link público" é linha do Pro na landing
+    await deps.plan?.assert(input.orgId, { kind: 'feature', feature: 'approval_link' });
+
     const group = await deps.publishing.getGroup(input.orgId, input.groupId);
     if (!group) throw new DomainError(ErrorCodes.NotFound, 'post não encontrado');
     if (group.state !== 'DRAFT') {
