@@ -1,7 +1,8 @@
 'use client';
 
-import { CircleAlert, EllipsisVertical, Unplug } from 'lucide-react';
+import { CircleAlert, EllipsisVertical, Lock, Unplug } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -24,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
+import { usePlanFeatures } from '@/features/billing/hooks';
 import { useApiErrorMessage } from '@/lib/api/errors';
 import { cn } from '@/lib/utils';
 import { ConnectDialog } from './connect-dialog';
@@ -58,6 +60,9 @@ const STATUS_VARIANT: Record<string, 'published' | 'review' | 'neutral'> = {
 
 export function ConnectionsView() {
   const t = useTranslations('connections');
+  const bt = useTranslations('billing');
+  const router = useRouter();
+  const { has } = usePlanFeatures();
   const errorMessage = useApiErrorMessage();
   const providers = useProviders();
   const channels = useChannels();
@@ -212,11 +217,13 @@ export function ConnectionsView() {
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {providers.data.map((p) => {
               const connecting = connect.isPending && connect.variables?.provider === p.id;
+              // rede que o plano atual não inclui (X no Grátis) — marca o cartão e leva a /planos
+              const locked = Boolean(p.requiredFeature) && !has(p.requiredFeature as string);
               return (
                 <li key={p.id}>
                   <button
                     type="button"
-                    onClick={() => startConnect(p as ProviderInfo)}
+                    onClick={() => (locked ? router.push('/planos') : startConnect(p as ProviderInfo))}
                     disabled={connecting}
                     aria-label={t('connectTitle', { provider: p.name })}
                     className={cn(
@@ -229,9 +236,18 @@ export function ConnectionsView() {
                       <ProviderIcon provider={p.id} name={p.name} className="size-5" />
                     </div>
                     <div className="flex flex-1 flex-col overflow-hidden">
-                      <span className="truncate text-[13px] font-medium text-ink">{p.name}</span>
+                      <span className="flex items-center gap-1.5 truncate text-[13px] font-medium text-ink">
+                        {p.name}
+                        {locked ? (
+                          <Lock className="size-3 shrink-0 text-accent" aria-hidden />
+                        ) : null}
+                      </span>
                       <span className="truncate text-xs text-graphite">
-                        {p.threads ? t('capabilities.threads') : t('connect')}
+                        {locked
+                          ? bt('lockedFeature', { plan: 'Pro' })
+                          : p.threads
+                            ? t('capabilities.threads')
+                            : t('connect')}
                       </span>
                     </div>
                   </button>

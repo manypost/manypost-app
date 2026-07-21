@@ -49,8 +49,36 @@
       "description": "stream SSE em tempo real"
     },
     {
+      "name": "capabilities",
+      "description": "plano, features e limites da organização"
+    },
+    {
+      "name": "billing",
+      "description": "assinatura e cobrança (só no serviço gerenciado)"
+    },
+    {
       "name": "approvals",
       "description": "superfície pública de aprovação por token"
+    },
+    {
+      "name": "public-posts",
+      "description": "API pública /public/v1 — posts (escopos posts:*)"
+    },
+    {
+      "name": "public-publications",
+      "description": "API pública /public/v1 — feed de publicações (posts:read)"
+    },
+    {
+      "name": "public-channels",
+      "description": "API pública /public/v1 — canais (channels:*)"
+    },
+    {
+      "name": "public-media",
+      "description": "API pública /public/v1 — mídia (media:write)"
+    },
+    {
+      "name": "public-webhooks",
+      "description": "API pública /public/v1 — webhooks (webhooks:manage)"
     }
   ],
   "components": {
@@ -452,6 +480,10 @@
             "type": "object",
             "additionalProperties": {},
             "description": "JSON Schema dos campos de conexão — é o formato aceito em `fields` do POST /v1/channels/connect; presente só quando o provider pede credenciais/instância (a UI renderiza o formulário de conexão a partir dele; ausente = OAuth sem campos)"
+          },
+          "requiredFeature": {
+            "type": "string",
+            "description": "feature de plano exigida por esta rede no serviço gerenciado (ex.: `x_network`); ausente = incluída em todos os planos. Em self-hosted nunca é imposta"
           }
         },
         "required": [
@@ -656,28 +688,39 @@
         ]
       },
       "PostGroupDetail": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/PostGroup"
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
           },
-          {
-            "type": "object",
-            "properties": {
-              "publications": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/PublicationDetail"
-                }
-              },
-              "text": {
-                "type": "string",
-                "description": "texto base do grupo (sem overrides por canal)"
-              }
-            },
-            "required": [
-              "text"
-            ]
+          "state": {
+            "type": "string",
+            "example": "SCHEDULED"
+          },
+          "publishAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "text": {
+            "type": "string",
+            "description": "texto base do grupo (sem overrides por canal)"
+          },
+          "publications": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicationDetail"
+            }
           }
+        },
+        "required": [
+          "id",
+          "state",
+          "publishAt",
+          "text",
+          "publications"
         ]
       },
       "ApprovalLink": {
@@ -1053,6 +1096,410 @@
           "createdAt"
         ]
       },
+      "Capabilities": {
+        "type": "object",
+        "properties": {
+          "billingEnabled": {
+            "type": "boolean"
+          },
+          "plan": {
+            "type": "object",
+            "properties": {
+              "tier": {
+                "type": "string",
+                "enum": [
+                  "FREE",
+                  "PRO",
+                  "PREMIUM"
+                ]
+              },
+              "status": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "ACTIVE",
+                  "TRIALING",
+                  "PAST_DUE",
+                  "CANCELED",
+                  "INCOMPLETE"
+                ]
+              },
+              "period": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "MONTHLY",
+                  "YEARLY"
+                ]
+              },
+              "currentPeriodEnd": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "cancelAt": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "features": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "limits": {
+                "type": "object",
+                "properties": {
+                  "channels": {
+                    "type": "integer",
+                    "description": "-1 = ilimitado"
+                  },
+                  "postsPerMonth": {
+                    "type": "integer"
+                  },
+                  "webhooks": {
+                    "type": "integer"
+                  },
+                  "apiKeys": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "channels",
+                  "postsPerMonth",
+                  "webhooks",
+                  "apiKeys"
+                ]
+              },
+              "usage": {
+                "type": "object",
+                "properties": {
+                  "channels": {
+                    "type": "integer"
+                  },
+                  "postsThisMonth": {
+                    "type": "integer"
+                  },
+                  "webhooks": {
+                    "type": "integer"
+                  },
+                  "apiKeys": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "channels",
+                  "postsThisMonth",
+                  "webhooks",
+                  "apiKeys"
+                ]
+              },
+              "enforced": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "tier",
+              "status",
+              "period",
+              "currentPeriodEnd",
+              "cancelAt",
+              "features",
+              "limits",
+              "usage",
+              "enforced"
+            ]
+          }
+        },
+        "required": [
+          "billingEnabled",
+          "plan"
+        ]
+      },
+      "PlanCatalog": {
+        "type": "object",
+        "properties": {
+          "currency": {
+            "type": "string"
+          },
+          "trialDays": {
+            "type": "integer"
+          },
+          "plans": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "tier": {
+                  "type": "string",
+                  "enum": [
+                    "FREE",
+                    "PRO",
+                    "PREMIUM"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "limits": {
+                  "type": "object",
+                  "properties": {
+                    "channels": {
+                      "type": "integer"
+                    },
+                    "postsPerMonth": {
+                      "type": "integer"
+                    },
+                    "webhooks": {
+                      "type": "integer"
+                    },
+                    "apiKeys": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "channels",
+                    "postsPerMonth",
+                    "webhooks",
+                    "apiKeys"
+                  ]
+                },
+                "features": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "prices": {
+                  "type": "object",
+                  "properties": {
+                    "MONTHLY": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "YEARLY": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "MONTHLY",
+                    "YEARLY"
+                  ]
+                }
+              },
+              "required": [
+                "tier",
+                "name",
+                "limits",
+                "features",
+                "prices"
+              ]
+            }
+          }
+        },
+        "required": [
+          "currency",
+          "trialDays",
+          "plans"
+        ]
+      },
+      "BillingState": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "object",
+            "properties": {
+              "tier": {
+                "type": "string",
+                "enum": [
+                  "FREE",
+                  "PRO",
+                  "PREMIUM"
+                ]
+              },
+              "status": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "ACTIVE",
+                  "TRIALING",
+                  "PAST_DUE",
+                  "CANCELED",
+                  "INCOMPLETE"
+                ]
+              },
+              "period": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "MONTHLY",
+                  "YEARLY"
+                ]
+              },
+              "currentPeriodEnd": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "cancelAt": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "limits": {
+                "type": "object",
+                "properties": {
+                  "channels": {
+                    "type": "integer"
+                  },
+                  "postsPerMonth": {
+                    "type": "integer"
+                  },
+                  "webhooks": {
+                    "type": "integer"
+                  },
+                  "apiKeys": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "channels",
+                  "postsPerMonth",
+                  "webhooks",
+                  "apiKeys"
+                ]
+              },
+              "features": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "usage": {
+                "type": "object",
+                "properties": {
+                  "channels": {
+                    "type": "integer"
+                  },
+                  "postsThisMonth": {
+                    "type": "integer"
+                  },
+                  "webhooks": {
+                    "type": "integer"
+                  },
+                  "apiKeys": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "channels",
+                  "postsThisMonth",
+                  "webhooks",
+                  "apiKeys"
+                ]
+              },
+              "enforced": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "tier",
+              "status",
+              "period",
+              "currentPeriodEnd",
+              "cancelAt",
+              "limits",
+              "features",
+              "usage",
+              "enforced"
+            ]
+          },
+          "subscription": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "tier": {
+                "type": "string",
+                "enum": [
+                  "FREE",
+                  "PRO",
+                  "PREMIUM"
+                ]
+              },
+              "period": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "MONTHLY",
+                  "YEARLY"
+                ]
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "ACTIVE",
+                  "TRIALING",
+                  "PAST_DUE",
+                  "CANCELED",
+                  "INCOMPLETE"
+                ]
+              },
+              "currentPeriodEnd": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "cancelAt": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "identifier": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "tier",
+              "period",
+              "status",
+              "currentPeriodEnd",
+              "cancelAt",
+              "identifier"
+            ]
+          }
+        },
+        "required": [
+          "plan",
+          "subscription"
+        ]
+      },
       "ApprovalPreview": {
         "type": "object",
         "properties": {
@@ -1203,6 +1650,432 @@
         "required": [
           "status",
           "resolvedAt"
+        ]
+      },
+      "PubMediaRef": {
+        "type": "object",
+        "properties": {
+          "mediaId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "example": "image"
+          },
+          "url": {
+            "type": "string"
+          },
+          "mime": {
+            "type": "string",
+            "example": "image/png"
+          },
+          "alt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "url",
+          "mime"
+        ]
+      },
+      "PubPublication": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "channelId": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "example": "SCHEDULED"
+          },
+          "media": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PubMediaRef"
+            }
+          },
+          "itemCount": {
+            "type": "integer"
+          },
+          "lastPublishedIndex": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "attemptCount": {
+            "type": "integer"
+          },
+          "externalId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "releaseUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "errorClass": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "errorMessage": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "channelId",
+          "state",
+          "media",
+          "itemCount",
+          "lastPublishedIndex",
+          "attemptCount",
+          "externalId",
+          "releaseUrl",
+          "errorClass",
+          "errorMessage"
+        ]
+      },
+      "PubPostGroup": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "example": "SCHEDULED"
+          },
+          "publishAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "publications": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PubPublication"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "state",
+          "publishAt",
+          "publications"
+        ]
+      },
+      "PubFeedItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "groupId": {
+            "type": "string"
+          },
+          "channelId": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "example": "PUBLISHED"
+          },
+          "publishAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "text": {
+            "type": "string"
+          },
+          "mediaCount": {
+            "type": "integer"
+          },
+          "externalId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "releaseUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "errorClass": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "errorMessage": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "attemptCount": {
+            "type": "integer"
+          },
+          "group": {
+            "type": "object",
+            "properties": {
+              "state": {
+                "type": "string"
+              },
+              "origin": {
+                "type": "string"
+              },
+              "awaitingApproval": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "state",
+              "origin",
+              "awaitingApproval"
+            ]
+          },
+          "channel": {
+            "type": "object",
+            "properties": {
+              "provider": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "username": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "avatarUrl": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "provider",
+              "name",
+              "username",
+              "avatarUrl"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "groupId",
+          "channelId",
+          "state",
+          "publishAt",
+          "text",
+          "mediaCount",
+          "externalId",
+          "releaseUrl",
+          "errorClass",
+          "errorMessage",
+          "attemptCount",
+          "group",
+          "channel"
+        ]
+      },
+      "PubPublicationFeed": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PubFeedItem"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "PubChannel": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string",
+            "example": "mastodon"
+          },
+          "externalId": {
+            "type": "string"
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "username": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "avatarUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "example": "ACTIVE"
+          },
+          "scopes": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "externalId",
+          "name",
+          "username",
+          "avatarUrl",
+          "status",
+          "scopes"
+        ]
+      },
+      "PubMedia": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "mime": {
+            "type": "string",
+            "example": "image/png"
+          },
+          "byteSize": {
+            "type": "integer"
+          },
+          "width": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "height": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "alt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "mime",
+          "byteSize",
+          "width",
+          "height",
+          "alt",
+          "createdAt"
+        ]
+      },
+      "PubWebhook": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "channelIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "disabledAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "url",
+          "events",
+          "channelIds",
+          "disabledAt",
+          "createdAt"
         ]
       }
     },
@@ -2022,6 +2895,7 @@
           }
         ],
         "summary": "Callback OAuth — troca o code pelo token e conecta o canal",
+        "description": "Alvo do redirect OAuth (aberto num popup pela UI). Conecta o canal e devolve uma página HTML que avisa o opener via postMessage (`manypost:oauth:success`) e fecha a janela.",
         "parameters": [
           {
             "schema": {
@@ -2049,12 +2923,12 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": "canal conectado",
+          "200": {
+            "description": "página HTML que fecha o popup e notifica o opener — o canal já foi conectado",
             "content": {
-              "application/json": {
+              "text/html": {
                 "schema": {
-                  "$ref": "#/components/schemas/Channel"
+                  "type": "string"
                 }
               }
             }
@@ -2120,6 +2994,96 @@
         "responses": {
           "204": {
             "description": "canal desconectado"
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "papel insuficiente (requer ADMIN/OWNER)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "não encontrado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/channels/{id}/sub-accounts": {
+      "get": {
+        "tags": [
+          "channels"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Lista sub-contas ou canais (ex: canais de texto do servidor Discord)",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "lista de canais/sub-contas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "externalId": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "username": {
+                        "type": "string"
+                      },
+                      "avatarUrl": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "externalId",
+                      "name"
+                    ]
+                  }
+                }
+              }
+            }
           },
           "401": {
             "description": "não autenticado",
@@ -3626,6 +4590,665 @@
         }
       }
     },
+    "/v1/capabilities": {
+      "get": {
+        "tags": [
+          "capabilities"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Plano, features liberadas, limites e uso da organização",
+        "responses": {
+          "200": {
+            "description": "capacidades da organização",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Capabilities"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/plans": {
+      "get": {
+        "tags": [
+          "billing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Catálogo de planos, preços (centavos) e limites",
+        "responses": {
+          "200": {
+            "description": "catálogo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanCatalog"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing": {
+      "get": {
+        "tags": [
+          "billing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Plano efetivo, uso do período e assinatura da marca",
+        "responses": {
+          "200": {
+            "description": "estado de cobrança",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingState"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/checkout": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Assina um plano (Checkout) ou troca o plano de quem já assina (proration)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tier": {
+                    "type": "string",
+                    "enum": [
+                      "PRO",
+                      "PREMIUM"
+                    ]
+                  },
+                  "period": {
+                    "type": "string",
+                    "enum": [
+                      "MONTHLY",
+                      "YEARLY"
+                    ]
+                  }
+                },
+                "required": [
+                  "tier",
+                  "period"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "url = Checkout hospedado; changed = trocou direto; portalUrl = pagamento precisa de ação",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string"
+                    },
+                    "portalUrl": {
+                      "type": "string"
+                    },
+                    "changed": {
+                      "type": "boolean"
+                    },
+                    "identifier": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "identifier"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "requisição fora do contrato (problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "papel insuficiente (requer ADMIN/OWNER)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/preview": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Quanto sai agora ao trocar de plano (proration, em centavos)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tier": {
+                    "type": "string",
+                    "enum": [
+                      "PRO",
+                      "PREMIUM"
+                    ]
+                  },
+                  "period": {
+                    "type": "string",
+                    "enum": [
+                      "MONTHLY",
+                      "YEARLY"
+                    ]
+                  }
+                },
+                "required": [
+                  "tier",
+                  "period"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "valor a pagar agora",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "amount": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "amount"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "requisição fora do contrato (problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "papel insuficiente (requer ADMIN/OWNER)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/portal": {
+      "get": {
+        "tags": [
+          "billing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Link do portal da Stripe (cartão, faturas, dados fiscais)",
+        "responses": {
+          "200": {
+            "description": "portal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "url"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "papel insuficiente (requer ADMIN/OWNER)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/cancel": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Cancela ao fim do período (chamar de novo reativa)",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "feedback": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "cancelAt = quando perde o acesso; canceledImmediately = encerrou na hora (pagamento em atraso)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "cancelAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "canceledImmediately": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "cancelAt",
+                    "canceledImmediately"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "papel insuficiente (requer ADMIN/OWNER)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "não encontrado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/invoices": {
+      "get": {
+        "tags": [
+          "billing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Faturas pagas da marca (link e PDF hospedados pela Stripe)",
+        "responses": {
+          "200": {
+            "description": "faturas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "amountPaid": {
+                        "type": "integer"
+                      },
+                      "currency": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string"
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "invoiceUrl": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "pdfUrl": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "amountPaid",
+                      "currency",
+                      "status",
+                      "createdAt",
+                      "invoiceUrl",
+                      "pdfUrl"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/sync": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Reconcilia a assinatura com a Stripe (volta do checkout, sem esperar o webhook)",
+        "responses": {
+          "200": {
+            "description": "resultado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "papel insuficiente (requer ADMIN/OWNER)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/stripe/webhook": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "Webhook da Stripe (assinado por HMAC — não usa sessão)",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "stripe-signature",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "evento processado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "assinatura HMAC inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/uploads/{org}/{file}": {
       "get": {
         "tags": [
@@ -3840,6 +5463,1519 @@
           },
           "400": {
             "description": "requisição fora do contrato (problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "não encontrado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate limit — aguarde e tente de novo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/v1/posts": {
+      "post": {
+        "tags": [
+          "public-posts"
+        ],
+        "summary": "Agenda um post (escopo posts:write)",
+        "description": "Idempotente com o header `Idempotency-Key`. `requireApproval` nasce DRAFT aguardando link de aprovação; `thread` cria réplicas encadeadas.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 10000
+                  },
+                  "channelIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "minItems": 1,
+                    "maxItems": 20
+                  },
+                  "publishAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "timezone": {
+                    "type": "string",
+                    "default": "UTC"
+                  },
+                  "settingsByChannel": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  },
+                  "textByChannel": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 10000
+                    }
+                  },
+                  "mediaIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "maxItems": 10
+                  },
+                  "thread": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "text": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 10000
+                        },
+                        "mediaIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "maxItems": 10
+                        },
+                        "delaySec": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 600
+                        }
+                      },
+                      "required": [
+                        "text"
+                      ]
+                    },
+                    "maxItems": 24
+                  },
+                  "requireApproval": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "text",
+                  "channelIds",
+                  "publishAt"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "grupo agendado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PubPostGroup"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "requisição fora do contrato (problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "papel insuficiente (requer ADMIN/OWNER)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate limit — aguarde e tente de novo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/v1/posts/{groupId}": {
+      "get": {
+        "tags": [
+          "public-posts"
+        ],
+        "summary": "Detalhe de um grupo (escopo posts:read)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "groupId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "grupo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PubPostGroup"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "papel insuficiente (requer ADMIN/OWNER)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "não encontrado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate limit — aguarde e tente de novo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "public-posts"
+        ],
+        "summary": "Edita texto/horário/settings e re-agenda (escopo posts:write)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "groupId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 10000
+                  },
+                  "publishAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "settingsByChannel": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "grupo re-agendado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PubPostGroup"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "requisição fora do contrato (problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "papel insuficiente (requer ADMIN/OWNER)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "não encontrado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate limit — aguarde e tente de novo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "public-posts"
+        ],
+        "summary": "Cancela um grupo agendado (escopo posts:write)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "groupId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "grupo cancelado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PubPostGroup"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "papel insuficiente (requer ADMIN/OWNER)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "não encontrado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate limit — aguarde e tente de novo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/v1/posts/{groupId}/retry": {
+      "post": {
+        "tags": [
+          "public-posts"
+        ],
+        "summary": "Tenta publicar de novo (escopo posts:write)",
+        "description": "FAILED/NEEDS_REVIEW → SCHEDULED. Com `channelId` no corpo, retenta só o canal.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "groupId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "channelId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "grupo re-agendado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PubPostGroup"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "requisição fora do contrato (problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "papel insuficiente (requer ADMIN/OWNER)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "não encontrado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate limit — aguarde e tente de novo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/v1/posts/{groupId}/approval-link": {
+      "post": {
+        "tags": [
+          "public-posts"
+        ],
+        "summary": "Cria o link público de aprovação de um rascunho (escopo posts:write)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "groupId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "expiresInHours": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 720
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "link criado (token só aqui)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "token",
+                    "url",
+                    "expiresAt"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "requisição fora do contrato (problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "papel insuficiente (requer ADMIN/OWNER)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "não encontrado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate limit — aguarde e tente de novo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "public-posts"
+        ],
+        "summary": "Revoga o link de aprovação pendente (escopo posts:write)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "groupId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "resultado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "revoked": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "revoked"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "papel insuficiente (requer ADMIN/OWNER)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate limit — aguarde e tente de novo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/v1/publications": {
+      "get": {
+        "tags": [
+          "public-publications"
+        ],
+        "summary": "Feed flat de publicações — status por canal (escopo posts:read)",
+        "description": "Uma linha por publicação; paginação keyset por (publishAt, id).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "required": false,
+            "name": "from",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "required": false,
+            "name": "to",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "SCHEDULED,PUBLISHED"
+            },
+            "required": false,
+            "name": "state",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "channelId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "100"
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "página do feed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PubPublicationFeed"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "requisição fora do contrato (problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "papel insuficiente (requer ADMIN/OWNER)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate limit — aguarde e tente de novo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/v1/channels": {
+      "get": {
+        "tags": [
+          "public-channels"
+        ],
+        "summary": "Lista os canais conectados (escopo channels:read)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "canais",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PubChannel"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "papel insuficiente (requer ADMIN/OWNER)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate limit — aguarde e tente de novo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/v1/channels/providers": {
+      "get": {
+        "tags": [
+          "public-channels"
+        ],
+        "summary": "Catálogo de providers disponíveis + capacidades (escopo channels:read)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "providers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "papel insuficiente (requer ADMIN/OWNER)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate limit — aguarde e tente de novo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/v1/channels/{id}": {
+      "delete": {
+        "tags": [
+          "public-channels"
+        ],
+        "summary": "Desconecta um canal (escopo channels:write)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "canal desconectado"
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "papel insuficiente (requer ADMIN/OWNER)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "não encontrado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate limit — aguarde e tente de novo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/v1/media/upload": {
+      "post": {
+        "tags": [
+          "public-media"
+        ],
+        "summary": "Envia mídia multipart — MIME real por magic bytes (escopo media:write)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "alt": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "mídia criada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PubMedia"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "requisição fora do contrato (problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "papel insuficiente (requer ADMIN/OWNER)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate limit — aguarde e tente de novo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/v1/media/from-url": {
+      "post": {
+        "tags": [
+          "public-media"
+        ],
+        "summary": "Importa mídia por URL (anti-SSRF) (escopo media:write)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "alt": {
+                    "type": "string",
+                    "maxLength": 1500
+                  }
+                },
+                "required": [
+                  "url"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "mídia criada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PubMedia"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "requisição fora do contrato (problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "papel insuficiente (requer ADMIN/OWNER)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate limit — aguarde e tente de novo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/v1/media": {
+      "get": {
+        "tags": [
+          "public-media"
+        ],
+        "summary": "Lista a biblioteca de mídia (escopo media:write)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "50"
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "itens de mídia",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PubMedia"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "papel insuficiente (requer ADMIN/OWNER)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate limit — aguarde e tente de novo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/v1/webhooks": {
+      "get": {
+        "tags": [
+          "public-webhooks"
+        ],
+        "summary": "Lista os webhooks de saída (escopo webhooks:manage)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "webhooks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PubWebhook"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "papel insuficiente (requer ADMIN/OWNER)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate limit — aguarde e tente de novo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "public-webhooks"
+        ],
+        "summary": "Cria um webhook — entrega assinada HMAC (escopo webhooks:manage)",
+        "description": "O secret whsec_ é retornado só aqui.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60
+                  },
+                  "url": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "events": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "post.scheduled",
+                        "post.published",
+                        "post.failed",
+                        "channel.refresh_required",
+                        "channel.disconnected",
+                        "mention.received"
+                      ]
+                    },
+                    "minItems": 1
+                  },
+                  "channelIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                },
+                "required": [
+                  "name",
+                  "url",
+                  "events"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "webhook criado (secret só aqui)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "secret": {
+                      "type": "string"
+                    },
+                    "webhook": {
+                      "$ref": "#/components/schemas/PubWebhook"
+                    }
+                  },
+                  "required": [
+                    "secret",
+                    "webhook"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "requisição fora do contrato (problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "papel insuficiente (requer ADMIN/OWNER)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate limit — aguarde e tente de novo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/v1/webhooks/{id}": {
+      "delete": {
+        "tags": [
+          "public-webhooks"
+        ],
+        "summary": "Remove um webhook (escopo webhooks:manage)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "webhook removido"
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "papel insuficiente (requer ADMIN/OWNER)",
             "content": {
               "application/problem+json": {
                 "schema": {
