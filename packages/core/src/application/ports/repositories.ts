@@ -41,11 +41,20 @@ export interface OrgRecord {
   slug: string;
 }
 
+/** Org com o vínculo de cobrança (`cus_…` da Stripe) — só existe no gerenciado. */
+export interface OrgBillingRecord extends OrgRecord {
+  billingCustomerId: string | null;
+}
+
 export interface OrganizationRepository {
   /** cria org + membership OWNER atomicamente */
   createWithOwner(data: { name: string; slug: string; ownerId: string }): Promise<OrgRecord>;
   findMembership(orgId: string, userId: string): Promise<{ role: MemberRole } | null>;
   listForUser(userId: string): Promise<Array<OrgRecord & { role: MemberRole }>>;
+  findById(orgId: string): Promise<OrgBillingRecord | null>;
+  /** resolve a org dona de um Customer da Stripe (webhook chega só com o customer) */
+  findByBillingCustomerId(customerId: string): Promise<OrgBillingRecord | null>;
+  setBillingCustomerId(orgId: string, customerId: string): Promise<void>;
 }
 
 export interface SessionRecord {

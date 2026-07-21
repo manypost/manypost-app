@@ -13,9 +13,16 @@ const STATUS: Record<string, ContentfulStatusCode> = {
   'common.forbidden': 403,
   'common.idempotency_conflict': 409,
   'rate.limited': 429,
-  'plan.channel_limit': 403,
+  // 402 Payment Required: o pedido é válido, falta plano — a UI abre o CTA de upgrade
+  'plan.channel_limit': 402,
+  'plan.posts_limit': 402,
+  'plan.feature_locked': 402,
+  'plan.provider_locked': 402,
   'ai.budget_exceeded': 402,
   'capability.disabled': 404,
+  'billing.disabled': 404,
+  'billing.no_subscription': 404,
+  'billing.provider_error': 502,
 };
 
 export function errorHandler(err: unknown, c: Context) {

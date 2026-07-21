@@ -220,4 +220,6 @@ export interface PublishingRepository {
   listStuck(updatedBefore: Date, limit: number): Promise<Array<{ id: string; state: PublicationState }>>;
   /** agrega estados das publicações → estado do grupo (DONE/PARTIAL/…) */
   refreshGroupState(groupId: string): Promise<void>;
+  /** posts (grupos) criados desde `since` — limite mensal do plano Grátis (PlanPolicy) */
+  countGroupsSince(orgId: string, since: Date): Promise<number>;
 }

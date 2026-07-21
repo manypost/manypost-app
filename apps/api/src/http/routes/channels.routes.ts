@@ -1,7 +1,7 @@
 import { z } from '@hono/zod-openapi';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import type { ChannelProvider } from '@manypost/contracts';
-import { ErrorCodes } from '@manypost/contracts';
+import { ErrorCodes, PROVIDER_REQUIRED_FEATURE } from '@manypost/contracts';
 import { DomainError } from '@manypost/core';
 import type { Container } from '../../container';
 import { requireAdmin, requireAuth } from '../middleware/auth';
@@ -61,6 +61,13 @@ const ProviderInfo = z
       .openapi({
         description:
           'JSON Schema dos campos de conexão — é o formato aceito em `fields` do POST /v1/channels/connect; presente só quando o provider pede credenciais/instância (a UI renderiza o formulário de conexão a partir dele; ausente = OAuth sem campos)',
+      }),
+    requiredFeature: z
+      .string()
+      .optional()
+      .openapi({
+        description:
+          'feature de plano exigida por esta rede no serviço gerenciado (ex.: `x_network`); ausente = incluída em todos os planos. Em self-hosted nunca é imposta',
       }),
   })
   .openapi('ChannelProviderInfo');
@@ -141,6 +148,17 @@ export function channelRoutes(ctn: Container) {
   app.post('/connect', async (c) => {
     const body = ConnectBody.parse(await c.req.json());
     const provider = getAvailable(body.provider);
+
+    // Rede paga (X) é barrada JÁ AQUI: sem isso o usuário faria todo o OAuth para só então
+    // levar 402 no callback. O teto de canais fica no callback/connect (lá dá para saber se
+    // é reconexão de um canal que já existe, que não consome vaga nova).
+    const requiredFeature = PROVIDER_REQUIRED_FEATURE[provider.id];
+    if (requiredFeature) {
+      await ctn.plan.assert(c.get('principal').orgId, {
+        kind: 'feature',
+        feature: requiredFeature,
+      });
+    }
 
     // providers de credenciais/instância custom validam os campos de conexão
     const fields = provider.connectionFieldsSchema

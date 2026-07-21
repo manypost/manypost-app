@@ -73,3 +73,35 @@ jobs:
           BASE_URL=http://localhost:3988 bun run scripts/e2e-publish.ts
           BASE_URL=http://localhost:3988 bun run scripts/e2e-public.ts
           BASE_URL=http://localhost:3988 bun run scripts/e2e-mcp.ts
+
+      # Limites de plano: exige a API em modo GERENCIADO (IS_SELF_HOSTED=false + Stripe).
+      # Nenhuma chamada sai para a Stripe — o enforcement é local; a chave só liga o modo.
+      # Banco próprio: a fase 1 enche a cota mensal da org, não pode sujar o e2e principal.
+      - name: e2e billing (planos no gerenciado + Community sem cobrança)
+        env:
+          MODE: all
+          PORT: 3987
+          PUBLIC_URL: http://localhost:3987
+          DATABASE_URL: postgresql://mp:mp@localhost:5499/mp_billing
+          REDIS_URL: redis://localhost:6399
+          JWT_SECRET: ci-secret-with-at-least-32-characters!!
+          ENCRYPTION_KEY: cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd
+          DB_MIGRATE: auto
+          PUBLISH_RETRY_BASE_SEC: 1
+          UPLOAD_DIR: /tmp/mp-uploads-billing
+          IS_SELF_HOSTED: 'false'
+          HIDE_BILLING: 'false'
+          STRIPE_SECRET_KEY: sk_test_ci_nunca_chamada
+          STRIPE_WEBHOOK_SECRET: whsec_ci
+        run: |
+          PGPASSWORD=mp psql -h localhost -p 5499 -U mp -d mp -c 'CREATE DATABASE mp_billing;'
+          bun run apps/api/src/main.ts &
+          for i in $(seq 1 30); do curl -sf http://localhost:3987/health >/dev/null && break; sleep 1; done
+          # segunda instância em modo Community (sem Stripe) para provar o outro lado da fronteira
+          MODE=api PORT=3986 PUBLIC_URL=http://localhost:3986 \
+            DATABASE_URL=postgresql://mp:mp@localhost:5499/mp_billing \
+            IS_SELF_HOSTED=true HIDE_BILLING=true STRIPE_SECRET_KEY= STRIPE_WEBHOOK_SECRET= \
+            bun run apps/api/src/main.ts &
+          for i in $(seq 1 30); do curl -sf http://localhost:3986/health >/dev/null && break; sleep 1; done
+          BASE_URL=http://localhost:3987 SELF_HOSTED_BASE_URL=http://localhost:3986 \
+            bun run scripts/e2e-billing.ts

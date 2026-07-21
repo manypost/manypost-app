@@ -38,6 +38,7 @@ export const createApp = () =>
 const ERROR_DESC: Record<number, string> = {
   400: 'requisição fora do contrato (problem+json)',
   401: 'não autenticado',
+  402: 'plano atual não inclui — `extra.requiredTier` diz o plano mínimo',
   403: 'papel insuficiente (requer ADMIN/OWNER)',
   404: 'não encontrado',
   409: 'conflito',

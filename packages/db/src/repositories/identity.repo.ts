@@ -100,6 +100,24 @@ export function makeOrganizationRepository(db: Db): OrganizationRepository {
         .where(eq(memberships.userId, userId))
         .orderBy(memberships.createdAt);
     },
+    async findById(orgId) {
+      const [row] = await db.select().from(organizations).where(eq(organizations.id, orgId)).limit(1);
+      return row ?? null;
+    },
+    async findByBillingCustomerId(customerId) {
+      const [row] = await db
+        .select()
+        .from(organizations)
+        .where(eq(organizations.billingCustomerId, customerId))
+        .limit(1);
+      return row ?? null;
+    },
+    async setBillingCustomerId(orgId, customerId) {
+      await db
+        .update(organizations)
+        .set({ billingCustomerId: customerId })
+        .where(eq(organizations.id, orgId));
+    },
   };
 }
 

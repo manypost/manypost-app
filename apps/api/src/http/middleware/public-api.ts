@@ -3,10 +3,25 @@ import { ErrorCodes } from '@manypost/contracts';
 import {
   DomainError,
   type IdempotencyStore,
+  type PlanPolicy,
   type RateLimiter,
   sha256Hex,
 } from '@manypost/core';
 import type { AppEnv } from './context';
+
+/**
+ * "API REST e servidor MCP" é linha do Pro (PLANS.md §1). A criação de API key já é barrada,
+ * mas quem caiu para o Grátis ainda TEM chaves válidas — por isso a superfície de máquina
+ * revalida o plano a cada requisição. Self-hosted: policy libera, nada muda.
+ */
+export const requirePlanFeature = (
+  plan: PlanPolicy,
+  feature: 'public_api',
+): MiddlewareHandler<AppEnv> =>
+  async (c, next) => {
+    await plan.assert(c.get('principal').orgId, { kind: 'feature', feature });
+    await next();
+  };
 
 /**
  * Rate-limit por credencial da API pública (SPEC_API_MCP §3): token bucket Redis por

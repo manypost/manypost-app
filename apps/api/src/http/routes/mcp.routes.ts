@@ -3,6 +3,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Container } from '../../container';
 import { buildMcpServer } from '../../mcp/mcp-server';
 import { requireAuth, requireScope } from '../middleware/auth';
+import { requirePlanFeature } from '../middleware/public-api';
 import { createApp } from '../openapi';
 
 /**
@@ -37,6 +38,7 @@ export function mcpRoutes(ctn: Container) {
 
   app.use('*', requireAuth({ signer: ctn.signer, verifyApiKey: ctn.auth.verifyApiKey }));
   app.use('*', requireScope('mcp'));
+  app.use('*', requirePlanFeature(ctn.plan, 'public_api')); // "API REST e servidor MCP" = Pro+
 
   app.all('/', async (c) => {
     const p = c.get('principal');

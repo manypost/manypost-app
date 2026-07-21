@@ -33,9 +33,14 @@ export const organizations = pgTable(
     name: text('name').notNull(),
     slug: text('slug').notNull(),
     settings: jsonb('settings').notNull().default({}),
+    /** Customer da Stripe (`cus_…`) — só no gerenciado; null em self-hosted */
+    billingCustomerId: text('billing_customer_id'),
     ...timestamps,
   },
-  (t) => [uniqueIndex('organizations_slug_ux').on(t.slug)],
+  (t) => [
+    uniqueIndex('organizations_slug_ux').on(t.slug),
+    uniqueIndex('organizations_billing_customer_ux').on(t.billingCustomerId),
+  ],
 );
 
 export const memberships = pgTable(
