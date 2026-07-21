@@ -6,6 +6,8 @@
   },
   "deploy": {
     "startCommand": "if [ \"$MODE\" = \"web\" ]; then cd apps/web && bun run start --port ${PORT:-3000}; elif [ \"$MODE\" = \"standalone\" ] || [ \"$MODE\" = \"full\" ]; then bun run apps/worker/src/main.ts & PORT=3100 bun run apps/api/src/main.ts & PORT=${PORT:-3000} API_URL=http://localhost:3100 cd apps/web && bun run start; elif [ \"$MODE\" = \"worker\" ]; then bun run apps/worker/src/main.ts; elif [ \"$MODE\" = \"api\" ]; then bun run apps/api/src/main.ts; else bun run apps/worker/src/main.ts & bun run apps/api/src/main.ts; fi",
+    "healthcheckPath": "/login",
+    "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }

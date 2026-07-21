@@ -21,12 +21,8 @@ const AUTOPLAY_MS = 6000;
  */
 export function BrandStage() {
   const t = useTranslations('auth');
-  const slidesData = [
-    { key: 'code' },
-    { key: 'week' },
-    { key: 'flow' },
-  ];
-  const count = slidesData.length;
+  const slides = [<CodeSlide key="code" />, <WeekSlide key="week" />, <FlowSlide key="flow" />];
+  const count = slides.length;
 
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -59,42 +55,6 @@ export function BrandStage() {
         onFocusCapture={() => setPaused(true)}
         onBlurCapture={() => setPaused(false)}
       >
-        <div className="relative min-h-[160px] md:min-h-[140px]">
-          {slidesData.map((slide, i) => (
-            <div
-              key={slide.key + '-header'}
-              className={cn(
-                'absolute inset-0 transition-opacity duration-500 ease-in-out',
-                i === index ? 'opacity-100 z-10' : 'pointer-events-none z-0 opacity-0'
-              )}
-              aria-hidden={i !== index}
-            >
-              {i === 0 && (
-                <SlideHeader
-                  kicker={t('kicker')}
-                  lines={[t('heroLine1'), t('heroLine2'), t('heroLine3')]}
-                  sub={t('heroSubtitle')}
-                  inlineTitle
-                />
-              )}
-              {i === 1 && (
-                <SlideHeader
-                  kicker={t('slideScheduleKicker')}
-                  lines={[t('slideScheduleTitle1'), t('slideScheduleTitle2')]}
-                  sub={t('slideScheduleSub')}
-                />
-              )}
-              {i === 2 && (
-                <SlideHeader
-                  kicker={t('slideFlowKicker')}
-                  lines={[t('slideFlowTitle1'), t('slideFlowTitle2')]}
-                  sub={t('slideFlowSub')}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-
         <div className="overflow-hidden">
           <div
             className="flex"
@@ -103,18 +63,16 @@ export function BrandStage() {
               transition: reduced ? undefined : 'transform 0.55s cubic-bezier(0.16, 1, 0.3, 1)',
             }}
           >
-            {slidesData.map((slide, i) => (
+            {slides.map((slide, i) => (
               <div
                 key={slide.key}
-                className="w-full shrink-0"
+                className="min-h-[440px] w-full shrink-0"
                 aria-hidden={i !== index}
                 inert={i !== index}
                 aria-roledescription="slide"
                 aria-label={t('slidePosition', { n: i + 1, total: count })}
               >
-                {i === 0 && <CodeSlide />}
-                {i === 1 && <WeekSlide />}
-                {i === 2 && <FlowSlide />}
+                {slide}
               </div>
             ))}
           </div>
@@ -122,7 +80,7 @@ export function BrandStage() {
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2" role="tablist" aria-label={t('carouselLabel')}>
-            {slidesData.map((slide, i) => (
+            {slides.map((slide, i) => (
               <button
                 key={slide.key}
                 type="button"
@@ -187,7 +145,7 @@ function CarouselButton({
 }
 
 /** Cabeçalho comum dos slides — kicker + título display + subtítulo. */
-function SlideHeader({ kicker, lines, sub, inlineTitle }: { kicker: string; lines: string[]; sub: string; inlineTitle?: boolean }) {
+function SlideHeader({ kicker, lines, sub }: { kicker: string; lines: string[]; sub: string }) {
   return (
     <div className="flex max-w-xl flex-col gap-3.5">
       <p className="text-[12px] font-bold uppercase tracking-[0.14em] text-accent-on-dark">
@@ -195,7 +153,7 @@ function SlideHeader({ kicker, lines, sub, inlineTitle }: { kicker: string; line
       </p>
       <h2 className="font-display text-[38px] font-medium leading-[1.05] tracking-[-0.5px]">
         {lines.map((line, i) => (
-          <span key={line} className={cn(inlineTitle ? 'inline-block mr-2.5' : 'block', i === lines.length - 1 ? 'text-accent-on-dark' : 'text-paper')}>
+          <span key={line} className={cn('block', i === lines.length - 1 && 'text-accent-on-dark')}>
             {line}
           </span>
         ))}
@@ -207,45 +165,35 @@ function SlideHeader({ kicker, lines, sub, inlineTitle }: { kicker: string; line
 
 /* ── Slide 1 — publicação como código: um request que abre em várias redes ── */
 
-// pontos de chegada (y em %) matematicamente alinhados ao centro das 6 redes empilhadas
-// Altura total: 340px. Ícone: 40px. 5 Gaps de 20px. Centros: 20, 80, 140, 200, 260, 320.
-// Em porcentagem (y/340 * 100):
-const FAN_Y = [5.88, 23.53, 41.18, 58.82, 76.47, 94.12];
+// pontos de chegada (y em %) alinhados às 6 redes empilhadas à direita
+const FAN_Y = [8, 25, 42, 58, 75, 92];
 
 function CodeSlide() {
   const t = useTranslations('auth');
   return (
     <div className="flex flex-col gap-8">
+      <SlideHeader
+        kicker={t('kicker')}
+        lines={[t('heroLine1'), t('heroLine2'), t('heroLine3')]}
+        sub={t('heroSubtitle')}
+      />
       <div
         className="flex h-[340px] w-full items-stretch"
         role="img"
         aria-label={t('stageFanLabel')}
       >
         <CodeCard />
-        {/* cabos curvos do código para as redes — um pacote tracejado percorre
-            cada fio até a rede (defasado por linha, p/ leitura de tráfego). */}
+        {/* leque curvo do código para as redes */}
         <svg
-          className="min-w-[140px] max-w-[320px] flex-1 self-stretch"
+          className="w-20 shrink-0 self-stretch sm:w-28"
           viewBox="0 0 100 100"
           preserveAspectRatio="none"
           aria-hidden
           focusable="false"
         >
-          {FAN_Y.map((y, i) => {
-            const d = `M0,50 C42,50 58,${y} 100,${y}`;
-            return (
-              <g key={y}>
-                <path className="auth-cable" fill="none" d={d} />
-                <path
-                  className="auth-cable-flow"
-                  fill="none"
-                  d={d}
-                  pathLength={100}
-                  style={{ animationDelay: `${i * 0.36}s` }}
-                />
-              </g>
-            );
-          })}
+          {FAN_Y.map((y) => (
+            <path key={y} className="auth-fan-line" fill="none" d={`M0,50 C42,50 58,${y} 100,${y}`} />
+          ))}
         </svg>
         {/* redes empilhadas */}
         <div className="flex shrink-0 flex-col justify-between">
@@ -266,8 +214,8 @@ function CodeSlide() {
 /** Editor de código estilizado (mock) — reforça o ângulo dev/MCP do manypost. */
 function CodeCard() {
   return (
-    <div className="flex min-w-0 flex-1 flex-col self-center overflow-hidden rounded-lg border border-paper/10 bg-paper/[0.04] font-mono text-[11px] leading-[1.8]">
-      <div className="flex items-center gap-2 border-b border-paper/10 px-3 py-1.5">
+    <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-paper/10 bg-paper/[0.04] font-mono text-[12px] leading-[1.85]">
+      <div className="flex items-center gap-2 border-b border-paper/10 px-3.5 py-2">
         <span className="flex gap-1.5" aria-hidden>
           <span className="size-2 rounded-full bg-paper/20" />
           <span className="size-2 rounded-full bg-paper/20" />
@@ -275,10 +223,10 @@ function CodeCard() {
         </span>
         <span className="text-[11px] text-paper/50">publicar.ts</span>
       </div>
-      <div className="overflow-hidden px-3 py-2">
+      <div className="flex-1 overflow-hidden px-3.5 py-2.5">
         {CODE.map((tokens, i) => (
-          <div key={i} className="flex gap-2.5">
-            <span className="w-3 shrink-0 select-none text-right text-paper/25">{i + 1}</span>
+          <div key={i} className="flex gap-3">
+            <span className="w-4 shrink-0 select-none text-right text-paper/25">{i + 1}</span>
             <code className="whitespace-pre text-paper/85">
               {tokens.map((tk, j) => (
                 <span key={j} className={TOKEN[tk.t]}>
@@ -303,22 +251,20 @@ const TOKEN = {
   punc: 'text-paper/50',
 } as const;
 type Tok = { t: keyof typeof TOKEN; v: string };
-// simulação quase real do contrato POST /v1/posts (docs/specs SPEC_API_MCP).
-// Linhas curtas de propósito: o cartão é estreito p/ dar espaço aos cabos.
+// simulação quase real do contrato POST /v1/posts (docs/specs SPEC_API_MCP)
 const CODE: Tok[][] = [
-  [{ t: 'kw', v: 'await' }, { t: 'fn', v: ' fetch' }, { t: 'punc', v: '(' }, { t: 'str', v: '`${API}/v1/posts`' }, { t: 'punc', v: ', {' }],
+  [{ t: 'kw', v: 'await' }, { t: 'fn', v: ' fetch' }, { t: 'punc', v: '(' }, { t: 'str', v: '"https://api.manypost.app/v1/posts"' }, { t: 'punc', v: ', {' }],
   [{ t: 'fn', v: '  method: ' }, { t: 'str', v: '"POST"' }, { t: 'punc', v: ',' }],
-  [{ t: 'fn', v: '  headers: ' }, { t: 'punc', v: '{' }, { t: 'fn', v: ' Authorization ' }, { t: 'punc', v: '},' }],
+  [{ t: 'fn', v: '  headers: { Authorization: ' }, { t: 'str', v: '`Bearer ${TOKEN}`' }, { t: 'punc', v: ' },' }],
   [{ t: 'fn', v: '  body: ' }, { t: 'fn', v: 'JSON' }, { t: 'punc', v: '.' }, { t: 'fn', v: 'stringify' }, { t: 'punc', v: '({' }],
   [{ t: 'fn', v: '    text: ' }, { t: 'str', v: '"Novo lançamento 🚀"' }, { t: 'punc', v: ',' }],
-  [{ t: 'fn', v: '    channelIds: ' }, { t: 'punc', v: '[' }, { t: 'net', v: 'instagram, x,' }],
-  [{ t: 'net', v: '      linkedin, tiktok, youtube,' }],
-  [{ t: 'net', v: '      pinterest' }, { t: 'punc', v: '],' }],
-  [{ t: 'fn', v: '    publishAt: ' }, { t: 'str', v: '"2026-07-20T09:00"' }, { t: 'punc', v: ',' }],
+  [{ t: 'fn', v: '    channelIds: ' }, { t: 'punc', v: '[' }, { t: 'net', v: 'instagram, x, linkedin,' }],
+  [{ t: 'net', v: '      tiktok, youtube, pinterest' }, { t: 'punc', v: '],' }],
+  [{ t: 'fn', v: '    publishAt: ' }, { t: 'str', v: '"2026-07-20T09:00:00-03:00"' }, { t: 'punc', v: ',' }],
   [{ t: 'fn', v: '    timezone: ' }, { t: 'str', v: '"America/Sao_Paulo"' }, { t: 'punc', v: ',' }],
   [{ t: 'punc', v: '  }),' }],
   [{ t: 'punc', v: '})' }],
-  [{ t: 'com', v: '// → 201 · 1 grupo, 6 publicações' }],
+  [{ t: 'com', v: '// → 201 Created · 1 grupo, 6 publicações' }],
 ];
 
 /* ── Slide 2 — agendamento: uma semana com posts programados ── */
@@ -335,6 +281,11 @@ function WeekSlide() {
 
   return (
     <div className="flex flex-col gap-8">
+      <SlideHeader
+        kicker={t('slideScheduleKicker')}
+        lines={[t('slideScheduleTitle1'), t('slideScheduleTitle2')]}
+        sub={t('slideScheduleSub')}
+      />
       <div className="rounded-lg border border-paper/10 bg-paper/[0.03] p-4">
         <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-paper/50">
           {t('slideWeekLabel')}
@@ -388,6 +339,11 @@ function FlowSlide() {
 
   return (
     <div className="flex flex-col gap-8">
+      <SlideHeader
+        kicker={t('slideFlowKicker')}
+        lines={[t('slideFlowTitle1'), t('slideFlowTitle2')]}
+        sub={t('slideFlowSub')}
+      />
       <div className="grid grid-cols-4 gap-3" aria-hidden>
         {cols.map((col) => (
           <div

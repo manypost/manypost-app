@@ -12,9 +12,11 @@ import { approvalPublicRoutes } from './http/routes/approvals-public.routes';
 import { authRoutes } from './http/routes/auth.routes';
 import { channelRoutes } from './http/routes/channels.routes';
 import { eventRoutes } from './http/routes/events.routes';
+import { mcpRoutes } from './http/routes/mcp.routes';
 import { mediaRoutes, publicUploadRoutes } from './http/routes/media.routes';
 import { notificationRoutes } from './http/routes/notifications.routes';
 import { postRoutes } from './http/routes/posts.routes';
+import { publicV1Routes } from './http/routes/public/public-v1.routes';
 import { publicationRoutes } from './http/routes/publications.routes';
 import { socialAuthRoutes } from './http/routes/social-auth.routes';
 import { webhookRoutes } from './http/routes/webhooks.routes';
@@ -36,7 +38,37 @@ if (env.MODE !== 'api') {
 const app = createApp();
 
 app.use('*', correlationId());
+
+// Latência/status por rota → histograma Prometheus (SPEC_INFRA §4). Usa o PADRÃO da rota
+// (c.req.routePath, ex.: /v1/posts/:groupId) e não o path com ids — cardinália limitada.
+app.use('*', async (c, next) => {
+  const start = performance.now();
+  try {
+    await next();
+  } finally {
+    ctn.metrics.observeHttp(
+      c.req.method,
+      c.req.routePath ?? c.req.path,
+      c.res.status,
+      (performance.now() - start) / 1000,
+    );
+  }
+});
+
 app.onError(errorHandler);
+
+// /metrics (SPEC_INFRA §4): exposição Prometheus. Se METRICS_TOKEN estiver setado, exige
+// Authorization: Bearer <token>; senão fica aberto (self-hosted em rede privada). A profundidade
+// da fila é lida sob demanda (pull) logo antes de renderizar. Não entra no /openapi.json.
+app.get('/metrics', async (c) => {
+  if (env.METRICS_TOKEN && c.req.header('authorization') !== `Bearer ${env.METRICS_TOKEN}`) {
+    return c.text('unauthorized', 401);
+  }
+  ctn.metrics.setQueueDepth(await ctn.runtime.queueDepths());
+  c.header('content-type', 'text/plain; version=0.0.4; charset=utf-8');
+  c.header('cache-control', 'no-store');
+  return c.body(ctn.metrics.render());
+});
 
 // Schemes de autenticação referenciados pelas rotas protegidas (SPEC_API_MCP §1-2).
 app.openAPIRegistry.registerComponent('securitySchemes', 'bearerAuth', {
@@ -87,6 +119,8 @@ app.route('/v1/webhooks', webhookRoutes(ctn));
 app.route('/v1/notifications', notificationRoutes(ctn));
 app.route('/uploads', publicUploadRoutes(ctn)); // arquivos públicos (chaves UUID, não enumeráveis)
 app.route('/public/approval', approvalPublicRoutes(ctn)); // aprovação por token, sem login (§12)
+app.route('/public/v1', publicV1Routes(ctn)); // API pública p/ máquinas (escopos + rate-limit + idempotência)
+app.route('/mcp', mcpRoutes(ctn)); // servidor MCP (Streamable HTTP) — auth por API key escopo mcp
 
 // OpenAPI: cada rota é documentada com schemas reais de request/response/erro via
 // createRoute (auth/api-keys/health) ou app.openAPIRegistry.registerPath (o restante,
@@ -113,10 +147,15 @@ const OPENAPI_DOC = {
     { name: 'notifications', description: 'notificações da organização' },
     { name: 'events', description: 'stream SSE em tempo real' },
     { name: 'approvals', description: 'superfície pública de aprovação por token' },
+    { name: 'public-posts', description: 'API pública /public/v1 — posts (escopos posts:*)' },
+    { name: 'public-publications', description: 'API pública /public/v1 — feed de publicações (posts:read)' },
+    { name: 'public-channels', description: 'API pública /public/v1 — canais (channels:*)' },
+    { name: 'public-media', description: 'API pública /public/v1 — mídia (media:write)' },
+    { name: 'public-webhooks', description: 'API pública /public/v1 — webhooks (webhooks:manage)' },
   ],
 };
 const HTTP_METHODS = new Set(['get', 'post', 'put', 'patch', 'delete']);
-const NON_API_PATHS = new Set(['/', '/docs', '/openapi.json']);
+const NON_API_PATHS = new Set(['/', '/docs', '/openapi.json', '/metrics']);
 
 app.get('/openapi.json', (c) => {
   const doc = app.getOpenAPI31Document(OPENAPI_DOC);
@@ -203,7 +242,8 @@ app.get('/', (c) =>
 </html>`),
 );
 
-// Fase 1 restante: providers onda 1, semáforo+métricas, analytics, public-v1 e /mcp.
+// Fase 1 restante: analytics (get_channel_analytics / GET /channels/{id}/analytics), IA
+// (generate_content) e OAuth 2.1 do MCP (hoje o /mcp autentica por API key escopo mcp).
 console.log(`manypost api (MODE=${env.MODE}) on :${env.PORT}`);
 
 export default { port: env.PORT, hostname: '0.0.0.0', fetch: app.fetch };

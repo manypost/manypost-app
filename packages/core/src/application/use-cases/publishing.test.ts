@@ -248,8 +248,9 @@ function makeFakes(provider: ChannelProvider) {
             p.jobVersion++;
             if (d.baseContent) p.content = d.baseContent;
             if (d.publishAt) p.publishAt = d.publishAt;
-            const s = d.settingsByChannel?.[p.channelId];
-            if (s) p.settings = { ...(p.settings ?? {}), ...s };
+            if (d.settingsByChannel?.[p.channelId]) {
+              p.settings = { ...((p.settings as object) ?? {}), ...d.settingsByChannel[p.channelId] };
+            }
             return { id: p.id, channelId: p.channelId, jobVersion: p.jobVersion, publishAt: p.publishAt! };
           });
       },
@@ -569,20 +570,27 @@ describe('cancelar e editar agendados', () => {
     ).rejects.toMatchObject({ code: 'post.empty_content' });
   });
 
-  test('editar settings por canal: valida pelo settingsSchema, faz merge e sobe a versão', async () => {
-    const before = f._state.pubs[0]!.jobVersion;
+  test('publicado não pode ser editado', async () => {
+    await makeReschedulePost(f as any)({ orgId: 'org-1', groupId, publishAt: new Date(Date.now() - 1000) });
+    await publish(pubId);
+    await expect(
+      makeReschedulePost(f as any)({ orgId: 'org-1', groupId, text: 'tarde demais' }),
+    ).rejects.toMatchObject({ code: 'post.invalid_transition' });
+  });
+
+  test('editar settings por canal: merge em publications.settings e re-agenda (versão sobe)', async () => {
     const channelId = f._state.pubs[0]!.channelId;
+    const before = f._state.pubs[0]!.jobVersion;
     await makeReschedulePost(f as any)({
       orgId: 'org-1',
       groupId,
       settingsByChannel: { [channelId]: { tag: 'promo' } },
     });
-    const pub = f._state.pubs[0]!;
-    expect(pub.jobVersion).toBe(before + 1);
-    expect(pub.settings).toMatchObject({ tag: 'promo' });
+    expect(f._state.pubs[0]!.settings).toMatchObject({ tag: 'promo' });
+    expect(f._state.pubs[0]!.jobVersion).toBe(before + 1);
   });
 
-  test('editar settings inválidas → post.invalid_settings', async () => {
+  test('editar settings inválidos por provider → post.invalid_settings', async () => {
     const channelId = f._state.pubs[0]!.channelId;
     await expect(
       makeReschedulePost(f as any)({
@@ -593,7 +601,7 @@ describe('cancelar e editar agendados', () => {
     ).rejects.toMatchObject({ code: 'post.invalid_settings' });
   });
 
-  test('editar settings de canal fora do grupo → not_found', async () => {
+  test('settingsByChannel referenciando canal fora do grupo → not_found', async () => {
     await expect(
       makeReschedulePost(f as any)({
         orgId: 'org-1',
@@ -601,14 +609,6 @@ describe('cancelar e editar agendados', () => {
         settingsByChannel: { 'canal-fantasma': { tag: 'x' } },
       }),
     ).rejects.toMatchObject({ code: 'common.not_found' });
-  });
-
-  test('publicado não pode ser editado', async () => {
-    await makeReschedulePost(f as any)({ orgId: 'org-1', groupId, publishAt: new Date(Date.now() - 1000) });
-    await publish(pubId);
-    await expect(
-      makeReschedulePost(f as any)({ orgId: 'org-1', groupId, text: 'tarde demais' }),
-    ).rejects.toMatchObject({ code: 'post.invalid_transition' });
   });
 });
 
@@ -820,6 +820,77 @@ describe('rate-limit por janela (SPEC_QUEUE §6)', () => {
     const job = f._state.jobs.at(-1)!;
     expect(job.opts.singletonKey).toContain(':rl:');
     expect(prov.callCount()).toBe(0);
+  });
+});
+
+describe('semáforo de concorrência (maxConcurrent, SPEC_QUEUE §6)', () => {
+  const okWindow = { acquire: async () => ({ ok: true as const }) };
+
+  test('slot negado: re-enfileira com :sem:, NÃO consome tentativa nem publica', async () => {
+    await connect(f, prov.provider);
+    const group = await schedule();
+    const pubId = group!.publications[0]!.id;
+    const denied: unknown[][] = [];
+    const limiter = {
+      ...okWindow,
+      acquireSlot: async () => ({ ok: false as const, retryAfterSec: 3 }),
+      releaseSlot: async () => {},
+    };
+    const metrics = { onRateLimitDenied: (p: string, r: string) => denied.push([p, r]) };
+    await makePublishPublication({
+      ...(f as any),
+      retryBaseSec: 1,
+      rateLimiter: limiter,
+      metrics,
+    })(pubId);
+    const pub = f._state.pubs[0]!;
+    expect(pub.state).toBe('SCHEDULED'); // não reivindicou
+    expect(pub.attemptCount).toBe(0);
+    expect(f._state.jobs.at(-1)!.opts.singletonKey).toContain(':sem:');
+    expect(prov.callCount()).toBe(0);
+    expect(denied).toEqual([['fake', 'concurrency']]);
+  });
+
+  test('slot concedido: publica e libera o slot exatamente uma vez ao terminar', async () => {
+    await connect(f, prov.provider);
+    const group = await schedule();
+    const pubId = group!.publications[0]!.id;
+    let acquired = 0;
+    const released: string[] = [];
+    const results: string[] = [];
+    const limiter = {
+      ...okWindow,
+      acquireSlot: async () => {
+        acquired++;
+        return { ok: true as const };
+      },
+      releaseSlot: async (key: string) => {
+        released.push(key);
+      },
+    };
+    const metrics = { onPublicationResult: (_p: string, s: string) => results.push(s) };
+    await makePublishPublication({
+      ...(f as any),
+      retryBaseSec: 1,
+      rateLimiter: limiter,
+      metrics,
+    })(pubId);
+    expect(f._state.pubs[0]!.state).toBe('PUBLISHED');
+    expect(acquired).toBe(1);
+    expect(released).toEqual(['sem:p:fake']); // liberado 1x, com a chave do provider
+    expect(results).toEqual(['published']);
+  });
+
+  test('provider maxConcurrent > 0 mas limiter sem acquireSlot: publica normal (semáforo é opcional)', async () => {
+    await connect(f, prov.provider);
+    const group = await schedule();
+    const pubId = group!.publications[0]!.id;
+    await makePublishPublication({
+      ...(f as any),
+      retryBaseSec: 1,
+      rateLimiter: okWindow, // só janela, sem acquireSlot/releaseSlot
+    })(pubId);
+    expect(f._state.pubs[0]!.state).toBe('PUBLISHED');
   });
 });
 

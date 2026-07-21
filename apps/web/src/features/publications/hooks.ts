@@ -72,7 +72,9 @@ export function useReschedulePost() {
         body: {
           ...(input.text !== undefined ? { text: input.text } : {}),
           ...(input.publishAt !== undefined ? { publishAt: input.publishAt } : {}),
-          ...(input.settingsByChannel ? { settingsByChannel: input.settingsByChannel } : {}),
+          ...(input.settingsByChannel && Object.keys(input.settingsByChannel).length > 0
+            ? { settingsByChannel: input.settingsByChannel }
+            : {}),
         },
       });
       if (error) throw error;

@@ -9,7 +9,6 @@ import {
 } from '@dnd-kit/core';
 import { ChevronLeft, ChevronRight, CircleAlert, Files, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -65,6 +64,7 @@ export function CalendarView() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const reschedule = useReschedulePost();
+  const openComposer = useComposerModal((s) => s.openComposer);
 
   // ---- estado persistido na URL (?visao&data&canais&estado) ----
   const rawView = searchParams.get('visao');
@@ -200,19 +200,22 @@ export function CalendarView() {
     return map;
   }, [items]);
 
-  // ---- "+" no slot: pré-preenche o composer e abre o modal de criação ----
-  const scheduleAt = useCallback((date: Date) => {
-    // nunca sugerir horário no passado — cai para daqui a ~10 min
-    let target = date;
-    if (target.getTime() <= Date.now()) {
-      target = new Date(Date.now() + 10 * 60_000);
-      target.setMinutes(Math.ceil(target.getMinutes() / 5) * 5, 0, 0);
-    }
-    const composer = useComposerStore.getState();
-    composer.setMode('schedule');
-    composer.setPublishAtLocal(toLocalInput(target));
-    useComposerModal.getState().openComposer();
-  }, []);
+  // ---- "+" no slot: pré-preenche o composer e abre o popup ----
+  const scheduleAt = useCallback(
+    (date: Date) => {
+      // nunca sugerir horário no passado — cai para daqui a ~10 min
+      let target = date;
+      if (target.getTime() <= Date.now()) {
+        target = new Date(Date.now() + 10 * 60_000);
+        target.setMinutes(Math.ceil(target.getMinutes() / 5) * 5, 0, 0);
+      }
+      const composer = useComposerStore.getState();
+      composer.setMode('schedule');
+      composer.setPublishAtLocal(toLocalInput(target));
+      openComposer();
+    },
+    [openComposer],
+  );
 
   // ---- painel de detalhe ----
   const [openGroupId, setOpenGroupId] = useState<string | null>(null);
@@ -401,16 +404,13 @@ function ListView({
   const t = useTranslations('calendar');
   const tPost = useTranslations('postDetail');
   const locale = useLocale();
+  const openComposer = useComposerModal((s) => s.openComposer);
 
   if (items.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-line bg-surface-2 px-6 py-12 text-center">
         <p className="text-sm leading-relaxed text-graphite">{t('empty')}</p>
-        <Button
-          size="sm"
-          className="mt-4"
-          onClick={() => useComposerModal.getState().openComposer()}
-        >
+        <Button size="sm" className="mt-4" onClick={() => openComposer()}>
           {t('newPost')}
         </Button>
       </div>

@@ -260,7 +260,7 @@ export function makePublishingRepository(db: Db): PublishingRepository {
             jobVersion: publications.jobVersion,
             publishAt: publications.publishAt,
           });
-        // settings por canal (merge jsonb): editar 1 setting de 1 canal preserva os demais
+        // settings por canal: merge jsonb (||) nas publicações já re-agendadas (SCHEDULED)
         for (const [channelId, settings] of Object.entries(d.settingsByChannel ?? {})) {
           await tx
             .update(publications)
@@ -270,7 +270,7 @@ export function makePublishingRepository(db: Db): PublishingRepository {
                 eq(publications.groupId, groupId),
                 eq(publications.orgId, orgId),
                 eq(publications.channelId, channelId),
-                inArray(publications.state, ['SCHEDULED', 'RETRYING', 'TOKEN_REFRESH']),
+                eq(publications.state, 'SCHEDULED'),
               ),
             );
         }
@@ -303,6 +303,7 @@ export function makePublishingRepository(db: Db): PublishingRepository {
             ...(d.publishAt ? { publishAt: d.publishAt } : {}),
           })
           .where(and(eq(publications.groupId, groupId), eq(publications.state, 'DRAFT')));
+        // settings por canal: merge jsonb (||) nas publicações DRAFT
         for (const [channelId, settings] of Object.entries(d.settingsByChannel ?? {})) {
           await tx
             .update(publications)

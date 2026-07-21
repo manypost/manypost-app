@@ -23,25 +23,28 @@ function DialogOverlay({
   );
 }
 
-/** Hierarquia por borda + camadas de fundo — sem sombra (BRAND §2.2). */
+/**
+ * Hierarquia por borda + camadas de fundo — sem sombra (BRAND §2.2).
+ * `size="panel"` = popup grande e mobile-first: ocupa a tela inteira no mobile
+ * (X no topo direito) e vira um cartão amplo centralizado no desktop. O miolo
+ * (header/scroll/rodapé) é montado por quem usa — o content só dá a moldura.
+ */
 function DialogContent({
   className,
   children,
+  size = 'default',
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Content>) {
+}: React.ComponentProps<typeof DialogPrimitive.Content> & { size?: 'default' | 'panel' }) {
+  const base =
+    size === 'panel'
+      ? 'fixed inset-0 z-50 flex flex-col overflow-hidden bg-surface animate-fade-in outline-none sm:inset-auto sm:left-1/2 sm:top-1/2 sm:h-[90dvh] sm:max-h-[920px] sm:w-[calc(100vw-2rem)] sm:max-w-[1640px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg sm:border sm:border-line'
+      : 'fixed left-1/2 top-1/2 z-50 grid w-full max-w-md -translate-x-1/2 -translate-y-1/2 gap-4 rounded-md border border-line bg-surface p-6 animate-fade-in';
   return (
     <DialogPortal>
       <DialogOverlay />
-      <DialogPrimitive.Content
-        data-slot="dialog-content"
-        className={cn(
-          'fixed left-1/2 top-1/2 z-50 grid w-full max-w-md -translate-x-1/2 -translate-y-1/2 gap-4 rounded-md border border-line bg-surface p-6 animate-fade-in',
-          className,
-        )}
-        {...props}
-      >
+      <DialogPrimitive.Content data-slot="dialog-content" className={cn(base, className)} {...props}>
         {children}
-        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm text-graphite outline-none transition-colors duration-200 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:pointer-events-none">
+        <DialogPrimitive.Close className="absolute right-3 top-3 z-20 grid size-8 place-items-center rounded-sm text-graphite outline-none transition-colors duration-200 hover:bg-surface-2 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:pointer-events-none">
           <X className="size-4" />
           <span className="sr-only">Fechar</span>
         </DialogPrimitive.Close>

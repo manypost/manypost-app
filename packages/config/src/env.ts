@@ -62,6 +62,8 @@ const EnvSchema = z
     LINKEDIN_CLIENT_SECRET: z.string().optional(),
     X_CLIENT_ID: z.string().optional(),
     X_CLIENT_SECRET: z.string().optional(),
+    TIKTOK_CLIENT_KEY: z.string().optional(),
+    TIKTOK_CLIENT_SECRET: z.string().optional(),
 
     STORAGE_PROVIDER: z.enum(['local', 's3']).default('local'),
     UPLOAD_DIR: z.string().default('./uploads'),
@@ -81,6 +83,9 @@ const EnvSchema = z
 
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
     OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
+    // /metrics (SPEC_INFRA §4): se setado, exige Authorization: Bearer <token>; vazio = /metrics aberto
+    // (self-hosted em rede privada — a exposição não contém segredos, só contadores)
+    METRICS_TOKEN: z.string().optional(),
   })
   .refine((env) => env.ENCRYPTION_KEY !== env.JWT_SECRET, {
     message: 'ENCRYPTION_KEY e JWT_SECRET devem ser segredos DISTINTOS (SPEC_DATA §5)',
@@ -117,5 +122,7 @@ export function providerSecretsFromEnv(env: Env): Record<string, Record<string, 
     }),
     linkedin: prune({ clientId: env.LINKEDIN_CLIENT_ID, clientSecret: env.LINKEDIN_CLIENT_SECRET }),
     x: prune({ clientId: env.X_CLIENT_ID, clientSecret: env.X_CLIENT_SECRET }),
+    // TikTok usa client_key (não client_id) — SPEC_INTEGRATIONS §4 (onda 2)
+    tiktok: prune({ clientKey: env.TIKTOK_CLIENT_KEY, clientSecret: env.TIKTOK_CLIENT_SECRET }),
   };
 }

@@ -44,13 +44,15 @@ const cb = await fetch(
   `${BASE}/v1/channels/callback/fake?code=${q.get('code')}&state=${q.get('state')}`,
   { headers: { ...auth, cookie: stateCookie } },
 );
-check(cb.status === 201, `callback conecta o canal → 201 (veio ${cb.status})`);
-const channel = (await cb.json()) as any;
-check(channel.status === 'ACTIVE', 'canal ACTIVE após conexão');
+// O callback OAuth virou popup: devolve HTML 200 com postMessage (não mais 201 JSON).
+// O canal conectado é lido via GET /v1/channels.
+check(cb.status === 200, `callback conecta o canal (popup HTML) → 200 (veio ${cb.status})`);
 
 const list = (await (await fetch(`${BASE}/v1/channels`, { headers: auth })).json()) as any[];
 check(list.length === 1 && list[0].provider === 'fake', 'GET /channels lista o canal');
 check(list[0].tokenEnc === undefined && list[0].token === undefined, 'tokens NUNCA aparecem na API');
+const channel = list[0];
+check(channel.status === 'ACTIVE', 'canal ACTIVE após conexão');
 
 async function schedule(body: object) {
   const res = await fetch(`${BASE}/v1/posts`, { method: 'POST', headers: auth, body: JSON.stringify(body) });

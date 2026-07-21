@@ -4,7 +4,9 @@ import type {
   ChannelProviderRegistry,
   ChannelRepository,
   CryptoService,
+  IdempotencyStore,
   JobScheduler,
+  MetricsSink,
   PublishingRepository,
   RateLimiter,
   WebhookRepository,
@@ -20,6 +22,7 @@ import {
   makePublishPublication,
   makeRecoverDue,
 } from '@manypost/core';
+import { makeRedisIdempotencyStore } from './redis-idempotency';
 import { makeRedisRateLimiter } from './redis-rate-limiter';
 import { makeRedisRealtimeBus } from './redis-realtime-bus';
 
@@ -38,17 +41,23 @@ export interface PublishingRuntimeOpts {
   allowPrivateWebhookUrls?: boolean;
   /** secrets de app por provider (env → ctx.secrets do worker) */
   providerSecrets?: Record<string, Record<string, string>>;
+  /** coletor de métricas (SPEC_INFRA §4) — publish/recover incrementam contadores */
+  metrics?: MetricsSink;
 }
 
 export interface PublishingRuntime {
   scheduler: JobScheduler;
   /** compartilhado com a API (ex.: rate-limit da superfície pública de aprovação) */
   rateLimiter?: RateLimiter;
+  /** idempotência de POSTs da API pública (SPEC_API_MCP §3) — sem Redis fica indefinido (falha aberta) */
+  idempotency?: IdempotencyStore;
   /** bus pub/sub p/ SSE — worker publica, API assina (mesmo objeto em MODE=all) */
   realtime?: ReturnType<typeof makeRedisRealtimeBus>;
   events: ReturnType<typeof makeEmitEvent>;
   publish: (publicationId: string, v?: number) => Promise<void>;
   recover: () => Promise<{ due: number; stuck: number }>;
+  /** profundidade das filas (jobs created/retry) p/ o gauge do /metrics — SPEC_INFRA §4 */
+  queueDepths(): Promise<Record<string, number>>;
   startWorker(): Promise<void>;
   stop(): Promise<void>;
 }
@@ -89,6 +98,7 @@ export async function createPublishingRuntime(
   };
 
   const rateLimiter = opts.redisUrl ? makeRedisRateLimiter(opts.redisUrl) : undefined;
+  const idempotency = opts.redisUrl ? makeRedisIdempotencyStore(opts.redisUrl) : undefined;
   const realtime = opts.redisUrl ? makeRedisRealtimeBus(opts.redisUrl) : undefined;
   const events = makeEmitEvent({
     webhooks: opts.webhooks,
@@ -104,6 +114,7 @@ export async function createPublishingRuntime(
     scheduler,
     retryBaseSec: opts.retryBaseSec,
     ...(rateLimiter ? { rateLimiter } : {}),
+    ...(opts.metrics ? { metrics: opts.metrics } : {}),
     ...(opts.providerSecrets ? { secrets: opts.providerSecrets } : {}),
     events,
     log,
@@ -115,6 +126,8 @@ export async function createPublishingRuntime(
     crypto: opts.crypto,
     scheduler,
     retryBaseSec: opts.retryBaseSec,
+    ...(rateLimiter ? { rateLimiter } : {}),
+    ...(opts.metrics ? { metrics: opts.metrics } : {}),
     ...(opts.providerSecrets ? { secrets: opts.providerSecrets } : {}),
     events,
     log,
@@ -131,10 +144,29 @@ export async function createPublishingRuntime(
   return {
     scheduler,
     ...(rateLimiter ? { rateLimiter } : {}),
+    ...(idempotency ? { idempotency } : {}),
     ...(realtime ? { realtime } : {}),
     events,
     publish,
     recover,
+    async queueDepths() {
+      try {
+        const rows = await sqlc<{ name: string; count: string }[]>`
+          SELECT name, count(*)::text AS count FROM pgboss.job
+          WHERE state IN ('created', 'retry') GROUP BY name`;
+        const out: Record<string, number> = {
+          [PUBLISH_QUEUE]: 0,
+          [THREAD_QUEUE]: 0,
+          [RECOVER_QUEUE]: 0,
+          [WEBHOOK_QUEUE]: 0,
+        };
+        for (const r of rows) out[r.name] = Number(r.count);
+        return out;
+      } catch (err) {
+        log('warn', 'queueDepths falhou (métrica inofensiva)', { err: String(err) });
+        return {};
+      }
+    },
     async startWorker() {
       await boss.work<{ publicationId: string; v?: number }>(PUBLISH_QUEUE, async (jobs) => {
         for (const job of jobs) {
@@ -174,6 +206,8 @@ export async function createPublishingRuntime(
       });
       await boss.work(RECOVER_QUEUE, async () => {
         const out = await recover();
+        opts.metrics?.onRecovered('due', out.due);
+        opts.metrics?.onRecovered('stuck', out.stuck);
         if (out.due || out.stuck) log('warn', 'recover-scan agiu', out);
       });
       await boss.schedule(RECOVER_QUEUE, '* * * * *', {}, {}); // barato: índices parciais
@@ -184,6 +218,7 @@ export async function createPublishingRuntime(
     async stop() {
       await boss.stop({ graceful: true });
       await rateLimiter?.close();
+      await idempotency?.close();
       await realtime?.close();
       await sqlc.end();
     },

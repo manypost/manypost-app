@@ -5,14 +5,16 @@ import { useEffect } from 'react';
 import { useComposerModal } from '@/features/composer/use-composer-modal';
 
 /**
- * /compor virou um atalho: a criação de post agora é um modal grande (ComposerModal)
- * aberto sobre a página atual. Deep-links para /compor abrem o modal e voltam ao calendário.
+ * `/compor` deixou de ser uma tela: o composer agora é um popup global. Esta
+ * rota vira só um atalho — abre o popup e volta ao calendário (deep-link e
+ * bookmarks antigos continuam funcionando).
  */
 export default function ComporPage() {
   const router = useRouter();
+  const openComposer = useComposerModal((s) => s.openComposer);
   useEffect(() => {
-    useComposerModal.getState().openComposer();
+    openComposer();
     router.replace('/calendario');
-  }, [router]);
+  }, [openComposer, router]);
   return null;
 }

@@ -229,9 +229,7 @@ export function postRoutes(ctn: Container) {
     .object({
       text: z.string().min(1).max(10_000).optional(),
       publishAt: z.string().datetime().optional(),
-      /** settings de publicação por canal (chave = channelId) — validadas pelo settingsSchema do provider;
-       *  merge no settings da publicação (editar 1 campo preserva os demais). Só canais pendentes. */
-      settingsByChannel: z.record(z.record(z.unknown())).optional(),
+      settingsByChannel: z.record(z.unknown()).optional(),
     })
     .refine(
       (b) => b.text !== undefined || b.publishAt !== undefined || b.settingsByChannel !== undefined,
@@ -244,6 +242,8 @@ export function postRoutes(ctn: Container) {
     tags: ['posts'],
     security: AUTH_SECURITY,
     summary: 'Edita texto, horário e/ou settings por canal (re-agenda com nova versão de job)',
+    description:
+      'Editar `text` sobrescreve o content de TODAS as publicações (overrides resetam). `settingsByChannel` (chave = channelId) faz merge nos settings de publicação do canal e é validado por provider.',
     request: { params: GroupParam, ...jsonBody(PatchBody) },
     responses: { 200: jsonResponse('grupo re-agendado', GroupOut), ...errorResponses(400, 401, 404) },
   });

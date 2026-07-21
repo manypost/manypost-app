@@ -185,19 +185,19 @@ export interface PublishingRepository {
   ): Promise<void>;
   /** edita conteúdo/horário das publicações ainda pendentes (SCHEDULED/RETRYING):
    *  volta a SCHEDULED, zera tentativas e incrementa job_version (jobs antigos morrem).
-   *  baseContent é MERGE (jsonb ||): editar só o texto preserva a mídia anexada */
+   *  baseContent é MERGE (jsonb ||): editar só o texto preserva a mídia anexada.
+   *  settingsByChannel (chave = channelId) faz MERGE jsonb em `publications.settings`. */
   rescheduleGroup(
     orgId: string,
     groupId: string,
     d: {
       baseContent?: Partial<PostContent>;
       publishAt?: Date;
-      /** settings de publicação por canal (chave = channelId); MERGE jsonb no settings da publicação */
-      settingsByChannel?: Record<string, Record<string, unknown>>;
+      settingsByChannel?: Record<string, unknown>;
     },
   ): Promise<Array<{ id: string; channelId: string; jobVersion: number; publishAt: Date }>>;
   /** edita conteúdo/horário de um grupo ainda DRAFT (aguardando aprovação) — permanece DRAFT,
-   *  sem jobs e sem bump de versão; merge de baseContent como no rescheduleGroup.
+   *  sem jobs e sem bump de versão; merge de baseContent/settings como no rescheduleGroup.
    *  false = grupo não está em DRAFT */
   updateDraftGroup(
     orgId: string,
@@ -205,7 +205,7 @@ export interface PublishingRepository {
     d: {
       baseContent?: Partial<PostContent>;
       publishAt?: Date;
-      settingsByChannel?: Record<string, Record<string, unknown>>;
+      settingsByChannel?: Record<string, unknown>;
     },
   ): Promise<boolean>;
   /** aprovação: transiciona grupo + publicações DRAFT→SCHEDULED (com publication_events);

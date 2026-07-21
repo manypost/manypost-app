@@ -1,28 +1,28 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { ComposerView } from './composer-view';
 import { useComposerModal } from './use-composer-modal';
 
 /**
- * Modal de criação de post — popup grande no padrão da tela de criação (SPEC_FRONTEND §3.3),
- * aberto sobre o calendário/kanban. Reusa o `ComposerView` inteiro; `onDone` fecha o modal
- * ao publicar/agendar/descartar (na rota /compor, sem onDone, ele navega para o calendário).
- * Montado uma vez no shell autenticado.
+ * Popup global do composer (montado no layout autenticado): grande no desktop,
+ * tela cheia no mobile com X no topo direito. O `ComposerView` cuida do corpo
+ * rolável + rodapé; aqui só damos a moldura e o cabeçalho.
  */
 export function ComposerModal() {
   const t = useTranslations('composer');
   const open = useComposerModal((s) => s.open);
-  const close = useComposerModal((s) => s.closeComposer);
+  const setOpen = useComposerModal((s) => s.setOpen);
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && close()}>
-      <DialogContent className="flex h-[100dvh] w-full max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 p-0 sm:h-[92vh] sm:w-[97vw] sm:max-w-[1640px] sm:rounded-md sm:border">
-        <DialogTitle className="sr-only">{t('title')}</DialogTitle>
-        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
-          <ComposerView onDone={close} />
-        </div>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent size="panel">
+        <header className="flex shrink-0 flex-col gap-0.5 border-b border-line px-4 py-3 pr-12 sm:px-6 sm:py-4">
+          <DialogTitle>{t('title')}</DialogTitle>
+          <DialogDescription className="text-xs sm:text-sm">{t('subtitle')}</DialogDescription>
+        </header>
+        {open ? <ComposerView onDone={() => setOpen(false)} /> : null}
       </DialogContent>
     </Dialog>
   );

@@ -19,6 +19,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { useApiErrorMessage } from '@/lib/api/errors';
 import { useRegister } from './hooks';
+import { PasswordInput } from './password-input';
+import { PasswordStrength } from './password-strength';
 
 export function RegisterForm() {
   const t = useTranslations('auth');
@@ -36,6 +38,7 @@ export function RegisterForm() {
     resolver: zodResolver(schema),
     defaultValues: { name: '', email: '', password: '', orgName: '' },
   });
+  const passwordValue = form.watch('password');
 
   return (
     <Form {...form}>
@@ -59,7 +62,7 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>{t('name')}</FormLabel>
               <FormControl>
-                <Input autoComplete="name" placeholder="Como devemos chamar você?" {...field} />
+                <Input autoComplete="name" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -72,7 +75,7 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>{t('email')}</FormLabel>
               <FormControl>
-                <Input type="email" autoComplete="email" placeholder="nome@exemplo.com" {...field} />
+                <Input type="email" autoComplete="email" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -85,12 +88,9 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>{t('password')}</FormLabel>
               <FormControl>
-<<<<<<< Updated upstream
-                <Input type="password" autoComplete="new-password" {...field} />
-=======
-                <PasswordInput autoComplete="new-password" placeholder="Mínimo de 12 caracteres" {...field} />
->>>>>>> Stashed changes
+                <PasswordInput autoComplete="new-password" {...field} />
               </FormControl>
+              <PasswordStrength value={passwordValue} />
               <FormDescription>{t('passwordHint')}</FormDescription>
               <FormMessage />
             </FormItem>
@@ -103,7 +103,7 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>{t('orgName')}</FormLabel>
               <FormControl>
-                <Input autoComplete="organization" placeholder="Nome da sua equipe ou empresa" {...field} />
+                <Input autoComplete="organization" {...field} />
               </FormControl>
               <FormDescription>{t('orgNameHint')}</FormDescription>
               <FormMessage />

@@ -7,6 +7,8 @@ import {
   Globe,
   Heart,
   MessageCircle,
+  Music,
+  Plus,
   Repeat2,
   Send,
   Share,
@@ -351,6 +353,133 @@ function DiscordPreview({ p }: { p: NetworkProps }) {
   );
 }
 
+/**
+ * TikTok (paridade real da interface no player 9:16 — SPEC_FRONTEND §3.3):
+ * cartão que simula a tela do celular em formato retrato 9:16 no tema escuro.
+ * Apresenta o carrossel/vídeo no fundo (ou empty state com ícone musical),
+ * rail lateral direita com avatar + badge de follow, curtir, comentar, salvar,
+ * compartilhar e disco giratório, além de overlay inferior com @handle, legenda
+ * e ticker de som original. Conforme as regras do brand (tokens, zero sombras).
+ */
+function TiktokPreview({ p }: { p: NetworkProps }) {
+  const t = useTranslations('composer.preview.tiktok');
+  const main = p.entries[0];
+  if (!main) return null;
+  const { media } = main;
+  const cleanUsername = p.username
+    ? p.username.replace(/^@/, '')
+    : p.name.toLowerCase().replace(/[^a-z0-9]/g, '') || 'usuario';
+
+  return (
+    <article className="rounded-lg border border-line bg-surface p-3 max-w-[320px]">
+      {/* Cabeçalho do preview com conta e horário */}
+      <div className="mb-2.5 flex items-center justify-between gap-2 px-1">
+        <div className="flex min-w-0 items-center gap-2">
+          <ChannelAvatar name={p.name} avatarUrl={p.avatarUrl} provider={p.provider} className="size-6" />
+          <span className="truncate text-xs font-semibold text-ink">{p.name}</span>
+        </div>
+        <span className="shrink-0 text-[11px] font-medium text-mist">{p.timeLabel}</span>
+      </div>
+
+      {/* Tela 9:16 estilo celular do TikTok */}
+      <div className="relative aspect-[9/16] w-full overflow-hidden rounded-md border border-line bg-ink text-paper select-none">
+        {/* Camada de mídia ou empty state */}
+        {media.length > 0 ? (
+          <MediaThumb
+            url={media[0]!.url}
+            mime={media[0]!.mime}
+            alt={media[0]!.alt}
+            className="absolute inset-0 size-full object-cover"
+          />
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 px-4 text-center bg-surface-2/10">
+            <div className="flex size-12 items-center justify-center rounded-full border border-paper/10 bg-paper/5 text-paper/80">
+              <Music className="size-6 animate-pulse" />
+            </div>
+            <span className="text-xs font-semibold text-paper/90">{t('media')}</span>
+            <span className="text-[11px] text-paper/60 leading-tight">{t('mediaHint')}</span>
+          </div>
+        )}
+
+        {/* Indicador de carrossel de fotos (quando > 1) */}
+        {media.length > 1 ? (
+          <span
+            aria-hidden
+            className="absolute right-2 top-2 z-20 rounded-sm bg-ink/80 px-2 py-0.5 text-[10px] font-semibold text-paper border border-paper/10"
+          >
+            1/{media.length}
+          </span>
+        ) : null}
+
+        {/* Gradiente escuro para legibilidade perfeita do chrome */}
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-gradient-to-t from-ink/95 via-ink/30 to-transparent pointer-events-none"
+        />
+
+        {/* Rail vertical de ações à direita (TikTok Overlay Chrome) */}
+        <div aria-hidden className="absolute bottom-6 right-2.5 z-10 flex flex-col items-center gap-3.5 text-paper">
+          {/* Avatar de perfil na barra com botão + de follow */}
+          <div className="relative mb-1">
+            <Avatar className="size-10 border border-paper/30">
+              {p.avatarUrl ? <AvatarImage src={p.avatarUrl} alt="" /> : null}
+              <AvatarFallback className="bg-ink text-[11px] text-paper">{p.name.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 flex size-4 items-center justify-center rounded-full bg-accent text-paper">
+              <Plus className="size-3 stroke-[3]" />
+            </span>
+          </div>
+
+          <div className="flex flex-col items-center gap-0.5">
+            <Heart className="size-6 stroke-[1.8]" />
+            <span className="text-[10px] font-semibold tabular-nums">{t('likes')}</span>
+          </div>
+
+          <div className="flex flex-col items-center gap-0.5">
+            <MessageCircle className="size-6 stroke-[1.8]" />
+            <span className="text-[10px] font-semibold tabular-nums">{t('comments')}</span>
+          </div>
+
+          <div className="flex flex-col items-center gap-0.5">
+            <Bookmark className="size-6 stroke-[1.8]" />
+            <span className="text-[10px] font-semibold tabular-nums">{t('bookmarks')}</span>
+          </div>
+
+          <div className="flex flex-col items-center gap-0.5">
+            <Share className="size-6 stroke-[1.8]" />
+            <span className="text-[10px] font-semibold tabular-nums">{t('shares')}</span>
+          </div>
+
+          {/* Disco de música giratório no rodapé direito */}
+          <div className="mt-1 flex size-8 items-center justify-center rounded-full border border-paper/30 bg-ink/80 p-1">
+            <Music className="size-4 animate-pulse text-paper/90" />
+          </div>
+        </div>
+
+        {/* Overlay inferior: @handle, legenda e som original */}
+        <div className="absolute bottom-5 left-3 right-14 z-10 flex flex-col gap-1.5 text-paper">
+          <p className="flex items-center gap-1 text-[13px] font-bold leading-tight">
+            <span className="truncate">@{cleanUsername}</span>
+          </p>
+
+          {main.text ? (
+            <p className="line-clamp-3 whitespace-pre-wrap break-words text-xs leading-relaxed text-paper/95">
+              {main.text}
+            </p>
+          ) : (
+            <p className="italic text-xs text-paper/50">{t('captionPlaceholder')}</p>
+          )}
+
+          <div aria-hidden className="mt-0.5 flex w-fit max-w-full items-center gap-1.5 rounded-full border border-paper/10 bg-ink/40 px-2 py-0.5 text-[11px] font-medium text-paper/90">
+            <Music className="size-3 shrink-0" />
+            <span className="truncate">{t('sound')} - @{cleanUsername}</span>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 const PREVIEWS: Record<string, ComponentType<{ p: NetworkProps }>> = {
   x: XPreview,
   bluesky: BlueskyPreview,
@@ -359,6 +488,7 @@ const PREVIEWS: Record<string, ComponentType<{ p: NetworkProps }>> = {
   telegram: TelegramPreview,
   discord: DiscordPreview,
   'discord-webhook': DiscordPreview,
+  tiktok: TiktokPreview,
 };
 
 export function NetworkPreview({

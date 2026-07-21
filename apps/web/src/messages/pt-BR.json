@@ -48,8 +48,10 @@
   "auth": {
     "heroTitle": "Vários posts. Várias redes. Um clique.",
     "heroSubtitle": "Agende uma vez e o manypost publica por você, no horário certo, pelas APIs oficiais de cada rede.",
+    "loginKicker": "Bem-vindo de volta",
     "loginTitle": "Entre na sua conta",
     "loginSubtitle": "Agende e publique em todas as suas redes num lugar só.",
+    "registerKicker": "Comece agora",
     "registerTitle": "Crie sua conta",
     "registerSubtitle": "Uma conta, todos os seus canais.",
     "email": "E-mail",
@@ -65,7 +67,45 @@
     "goRegister": "Cadastre-se",
     "goLogin": "Entre",
     "socialDivider": "ou continue com",
-    "logout": "Sair"
+    "socialDividerEmail": "ou com seu e-mail",
+    "logout": "Sair",
+    "kicker": "Publicação multicanal",
+    "heroLine1": "Vários posts.",
+    "heroLine2": "Várias redes.",
+    "heroLine3": "Um clique.",
+    "mobileTagline": "Agende uma vez e publique em todas as suas redes.",
+    "stageComposerTitle": "Novo post",
+    "stageComposerTime": "Agendado · 09:00",
+    "stageFanLabel": "Um post publicado em todas as suas redes ao mesmo tempo.",
+    "proofApis": "APIs oficiais das redes — sem risco de shadowban.",
+    "proofSchedule": "Agende uma vez e publique em todos os canais.",
+    "proofOpen": "open source",
+    "madeIn": "feito no Brasil",
+    "showPassword": "Mostrar senha",
+    "hidePassword": "Ocultar senha",
+    "strengthLabel": "Força da senha",
+    "strengthWeak": "Fraca",
+    "strengthMedium": "Média",
+    "strengthStrong": "Forte",
+    "slideScheduleKicker": "Agendamento",
+    "slideScheduleTitle1": "Agende uma vez.",
+    "slideScheduleTitle2": "Publique na hora certa.",
+    "slideScheduleSub": "Monte a fila e o manypost dispara no horário de cada rede, pelas APIs oficiais.",
+    "slideScheduleQueue": "Fila de agendamento",
+    "slideFlowKicker": "Fluxo de aprovação",
+    "slideFlowTitle1": "Do rascunho ao ar,",
+    "slideFlowTitle2": "com aprovação do cliente.",
+    "slideFlowSub": "Kanban visual e link público de preview — o cliente aprova em 1 clique, sem login.",
+    "colDraft": "Rascunho",
+    "colReview": "Em revisão",
+    "colScheduled": "Agendado",
+    "colPublished": "Publicado",
+    "slideWeekLabel": "Sua semana",
+    "carouselLabel": "Destaques do manypost",
+    "carouselPrev": "Anterior",
+    "carouselNext": "Próximo",
+    "carouselGoTo": "Ir para o destaque {n}",
+    "slidePosition": "{n} de {total}"
   },
   "nav": {
     "compose": "Novo post",
@@ -148,10 +188,10 @@
     "submitSchedule": "Agendar",
     "submitDraft": "Salvar rascunho",
     "discard": "Descartar rascunho",
-    "discardTitle": "Descartar rascunho?",
-    "discardWarning": "O texto, os canais, a mídia e as configurações deste rascunho serão apagados. Esta ação não pode ser desfeita.",
+    "discardConfirmTitle": "Descartar este rascunho?",
+    "discardConfirmBody": "Todo o conteúdo escrito aqui será apagado e o popup será fechado. Não dá para desfazer.",
     "discardConfirm": "Descartar",
-    "discardKeep": "Manter rascunho",
+    "discardKeep": "Continuar editando",
     "scheduled": "Post agendado!",
     "publishedNow": "Publicação disparada!",
     "draftCreated": "Rascunho criado — aguardando aprovação.",
@@ -183,6 +223,16 @@
         "comment": "Comentar",
         "repost": "Compartilhar",
         "send": "Enviar"
+      },
+      "tiktok": {
+        "sound": "som original",
+        "media": "Nenhum vídeo adicionado",
+        "mediaHint": "Envie um vídeo ou foto acima",
+        "captionPlaceholder": "Escreva a legenda para pré-visualizar no vídeo…",
+        "likes": "87.4K",
+        "comments": "1243",
+        "bookmarks": "3401",
+        "shares": "1092"
       }
     },
     "channelSettings": {
@@ -196,12 +246,24 @@
         },
         "bluesky": { "langs": "Idiomas do post" },
         "discord": {
-          "channelId": "Canal do servidor",
+          "channelId": "Canal do Discord",
           "suppressEmbeds": "Ocultar previews de link",
           "silent": "Envio silencioso"
         },
         "linkedin": { "visibility": "Visibilidade" },
         "x": { "replySettings": "Quem pode responder" },
+        "tiktok": {
+          "privacyLevel": "Visibilidade do post",
+          "contentPostingMethod": "Método de publicação",
+          "title": "Título (apenas fotos)",
+          "disableComment": "Desativar comentários",
+          "disableDuet": "Desativar gravação de Duetos",
+          "disableStitch": "Desativar Costura (Stitch)",
+          "brandContentToggle": "Conteúdo de marca (parceria paga)",
+          "brandOrganicToggle": "Promover própria marca",
+          "videoMadeWithAi": "Conteúdo gerado por IA (AIGC)",
+          "autoAddMusic": "Adicionar música em alta automaticamente (apenas fotos)"
+        },
         "fake": {
           "failFirstAttempts": "Falhar as N primeiras tentativas (dev)",
           "expireToken": "Simular token expirado (dev)",
@@ -210,7 +272,19 @@
         }
       },
       "hints": {
-        "bluesky": { "langs": "Códigos BCP-47 separados por vírgula — ex.: pt, en" }
+        "bluesky": { "langs": "Códigos BCP-47 separados por vírgula — ex.: pt, en" },
+        "tiktok": {
+          "privacyLevel": "Define quem poderá visualizar o post no TikTok. (Nota: aplicativos sem auditoria de Direct Post aprovada pelo TikTok só permitem publicar como 'Privado / Somente eu')",
+          "contentPostingMethod": "Publicação direta envia o post para o feed imediatamente; Enviar para Caixa de Entrada manda como rascunho para o aplicativo do TikTok no seu celular para finalização",
+          "title": "Título exibido no topo do carrossel de fotos (máximo de 90 caracteres)",
+          "disableComment": "Bloqueia comentários de outros usuários no seu post",
+          "disableDuet": "Impede que outros usuários gravem duetos com este vídeo",
+          "disableStitch": "Impede que outros usuários recortem e usem trechos deste vídeo",
+          "brandContentToggle": "Ative caso o conteúdo seja patrocinado, publicidade ou parceria com marca de terceiros",
+          "brandOrganicToggle": "Ative se a publicação promove seu próprio negócio, serviço ou marca pessoal",
+          "videoMadeWithAi": "Exibe o selo oficial de Conteúdo Gerado por IA do TikTok no vídeo",
+          "autoAddMusic": "Permite que o algoritmo do TikTok escolha e adicione uma música em alta às suas fotos"
+        }
       },
       "options": {
         "mastodon": {
@@ -233,21 +307,34 @@
             "subscribers": "Assinantes",
             "verified": "Contas verificadas"
           }
+        },
+        "tiktok": {
+          "privacyLevel": {
+            "PUBLIC_TO_EVERYONE": "Público (Todos)",
+            "MUTUAL_FOLLOW_FRIENDS": "Amigos (Seguidores mútuos)",
+            "FOLLOWER_OF_CREATOR": "Seguidores do criador",
+            "SELF_ONLY": "Privado (Somente eu)"
+          },
+          "contentPostingMethod": {
+            "DIRECT_POST": "Publicação direta no perfil",
+            "UPLOAD": "Enviar para Caixa de Entrada (Rascunho no celular)"
+          }
         }
       }
     },
     "issues": {
       "emptyText": "Escreva o texto do post.",
       "noChannelSelected": "Selecione ao menos um canal.",
+      "missingSetting": "{field} é obrigatório em {name}.",
       "overLimit": "Texto acima do limite em: {channels}.",
       "noDate": "Escolha data e horário.",
       "pastDate": "Escolha um horário no futuro.",
       "emptyOverride": "O texto personalizado de {name} está vazio.",
-      "missingSetting": "Configure \"{field}\" em {name}.",
       "threadUnsupported": "Thread não é aceita por: {channels} — remova os itens ou desmarque o canal.",
       "threadEmpty": "O item {index} da thread está vazio.",
       "threadOverLimit": "O item {index} da thread passou do limite de caracteres.",
       "threadDelay": "A espera do item {index} deve ficar entre 0 e 600 segundos.",
+      "requiresMedia": "{name} exige um vídeo ou pelo menos uma foto.",
       "media": {
         "tooManyImages": "{name} aceita no máximo {max, plural, =0 {nenhuma imagem} one {# imagem} other {# imagens}}.",
         "tooManyVideos": "{name} aceita no máximo {max, plural, =0 {nenhum vídeo} one {# vídeo} other {# vídeos}}.",
@@ -385,7 +472,9 @@
     "title": "Publicação",
     "content": "Conteúdo",
     "channels": "Canais",
-    "preview": "Prévia",
+    "preview": "Preview",
+    "previewEmpty": "Sem conteúdo para pré-visualizar.",
+    "settings": "Configurações por canal",
     "edit": "Editar",
     "editResetsOverrides": "Este grupo tem texto personalizado por canal — salvar aqui sobrescreve o texto de TODOS os canais.",
     "when": "Data e horário",

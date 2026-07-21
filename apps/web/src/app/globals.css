@@ -130,8 +130,6 @@
   }
 }
 
-<<<<<<< Updated upstream
-=======
 /*
  * Superfície de auth — entrada orquestrada (uma vez, no mount) e palco escuro.
  * A animação só existe fora de prefers-reduced-motion; sob redução tudo já
@@ -164,45 +162,13 @@
   background-size: 44px 44px;
 }
 
-/* Cabos do "leque" (um post → várias redes): o fio fica estático e um pequeno
-   pacote tracejado o percorre até a rede, dando a leitura de tráfego. O SVG é
-   esticado (preserveAspectRatio="none"), então o traço usa non-scaling-stroke
-   e o tracejado é medido em pathLength="100" — frações do fio, imunes à escala.
-   Só o pacote se move; sob prefers-reduced-motion ele fica parado no início. */
-.auth-cable {
-  stroke: color-mix(in srgb, var(--accent-on-dark) 28%, transparent);
-  stroke-width: 1.25;
+/* Linhas do "leque" (um post → várias redes) — traço uniforme em qualquer escala */
+.auth-fan-line {
+  stroke: color-mix(in srgb, var(--accent-on-dark) 55%, transparent);
+  stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
 
-.auth-cable-flow {
-  stroke: var(--accent-on-dark);
-  stroke-width: 1.75;
-  stroke-linecap: round;
-  vector-effect: non-scaling-stroke;
-  /* Fio sempre tracejado (sem buraco). A soma do padrão (6+3+2+3+4+2) = 20.
-     Como o pathLength é 100, o padrão se repete 5 vezes e o loop é perfeito. */
-  stroke-dasharray: 6 3 2 3 4 2;
-  stroke-dashoffset: 100;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .auth-cable-flow {
-    /* Ajustando o tempo para manter uma velocidade agradável e contínua */
-    animation: auth-cable-flow 2.4s linear infinite;
-  }
-
-  @keyframes auth-cable-flow {
-    from {
-      stroke-dashoffset: 100;
-    }
-    to {
-      stroke-dashoffset: 0;
-    }
-  }
-}
-
->>>>>>> Stashed changes
 /* células passadas do calendário: hachura sutil com tokens (direção do Postiz) */
 .cal-past {
   background-image: repeating-linear-gradient(

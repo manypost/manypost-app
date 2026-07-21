@@ -26,13 +26,13 @@ const OAUTH_ME_URL = 'https://discord.com/api/oauth2/@me';
 const POSTABLE_CHANNEL_TYPES = new Set([0, 5, 15]);
 
 const settingsSchema = z.object({
-  // obrigatório: no Discord o alvo é sempre um canal de texto específico do servidor.
-  // A UI valida antes de submeter (indicador do composer) e o backend recusa no agendamento
-  // (settingsSchema.safeParse falha → post.invalid_settings) — nunca há "canal padrão".
+  // OBRIGATÓRIO (decisão do owner): o usuário escolhe o canal por post no composer
+  // (SubAccountsField lista os canais do servidor). Sem auto-descoberta nem default —
+  // o agendamento sem canal escolhido falha na validação de settings, e a UI acusa e bloqueia.
   channelId: z
     .string()
-    .min(1, 'Selecione o canal de texto do servidor (obrigatório no Discord)')
-    .describe('Canal de texto do servidor para onde o post será enviado (obrigatório)'),
+    .min(1)
+    .describe('ID do canal de texto (#geral ou ID numérico) para onde o post será enviado'),
   suppressEmbeds: z
     .boolean()
     .default(false)
@@ -213,7 +213,7 @@ export const discordProvider: ChannelProvider = {
       : undefined;
     const username = bot?.username;
 
-    // Sem canal padrão: o usuário escolhe o canal de texto no composer (obrigatório) via listSubAccounts.
+    // Sem default de canal (decisão do owner): o canal é escolhido por post no composer.
     return {
       accessToken: tokenData.access_token,
       ...(tokenData.refresh_token ? { refreshToken: tokenData.refresh_token } : {}),
@@ -270,21 +270,24 @@ export const discordProvider: ChannelProvider = {
 
   // Publica com o Bot Token (env). guildId/channelId vêm do `settings` mergeado
   // (channel.settings gravado na conexão + settings da publicação) — nunca do token,
-  // que no worker é só { accessToken, scopes } (ver publishing.ts). channelId é obrigatório.
+  // que no worker é só { accessToken, scopes } (ver publishing.ts).
   async publish(ctx, _token: TokenSet, items, rawSettings) {
     const cfg = parseSettings(rawSettings);
     const botToken = ctx.secrets.botToken;
     if (!botToken) throw { status: 422, body: 'DISCORD_BOT_TOKEN ausente no servidor para publicar' };
-    if (!cfg.channelId) {
+
+    // Canal escolhido nas configurações do post (obrigatório, sem auto-descoberta).
+    const channelId = cfg.channelId;
+    if (!channelId) {
       throw {
         status: 422,
-        body: 'Canal do Discord não selecionado — escolha o canal de texto do servidor nas Configurações do post.',
+        body: 'Canal do Discord não selecionado. Escolha o canal nas Configurações do post.',
       };
     }
 
     const results: PublishResult[] = [];
     for (const item of items) {
-      results.push(await executeBotPost(ctx, botToken, cfg.channelId, cfg.guildId, item, cfg.flags));
+      results.push(await executeBotPost(ctx, botToken, channelId, cfg.guildId, item, cfg.flags));
     }
     return results;
   },

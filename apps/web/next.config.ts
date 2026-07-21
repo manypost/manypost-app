@@ -18,6 +18,8 @@ const nextConfig: NextConfig = {
       { source: '/uploads/:path*', destination: `${API_URL}/uploads/:path*` },
       // superfície pública de aprovação (página /approve/[token] consome sem login)
       { source: '/public/:path*', destination: `${API_URL}/public/:path*` },
+      // servidor MCP (Streamable HTTP) — auth por API key escopo `mcp`, JSON puro
+      { source: '/mcp', destination: `${API_URL}/mcp` },
     ];
   },
 };

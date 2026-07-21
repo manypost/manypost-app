@@ -1087,9 +1087,7 @@ export type paths = {
                         /** Format: date-time */
                         publishAt?: string;
                         settingsByChannel?: {
-                            [key: string]: {
-                                [key: string]: unknown;
-                            };
+                            [key: string]: unknown;
                         };
                     };
                 };
@@ -2438,6 +2436,8 @@ export type components = {
             editor: boolean;
             threads: boolean;
             twoStepConnect: boolean;
+            /** @description rede que não aceita post só-texto (ex.: TikTok exige vídeo/foto) */
+            requiresMedia: boolean;
             /**
              * @description fields = credenciais; oauth = redirect
              * @enum {string}

@@ -412,6 +412,10 @@
           "twoStepConnect": {
             "type": "boolean"
           },
+          "requiresMedia": {
+            "type": "boolean",
+            "description": "rede que não aceita post só-texto (ex.: TikTok exige vídeo/foto)"
+          },
           "connectType": {
             "type": "string",
             "enum": [
@@ -456,6 +460,7 @@
           "editor",
           "threads",
           "twoStepConnect",
+          "requiresMedia",
           "connectType",
           "maxLength",
           "media",
@@ -2371,7 +2376,8 @@
             "cookieAuth": []
           }
         ],
-        "summary": "Edita texto e/ou horário (re-agenda com nova versão de job)",
+        "summary": "Edita texto, horário e/ou settings por canal (re-agenda com nova versão de job)",
+        "description": "Editar `text` sobrescreve o content de TODAS as publicações (overrides resetam). `settingsByChannel` (chave = channelId) faz merge nos settings de publicação do canal e é validado por provider.",
         "parameters": [
           {
             "schema": {
@@ -2398,6 +2404,10 @@
                   "publishAt": {
                     "type": "string",
                     "format": "date-time"
+                  },
+                  "settingsByChannel": {
+                    "type": "object",
+                    "additionalProperties": {}
                   }
                 }
               }

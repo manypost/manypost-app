@@ -7,6 +7,7 @@ import type { CryptoService } from '../ports/crypto';
 import type { EventPublisher } from '../ports/events';
 import type { JobScheduler } from '../ports/job-scheduler';
 import type { MediaRepository, MediaStorage } from '../ports/media';
+import type { MetricsSink } from '../ports/metrics';
 import type { RateLimiter, RateWindowSpec } from '../ports/rate-limiter';
 import type { ChannelRepository, PublishingRepository } from '../ports/publishing';
 import { randomToken } from '../tokens';
@@ -239,6 +240,7 @@ export interface PublishDeps {
   retryBaseSec: number;
   maxAttempts?: number;
   rateLimiter?: RateLimiter;
+  metrics?: MetricsSink;
   events?: EventPublisher;
   /** secrets de app por provider (client id/secret via env — SPEC_INTEGRATIONS §2) */
   secrets?: Record<string, Record<string, string>>;
@@ -261,6 +263,20 @@ const makeRunner = (deps: PublishDeps) =>
     const { publication: pub, channel } = found;
     const isContinuation = afterIndex !== undefined;
 
+    // Semáforo de concorrência por provider (maxConcurrent): o slot é adquirido no caminho
+    // não-continuação e liberado quando ESTA invocação termina (finally do corpo, ou nos
+    // returns de janela/claim). Continuações não seguram slot — a thread já está em voo e
+    // o ritmo é o delaySec. slotToken != null ⇒ há slot a liberar. SPEC_QUEUE §6.
+    const semaphoreKey = `sem:p:${channel.provider}`;
+    let slotToken: string | null = null;
+    const releaseSlot = async () => {
+      const token = slotToken;
+      slotToken = null;
+      if (token && deps.rateLimiter?.releaseSlot) {
+        await deps.rateLimiter.releaseSlot(semaphoreKey, token).catch(() => {});
+      }
+    };
+
     if (isContinuation) {
       // continuação só roda se NADA mudou: mesma versão, ainda PUBLISHING e cursor exato.
       // Qualquer divergência = job obsoleto/duplicado → no-op (nunca repostar)
@@ -272,10 +288,36 @@ const makeRunner = (deps: PublishDeps) =>
       // job de uma versão anterior (post editado/cancelado): descarta
       if (jobVersion !== undefined && jobVersion !== pub.jobVersion) return;
 
-      // rate-limit ANTES de reivindicar (negado não consome tentativa) — SPEC_QUEUE §6.
-      // Continuações não passam aqui: a thread já está em voo e o ritmo é o delaySec
+      const provider0 = deps.registry.get(channel.provider);
+
+      // (1) semáforo de concorrência ANTES da janela: assim uma negação de concorrência não
+      //     consome um token de janela (a janela só incrementa quando passa). Adquirido aqui,
+      //     liberado no finally do corpo ou nos returns abaixo. SPEC_QUEUE §6.
+      const maxConcurrent = provider0?.rateDefaults.maxConcurrent ?? 0;
+      if (deps.rateLimiter?.acquireSlot && maxConcurrent > 0) {
+        const token = randomToken(16);
+        const verdict = await deps.rateLimiter.acquireSlot(semaphoreKey, maxConcurrent, token);
+        if (!verdict.ok) {
+          deps.metrics?.onRateLimitDenied(channel.provider, 'concurrency');
+          deps.log?.('warn', 'concorrência: publicação adiada', {
+            publicationId: pub.id,
+            retryAfterSec: verdict.retryAfterSec,
+          });
+          await deps.scheduler.enqueue(
+            PUBLISH_QUEUE,
+            { publicationId: pub.id, v: pub.jobVersion },
+            {
+              startAfter: new Date(Date.now() + Math.max(1, verdict.retryAfterSec) * 1000),
+              singletonKey: `${pub.id}:sem:${Math.floor(Date.now() / 1000)}`,
+            },
+          );
+          return;
+        }
+        slotToken = token;
+      }
+
+      // (2) rate-limit por janela ANTES de reivindicar (negado não consome tentativa) — SPEC_QUEUE §6.
       if (deps.rateLimiter) {
-        const provider0 = deps.registry.get(channel.provider);
         const windows: RateWindowSpec[] = [];
         const pw = provider0?.rateDefaults.perProviderWindow;
         if (pw) windows.push({ key: `rl:p:${channel.provider}`, ...pw });
@@ -284,10 +326,12 @@ const makeRunner = (deps: PublishDeps) =>
         if (windows.length > 0) {
           const verdict = await deps.rateLimiter.acquire(windows);
           if (!verdict.ok) {
+            deps.metrics?.onRateLimitDenied(channel.provider, 'window');
             deps.log?.('warn', 'rate-limit: publicação adiada', {
               publicationId: pub.id,
               retryAfterSec: verdict.retryAfterSec,
             });
+            await releaseSlot(); // não segura o slot enquanto espera a janela abrir
             await deps.scheduler.enqueue(
               PUBLISH_QUEUE,
               { publicationId: pub.id, v: pub.jobVersion },
@@ -305,7 +349,10 @@ const makeRunner = (deps: PublishDeps) =>
         incrementAttempt: true,
         attemptId: randomToken(16),
       });
-      if (!claimed) return;
+      if (!claimed) {
+        await releaseSlot();
+        return;
+      }
     }
     const attempt = isContinuation ? pub.attemptCount : pub.attemptCount + 1;
 
@@ -314,6 +361,7 @@ const makeRunner = (deps: PublishDeps) =>
         errorClass: cls,
         errorMessage: msg.slice(0, ERROR_MAX_LEN),
       });
+      deps.metrics?.onPublicationResult(channel.provider, 'failed');
       await deps.publishing.refreshGroupState(pub.groupId);
       await deps.events?.emit({
         orgId: pub.orgId,
@@ -324,7 +372,10 @@ const makeRunner = (deps: PublishDeps) =>
     };
 
     const provider = deps.registry.get(channel.provider);
-    if (!provider) return fail('permanent', `provider ${channel.provider} desconhecido`);
+    if (!provider) {
+      await releaseSlot();
+      return fail('permanent', `provider ${channel.provider} desconhecido`);
+    }
 
     const aad = channelAad(channel.orgId, channel.provider, channel.externalId);
     const ctx = makeCtx(
@@ -342,6 +393,7 @@ const makeRunner = (deps: PublishDeps) =>
         errorClass: null,
         errorMessage: null,
       });
+      deps.metrics?.onPublicationResult(channel.provider, 'published');
       await deps.publishing.refreshGroupState(pub.groupId);
       await deps.events?.emit({
         orgId: pub.orgId,
@@ -477,6 +529,7 @@ const makeRunner = (deps: PublishDeps) =>
             tokenExpiresAt: fresh.expiresAt ? new Date(fresh.expiresAt) : null,
           });
           // token renovado → tenta de novo já (estado TOKEN_REFRESH é RUNNABLE)
+          deps.metrics?.onRetry('refresh-token');
           await deps.scheduler.enqueue(
             PUBLISH_QUEUE,
             { publicationId: pub.id, v: pub.jobVersion },
@@ -496,6 +549,7 @@ const makeRunner = (deps: PublishDeps) =>
         errorClass: 'transient',
         errorMessage: body.slice(0, ERROR_MAX_LEN),
       });
+      deps.metrics?.onRetry('transient');
       await deps.scheduler.enqueue(
         PUBLISH_QUEUE,
         { publicationId: pub.id, v: pub.jobVersion },
@@ -504,6 +558,10 @@ const makeRunner = (deps: PublishDeps) =>
           singletonKey: `${pub.id}:a${attempt}`,
         },
       );
+    } finally {
+      // libera o slot de concorrência ao fim desta invocação (sucesso, falha, retry
+      // re-agendado ou próximo item de thread agendado). No-op se nenhum slot foi tomado.
+      await releaseSlot();
     }
   };
 
@@ -559,7 +617,7 @@ export const makeReschedulePost = (deps: MutatePostDeps) =>
     groupId: string;
     text?: string;
     publishAt?: Date;
-    /** settings de publicação por canal (chave = channelId) — validadas pelo settingsSchema do provider */
+    /** settings de publicação por canal (chave = channelId) — merge sobre o existente e valida por provider */
     settingsByChannel?: Record<string, unknown>;
   }) => {
     const group = await deps.publishing.getGroup(input.orgId, input.groupId);
@@ -575,15 +633,11 @@ export const makeReschedulePost = (deps: MutatePostDeps) =>
       throw new DomainError(ErrorCodes.PostInvalidTransition, 'nada pendente para editar');
     }
 
-    // canais/providers dos pendentes — carregados 1x (validação de texto e/ou settings)
-    let channelsCache: Awaited<ReturnType<typeof deps.channels.findMany>> | undefined;
-    const loadChannels = async () =>
-      (channelsCache ??= await deps.channels.findMany(input.orgId, pending.map((p) => p.channelId)));
-
     const text = input.text?.trim();
     if (text !== undefined) {
       if (!text) throw new DomainError(ErrorCodes.PostEmptyContent, 'conteúdo vazio');
-      for (const ch of await loadChannels()) {
+      const channels = await deps.channels.findMany(input.orgId, pending.map((p) => p.channelId));
+      for (const ch of channels) {
         const provider = deps.registry.get(ch.provider);
         const max = provider?.capabilities.maxLength(undefined) ?? Infinity;
         if (text.length > max) {
@@ -592,30 +646,42 @@ export const makeReschedulePost = (deps: MutatePostDeps) =>
       }
     }
 
-    // settings por canal: valida cada uma pelo settingsSchema do provider (mesma semântica do schedule)
-    let settingsByChannel: Record<string, Record<string, unknown>> | undefined;
+    // settings por canal: merge sobre o que já existe e valida no schema do provider
+    // (mesma semântica do agendamento — required não pode "sumir" ao editar um único campo)
+    const validatedSettings: Record<string, unknown> = {};
     if (input.settingsByChannel && Object.keys(input.settingsByChannel).length > 0) {
-      const byId = new Map((await loadChannels()).map((c) => [c.id, c]));
-      settingsByChannel = {};
-      for (const [channelId, raw] of Object.entries(input.settingsByChannel)) {
-        const ch = byId.get(channelId);
-        if (!ch) {
-          throw new DomainError(ErrorCodes.NotFound, 'canal não pertence ao grupo ou não está pendente', {
+      const ids = Object.keys(input.settingsByChannel);
+      const pendingByChannel = new Map(pending.map((p) => [p.channelId, p]));
+      const channelById = new Map(
+        (await deps.channels.findMany(input.orgId, ids)).map((c) => [c.id, c]),
+      );
+      for (const [channelId, patch] of Object.entries(input.settingsByChannel)) {
+        const pub = pendingByChannel.get(channelId);
+        if (!pub) {
+          throw new DomainError(ErrorCodes.NotFound, 'settingsByChannel referencia canal fora do grupo', {
             channelId,
           });
         }
-        const provider = deps.registry.get(ch.provider);
-        if (!provider) throw new DomainError(ErrorCodes.NotFound, `provider ${ch.provider} desconhecido`);
-        const parsed = provider.settingsSchema.safeParse(raw);
+        const ch = channelById.get(channelId);
+        const provider = ch ? deps.registry.get(ch.provider) : undefined;
+        if (!provider) {
+          throw new DomainError(ErrorCodes.CapabilityDisabled, `provider indisponível`, { channelId });
+        }
+        const merged = {
+          ...((pub.settings as Record<string, unknown> | null) ?? {}),
+          ...((patch as Record<string, unknown> | null) ?? {}),
+        };
+        const parsed = provider.settingsSchema.safeParse(merged);
         if (!parsed.success) {
           throw new DomainError(ErrorCodes.PostInvalidSettings, 'settings inválidos para o canal', {
             channelId,
             issues: parsed.error.issues.map((i) => i.message),
           });
         }
-        settingsByChannel[channelId] = parsed.data as Record<string, unknown>;
+        validatedSettings[channelId] = parsed.data;
       }
     }
+    const hasSettings = Object.keys(validatedSettings).length > 0;
 
     if (isDraft) {
       // rascunho continua rascunho (a aprovação é quem agenda); editar invalida o
@@ -623,7 +689,7 @@ export const makeReschedulePost = (deps: MutatePostDeps) =>
       await deps.publishing.updateDraftGroup(input.orgId, input.groupId, {
         ...(text !== undefined ? { baseContent: { text } } : {}),
         ...(input.publishAt ? { publishAt: input.publishAt } : {}),
-        ...(settingsByChannel ? { settingsByChannel } : {}),
+        ...(hasSettings ? { settingsByChannel: validatedSettings } : {}),
       });
       await deps.approvals?.revokePending(input.orgId, input.groupId);
       return deps.publishing.getGroup(input.orgId, input.groupId);
@@ -632,7 +698,7 @@ export const makeReschedulePost = (deps: MutatePostDeps) =>
     const updated = await deps.publishing.rescheduleGroup(input.orgId, input.groupId, {
       ...(text !== undefined ? { baseContent: { text } } : {}),
       ...(input.publishAt ? { publishAt: input.publishAt } : {}),
-      ...(settingsByChannel ? { settingsByChannel } : {}),
+      ...(hasSettings ? { settingsByChannel: validatedSettings } : {}),
     });
     for (const pub of updated) {
       await deps.scheduler

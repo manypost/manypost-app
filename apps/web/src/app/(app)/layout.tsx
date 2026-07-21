@@ -13,7 +13,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <Topbar />
         <main className="flex-1 p-3 md:p-6">{children}</main>
       </div>
-      {/* modal de criação de post — aberto sobre a página via useComposerModal */}
+      {/* composer vive num popup global — "Novo post"/"+"/duplicar o abrem sobre a página */}
       <ComposerModal />
     </div>
   );

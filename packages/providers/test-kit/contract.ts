@@ -75,7 +75,13 @@ export function runProviderContract(provider: ChannelProvider) {
 
     test('validateMedia respeita contagem máxima e mistura', async () => {
       const { images, videos } = provider.capabilities.media;
-      expect(await provider.validateMedia([{ content: 'ok', media: [] }])).toEqual({ ok: true });
+      // rede que exige mídia (TikTok) rejeita post vazio; as demais aceitam só-texto
+      const emptyVerdict = await provider.validateMedia([{ content: 'ok', media: [] }]);
+      if (provider.capabilities.requiresMedia) {
+        expect(emptyVerdict.ok).toBe(false);
+      } else {
+        expect(emptyVerdict).toEqual({ ok: true });
+      }
 
       if (images.maxCount > 0) {
         const within = await provider.validateMedia([
