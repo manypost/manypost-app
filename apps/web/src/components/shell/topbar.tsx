@@ -87,10 +87,6 @@ export function Topbar() {
       </h1>
 
       <div className="flex items-center gap-2">
-      <Button size="sm" className="gap-1.5" onClick={() => openComposer()}>
-        <PenSquare aria-hidden />
-        <span className="hidden sm:inline">{t('calendar.newPost')}</span>
-      </Button>
       <NotificationsMenu />
       {isPending ? (
         <Skeleton className="size-8 rounded-full" />
