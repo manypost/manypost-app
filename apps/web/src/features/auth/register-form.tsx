@@ -59,7 +59,7 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>{t('name')}</FormLabel>
               <FormControl>
-                <Input autoComplete="name" {...field} />
+                <Input autoComplete="name" placeholder="Como devemos chamar você?" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -72,7 +72,7 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>{t('email')}</FormLabel>
               <FormControl>
-                <Input type="email" autoComplete="email" {...field} />
+                <Input type="email" autoComplete="email" placeholder="nome@exemplo.com" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -85,7 +85,11 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>{t('password')}</FormLabel>
               <FormControl>
+<<<<<<< Updated upstream
                 <Input type="password" autoComplete="new-password" {...field} />
+=======
+                <PasswordInput autoComplete="new-password" placeholder="Mínimo de 12 caracteres" {...field} />
+>>>>>>> Stashed changes
               </FormControl>
               <FormDescription>{t('passwordHint')}</FormDescription>
               <FormMessage />
@@ -99,7 +103,7 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>{t('orgName')}</FormLabel>
               <FormControl>
-                <Input autoComplete="organization" {...field} />
+                <Input autoComplete="organization" placeholder="Nome da sua equipe ou empresa" {...field} />
               </FormControl>
               <FormDescription>{t('orgNameHint')}</FormDescription>
               <FormMessage />

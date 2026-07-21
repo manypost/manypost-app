@@ -130,6 +130,79 @@
   }
 }
 
+<<<<<<< Updated upstream
+=======
+/*
+ * Superfície de auth — entrada orquestrada (uma vez, no mount) e palco escuro.
+ * A animação só existe fora de prefers-reduced-motion; sob redução tudo já
+ * nasce visível (sem estado inicial opaco). Só translate/opacity de entrada —
+ * a regra de "sem translate no hover" (BRAND §2.3) continua valendo p/ hover.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .auth-rise {
+    animation: auth-rise 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes auth-rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+/* Grade sutil do palco escuro — evoca o calendário/agenda do produto (tokens
+   via color-mix; hairlines de --paper sobre --night). */
+.auth-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--paper) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--paper) 5%, transparent) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+/* Cabos do "leque" (um post → várias redes): o fio fica estático e um pequeno
+   pacote tracejado o percorre até a rede, dando a leitura de tráfego. O SVG é
+   esticado (preserveAspectRatio="none"), então o traço usa non-scaling-stroke
+   e o tracejado é medido em pathLength="100" — frações do fio, imunes à escala.
+   Só o pacote se move; sob prefers-reduced-motion ele fica parado no início. */
+.auth-cable {
+  stroke: color-mix(in srgb, var(--accent-on-dark) 28%, transparent);
+  stroke-width: 1.25;
+  vector-effect: non-scaling-stroke;
+}
+
+.auth-cable-flow {
+  stroke: var(--accent-on-dark);
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  /* Fio sempre tracejado (sem buraco). A soma do padrão (6+3+2+3+4+2) = 20.
+     Como o pathLength é 100, o padrão se repete 5 vezes e o loop é perfeito. */
+  stroke-dasharray: 6 3 2 3 4 2;
+  stroke-dashoffset: 100;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .auth-cable-flow {
+    /* Ajustando o tempo para manter uma velocidade agradável e contínua */
+    animation: auth-cable-flow 2.4s linear infinite;
+  }
+
+  @keyframes auth-cable-flow {
+    from {
+      stroke-dashoffset: 100;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+}
+
+>>>>>>> Stashed changes
 /* células passadas do calendário: hachura sutil com tokens (direção do Postiz) */
 .cal-past {
   background-image: repeating-linear-gradient(

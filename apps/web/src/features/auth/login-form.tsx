@@ -54,7 +54,7 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
             <FormItem>
               <FormLabel>{t('email')}</FormLabel>
               <FormControl>
-                <Input type="email" autoComplete="email" {...field} />
+                <Input type="email" autoComplete="email" placeholder="nome@exemplo.com" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -67,7 +67,11 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
             <FormItem>
               <FormLabel>{t('password')}</FormLabel>
               <FormControl>
+<<<<<<< Updated upstream
                 <Input type="password" autoComplete="current-password" {...field} />
+=======
+                <PasswordInput autoComplete="current-password" placeholder="Sua senha" {...field} />
+>>>>>>> Stashed changes
               </FormControl>
               <FormMessage />
             </FormItem>

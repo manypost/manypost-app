@@ -1,0 +1,31 @@
+name: Feature Request
+description: Sugira uma nova funcionalidade ou melhoria para o manypost.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: O Problema
+      description: Qual é o problema ou frustração que essa nova funcionalidade resolve?
+      placeholder: Como usuário, fico frustrado quando...
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: A Solução Ideal
+      description: Descreva como essa funcionalidade deve funcionar no app.
+      placeholder: Seria ótimo se o manypost pudesse...
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas Consideradas
+      description: Alguma outra forma de resolver isso foi considerada?
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto Adicional
+      description: Como isso impacta o usuário final do SaaS? Adicione screenshots, mockups ou links de referência, se tiver.
