@@ -46,9 +46,8 @@ for (const tier of PlanTiers) {
 
 console.log(`
 Pronto. Próximo passo (uma vez por ambiente):
-  1. Stripe Dashboard → Developers → Webhooks → Add endpoint
-     URL:     {PUBLIC_URL}/v1/stripe/webhook
-     Eventos: customer.subscription.created, customer.subscription.updated,
-              customer.subscription.deleted
-  2. Copie o "Signing secret" (whsec_…) para STRIPE_WEBHOOK_SECRET no .env
+  1. Registre o webhook com a MESMA chave:
+       bun run stripe:webhook https://app.exemplo.com     (produção)
+       stripe listen --forward-to localhost:3100/v1/stripe/webhook   (dev)
+  2. Copie o "Signing secret" (whsec_…) impresso para STRIPE_WEBHOOK_SECRET
   3. Suba a API com IS_SELF_HOSTED=false e HIDE_BILLING=false`);

@@ -30,6 +30,29 @@ import Stripe from 'stripe';
 /** Marca os objetos criados por esta instalação — webhooks de outras integrações são ignorados. */
 export const STRIPE_SERVICE_TAG = 'manypost';
 
+/** Únicos eventos tratados por `http/routes/stripe-webhook.routes.ts` — assinar mais é ruído. */
+const WEBHOOK_EVENTS = [
+  'customer.subscription.created',
+  'customer.subscription.updated',
+  'customer.subscription.deleted',
+] as const satisfies ReadonlyArray<Stripe.WebhookEndpointCreateParams.EnabledEvent>;
+
+/**
+ * Versão da API fixada no endpoint. Sem isso ele herda a padrão da conta, e um default
+ * anterior a 2025 entregaria a assinatura no formato antigo (sem `current_period_end` no
+ * item) — a data de renovação chegaria nula em `toRemoteSubscription`.
+ */
+const WEBHOOK_API_VERSION: Stripe.WebhookEndpointCreateParams.ApiVersion = '2026-06-24.dahlia';
+
+/** Resultado do registro do endpoint de webhook (script `stripe:webhook`). */
+export interface WebhookEndpointSetup {
+  id: string;
+  outcome: 'created' | 'recreated' | 'updated' | 'unchanged';
+  /** `whsec_…` — a Stripe só revela na criação; nulo quando o endpoint já existia. */
+  secret: string | null;
+  events: readonly string[];
+}
+
 const productId = (tier: PlanTier) => `manypost_${tier.toLowerCase()}`;
 const intervalOf = (period: BillingPeriod) => (period === 'MONTHLY' ? 'month' : 'year');
 
@@ -95,6 +118,8 @@ export interface StripeGateway extends BillingGateway {
   constructEvent(rawBody: string | Buffer, signature: string): Stripe.Event;
   /** cria/atualiza Products e Prices do catálogo na conta (script `stripe:sync`) */
   syncCatalog(): Promise<Array<{ tier: PlanTier; period: BillingPeriod; priceId: string }>>;
+  /** registra/reconcilia o endpoint de webhook desta instalação (script `stripe:webhook`) */
+  ensureWebhookEndpoint(input: { url: string; recreate?: boolean }): Promise<WebhookEndpointSetup>;
 }
 
 export function makeStripeGateway(opts: {
@@ -194,6 +219,45 @@ export function makeStripeGateway(opts: {
         }
       }
       return out;
+    },
+
+    /**
+     * Idempotente pela URL: reentregar o mesmo endpoint não pode gerar duplicata (a Stripe
+     * entregaria o evento duas vezes). `recreate` só existe porque o `whsec_` aparece uma
+     * única vez — recriar é a única forma de recuperar um segredo perdido pela API.
+     */
+    async ensureWebhookEndpoint({ url, recreate = false }) {
+      const { data } = await stripe.webhookEndpoints.list({ limit: 100 });
+      const found = data.find((e) => e.url === url);
+
+      if (found && !recreate) {
+        const missing = WEBHOOK_EVENTS.filter((e) => !found.enabled_events.includes(e));
+        if (missing.length === 0 && found.status === 'enabled') {
+          return { id: found.id, outcome: 'unchanged', secret: null, events: WEBHOOK_EVENTS };
+        }
+        const updated = await stripe.webhookEndpoints.update(found.id, {
+          enabled_events: [...WEBHOOK_EVENTS],
+          disabled: false,
+          metadata: { service: STRIPE_SERVICE_TAG },
+        });
+        return { id: updated.id, outcome: 'updated', secret: null, events: WEBHOOK_EVENTS };
+      }
+
+      if (found) await stripe.webhookEndpoints.del(found.id);
+
+      const created = await stripe.webhookEndpoints.create({
+        url,
+        enabled_events: [...WEBHOOK_EVENTS],
+        api_version: WEBHOOK_API_VERSION,
+        description: 'manypost — espelha assinaturas na org (POST /v1/stripe/webhook)',
+        metadata: { service: STRIPE_SERVICE_TAG },
+      });
+      return {
+        id: created.id,
+        outcome: found ? 'recreated' : 'created',
+        secret: created.secret ?? null,
+        events: WEBHOOK_EVENTS,
+      };
     },
 
     async ensureCustomer(input) {

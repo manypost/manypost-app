@@ -21,6 +21,7 @@
     "check:ai-providers": "bun run scripts/check-ai-providers.ts",
     "check:brand": "bun run scripts/check-brand.ts",
     "stripe:sync": "bun run scripts/stripe-sync.ts",
+    "stripe:webhook": "bun run scripts/stripe-webhook.ts",
     "check": "bun run typecheck && bun run typecheck:web && bun run test && bun run check:boundaries && bun run check:ai-providers && bun run check:brand"
   },
   "devDependencies": {
