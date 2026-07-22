@@ -1216,11 +1216,29 @@
               "usage",
               "enforced"
             ]
+          },
+          "endpoints": {
+            "type": "object",
+            "properties": {
+              "restBaseUrl": {
+                "type": "string",
+                "example": "https://api.manypost.com.br/v1"
+              },
+              "mcpUrl": {
+                "type": "string",
+                "example": "https://mcp.manypost.com.br"
+              }
+            },
+            "required": [
+              "restBaseUrl",
+              "mcpUrl"
+            ]
           }
         },
         "required": [
           "billingEnabled",
-          "plan"
+          "plan",
+          "endpoints"
         ]
       },
       "PlanCatalog": {

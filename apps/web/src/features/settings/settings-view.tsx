@@ -1,6 +1,6 @@
 'use client';
 
-import { Copy, KeyRound, Plus, Trash2, Webhook as WebhookIcon } from 'lucide-react';
+import { Bot, ChevronDown, Copy, KeyRound, Plus, Trash2, Webhook as WebhookIcon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -30,6 +30,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMe } from '@/features/auth/hooks';
+import { useCapabilities } from '@/features/billing/hooks';
 import { PlanLockNotice, usePlanLocked } from '@/features/billing/plan-lock';
 import { useApiErrorMessage } from '@/lib/api/errors';
 import { relativeTime } from '@/lib/datetime';
@@ -103,6 +104,124 @@ function SecretOnce({ value, onDismiss }: { value: string; onDismiss: () => void
   );
 }
 
+/**
+ * Onde a máquina fala com esta instalação. Vem do servidor (`/v1/capabilities`) porque depende
+ * de como ELA foi publicada: host dedicado (`api.`/`mcp.`) ou caminhos da própria origem no
+ * self-host. Sem isto o usuário cria a chave e não sabe para onde apontar o agente.
+ */
+function MachineEndpoints() {
+  const t = useTranslations('settings');
+  const capabilities = useCapabilities();
+  const endpoints = capabilities.data?.endpoints;
+  if (!endpoints) return null;
+
+  const rows = [
+    { label: t('endpointRest'), value: endpoints.restBaseUrl, hint: t('endpointRestHint') },
+    { label: t('endpointMcp'), value: endpoints.mcpUrl, hint: t('endpointMcpHint') },
+  ];
+  return (
+    <>
+      <ul className="overflow-hidden rounded-lg border border-line bg-surface">
+        {rows.map((row) => (
+          <li key={row.label} className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-3 last:border-b-0">
+            <div className="min-w-0 flex-1">
+              <p className="text-[13px] font-semibold text-ink">{row.label}</p>
+              <code className="mt-0.5 block truncate text-xs text-graphite">{row.value}</code>
+              <p className="mt-1 text-xs text-graphite">{row.hint}</p>
+            </div>
+            <CopyButton value={row.value} />
+          </li>
+        ))}
+      </ul>
+      <ConnectAgent mcpUrl={endpoints.mcpUrl} restBaseUrl={endpoints.restBaseUrl} />
+    </>
+  );
+}
+
+/** Botão de copiar reaproveitado pelos blocos de endpoint/conexão. */
+function CopyButton({ value, label }: { value: string; label?: string }) {
+  const t = useTranslations('settings');
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className="gap-1.5"
+      onClick={async () => {
+        await navigator.clipboard.writeText(value);
+        toast.success(t('copied'));
+      }}
+    >
+      <Copy aria-hidden />
+      {label ?? t('copy')}
+    </Button>
+  );
+}
+
+/**
+ * "Conectar seu agente": o caminho curto é colar o PROMPT num agente que já saiba mexer na
+ * própria configuração; o caminho manual é o JSON de `mcpServers`. A chave nunca é embutida
+ * aqui (ela só aparece uma vez, na criação) — os dois trechos trazem o lugar de colá-la.
+ */
+function ConnectAgent({ mcpUrl, restBaseUrl }: { mcpUrl: string; restBaseUrl: string }) {
+  const t = useTranslations('settings');
+  const [open, setOpen] = useState(false);
+
+  const prompt = t('agentPromptTemplate', { mcpUrl, restBaseUrl });
+  const config = `{
+  "mcpServers": {
+    "manypost": {
+      "type": "http",
+      "url": "${mcpUrl}",
+      "headers": { "Authorization": "Bearer SUA_CHAVE_MP_LIVE" }
+    }
+  }
+}`;
+
+  return (
+    <div className="rounded-lg border border-line bg-surface">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+      >
+        <span className="flex items-center gap-2 text-[13px] font-semibold text-ink">
+          <Bot className="size-4 text-graphite" aria-hidden />
+          {t('agentTitle')}
+        </span>
+        <ChevronDown className={`size-4 text-graphite ${open ? 'rotate-180' : ''}`} aria-hidden />
+      </button>
+      {open ? (
+        <div className="flex flex-col gap-5 border-t border-line px-4 py-4">
+          <p className="text-[13px] leading-relaxed text-graphite">{t('agentIntro')}</p>
+
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[13px] font-semibold text-ink">{t('agentPromptTitle')}</p>
+              <CopyButton value={prompt} label={t('agentCopyPrompt')} />
+            </div>
+            <p className="text-xs text-graphite">{t('agentPromptHint')}</p>
+            <pre className="overflow-x-auto whitespace-pre-wrap rounded-md border border-line bg-surface-2 p-3 text-xs leading-relaxed text-ink">
+              {prompt}
+            </pre>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[13px] font-semibold text-ink">{t('agentManualTitle')}</p>
+              <CopyButton value={config} label={t('agentCopyConfig')} />
+            </div>
+            <p className="text-xs text-graphite">{t('agentManualHint')}</p>
+            <pre className="overflow-x-auto rounded-md border border-line bg-surface-2 p-3 text-xs leading-relaxed text-ink">
+              {config}
+            </pre>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function SettingsView() {
   const t = useTranslations('settings');
   const locale = useLocale();
@@ -172,6 +291,7 @@ export function SettingsView() {
         </div>
         <p className="-mt-2 text-[13px] leading-relaxed text-graphite">{t('apiKeysHint')}</p>
         <PlanLockNotice feature="public_api" />
+        <MachineEndpoints />
 
         {freshKey ? <SecretOnce value={freshKey} onDismiss={() => setFreshKey(null)} /> : null}
 

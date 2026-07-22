@@ -9,6 +9,7 @@ import {
 import { DomainError, type MediaRecord, type PublicationFeedItem } from '@manypost/core';
 import type { Container } from '../../../container';
 import { requireAuth, requireScope } from '../../middleware/auth';
+import { machineCors } from '../../middleware/machine-cors';
 import { idempotency, rateLimitByCredential, requirePlanFeature } from '../../middleware/public-api';
 import { createApp, errorResponses, jsonBody, jsonResponse } from '../../openapi';
 import { isProviderAvailable, providerCatalogEntry } from '../shared/provider-catalog';
@@ -275,6 +276,7 @@ const path = (app: ReturnType<typeof createApp>, cfg: Omit<RouteConfig, 'securit
 export function publicV1Routes(ctn: Container) {
   const app = createApp();
 
+  app.use('*', machineCors()); // antes do auth: preflight OPTIONS não carrega credencial
   app.use('*', requireAuth({ signer: ctn.signer, verifyApiKey: ctn.auth.verifyApiKey }));
   app.use('*', requirePlanFeature(ctn.plan, 'public_api'));
   app.use('*', rateLimitByCredential(ctn.runtime.rateLimiter, { limit: 60, windowSec: 60 }));

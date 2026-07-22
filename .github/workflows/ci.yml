@@ -57,6 +57,11 @@ jobs:
           MODE: all
           PORT: 3988
           PUBLIC_URL: http://localhost:3988
+          # Superfícies de máquina em hosts dedicados (SPEC_API_MCP §3/§5). O mesmo processo
+          # atende os três: localhost = app, 127.0.0.1 = API REST (/v1), 127.0.0.2 = MCP (raiz)
+          # — o roteamento é por Host, então três nomes de loopback provam a separação sem DNS.
+          API_PUBLIC_URL: http://127.0.0.1:3988
+          MCP_PUBLIC_URL: http://127.0.0.2:3988
           DATABASE_URL: postgresql://mp:mp@localhost:5499/mp
           REDIS_URL: redis://localhost:6399
           JWT_SECRET: ci-secret-with-at-least-32-characters!!
@@ -71,8 +76,8 @@ jobs:
           for i in $(seq 1 30); do curl -sf http://localhost:3988/health >/dev/null && break; sleep 1; done
           BASE_URL=http://localhost:3988 bun run scripts/e2e-auth.ts
           BASE_URL=http://localhost:3988 bun run scripts/e2e-publish.ts
-          BASE_URL=http://localhost:3988 bun run scripts/e2e-public.ts
-          BASE_URL=http://localhost:3988 bun run scripts/e2e-mcp.ts
+          BASE_URL=http://localhost:3988 API_BASE_URL=http://127.0.0.1:3988/v1 bun run scripts/e2e-public.ts
+          BASE_URL=http://localhost:3988 MCP_URL=http://127.0.0.2:3988 bun run scripts/e2e-mcp.ts
 
       # Limites de plano: exige a API em modo GERENCIADO (IS_SELF_HOSTED=false + Stripe).
       # Nenhuma chamada sai para a Stripe — o enforcement é local; a chave só liga o modo.

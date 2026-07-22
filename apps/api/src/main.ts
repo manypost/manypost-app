@@ -1,12 +1,12 @@
 import { fileURLToPath } from 'node:url';
 import { createRoute, z } from '@hono/zod-openapi';
-import { loadEnv } from '@manypost/config';
+import { loadEnv, machineEndpoints, machineHosts } from '@manypost/config';
 import { runMigrations } from '@manypost/db';
 import { providerRegistry } from '@manypost/providers';
 import { buildContainer } from './container';
-import { correlationId } from './http/middleware/context';
-import { errorHandler } from './http/middleware/error';
+import { humansOnly } from './http/middleware/auth';
 import { createApp } from './http/openapi';
+import { buildSurfaceRouter, installBaseMiddleware } from './http/surfaces';
 import { apiKeyRoutes } from './http/routes/api-keys.routes';
 import { approvalPublicRoutes } from './http/routes/approvals-public.routes';
 import { authRoutes } from './http/routes/auth.routes';
@@ -40,25 +40,7 @@ if (env.MODE !== 'api') {
 }
 const app = createApp();
 
-app.use('*', correlationId());
-
-// Latência/status por rota → histograma Prometheus (SPEC_INFRA §4). Usa o PADRÃO da rota
-// (c.req.routePath, ex.: /v1/posts/:groupId) e não o path com ids — cardinália limitada.
-app.use('*', async (c, next) => {
-  const start = performance.now();
-  try {
-    await next();
-  } finally {
-    ctn.metrics.observeHttp(
-      c.req.method,
-      c.req.routePath ?? c.req.path,
-      c.res.status,
-      (performance.now() - start) / 1000,
-    );
-  }
-});
-
-app.onError(errorHandler);
+installBaseMiddleware(app, ctn); // correlation id + histograma HTTP + problem+json
 
 // /metrics (SPEC_INFRA §4): exposição Prometheus. Se METRICS_TOKEN estiver setado, exige
 // Authorization: Bearer <token>; senão fica aberto (self-hosted em rede privada). A profundidade
@@ -110,6 +92,10 @@ app.openapi(
     }),
 );
 
+// `/v1` é a superfície da INTERFACE (humano por cookie/JWT, autorização por papel). Máquina
+// tem porta própria — com escopos, gate de plano e rate-limit por credencial (SPEC_API_MCP §3).
+app.use('/v1/*', humansOnly(machineEndpoints(env).restBaseUrl));
+
 app.route('/v1/auth/social', socialAuthRoutes(ctn));
 app.route('/v1/auth', authRoutes(ctn));
 app.route('/v1/api-keys', apiKeyRoutes(ctn));
@@ -128,8 +114,14 @@ if (ctn.billing) {
 }
 app.route('/uploads', publicUploadRoutes(ctn)); // arquivos públicos (chaves UUID, não enumeráveis)
 app.route('/public/approval', approvalPublicRoutes(ctn)); // aprovação por token, sem login (§12)
-app.route('/public/v1', publicV1Routes(ctn)); // API pública p/ máquinas (escopos + rate-limit + idempotência)
-app.route('/mcp', mcpRoutes(ctn)); // servidor MCP (Streamable HTTP) — auth por API key escopo mcp
+
+// Superfícies de MÁQUINA — instâncias únicas: as mesmas são montadas nos hosts dedicados
+// (`api.`/`mcp.`) pelo roteador de superfícies. Aqui elas seguem nos caminhos históricos, que
+// é o que o self-host de origem única usa (e o que já está publicado).
+const publicV1 = publicV1Routes(ctn); // escopos + gate de plano + rate-limit + idempotência
+const mcp = mcpRoutes(ctn); // Streamable HTTP; o registro de sessões vive no closure
+app.route('/public/v1', publicV1);
+app.route('/mcp', mcp);
 
 // OpenAPI: cada rota é documentada com schemas reais de request/response/erro via
 // createRoute (auth/api-keys/health) ou app.openAPIRegistry.registerPath (o restante,
@@ -255,6 +247,16 @@ app.get('/', (c) =>
 
 // Fase 1 restante: analytics (get_channel_analytics / GET /channels/{id}/analytics), IA
 // (generate_content) e OAuth 2.1 do MCP (hoje o /mcp autentica por API key escopo mcp).
-console.log(`manypost api (MODE=${env.MODE}) on :${env.PORT}`);
+const hosts = machineHosts(env);
+console.log(
+  `manypost api (MODE=${env.MODE}) on :${env.PORT}` +
+    (hosts.api ? ` · REST de máquina em ${hosts.api}/v1` : '') +
+    (hosts.mcp ? ` · MCP em ${hosts.mcp}/` : ''),
+);
 
-export default { port: env.PORT, hostname: '0.0.0.0', fetch: app.fetch };
+// Despacho por Host: app (PUBLIC_URL) × API de máquina (api.) × MCP (mcp.) — ver http/surfaces.ts
+export default {
+  port: env.PORT,
+  hostname: '0.0.0.0',
+  fetch: buildSurfaceRouter({ env, ctn, app, publicV1, mcp }),
+};

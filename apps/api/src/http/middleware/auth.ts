@@ -47,6 +47,26 @@ export const requireAuth = (deps: AuthMiddlewareDeps): MiddlewareHandler<AppEnv>
     throw new DomainError(ErrorCodes.AuthUnauthorized, 'não autenticado');
   };
 
+/**
+ * Fecha a superfície interna `/v1` para **máquinas** (SPEC_API_MCP §3): API key `mp_live_` é
+ * recusada aqui e mandada para a superfície de máquina, onde escopos, gate de plano
+ * (`public_api`), rate-limit por credencial e idempotência de fato valem. Sem isto, uma chave
+ * contornaria os três apontando para o `/v1` interno, que é regido por PAPEL (humano), não
+ * por escopo. Roda ANTES do `requireAuth` (o header basta — nem verifica a chave).
+ */
+export const humansOnly = (machineApiUrl: string): MiddlewareHandler<AppEnv> =>
+  async (c, next) => {
+    const header = c.req.header('authorization');
+    if (header?.startsWith('Bearer ') && header.slice(7).startsWith(API_KEY_PREFIX)) {
+      throw new DomainError(
+        ErrorCodes.Forbidden,
+        `API key não é aceita nesta superfície (ela é da interface web) — use a API de máquina em ${machineApiUrl}`,
+        { machineApiUrl },
+      );
+    }
+    await next();
+  };
+
 /** Exige usuário humano com papel ADMIN/OWNER (gestão de API keys, canais…). */
 export const requireAdmin = (): MiddlewareHandler<AppEnv> => async (c, next) => {
   const p = c.get('principal');

@@ -1,4 +1,5 @@
 import { createRoute, z } from '@hono/zod-openapi';
+import { machineEndpoints } from '@manypost/config';
 import { BillingPeriods, PlanTiers, SubscriptionStatuses } from '@manypost/contracts';
 import type { Container } from '../../container';
 import { requireAuth } from '../middleware/auth';
@@ -29,6 +30,14 @@ const Capabilities = z
         apiKeys: z.number().int(),
       }),
       enforced: z.boolean(),
+    }),
+    /**
+     * Onde uma máquina fala com esta instalação (SPEC_API_MCP §3/§5). Vem do servidor porque
+     * depende de como ELA foi publicada (host dedicado `api.`/`mcp.` ou origem única).
+     */
+    endpoints: z.object({
+      restBaseUrl: z.string().openapi({ example: 'https://api.manypost.com.br/v1' }),
+      mcpUrl: z.string().openapi({ example: 'https://mcp.manypost.com.br' }),
     }),
   })
   .openapi('Capabilities');
@@ -64,6 +73,7 @@ export function capabilityRoutes(ctn: Container) {
             currentPeriodEnd: plan.currentPeriodEnd?.toISOString() ?? null,
             cancelAt: plan.cancelAt?.toISOString() ?? null,
           },
+          endpoints: machineEndpoints(ctn.env),
         },
         200,
       );
