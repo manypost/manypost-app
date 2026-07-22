@@ -1,5 +1,7 @@
 # SPEC_DATA.md — manypost: PostgreSQL + Drizzle
 
+[← Índice da documentação](../README.md) · [STATUS do projeto](../principal/STATUS.md) · [Decisões](../principal/DECISIONS.md) · [README do projeto](../../README.md)
+
 > **Escopo:** `packages/db` [AGPL núcleo]. Modelo derivado do essencial do schema do Postiz (POSTIZ_ANALYSIS §4 — derivação documentada), modernizado: `jsonb` tipado, tokens cifrados, migrations versionadas. Depende de: SPEC_QUEUE_PUBLISHING (estados), SPEC_INTEGRATIONS (channels).
 
 ## 1. ORM: Drizzle (justificativa vs Prisma)
@@ -113,3 +115,9 @@ CREATE INDEX idx_api_keys_prefix ON api_keys (prefix) WHERE revoked_at IS NULL;
 3. Todas as queries de repositório passam por índice (EXPLAIN nos testes das 5 queries quentes: calendário, kanban, scanner, fila de webhooks, lookup de api key).
 4. Tabelas de tenant sem `org_id` reprovam no lint de schema.
 5. Benchmark: 100k publications — calendário mensal < 50ms, scanner < 20ms.
+
+---
+
+**Specs irmãs:** [ARCHITECTURE](SPEC_ARCHITECTURE.md) · [BACKEND](SPEC_BACKEND.md) · [FRONTEND](SPEC_FRONTEND.md) · [QUEUE_PUBLISHING](SPEC_QUEUE_PUBLISHING.md) · [INTEGRATIONS](SPEC_INTEGRATIONS.md) · [API_MCP](SPEC_API_MCP.md) · [AI](SPEC_AI.md) · [INFRA](SPEC_INFRA.md) · [ROADMAP](SPEC_ROADMAP.md)
+
+**Navegação:** [Índice da documentação](../README.md) · [STATUS](../principal/STATUS.md) · [Decisões](../principal/DECISIONS.md) · [Marca](../brand/BRAND_SYSTEM.md) · [README do projeto](../../README.md) · [Contribuir](../../CONTRIBUTING.md)

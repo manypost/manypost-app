@@ -136,7 +136,7 @@
     "disconnectTitle": "Desconectar {name}?",
     "disconnectWarning": "Publicações futuras agendadas para este canal vão falhar. Nada do que já foi publicado é apagado.",
     "empty": "Nenhum canal conectado ainda — escolha uma rede abaixo para começar.",
-    "catalogEmpty": "Nenhum provider configurado nesta instalação. Defina as credenciais no .env da API (docs/INTEGRATIONS_SETUP.md).",
+    "catalogEmpty": "Nenhum provider configurado nesta instalação. Defina as credenciais no .env da API (docs/principal/INTEGRATIONS_SETUP.md).",
     "status": {
       "ACTIVE": "Ativo",
       "REFRESH_REQUIRED": "Reconexão necessária",

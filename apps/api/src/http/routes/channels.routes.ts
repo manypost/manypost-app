@@ -97,7 +97,7 @@ export function channelRoutes(ctn: Container) {
     if (!available(provider)) {
       throw new DomainError(
         ErrorCodes.CapabilityDisabled,
-        'provider não configurado nesta instalação — veja docs/INTEGRATIONS_SETUP.md',
+        'provider não configurado nesta instalação — veja docs/principal/INTEGRATIONS_SETUP.md',
       );
     }
     return provider;

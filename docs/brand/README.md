@@ -1,5 +1,7 @@
 # docs/brand — identidade visual do manypost
 
+[← Índice da documentação](../README.md) · [BRAND_SYSTEM.md](BRAND_SYSTEM.md) · [SPEC_FRONTEND](../specs/SPEC_FRONTEND.md) · [README do projeto](../../README.md)
+
 > **Fonte da verdade visual:** [BRAND_SYSTEM.md](BRAND_SYSTEM.md) (especificação) e [BRAND_SYSTEM.html](BRAND_SYSTEM.html) (guia renderizado — abra no navegador). **Todo trabalho de frontend segue esses dois arquivos.** Este README é a avaliação técnica e o guia de adaptação da marca (escrita para landing/Astro) para o **app** (Next.js + shadcn/ui — SPEC_FRONTEND).
 
 ## 1. Avaliação
@@ -20,7 +22,7 @@
 | G4 | **Fontes via Google Fonts CDN** | Performance + privacidade (LGPD) no app | Self-host via `next/font` com as mesmas famílias/pesos |
 | G5 | Componentes descritos para Astro (`<Button />` .astro) | App usa shadcn/ui | Tema shadcn no §2 traduz os tokens; os nomes de variantes da marca são preservados |
 
-### Alinhamento marca ↔ roadmap (RESOLVIDO em DECISIONS v1.1 + docs/PLANS.md)
+### Alinhamento marca ↔ roadmap (RESOLVIDO em DECISIONS v1.1 + [PLANS.md](../principal/PLANS.md))
 - **Análise de concorrentes / benchmarking** (BRAND §1.C) → confirmado pelo owner como feature do produto; **código aberto no monorepo** (gates no SaaS em v2+), entra na matriz de planos quando pronta (PLANS PL4). Marketing do MVP não a promete.
 - **Papéis Criador/Revisor/Gestor + histórico** (BRAND §1.D) → workspaces/permissões/auditoria do **plano Premium no SaaS** (monorepo 100% aberto, v3); núcleo comunitário tem OWNER/ADMIN/MEMBER + aprovação de 1 estágio.
 - **Links públicos de aprovação de cliente sem login** (BRAND §1.D) → **✅ aprovado para o núcleo AGPL** (DECISIONS v1.1 §12), gate Pro+ no gerenciado; fase 1 do roadmap.
@@ -66,3 +68,7 @@ Uso: badge/chip de estado = `tint` de fundo + cor como texto/borda (padrão `.ba
 4. Fontes só Inter/Plus Jakarta Sans via `next/font`.
 5. Wordmark minúsculo em 100% das ocorrências (grep no CI: `Manypost|MANYPOST` proibidos em UI/docs voltados a usuário).
 6. Screenshot test das telas principais comparado após mudanças de tema.
+
+---
+
+**Navegação:** [Índice da documentação](../README.md) · [BRAND_SYSTEM.md](BRAND_SYSTEM.md) · [SPEC_FRONTEND](../specs/SPEC_FRONTEND.md) · [STATUS](../principal/STATUS.md) · [README do projeto](../../README.md)

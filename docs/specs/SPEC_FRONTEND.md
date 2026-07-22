@@ -1,5 +1,7 @@
 # SPEC_FRONTEND.md — manypost: web app Next.js + shadcn/ui
 
+[← Índice da documentação](../README.md) · [STATUS do projeto](../principal/STATUS.md) · [Decisões](../principal/DECISIONS.md) · [README do projeto](../../README.md)
+
 > **Escopo:** `apps/web` [AGPL núcleo]. Cliente da API via **OpenAPI** (não tRPC). Segue a direção do Postiz (núcleo AGPL) nas telas de composer/calendário/conexões; o kanban é design original nosso (dentro do núcleo). Depende de: SPEC_BACKEND (OpenAPI), SPEC_API_MCP (auth), SPEC_INTEGRATIONS (capacidades por provider).
 >
 > **Identidade visual (normativo):** todo o frontend segue `docs/brand/BRAND_SYSTEM.md` + o guia de adaptação `docs/brand/README.md` — tokens de cor, tipografia dupla (Inter + Plus Jakarta Sans), botões 3×5, radius 4/6/8px, **zero sombras**, hover estável, wordmark `manypost` minúsculo. Conflito entre esta spec e o brand system → o brand system vence no visual.
@@ -97,3 +99,9 @@ flowchart LR
 5. Todas as telas funcionam em 1280px e 375px (kanban vira lista empilhada em mobile).
 6. Lighthouse a11y ≥ 95 nas telas principais.
 7. **Conformidade com o brand system** (checklist de `docs/brand/README.md` §4): zero `shadow-*`, zero transform em hover, cores só via token, radius 4/6/8, fontes via `next/font`, wordmark minúsculo — verificados por lint/grep no CI.
+
+---
+
+**Specs irmãs:** [ARCHITECTURE](SPEC_ARCHITECTURE.md) · [BACKEND](SPEC_BACKEND.md) · [DATA](SPEC_DATA.md) · [QUEUE_PUBLISHING](SPEC_QUEUE_PUBLISHING.md) · [INTEGRATIONS](SPEC_INTEGRATIONS.md) · [API_MCP](SPEC_API_MCP.md) · [AI](SPEC_AI.md) · [INFRA](SPEC_INFRA.md) · [ROADMAP](SPEC_ROADMAP.md)
+
+**Navegação:** [Índice da documentação](../README.md) · [STATUS](../principal/STATUS.md) · [Decisões](../principal/DECISIONS.md) · [Marca](../brand/BRAND_SYSTEM.md) · [README do projeto](../../README.md) · [Contribuir](../../CONTRIBUTING.md)

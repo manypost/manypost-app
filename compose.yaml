@@ -26,7 +26,7 @@ services:
       # Publica rápido no teste (backoff base curto) — em produção o default é 30s.
       PUBLISH_RETRY_BASE_SEC: 1
       # Credenciais de rede real são OPCIONAIS. Para publicar de verdade, descomente e
-      # preencha (veja TESTING.md → "Publicar numa rede real" e docs/INTEGRATIONS_SETUP.md):
+      # preencha (veja TESTING.md → "Publicar numa rede real" e docs/principal/INTEGRATIONS_SETUP.md):
       # TELEGRAM_BOT_TOKEN: ""
       # MASTODON_DEFAULT_INSTANCE: "https://mastodon.social"
     ports:
