@@ -14,12 +14,18 @@
 | X (Twitter) | app aprovado no portal; custo de tier | ☐ pendente | ☐ | ☐ | ☐ | **BYO-Key no Self-Hosted (`IS_SELF_HOSTED=true`); absorvido no plano Pro do SaaS Cloud** (DECISIONS v1.1 §13 / PLANS §4) |
 | Meta — Facebook Pages | App Review + Business Verification | ☐ pendente — **travado no CNPJ** | ☐ | ☐ | ☐ | onda 2; exige screencast do fluxo. **Os três "Meta" saem no MESMO app/review/verificação** — ver ⬇ |
 | Meta — Instagram | App Review (`instagram_content_publish`) | ☐ pendente — **travado no CNPJ** | ☐ | ☐ | ☐ | onda 2; mídia precisa de URL pública (Meta faz *pull* — depende de storage público/S3-R2); **marco de abertura ao público criador BR** |
-| Meta — Threads | Threads API (mesmo app Meta) | ☐ pendente — **travado no CNPJ** | ☐ | ☐ | ☐ | onda 2; token expira (refresh proativo, `th_refresh_token`) |
+| Meta — Threads | Threads API (caso de uso próprio no app Meta) | ☐ App Review pendente — **travado no CNPJ**; **provider ✅ pronto (onda 11), rodando em Development Mode** | ☐ | ☑ (dev mode) | 2026-07-22 | **implementado**: OAuth token curto→longo, container→`threads_publish`, carrossel misto, réplicas nativas. Não exige Página do FB nem Portfólio p/ testar. Token de ~60 dias com renovação **reativa** — refresh proativo (`th_refresh_token` em cron) segue em aberto |
 | TikTok | auditoria da Content Posting API (Direct Post) | ⏳ **em revisão (submetida 2026-07-18)** — provider ✅ pronto em sandbox | ☑ | ☑ (sandbox) | 2026-07-17 | onda 2; **provider implementado e testado em sandbox** (OAuth2 PKCE + Direct Post/inbox, FILE_UPLOAD de vídeo, PULL_FROM_URL de foto). **Formulário de auditoria ENVIADO em 2026-07-18** — aguardando revisão (~2–3 semanas). Sem aprovação os posts ficam privados (SELF_ONLY). **marco de abertura ao público criador BR** |
-| YouTube | quota 10k units/dia; audit p/ aumento; verificação OAuth | ☐ pendente | ☐ | ☐ | ☐ | onda 2; upload = 1600 units |
-| Pinterest | trial → standard access (**auditoria obrigatória em 2026**) | ⏳ em revisão — owner iniciou (informado em 2026-07-22; data exata a confirmar) | ☐ | ☐ | ☐ | onda 2 |
-| Reddit | ~~sem review formal~~ → **auditoria obrigatória em 2026**; rate 1 req/s | ⏳ em revisão — owner iniciou (informado em 2026-07-22; data exata a confirmar) | ☐ | ☐ | ☐ | onda 2 (maxConcurrent=1) |
-| Google Business Profile | formulário de acesso à API | ☐ pendente | ☐ | ☐ | ☐ | onda 3; processo lento |
+| YouTube | escopo **sensível** `youtube.upload` → verificação OAuth (marca + screencast) + quota | ☐ pendente | ☐ | ☐ | ☐ | onda 2; 10.000 units/dia por projeto e **upload = 1.600 units ⇒ ~6 vídeos/dia** por instalação. Aumento de quota é **auditoria separada** da verificação OAuth |
+| Pinterest | trial → **standard access** (review com vídeo do fluxo) | ⏳ em revisão — owner iniciou (informado em 2026-07-22; data exata a confirmar) | ☐ | ☐ | ☐ | onda 2; **no trial, Pin/Board criados são sandbox — só o criador vê** (ou seja, sem standard o produto não serve). Semanas de fila e reprovação comum na 1ª rodada |
+| Reddit | acesso aprovado por formulário + **uso comercial exige acordo pago** | ☐ pendente — ⚠️ **decisão de negócio, não só técnica** | ☐ | ☐ | ☐ | onda 2; free = 100 QPM por client OAuth e **só uso não-comercial**. SaaS pago sobre a chave grátis viola os termos ⇒ **Cloud precisa de commercial agreement (relatos de ~US$ 12k/ano)**; **self-hosted resolve com BYO-key** (chave do próprio usuário, uso pessoal) — mesmo desenho do X |
+| Google Business Profile | formulário de acesso à API (GBP API contact form) | ☐ pendente | ☐ | ☐ | ☐ | onda 3; **resposta em até 14 dias**, quota padrão 300 QPM por API quando aprovado (teto rígido de 10 edições/min por ficha). Público diferente do resto (negócio local, não criador) |
+| Slack | **nenhum p/ funcionar**; review só p/ listar no Marketplace | ☐ pendente | ☐ | ☐ | ☐ | **o gate mais barato da lista**: "Public Distribution" (instalar em workspaces de terceiros) é auto-serviço — exige OAuth2, HTTPS e checklist, **sem revisão da Slack**. Review só se quisermos aparecer no Slack Marketplace (algumas empresas só instalam app listado) |
+| Dev.to (Forem) | nenhum | ✅ livre | — | — | — | API key pessoal nas configurações do usuário (`api-key` no header) — **sem app, sem OAuth, sem review**. Provider mais barato de todos |
+| Medium | ⛔ **API fechada para novas integrações** | ⛔ **inviável hoje** | — | — | — | A Medium **parou de emitir integration tokens** e arquivou o repositório da API ("no longer supported"). Só quem já tem token antigo publica. Implementar = provider que quase ninguém consegue conectar — **decidir se entra assim mesmo (paridade Postiz) ou fica fora** |
+| Dribbble | registro auto-serviço; **uso comercial exige aprovação prévia** | ☐ pendente | ☐ | ☐ | ☐ | app em `dribbble.com/account/applications/new`, escopo `upload` p/ criar shot. Limites: 60 req/min e 1.440/dia por usuário; **48 shots/mês e 5/dia por conta**, e a conta precisa poder subir shot (`can_upload_shot`). Nicho (design), volume baixo |
+| Twitch | nenhum — app auto-serviço no dev console | ✅ livre — **provider pronto (onda 12)** | ☐ | ☐ | 2026-07-22 | **não é feed**: manda **mensagem no chat** (`/helix/chat/messages`) ou **anúncio do canal** (`/helix/chat/announcements`), escopos `user:write:chat` + `moderator:manage:announcements`. Toda chamada leva `Client-Id` junto do bearer. A Twitch pede que a app declare só os escopos que usa, sob pena de suspensão |
+| Kick | nenhum — app auto-serviço (OAuth 2.1 + PKCE) | ✅ livre — **provider pronto (onda 12)** | ☐ | ☐ | 2026-07-22 | idem: publica **mensagem no chat** (`/public/v1/chat`, escopo `chat:write`). API pública recém-aberta e **em iteração rápida** — risco de quebra maior que o das outras |
 
 **Atualização:** editar esta tabela a cada mudança de status (PR próprio, revisão obrigatória).
 
@@ -33,6 +39,75 @@ Os três providers da Meta (Facebook Pages, Instagram, Threads) compartilham **u
 - **Ao preencher**: razão social, endereço e telefone precisam bater **caractere a caractere** com o registro oficial (não use nome fantasia). Divergência aqui reprova a submissão sem qualquer relação com o mérito do app.
 - **Não bloqueia o desenvolvimento**: o Development Mode libera as permissões inteiras para contas com papel no app (dono + testers). Dá para implementar os três providers, rodar E2E e **gravar o screencast exigido na submissão** antes de a verificação existir. Ordem: implementar → screencast → habilitar a entidade → submeter.
 - **Self-hosted não depende disso** (BYO-key, mesma decisão do X — [DECISIONS v1.1 §13](DECISIONS.md)): cada instância registra o próprio app Meta e faz o próprio review. Quem depende da verificação é só o manypost Cloud.
+
+## ⬇ Escopo confirmado: toda rede com ícone em `apps/web/public/social` vira provider
+
+*Definido pelo owner em 2026-07-22.* O conjunto de ícones do app **é** a lista de redes-alvo (as
+mesmas que o Postiz implementa). São 18 redes + `Google.svg`, que é **login social** (já entregue,
+não é canal de publicação). Situação de cada uma:
+
+**Prontas — 10 redes / 11 providers** (o Discord tem dois: OAuth2+Bot e webhook): Mastodon ·
+Bluesky · Telegram · Discord ×2 · LinkedIn · X · TikTok · Threads · **Twitch** · **Kick**
+(as duas últimas fora do conjunto original de ícones — ver a seção adiante).
+
+**Faltam 10** — em ordem de custo/benefício (esforço de código × gate × valor p/ o usuário BR):
+
+| # | Rede | Gate | Esforço | Por que nesta posição |
+|---|---|---|---|---|
+| 1 | **Instagram** | App Review + Business Verification | alto (~1.100 l. de referência) | O canal mais pedido do público-alvo. Reusa o container→publish do Threads e as sub-contas do Discord. Vale a pena mesmo com o gate longo |
+| 2 | **Facebook Pages** | mesmo app/review do Instagram | alto (~890 l.) | Sai junto do Instagram: mesmo OAuth, mesmo review, e o token de **página** (`/me/accounts`) é o que publica |
+| 3 | **Dev.to** | nenhum | baixo (~190 l.) | Zero gate, API key pessoal. Entrega rápida que amplia a matriz enquanto os reviews da Meta correm |
+| 4 | **Slack** | nenhum p/ funcionar | médio (~290 l.) | Distribuição pública é auto-serviço. Canal de *equipe* (não de criador) — bom p/ o plano Pro/times |
+| 5 | **YouTube** | verificação OAuth + quota | alto (~640 l.) | Vídeo é caro (resumable upload) e a quota de ~6 uploads/dia limita o Cloud; BYO-key resolve no self-hosted |
+| 6 | **Pinterest** | trial → standard (vídeo) | médio (~530 l.) | Já em revisão. **Sem standard access o Pin nasce invisível**, então implementar antes da aprovação só serve p/ gravar o vídeo da submissão |
+| 7 | **Reddit** | acordo comercial p/ SaaS | médio (~510 l.) | ⚠️ Trava de **negócio**: no Cloud, cobrar por cima da chave grátis viola os termos. Só faz sentido como **BYO-key self-hosted** até existir decisão sobre o acordo pago |
+| 8 | **Dribbble** | aprovação p/ uso comercial | baixo (~225 l.) | Nicho de design, teto de 5 shots/dia. Barato de escrever, público pequeno |
+| 9 | **Medium** | ⛔ API fechada | baixo (~145 l.) | **Decidir antes de codar**: a Medium não emite mais token novo. Provider entregue hoje só funciona p/ quem tem token antigo |
+| — | **Google Business Profile** | formulário de acesso | alto (~630 l.) | Fora da onda: público de negócio local, não de criador. Fica na fase 3 como já estava |
+
+### Twitch e Kick — entregues na onda 12 (paridade com o Postiz)
+
+*Verificado e implementado em 2026-07-22.* O Postiz tem os dois
+(`twitch.provider.ts`, `kick.provider.ts`) e **o gate de ambos é o mais barato possível**: app
+auto-serviço no console de desenvolvedor, sem revisão, sem verificação de empresa. O que eles
+publicam, porém, não é feed:
+
+- **Twitch** publica **mensagem no chat** (`POST /helix/chat/messages`) ou **anúncio do canal**
+  (`/helix/chat/announcements`). Escopos `user:write:chat`, `user:read:chat`,
+  `moderator:manage:announcements`.
+- **Kick** publica **mensagem no chat** (`POST /public/v1/chat`, escopo `chat:write`), com OAuth
+  2.1 + PKCE.
+
+Ou seja: **nenhum dos dois tem feed de posts**. Chat é efêmero e só tem plateia enquanto a live
+está no ar — mensagem agendada para um canal offline vai para uma sala vazia. **Decisão do owner
+em 2026-07-22: entram assim mesmo, com as mesmas features e particularidades que o Postiz já
+mapeou.** O que a nossa implementação fez de diferente (e é melhor):
+
+- **Recusa da rede vira falha de verdade.** Twitch e Kick respondem **200 com `is_sent: false`**
+  quando descartam a mensagem (modo seguidores-only, mensagem duplicada, chat travado). O Postiz
+  marca `status: 'error'` e segue; aqui isso levanta erro com o `drop_reason`, senão o post
+  apareceria como publicado sem nunca ter entrado no chat.
+- **Zero mídia declarada nas capabilities** (`images/videos maxCount: 0`) — o composer barra o
+  anexo no agendamento em vez de descartar na hora de publicar.
+- **Preview de chat** no composer, deixando explícito para quem agenda que a mensagem cai na sala
+  ao vivo.
+
+Segue valendo a ressalva de produto: se um dia quisermos que isso seja realmente útil, o desenho
+é "avisar no chat quando eu entrar ao vivo" — gatilho de evento, não horário no calendário.
+
+**Duas decisões que ainda precisam do owner antes de virar código** (nenhuma é impedimento técnico):
+1. **Reddit** — entra só como self-hosted/BYO-key, ou vamos atrás do commercial agreement para o Cloud?
+2. **Medium** — entra por paridade com o Postiz mesmo sabendo que quase ninguém consegue token novo, ou fica fora da matriz (e o ícone sai do app)?
+
+*Fontes da pesquisa (2026-07-22):*
+[Medium API arquivada](https://github.com/Medium/medium-api-docs) ·
+[Dribbble v2 — overview](https://developer.dribbble.com/v2/) e [shots](https://developer.dribbble.com/v2/shots/) ·
+[Slack — distribuição](https://docs.slack.dev/distribution) e [guidelines do Marketplace](https://docs.slack.dev/slack-marketplace/slack-marketplace-app-guidelines-and-requirements/) ·
+[Forem API v1](https://developers.forem.com/api/v1) ·
+[Pinterest — access tiers](https://developers.pinterest.com/docs/getting-started/access-tiers/) ·
+[Reddit Data API 2026](https://www.redditapis.com/blogs/reddit-data-api-2026) ·
+[Google Business Profile — limites](https://developers.google.com/my-business/content/limits) ·
+[YouTube — OAuth p/ apps web](https://developers.google.com/youtube/v3/guides/auth/server-side-web-apps)
 
 ---
 

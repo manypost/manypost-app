@@ -660,8 +660,8 @@ export type paths = {
             cookie?: never;
         };
         /**
-         * Catálogo de providers disponíveis nesta instalação
-         * @description Providers cujas credenciais de app faltam no env não aparecem (como o login social).
+         * Catálogo de providers desta instalação
+         * @description Lista **todas** as redes implementadas, com `available` dizendo se as credenciais de app estão no env. Em self-hosted, a indisponível ainda traz `setupEnv` com as variáveis que faltam — assim a UI mostra "precisa de credencial" em vez de esconder a rede.
          */
         get: {
             parameters: {
@@ -672,7 +672,7 @@ export type paths = {
             };
             requestBody?: never;
             responses: {
-                /** @description providers disponíveis */
+                /** @description providers */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -4348,7 +4348,8 @@ export type components = {
         ChannelProviderInfo: {
             id: string;
             name: string;
-            editor: boolean;
+            /** @enum {string} */
+            editor: "plain" | "rich" | "markdown" | "html";
             threads: boolean;
             twoStepConnect: boolean;
             /** @description rede que não aceita post só-texto (ex.: TikTok exige vídeo/foto) */
@@ -4374,6 +4375,10 @@ export type components = {
             };
             /** @description feature de plano exigida por esta rede no serviço gerenciado (ex.: `x_network`); ausente = incluída em todos os planos. Em self-hosted nunca é imposta */
             requiredFeature?: string;
+            /** @description false = rede implementada, mas SEM as credenciais de app no env desta instalação; `POST /connect` responde 404 até configurar */
+            available: boolean;
+            /** @description variáveis de ambiente que faltam para habilitar a rede (ex.: `["THREADS_APP_ID"]`). Só vem em instalação self-hosted, onde quem opera é quem usa; no serviço gerenciado é omitido */
+            setupEnv?: string[];
         };
         MediaRef: {
             mediaId?: string;

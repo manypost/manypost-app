@@ -2,6 +2,7 @@ import { z } from '@hono/zod-openapi';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import type { ChannelProvider } from '@manypost/contracts';
 import { ErrorCodes, PROVIDER_REQUIRED_FEATURE } from '@manypost/contracts';
+import { providerEnvVarNames } from '@manypost/config';
 import { DomainError } from '@manypost/core';
 import type { Container } from '../../container';
 import { requireAdmin, requireAuth } from '../middleware/auth';
@@ -39,7 +40,8 @@ const ProviderInfo = z
   .object({
     id: z.string(),
     name: z.string(),
-    editor: z.boolean(),
+    // o catálogo devolve o tipo de editor do provider ('plain' hoje em todos) — nunca um booleano
+    editor: z.enum(['plain', 'rich', 'markdown', 'html']),
     threads: z.boolean(),
     twoStepConnect: z.boolean(),
     requiresMedia: z
@@ -68,6 +70,17 @@ const ProviderInfo = z
       .openapi({
         description:
           'feature de plano exigida por esta rede no serviço gerenciado (ex.: `x_network`); ausente = incluída em todos os planos. Em self-hosted nunca é imposta',
+      }),
+    available: z.boolean().openapi({
+      description:
+        'false = rede implementada, mas SEM as credenciais de app no env desta instalação; `POST /connect` responde 404 até configurar',
+    }),
+    setupEnv: z
+      .array(z.string())
+      .optional()
+      .openapi({
+        description:
+          'variáveis de ambiente que faltam para habilitar a rede (ex.: `["THREADS_APP_ID"]`). Só vem em instalação self-hosted, onde quem opera é quem usa; no serviço gerenciado é omitido',
       }),
   })
   .openapi('ChannelProviderInfo');
@@ -120,13 +133,31 @@ export function channelRoutes(ctn: Container) {
     path: '/providers',
     tags: ['channels'],
     security: AUTH_SECURITY,
-    summary: 'Catálogo de providers disponíveis nesta instalação',
-    description: 'Providers cujas credenciais de app faltam no env não aparecem (como o login social).',
-    responses: { 200: jsonResponse('providers disponíveis', z.array(ProviderInfo)), ...errorResponses(401) },
+    summary: 'Catálogo de providers desta instalação',
+    description:
+      'Lista **todas** as redes implementadas, com `available` dizendo se as credenciais de app estão no env. Em self-hosted, a indisponível ainda traz `setupEnv` com as variáveis que faltam — assim a UI mostra "precisa de credencial" em vez de esconder a rede.',
+    responses: { 200: jsonResponse('providers', z.array(ProviderInfo)), ...errorResponses(401) },
   });
-  // catálogo de providers DISPONÍVEIS (sem env necessária o provider some — como o login social)
+  // catálogo COMPLETO: quem não tem credencial vem com available:false (e a dica de env no
+  // self-hosted). Esconder a rede fazia o self-hoster achar que ela não existia.
   app.get('/providers', (c) =>
-    c.json(ctn.registry.list().filter(available).map(providerCatalogEntry)),
+    c.json(
+      ctn.registry.list().map((p) => {
+        const ok = available(p);
+        const missing = ok
+          ? []
+          : providerEnvVarNames(
+              p.id,
+              (p.requiredSecrets ?? []).filter((k) => !ctn.providerSecrets[p.id]?.[k]),
+            );
+        return {
+          ...providerCatalogEntry(p),
+          available: ok,
+          // no gerenciado o usuário final não opera o env — a dica só faz sentido self-hosted
+          ...(ctn.env.IS_SELF_HOSTED && missing.length > 0 ? { setupEnv: missing } : {}),
+        };
+      }),
+    ),
   );
 
   app.openAPIRegistry.registerPath({

@@ -22,6 +22,8 @@ export const PROVIDER_ICONS: Record<string, string> = {
   telegram: '/social/Telegram.svg',
   threads: '/social/Threads.svg',
   tiktok: '/social/TikTok.svg',
+  twitch: '/social/Twitch.svg',
+  kick: '/social/Kick.svg',
   x: '/social/X.svg',
   youtube: '/social/Youtube.svg',
   mastodon: '/social/Mastodon.svg',

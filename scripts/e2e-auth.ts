@@ -115,11 +115,25 @@ check(
   `provider google → 302 (configurado) ou 404 (não configurado) — veio ${socialOff.status}`,
 );
 
-// 9) catálogo de providers de rede: só os disponíveis (env presente) aparecem
+// 9) catálogo de providers de rede: lista TODA rede implementada, com `available` dizendo
+// quem tem credencial de app aqui (e `setupEnv`, no self-hosted, dizendo o que falta)
 const providers = (await (
   await fetch(`${BASE}/v1/channels/providers`, { headers: bearer })
 ).json()) as any[];
-const ids = providers.map((p) => p.id);
+/** ids CONECTÁVEIS — é o que a tela de Conexões oferece; o resto vira "precisa de credencial" */
+const ids = providers.filter((p) => p.available).map((p) => p.id);
+check(
+  providers.every((p) => typeof p.available === 'boolean'),
+  'catálogo marca disponibilidade em vez de esconder a rede',
+);
+{
+  // rede implementada e sem credencial não some mais: aparece com available:false + a dica de env
+  const off = providers.filter((p) => !p.available);
+  check(
+    off.every((p) => Array.isArray(p.setupEnv) && p.setupEnv.length > 0),
+    `indisponível traz setupEnv com a variável que falta (${off.map((p) => `${p.id}:${(p.setupEnv ?? []).join('/')}`).join(', ') || 'nenhuma indisponível'})`,
+  );
+}
 check(ids.includes('bluesky'), 'bluesky sempre disponível (não precisa de env)');
 check(ids.includes('mastodon'), 'mastodon sempre disponível');
 const bsky = providers.find((p) => p.id === 'bluesky');
@@ -151,15 +165,16 @@ check(
   providers.find((p) => p.id === 'discord-webhook')?.connectionFieldsSchema?.properties?.webhookUrl !== undefined,
   'discord-webhook expõe connectionFieldsSchema (webhookUrl)',
 );
-// telegram só aparece com TELEGRAM_BOT_TOKEN; sem env → some do catálogo e connect dá 404
+// telegram só fica conectável com TELEGRAM_BOT_TOKEN; sem env → available:false e connect 404
 if (ids.includes('telegram')) {
   check(providers.find((p) => p.id === 'telegram')?.connectType === 'fields', 'telegram conecta por campos');
 } else {
   const off = await post('/v1/channels/connect', { provider: 'telegram' }, bearer);
   check(off.status === 404, 'provider sem env → connect 404 (capability.disabled)');
 }
-// discord (OAuth2+Bot), linkedin, x e tiktok (credenciais de app no env) seguem a mesma regra do telegram
-for (const oauthId of ['discord', 'linkedin', 'x', 'tiktok']) {
+// discord (OAuth2+Bot), linkedin, x, tiktok, threads, twitch e kick (credenciais de app no env)
+// seguem a mesma regra do telegram
+for (const oauthId of ['discord', 'linkedin', 'x', 'tiktok', 'threads', 'twitch', 'kick']) {
   if (ids.includes(oauthId)) {
     const entry = providers.find((p) => p.id === oauthId);
     check(entry?.connectType === 'oauth', `${oauthId} conecta por OAuth`);
@@ -193,6 +208,55 @@ if (ids.includes('tiktok')) {
       (u?.searchParams.get('scope') ?? '').includes('video.publish'),
     'tiktok connect → URL de autorização do TikTok com client_key + PKCE + escopo video.publish',
   );
+}
+
+// threads disponível → catálogo declara thread nativa e o connect leva ao consentimento da Meta
+if (ids.includes('threads')) {
+  const entry = providers.find((p) => p.id === 'threads');
+  check(
+    entry?.threads === true && entry?.maxLength === 500,
+    'threads: réplicas nativas e limite de 500 caracteres no catálogo',
+  );
+  check(
+    entry?.settingsSchema?.properties?.replyControl !== undefined,
+    'threads expõe settingsSchema com replyControl (quem pode responder)',
+  );
+  const res = await post('/v1/channels/connect', { provider: 'threads' }, bearer);
+  const url = ((await res.json()) as { url?: string })?.url;
+  const u = url ? new URL(url) : undefined;
+  check(
+    u?.origin + (u?.pathname ?? '') === 'https://www.threads.net/oauth/authorize' &&
+      !!u?.searchParams.get('client_id') &&
+      (u?.searchParams.get('scope') ?? '').includes('threads_content_publish'),
+    'threads connect → URL de autorização da Meta com client_id + escopo threads_content_publish',
+  );
+}
+
+// twitch/kick: redes de CHAT — o catálogo precisa deixar claro que não aceitam mídia
+for (const chatId of ['twitch', 'kick']) {
+  if (!ids.includes(chatId)) continue;
+  const entry = providers.find((p) => p.id === chatId);
+  check(
+    entry?.media?.images?.maxCount === 0 && entry?.media?.videos?.maxCount === 0,
+    `${chatId}: catálogo declara zero mídia (chat não carrega anexo)`,
+  );
+  check(entry?.threads === true && entry?.maxLength === 500, `${chatId}: réplica no chat, 500 chars`);
+  const res = await post('/v1/channels/connect', { provider: chatId }, bearer);
+  const url = ((await res.json()) as { url?: string })?.url;
+  const u = url ? new URL(url) : undefined;
+  const expected = chatId === 'twitch' ? 'https://id.twitch.tv/oauth2/authorize' : 'https://id.kick.com/oauth/authorize';
+  check(
+    u?.origin + (u?.pathname ?? '') === expected &&
+      !!u?.searchParams.get('client_id') &&
+      (u?.searchParams.get('scope') ?? '').includes(chatId === 'twitch' ? 'user:write:chat' : 'chat:write'),
+    `${chatId} connect → URL de autorização com client_id + escopo de escrita no chat`,
+  );
+  if (chatId === 'kick') {
+    check(
+      u?.searchParams.get('code_challenge_method') === 'S256',
+      'kick connect → PKCE S256 (OAuth 2.1 exige)',
+    );
+  }
 }
 
 if (failures > 0) {
