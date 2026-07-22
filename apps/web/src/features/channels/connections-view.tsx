@@ -37,7 +37,7 @@ import { useOauthFlow } from './use-oauth-flow';
 type ProviderInfo = {
   id: string;
   name: string;
-  editor: boolean;
+  editor: 'plain' | 'rich' | 'markdown' | 'html';
   threads: boolean;
   twoStepConnect: boolean;
   connectType: 'fields' | 'oauth';

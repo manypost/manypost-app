@@ -176,6 +176,11 @@ function MastodonPreview({ p }: { p: NetworkProps }) {
   return <MicroblogPreview p={p} actions={[MessageCircle, Repeat2, Star, Bookmark, Share]} />;
 }
 
+/** Threads: microblog da Meta — thread encadeada nativa, ações curtir/responder/repostar/enviar. */
+function ThreadsPreview({ p }: { p: NetworkProps }) {
+  return <MicroblogPreview p={p} actions={[Heart, MessageCircle, Repeat2, Send]} />;
+}
+
 /** Sem layout próprio da rede (ex.: fake) — cartão neutro, sem chrome. */
 function GenericPreview({ p }: { p: NetworkProps }) {
   return <MicroblogPreview p={p} />;
@@ -484,6 +489,7 @@ const PREVIEWS: Record<string, ComponentType<{ p: NetworkProps }>> = {
   x: XPreview,
   bluesky: BlueskyPreview,
   mastodon: MastodonPreview,
+  threads: ThreadsPreview,
   linkedin: LinkedinPreview,
   telegram: TelegramPreview,
   discord: DiscordPreview,

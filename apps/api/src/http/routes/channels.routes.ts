@@ -39,7 +39,8 @@ const ProviderInfo = z
   .object({
     id: z.string(),
     name: z.string(),
-    editor: z.boolean(),
+    // o catálogo devolve o tipo de editor do provider ('plain' hoje em todos) — nunca um booleano
+    editor: z.enum(['plain', 'rich', 'markdown', 'html']),
     threads: z.boolean(),
     twoStepConnect: z.boolean(),
     requiresMedia: z

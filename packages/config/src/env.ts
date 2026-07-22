@@ -90,6 +90,9 @@ const EnvSchema = z
     X_CLIENT_SECRET: z.string().optional(),
     TIKTOK_CLIENT_KEY: z.string().optional(),
     TIKTOK_CLIENT_SECRET: z.string().optional(),
+    // Threads (família Meta): id/secret da app Meta com o caso de uso "Threads API"
+    THREADS_APP_ID: z.string().optional(),
+    THREADS_APP_SECRET: z.string().optional(),
 
     STORAGE_PROVIDER: z.enum(['local', 's3']).default('local'),
     UPLOAD_DIR: z.string().default('./uploads'),
@@ -206,5 +209,6 @@ export function providerSecretsFromEnv(env: Env): Record<string, Record<string, 
     x: prune({ clientId: env.X_CLIENT_ID, clientSecret: env.X_CLIENT_SECRET }),
     // TikTok usa client_key (não client_id) — SPEC_INTEGRATIONS §4 (onda 2)
     tiktok: prune({ clientKey: env.TIKTOK_CLIENT_KEY, clientSecret: env.TIKTOK_CLIENT_SECRET }),
+    threads: prune({ appId: env.THREADS_APP_ID, appSecret: env.THREADS_APP_SECRET }),
   };
 }

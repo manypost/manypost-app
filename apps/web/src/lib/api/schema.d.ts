@@ -4348,7 +4348,8 @@ export type components = {
         ChannelProviderInfo: {
             id: string;
             name: string;
-            editor: boolean;
+            /** @enum {string} */
+            editor: "plain" | "rich" | "markdown" | "html";
             threads: boolean;
             twoStepConnect: boolean;
             /** @description rede que não aceita post só-texto (ex.: TikTok exige vídeo/foto) */

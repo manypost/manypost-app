@@ -432,7 +432,13 @@
             "type": "string"
           },
           "editor": {
-            "type": "boolean"
+            "type": "string",
+            "enum": [
+              "plain",
+              "rich",
+              "markdown",
+              "html"
+            ]
           },
           "threads": {
             "type": "boolean"

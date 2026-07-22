@@ -6,13 +6,15 @@ import { fakeProvider } from './fake/fake.provider';
 import { linkedinProvider } from './linkedin/linkedin.provider';
 import { mastodonProvider } from './mastodon/mastodon.provider';
 import { telegramProvider } from './telegram/telegram.provider';
+import { threadsProvider } from './threads/threads.provider';
 import { tiktokProvider } from './tiktok/tiktok.provider';
 import { xProvider } from './x/x.provider';
 
 /**
  * Registry de providers (SPEC_INTEGRATIONS §2). Onda 1 (SPEC_ROADMAP) completa:
  * mastodon, telegram, bluesky, discord (oauth), discord-webhook, linkedin, x — cada um em sua pasta, registrado
- * aqui, com a suíte de contrato (test-kit) verde antes do merge. Onda 2: tiktok (Content Posting API).
+ * aqui, com a suíte de contrato (test-kit) verde antes do merge. Onda 2: tiktok (Content Posting API)
+ * e threads (primeiro da família Meta — container → threads_publish).
  */
 export const providers: ChannelProvider[] = [
   mastodonProvider,
@@ -23,6 +25,7 @@ export const providers: ChannelProvider[] = [
   linkedinProvider,
   xProvider,
   tiktokProvider,
+  threadsProvider,
   fakeProvider,
 ];
 
@@ -39,6 +42,7 @@ export {
   linkedinProvider,
   mastodonProvider,
   telegramProvider,
+  threadsProvider,
   tiktokProvider,
   xProvider,
 };

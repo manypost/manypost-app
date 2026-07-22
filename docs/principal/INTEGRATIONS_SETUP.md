@@ -306,12 +306,25 @@ FACEBOOK_APP_SECRET=...
 
 **Particularidades do Instagram:** a API publica via URL pública da mídia — o manypost precisa estar com armazenamento acessível por HTTPS (S3/R2 ou o próprio domínio), nunca `localhost`. Carrossel, Reels e Stories têm regras próprias de formato — o manypost valida antes de enviar.
 
-**Threads:** é um app/produto separado. Em developers.facebook.com crie (ou adicione ao app) o caso de uso **Threads API**, solicite `threads_basic` e `threads_content_publish` (mesma lógica de review) e preencha:
+**Threads (já funciona no manypost — entregue na onda 11):** é um caso de uso separado dentro do mesmo painel da Meta, e **não exige Página do Facebook nem Portfólio de Negócios** para testar. Passo a passo:
+
+1. Em **https://developers.facebook.com** → **My Apps** → seu app (ou **Create App**) → adicione o caso de uso **Threads API** ("Access the Threads API").
+2. Na configuração do caso de uso, marque as permissões: **`threads_basic`**, **`threads_content_publish`**, `threads_manage_replies` e `threads_manage_insights`.
+3. Em **Threads API → Settings**, no campo **Redirect Callback URLs**, cole:
+   `https://SEU_DOMINIO/v1/channels/callback/threads` — precisa ser **HTTPS** (a Meta recusa `http://localhost`; em desenvolvimento use um túnel, ex.: `ngrok`/`cloudflared`).
+4. Copie o **Threads App ID** e o **Threads App Secret** dessa tela (são os do caso de uso, não confunda com os de outro produto) e preencha:
 
 ```env
 THREADS_APP_ID=...
 THREADS_APP_SECRET=...
 ```
+
+5. Reinicie o manypost: o Threads aparece na tela **Conexões**. Conecte com a sua conta — em modo desenvolvimento funciona **inteiro** (publicar texto, foto, carrossel e thread) para quem tem papel no app (**App Roles → Roles**).
+6. Para outras pessoas conectarem, é o mesmo **App Review** do item 10 acima, pedindo `threads_content_publish` com screencast.
+
+**Duas coisas que costumam pegar no Threads:**
+- **A Meta busca a mídia na sua URL** (não recebe o arquivo). Se o seu manypost estiver em `localhost`, a publicação com foto/vídeo falha com "The media could not be fetched from this URI" — post só de texto funciona normalmente. Em produção, use armazenamento acessível por HTTPS.
+- **O acesso vale ~60 dias** e é renovado sozinho a cada publicação. Uma conta que fica 60 dias sem publicar pede reconexão (o canal aparece como "precisa reconectar").
 
 ### 5.3 TikTok — auditoria obrigatória para post público
 

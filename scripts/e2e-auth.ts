@@ -158,8 +158,8 @@ if (ids.includes('telegram')) {
   const off = await post('/v1/channels/connect', { provider: 'telegram' }, bearer);
   check(off.status === 404, 'provider sem env → connect 404 (capability.disabled)');
 }
-// discord (OAuth2+Bot), linkedin, x e tiktok (credenciais de app no env) seguem a mesma regra do telegram
-for (const oauthId of ['discord', 'linkedin', 'x', 'tiktok']) {
+// discord (OAuth2+Bot), linkedin, x, tiktok e threads (credenciais de app no env) seguem a mesma regra do telegram
+for (const oauthId of ['discord', 'linkedin', 'x', 'tiktok', 'threads']) {
   if (ids.includes(oauthId)) {
     const entry = providers.find((p) => p.id === oauthId);
     check(entry?.connectType === 'oauth', `${oauthId} conecta por OAuth`);
@@ -192,6 +192,28 @@ if (ids.includes('tiktok')) {
       u?.searchParams.get('code_challenge_method') === 'S256' &&
       (u?.searchParams.get('scope') ?? '').includes('video.publish'),
     'tiktok connect → URL de autorização do TikTok com client_key + PKCE + escopo video.publish',
+  );
+}
+
+// threads disponível → catálogo declara thread nativa e o connect leva ao consentimento da Meta
+if (ids.includes('threads')) {
+  const entry = providers.find((p) => p.id === 'threads');
+  check(
+    entry?.threads === true && entry?.maxLength === 500,
+    'threads: réplicas nativas e limite de 500 caracteres no catálogo',
+  );
+  check(
+    entry?.settingsSchema?.properties?.replyControl !== undefined,
+    'threads expõe settingsSchema com replyControl (quem pode responder)',
+  );
+  const res = await post('/v1/channels/connect', { provider: 'threads' }, bearer);
+  const url = ((await res.json()) as { url?: string })?.url;
+  const u = url ? new URL(url) : undefined;
+  check(
+    u?.origin + (u?.pathname ?? '') === 'https://www.threads.net/oauth/authorize' &&
+      !!u?.searchParams.get('client_id') &&
+      (u?.searchParams.get('scope') ?? '').includes('threads_content_publish'),
+    'threads connect → URL de autorização da Meta com client_id + escopo threads_content_publish',
   );
 }
 
