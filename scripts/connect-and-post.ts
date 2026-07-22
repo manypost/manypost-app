@@ -3,7 +3,7 @@
  * Funciona com Mastodon (OAuth pelo navegador) e Telegram / Bluesky / Discord (credenciais
  * diretas — o Discord conecta colando a URL de um webhook do canal).
  *
- * Pré-requisitos: Postgres + Redis no ar e a API rodando (veja docs/STATUS.md §5 ou o
+ * Pré-requisitos: Postgres + Redis no ar e a API rodando (veja docs/principal/STATUS.md §5 ou o
  * passo a passo que o assistente te passou). Então:
  *
  *   bun run scripts/connect-and-post.ts

@@ -11,7 +11,7 @@ import { checkMediaRules } from '../shared/media-rules';
 
 // Derived from Postiz (AGPL-3.0): direção do telegram.provider.ts (bot da instalação publica
 // em canal/grupo onde é admin). Implementação própria sobre a Bot API; conexão por @/id do chat
-// em vez de polling de getUpdates (guia leigo: docs/INTEGRATIONS_SETUP.md §2.3).
+// em vez de polling de getUpdates (guia leigo: docs/principal/INTEGRATIONS_SETUP.md §2.3).
 
 const API = 'https://api.telegram.org';
 

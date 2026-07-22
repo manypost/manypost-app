@@ -1,11 +1,13 @@
 # SPEC_ARCHITECTURE.md — manypost: visão geral e fronteiras
 
+[← Índice da documentação](../README.md) · [STATUS do projeto](../principal/STATUS.md) · [Decisões](../principal/DECISIONS.md) · [README do projeto](../../README.md)
+
 > **Status:** APROVADA (DECISIONS.md v1 + Adendo Open Source v1.2, 2026-07-17) — licença de `@manypost/contracts` validada como AGPL-3.0 integral no monorepo.
 > **Contexto:** o manypost reimplementa as soluções do [Postiz](https://github.com/gitroomhq/postiz-app) (AGPL-3.0) em nova stack. **Monorepo unificado 100% Open Source sob AGPL-3.0 com atribuição ao Postiz** (derivação documentada em `POSTIZ_ANALYSIS.md §8`). A separação entre uso grátis self-hosted e portas comerciais no SaaS na nuvem ocorre via variáveis de ambiente (`IS_SELF_HOSTED`, `HIDE_BILLING`). Este documento define os bounded contexts e como as camadas se encaixam. Specs irmãs: BACKEND, FRONTEND, QUEUE_PUBLISHING, INTEGRATIONS, DATA, API_MCP, AI, INFRA, ROADMAP.
 
 ## 1. Objetivo do produto
 
-Agendador e publicador de posts para redes sociais, self-hostable, com: conexão de canais via OAuth, composer multi-canal, calendário + kanban, publicação durável com retry/rate-limit, analytics por canal, API pública e servidor MCP. Premium (SaaS/licença): IA operacional, governança avançada, billing, admin.
+Agendador e publicador de posts para redes sociais, self-hostable, com: conexão de canais via OAuth, composer multi-canal, calendário + kanban, publicação durável com retry/rate-limit, analytics por canal, API pública e servidor MCP. **Tudo isso vive no monorepo aberto** — incluindo IA operacional, governança, billing e admin, que no serviço gerenciado são gateados por `PlanPolicy` e no self-hosted ficam liberados (§3, "Estratégia de Nuvem vs Self-Hosted").
 
 ## 2. Stack alvo (fixa)
 
@@ -124,6 +126,12 @@ Regra de dependência: `domain` não importa nada; `application` importa `domain
 ## 8. Critérios de aceite desta spec
 
 1. Repositório núcleo criado com a estrutura do §4, `NOTICE`/`ATTRIBUTION.md` presentes e CI validando que `packages/core` não importa de `apps/*` nem de `infra`.
-2. `docker compose up` sobe o núcleo completo sem qualquer variável/serviço premium.
+2. `docker compose up` sobe a aplicação completa sem nenhuma variável ou serviço de assinatura.
 3. `@manypost/contracts` publicável e consumido por um serviço de exemplo externo (smoke test) — publicação real só após validação jurídica (DECISIONS §1c/P1).
-4. Nenhuma referência a código premium no repo AGPL (verificação de CI por dependency-cruiser).
+4. Nenhuma referência a código fechado (`@manypost-premium` e afins): o CI falha se aparecer uma — é o guard que impede o modelo 100% aberto de regredir sem que ninguém perceba.
+
+---
+
+**Specs irmãs:** [BACKEND](SPEC_BACKEND.md) · [FRONTEND](SPEC_FRONTEND.md) · [DATA](SPEC_DATA.md) · [QUEUE_PUBLISHING](SPEC_QUEUE_PUBLISHING.md) · [INTEGRATIONS](SPEC_INTEGRATIONS.md) · [API_MCP](SPEC_API_MCP.md) · [AI](SPEC_AI.md) · [INFRA](SPEC_INFRA.md) · [ROADMAP](SPEC_ROADMAP.md)
+
+**Navegação:** [Índice da documentação](../README.md) · [STATUS](../principal/STATUS.md) · [Decisões](../principal/DECISIONS.md) · [Marca](../brand/BRAND_SYSTEM.md) · [README do projeto](../../README.md) · [Contribuir](../../CONTRIBUTING.md)

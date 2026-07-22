@@ -1,5 +1,7 @@
 # ATTRIBUTION.md — origem e derivação
 
+[← README do projeto](README.md) · [Análise técnica do Postiz](docs/principal/POSTIZ_ANALYSIS.md) · [NOTICE](NOTICE) · [Licença AGPL-3.0](LICENSE)
+
 O núcleo do manypost reimplementa soluções do **Postiz** ([gitroomhq/postiz-app](https://github.com/gitroomhq/postiz-app), AGPL-3.0), estudado no commit `84edda5b02ea4a0aa31263a6aa52bc02b50f109f` (2026-07-05). Não há cópia literal de código-fonte (a stack é distinta), mas os elementos abaixo são **derivação conceitual direta** e mantêm este repositório sob AGPL-3.0:
 
 | Elemento derivado no manypost | Origem no Postiz |
@@ -12,3 +14,9 @@ O núcleo do manypost reimplementa soluções do **Postiz** ([gitroomhq/postiz-a
 | Padrão "MCP sobre o mesmo core" com OAuth de recurso protegido (RFC 9728 + PKCE) e auditoria da origem da mutação | `libraries/nestjs-libraries/src/chat/start.mcp.ts`, enum `CreationMethod` |
 
 **Estratégia Open Source & Nuvem:** Todo o código do manypost (incluindo IA operacional, workspaces, governança, billing e admin) opera em um **Monorepo Único 100% Open Source (AGPL-3.0)**. A separação entre o uso comunitário gratuito (`IS_SELF_HOSTED=true`, `HIDE_BILLING=true`) e o serviço gerenciado na nuvem (`manypost Cloud`, onde os limites de planos e cobranças são ativados via `PlanPolicy`) é controlada por variáveis de ambiente, sem necessidade de repositório privado ou código fechado. Componentes operacionais exclusivos do produto são implementações originais e não derivam do Postiz.
+
+A análise completa que fundamenta cada derivação está em [POSTIZ_ANALYSIS.md](docs/principal/POSTIZ_ANALYSIS.md) §8, e as capturas de tela usadas como referência de UX estão em [docs/references for postiz/](<docs/references for postiz/README.md>), com a mesma nota de autoria.
+
+---
+
+**Navegação:** [README do projeto](README.md) · [Documentação](docs/README.md) · [Análise do Postiz](docs/principal/POSTIZ_ANALYSIS.md) · [Decisões](docs/principal/DECISIONS.md) · [NOTICE](NOTICE) · [LICENSE](LICENSE)

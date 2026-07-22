@@ -2,9 +2,11 @@
 
 Plataforma de agendamento/publicação multicanal. **O wordmark é sempre `manypost`, em caixa baixa — inclusive em início de frase e `<title>`.**
 
-> **COMECE POR `docs/principal/STATUS.md`** — estado atual, o que já funciona (com provas), o que falta (com referência de spec por item) e como rodar os E2E. O clone do Postiz para consulta está em `../_ref/postiz-app` (marque derivações — ver ATTRIBUTION.md).
+> **COMECE POR [`docs/principal/STATUS.md`](docs/principal/STATUS.md)** — estado atual, o que já funciona (com provas), o que falta (com referência de spec por item) e como rodar os E2E. O índice de toda a documentação está em [`docs/README.md`](docs/README.md). O clone do Postiz para consulta está em `../_ref/postiz-app` (marque derivações — ver [ATTRIBUTION.md](ATTRIBUTION.md)).
 >
-> **Nota:** `docs/principal/` (STATUS, DECISIONS, PLANS, INTEGRATIONS_SETUP, platform-gates, POSTIZ_ANALYSIS) é **local e fora do versionamento** (gitignored) — o planejamento não vai para o repositório público.
+> **Nota (mudou em 2026-07-22):** `docs/principal/` **é versionado e público** como o resto do repositório. Se o código é 100% aberto, esconder o planejamento não protege nada e só dificulta a contribuição. Consequência prática: **nunca** escreva segredo, chave, id de conta de faturamento ou dado pessoal em qualquer doc — use marcadores (`sk_test_...`).
+>
+> **Ao fechar uma fatia:** atualize o STATUS **e** abra uma entrada no topo de [`docs/principal/CHANGELOG_ONDAS.md`](docs/principal/CHANGELOG_ONDAS.md). O STATUS é sobre o presente (enxuto); o changelog guarda o histórico com as provas.
 
 ## Leia antes de trabalhar
 
@@ -19,6 +21,7 @@ Plataforma de agendamento/publicação multicanal. **O wordmark é sempre `manyp
 | Decisões já tomadas (não re-litigar) | `docs/principal/DECISIONS.md` (v1 + adendo v1.1 + adendo Open Source v1.2) |
 | Planos do SaaS e gates de feature | `docs/principal/PLANS.md` — enforcement via feature flags `IS_SELF_HOSTED`/`HIDE_BILLING` no monorepo 100% aberto |
 | Origem/licença | `ATTRIBUTION.md` — derivado do Postiz (AGPL-3.0), monorepo unificado 100% open source |
+| Achar qualquer outro documento | [`docs/README.md`](docs/README.md) — índice com rota por perfil e regras de manutenção da doc |
 
 ## Regras invioláveis
 
@@ -43,7 +46,8 @@ Plataforma de agendamento/publicação multicanal. **O wordmark é sempre `manyp
 bun install
 bun run dev          # apps/api (MODE via .env)
 bun run dev:worker   # apps/worker
-bun run check        # typecheck + testes + fronteiras + grep de IA
+bun run dev:all      # api (:3100) + web (:3000)
+bun run check        # typecheck + testes + fronteiras + grep de IA + brand
 ```
 
 Referência local do código do Postiz estudado: `../_ref/postiz-app` (commit `84edda5`).

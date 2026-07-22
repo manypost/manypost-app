@@ -1,5 +1,7 @@
 # SPEC_ROADMAP.md — manypost: fases de entrega
 
+[← Índice da documentação](../README.md) · [STATUS do projeto](../principal/STATUS.md) · [Decisões](../principal/DECISIONS.md) · [README do projeto](../../README.md)
+
 > **Escopo:** sequenciamento de MVP → v2 → v3, com critérios de saída por fase. As fases respeitam o controle de portas comerciais (SPEC_ARCHITECTURE) e os gates de plataforma (SPEC_INTEGRATIONS §4), que têm lead time próprio e devem ser iniciados **no dia 1**.
 
 ```mermaid
@@ -65,5 +67,11 @@ Tarefas não-código da fase 0 (caminho crítico externo):
 | Gates de plataforma (Meta/TikTok/X) atrasam onda 2 | iniciar processos na fase 0; MVP com onda 1 sem gates; self-host usa keys do operador |
 | Maturidade do Bun em produção | Hono é portável a Node (SPEC_BACKEND §2); CI roda a suíte também em Node 1x/semana |
 | Dupla publicação | protocolo do SPEC_QUEUE §5 + testes de kill do worker como gate de release |
-| Fronteira do monorepo AGPL contaminada por dep fechada | lints de CI (`dependency-cruiser` / `grep -rn "@manypost-premium"`) + revisão em PRs |
+| Monorepo 100% aberto regride para uma dependência fechada | lints de CI (`dependency-cruiser` / `grep -rn "@manypost-premium"`) + revisão em PRs |
 | Escopo do composer explodir | paridade Postiz primeiro (global + per-canal + preview); recursos extras só pós-MVP |
+
+---
+
+**Specs irmãs:** [ARCHITECTURE](SPEC_ARCHITECTURE.md) · [BACKEND](SPEC_BACKEND.md) · [FRONTEND](SPEC_FRONTEND.md) · [DATA](SPEC_DATA.md) · [QUEUE_PUBLISHING](SPEC_QUEUE_PUBLISHING.md) · [INTEGRATIONS](SPEC_INTEGRATIONS.md) · [API_MCP](SPEC_API_MCP.md) · [AI](SPEC_AI.md) · [INFRA](SPEC_INFRA.md)
+
+**Navegação:** [Índice da documentação](../README.md) · [STATUS](../principal/STATUS.md) · [Decisões](../principal/DECISIONS.md) · [Marca](../brand/BRAND_SYSTEM.md) · [README do projeto](../../README.md) · [Contribuir](../../CONTRIBUTING.md)

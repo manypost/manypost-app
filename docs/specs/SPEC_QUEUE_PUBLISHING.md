@@ -1,5 +1,7 @@
 # SPEC_QUEUE_PUBLISHING.md — manypost: fila e pipeline de publicação
 
+[← Índice da documentação](../README.md) · [STATUS do projeto](../principal/STATUS.md) · [Decisões](../principal/DECISIONS.md) · [README do projeto](../../README.md)
+
 > **Escopo:** contexto **Publishing** [AGPL núcleo]. É a spec mais crítica do sistema. Segue a direção do Postiz (núcleo AGPL) no desenho do pipeline, na taxonomia de erros e na recuperação; diverge na tecnologia de fila. Depende de: SPEC_DATA (tabelas), SPEC_INTEGRATIONS (providers), SPEC_BACKEND (use-cases), SPEC_INFRA (Redis).
 
 ## 1. Contexto e lições do Postiz
@@ -125,3 +127,9 @@ Cada provider implementa `classifyError(status, body)` (equivalente ao `handleEr
 6. Editar post agendado: job antigo cancelado, novo criado (nunca dois jobs ativos por publication — invariante testada).
 7. Apagar a fila inteira (tabela pg-boss): scanner recupera 100% dos `SCHEDULED` futuros em ≤ 5 min.
 8. Dashboard/endpoint expõe: fila por provider, publicações por estado, taxa de erro por classe.
+
+---
+
+**Specs irmãs:** [ARCHITECTURE](SPEC_ARCHITECTURE.md) · [BACKEND](SPEC_BACKEND.md) · [FRONTEND](SPEC_FRONTEND.md) · [DATA](SPEC_DATA.md) · [INTEGRATIONS](SPEC_INTEGRATIONS.md) · [API_MCP](SPEC_API_MCP.md) · [AI](SPEC_AI.md) · [INFRA](SPEC_INFRA.md) · [ROADMAP](SPEC_ROADMAP.md)
+
+**Navegação:** [Índice da documentação](../README.md) · [STATUS](../principal/STATUS.md) · [Decisões](../principal/DECISIONS.md) · [Marca](../brand/BRAND_SYSTEM.md) · [README do projeto](../../README.md) · [Contribuir](../../CONTRIBUTING.md)

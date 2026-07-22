@@ -1,5 +1,7 @@
 # SPEC_INFRA.md — manypost: Redis, Docker, deploy e observabilidade
 
+[← Índice da documentação](../README.md) · [STATUS do projeto](../principal/STATUS.md) · [Decisões](../principal/DECISIONS.md) · [README do projeto](../../README.md)
+
 > **Escopo:** infraestrutura do núcleo [AGPL]. Meta: self-host em 3 serviços (app, Postgres, Redis) — deliberadamente mais leve que o Postiz atual (que exige stack Temporal + Elasticsearch). Depende de: SPEC_QUEUE_PUBLISHING (pg-boss/rate-limit), SPEC_DATA (migrations), SPEC_ARCHITECTURE (topologia).
 
 ## 1. Papéis do Redis
@@ -57,7 +59,7 @@ Env tipada com zod em `packages/config` (fail-fast com mensagem clara na var fal
 
 ## 5. CI/CD (GitHub Actions)
 
-1. **ci.yml** (PR): install (bun) → lint (+ regras de arquitetura: dependency-cruiser, verificação de monorepo sem repo fechado `@manypost-premium` e greps de provedores IA) → typecheck → testes unit/integração (services: postgres, redis) → migrations do zero → OpenAPI snapshot → build imagens.
+1. **ci.yml** (PR): install (bun) → lint (+ regras de arquitetura: dependency-cruiser, guard de monorepo 100% aberto — falha se aparecer referência a código fechado `@manypost-premium` — e greps de provedores de IA) → typecheck → testes unit/integração (services: postgres, redis) → migrations do zero → OpenAPI snapshot → build imagens.
 2. **release.yml** (tag): build+push GHCR multi-arch, SBOM, changelog automático, publish `@manypost/contracts`.
 3. **e2e.yml** (nightly): compose completo + Playwright + provider fake; smoke de upgrade (volume da versão anterior → head).
 4. **Monorepo checks:** o CI valida continuamente a integridade dos contratos e a separação limpa entre `packages/core` e `apps/*`.
@@ -70,3 +72,9 @@ Env tipada com zod em `packages/config` (fail-fast com mensagem clara na var fal
 4. `/metrics` expõe as métricas do §4 e os dashboards de referência renderizam.
 5. Upgrade de versão N-1 → N com migrations automáticas sem downtime perceptível (< 30s).
 6. Backup/restore documentado e testado no e2e nightly.
+
+---
+
+**Specs irmãs:** [ARCHITECTURE](SPEC_ARCHITECTURE.md) · [BACKEND](SPEC_BACKEND.md) · [FRONTEND](SPEC_FRONTEND.md) · [DATA](SPEC_DATA.md) · [QUEUE_PUBLISHING](SPEC_QUEUE_PUBLISHING.md) · [INTEGRATIONS](SPEC_INTEGRATIONS.md) · [API_MCP](SPEC_API_MCP.md) · [AI](SPEC_AI.md) · [ROADMAP](SPEC_ROADMAP.md)
+
+**Navegação:** [Índice da documentação](../README.md) · [STATUS](../principal/STATUS.md) · [Decisões](../principal/DECISIONS.md) · [Marca](../brand/BRAND_SYSTEM.md) · [README do projeto](../../README.md) · [Contribuir](../../CONTRIBUTING.md)

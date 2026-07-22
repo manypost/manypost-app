@@ -1,11 +1,20 @@
 # Testar o manypost na sua máquina
 
+[← README do projeto](README.md) · [Documentação](docs/README.md) · [Credenciais das redes](docs/principal/INTEGRATIONS_SETUP.md) · [Contribuir](CONTRIBUTING.md)
+
 Guia sem tecniquês para **clonar e experimentar** o manypost. Você não precisa saber
 programar — só instalar o Docker e colar alguns comandos.
 
-> **O que é o manypost?** Um agendador/publicador de posts para redes sociais. Ainda **não
-> tem tela visual** (a interface web está em construção). Por enquanto você testa pela
-> **API**, usando um explorador no navegador que deixa você clicar e ver o resultado.
+> **O que é o manypost?** Um agendador/publicador de posts para redes sociais, 100% open source.
+> [Veja o que já funciona](docs/principal/STATUS.md).
+>
+> **Sobre este guia:** o `docker compose` daqui sobe o **motor** (API + worker + banco) e um
+> **explorador de API** no navegador, onde cada operação vira um formulário — é o caminho mais curto
+> para ver o mecanismo funcionando de ponta a ponta, sem configurar nada.
+>
+> A **interface visual existe** e está bem completa (calendário, composer, kanban…), mas não sobe
+> neste compose de teste. Para usá-la, veja [Subir a interface visual](#8-subir-a-interface-visual)
+> no fim deste guia.
 
 ---
 
@@ -162,7 +171,7 @@ rede precisa:
 - **Mastodon** — conexão por navegador (OAuth); o script te guia com o link.
 
 Passo a passo completo e sem pressa para conseguir cada credencial:
-[`docs/INTEGRATIONS_SETUP.md`](docs/INTEGRATIONS_SETUP.md).
+[`docs/principal/INTEGRATIONS_SETUP.md`](docs/principal/INTEGRATIONS_SETUP.md).
 
 > **Segurança:** os `compose.yaml` deste guia usam segredos fixos, apenas para teste local.
 > Não exponha essa configuração na internet e não a use em produção.
@@ -181,4 +190,39 @@ Passo a passo completo e sem pressa para conseguir cada credencial:
 | Quer recomeçar do zero | `docker compose down -v` e suba de novo. |
 
 Ainda com dúvida? Anote a mensagem de erro que apareceu no terminal do `docker compose up` e
-mande para quem te passou o projeto.
+[abra uma issue](https://github.com/manypost/manypost-app/issues) com ela.
+
+---
+
+## 8. Subir a interface visual
+
+O `compose.yaml` deste guia sobe só o motor. Para ver o app completo — calendário, composer com
+preview por rede, kanban — há dois caminhos:
+
+**Com Docker**, trocando o modo do container no `compose.yaml`:
+
+```yaml
+environment:
+  MODE: standalone   # em vez de "all": sobe web + api + worker juntos
+```
+
+Depois `docker compose up --build` e abra <http://localhost:3000>. Neste modo a interface fica na
+porta pública e a API responde internamente na 3100.
+
+**Sem Docker** (para quem vai mexer no código), com [Bun](https://bun.sh) instalado:
+
+```bash
+bun install
+cp .env.example .env          # gere os segredos: openssl rand -hex 32
+docker compose up postgres redis -d
+bun run dev:all               # API em :3100 e interface em :3000
+```
+
+Detalhes de desenvolvimento estão no [README](README.md#-instalação) e no
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
+---
+
+**Navegação:** [README do projeto](README.md) · [Documentação](docs/README.md) ·
+[Status do projeto](docs/principal/STATUS.md) · [Credenciais das redes](docs/principal/INTEGRATIONS_SETUP.md) ·
+[Contribuir](CONTRIBUTING.md) · [Licença AGPL-3.0](LICENSE)

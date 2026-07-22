@@ -78,7 +78,7 @@ const EnvSchema = z
     GITHUB_CLIENT_SECRET: z.string().optional(),
 
     // Credenciais de providers de rede (opcionais — sem env, o provider some do catálogo;
-    // guia leigo em docs/INTEGRATIONS_SETUP.md). Bluesky/Mastodon não precisam de env.
+    // guia leigo em docs/principal/INTEGRATIONS_SETUP.md). Bluesky/Mastodon não precisam de env.
     MASTODON_DEFAULT_INSTANCE: z.string().url().optional(), // pré-preenche a instância no connect
     TELEGRAM_BOT_TOKEN: z.string().optional(),
     DISCORD_CLIENT_ID: z.string().optional(),

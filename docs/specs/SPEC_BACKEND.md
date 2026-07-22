@@ -1,5 +1,7 @@
 # SPEC_BACKEND.md — manypost: backend Bun + TypeScript
 
+[← Índice da documentação](../README.md) · [STATUS do projeto](../principal/STATUS.md) · [Decisões](../principal/DECISIONS.md) · [README do projeto](../../README.md)
+
 > **Escopo:** `apps/api`, `apps/worker` e `packages/core` do repo núcleo (AGPL). Segue a direção do Postiz onde indicado; melhorias e desvios são explícitos. Depende de: SPEC_ARCHITECTURE (contextos), SPEC_DATA (schema), SPEC_QUEUE_PUBLISHING (jobs), SPEC_INTEGRATIONS (providers), SPEC_API_MCP (superfícies).
 
 ## 1. Contexto
@@ -135,4 +137,10 @@ sequenceDiagram
 2. OpenAPI 3.1 gerado automaticamente cobre 100% das rotas públicas e autenticadas.
 3. Fluxo completo (conectar canal fake → agendar → publicar → webhook) verde em teste de integração.
 4. Lint impede: import de `apps/*` dentro de `packages/core`; repositório sem filtro de org; `catch` vazio.
-5. Nenhuma dependência externa ou repositório premium fechado (`@manypost-premium`) e nenhuma referência a provedor de IA nominal fora do adaptador `infra/ai/*` (grep no CI).
+5. Nenhuma dependência de código fechado (o CI falha ao encontrar `@manypost-premium`, resquício do modelo de dois repositórios que foi abandonado) e nenhuma referência a provedor de IA nominal fora do adaptador `infra/ai/*` (grep no CI).
+
+---
+
+**Specs irmãs:** [ARCHITECTURE](SPEC_ARCHITECTURE.md) · [FRONTEND](SPEC_FRONTEND.md) · [DATA](SPEC_DATA.md) · [QUEUE_PUBLISHING](SPEC_QUEUE_PUBLISHING.md) · [INTEGRATIONS](SPEC_INTEGRATIONS.md) · [API_MCP](SPEC_API_MCP.md) · [AI](SPEC_AI.md) · [INFRA](SPEC_INFRA.md) · [ROADMAP](SPEC_ROADMAP.md)
+
+**Navegação:** [Índice da documentação](../README.md) · [STATUS](../principal/STATUS.md) · [Decisões](../principal/DECISIONS.md) · [Marca](../brand/BRAND_SYSTEM.md) · [README do projeto](../../README.md) · [Contribuir](../../CONTRIBUTING.md)

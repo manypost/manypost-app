@@ -1,5 +1,7 @@
 # Código de Conduta do Contribuidor
 
+[← README do projeto](README.md) · [Como contribuir](CONTRIBUTING.md) · [Documentação](docs/README.md)
+
 ## Nosso Compromisso
 
 Nós, como membros, colaboradores e líderes, comprometemo-nos a fazer da participação em nossa comunidade uma experiência livre de assédio para todos, independentemente de idade, tamanho corporal, deficiência visível ou invisível, etnia, características sexuais, identidade e expressão de gênero, nível de experiência, educação, status socioeconômico, nacionalidade, aparência pessoal, raça, religião ou identidade e orientação sexual.
@@ -63,3 +65,7 @@ Líderes da comunidade seguirão estas Diretrizes de Impacto ao determinar as co
 ## Atribuição
 
 Este Código de Conduta é adaptado do [Contributor Covenant](https://www.contributor-covenant.org), versão 2.1, disponível em [https://www.contributor-covenant.org/version/2/1/code_of_conduct.html](https://www.contributor-covenant.org/version/2/1/code_of_conduct.html).
+
+---
+
+**Navegação:** [README do projeto](README.md) · [Como contribuir](CONTRIBUTING.md) · [Documentação](docs/README.md) · [Licença AGPL-3.0](LICENSE)

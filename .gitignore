@@ -10,5 +10,4 @@ uploads/
 .e2e-api.log
 coverage/
 .DS_Store
-docs/principal
 .vscode/

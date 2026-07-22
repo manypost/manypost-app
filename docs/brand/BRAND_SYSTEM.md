@@ -1,5 +1,7 @@
 # ManyPost BRAND & DESIGN SYSTEM · ESPECIFICAÇÃO OFICIAL (ASTRO 5)
 
+[← Índice da documentação](../README.md) · [Guia de adaptação para o app](README.md) · [SPEC_FRONTEND](../specs/SPEC_FRONTEND.md) · [README do projeto](../../README.md)
+
 > **Documento de Referência para Agentes de IA e Engenheiros de Frontend**
 > Este arquivo estabelece as regras de identidade visual, estrutura de interface, tokens de cor, escala tipográfica e anatomia de componentes do **ManyPost**. Toda nova página, componente ou interface gerada por IA ou humanos DEVE seguir estes padrões, inspirados na clareza, solidez e maturidade de plataformas como **Zapier** e **Cloudflare**.
 
@@ -202,3 +204,7 @@ Cards estruturais devem ter altura igualizada (`height: 100%` em grids com `alig
 3. **Não invente classes utilitárias *ad-hoc*:** Evite adicionar `box-shadow`, `border-radius: 20px`, ou fontes gigantes nas tags inline. Utilize sempre os tokens e classes documentados acima.
 4. **Respeite o Espaçamento:** Em layouts de grade (`grid-2`, `grid-3`, `grid-4`), mantenha o gap em `24px`, `36px` ou `40px` e padding de seções em `88px 0` (`.section-block`).
 5. **Simplicidade e Clareza:** Em caso de dúvida sobre animações ou decorações excessivas, opte sempre pela **simplicidade limpa e funcional**. A elegância do sistema vem do contraste e da facilidade de uso, não do excesso.
+
+---
+
+**Navegação:** [Índice da documentação](../README.md) · [Guia de adaptação](README.md) · [SPEC_FRONTEND](../specs/SPEC_FRONTEND.md) · [README do projeto](../../README.md)

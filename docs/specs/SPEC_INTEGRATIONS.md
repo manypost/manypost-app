@@ -1,5 +1,7 @@
 # SPEC_INTEGRATIONS.md — manypost: ChannelProvider e adaptadores por rede
 
+[← Índice da documentação](../README.md) · [STATUS do projeto](../principal/STATUS.md) · [Decisões](../principal/DECISIONS.md) · [README do projeto](../../README.md)
+
 > **Escopo:** contexto **Channels** [AGPL núcleo] — `packages/providers`. Segue a direção do Postiz (núcleo AGPL) no contrato do provider, nos metadados declarativos e na classificação de erros (derivação documentada em POSTIZ_ANALYSIS §8). Depende de: SPEC_QUEUE_PUBLISHING (pipeline), SPEC_DATA (tabela channels), SPEC_BACKEND (ports).
 
 ## 1. Contexto
@@ -101,7 +103,7 @@ Igual à direção do Postiz com três correções: state single-use com TTL, to
 | **Reddit** | `POST /api/submit` | Sem review formal; rate ~1 req/s, regras por subreddit | maxConcurrent=1 (como Postiz) |
 | **Mastodon/Bluesky/Discord/Telegram/Slack** | REST aberto / app password / bot token (`/connect` auto-discovery e OAuth2 Bot) / webhook | Sem gates | Ideais para MVP e testes E2E reais (experiência "Tudo Pronto") |
 
-**Requisito operacional:** `docs/platform-gates.md` no repo rastreia o status de cada gate (conta dev, app id, review, custo) como pré-condição de release de cada provider — auditável.
+**Requisito operacional:** [`docs/principal/platform-gates.md`](../principal/platform-gates.md) rastreia o status de cada gate (conta dev, app id, review, custo) como pré-condição de release de cada provider — auditável.
 
 ## 5. Two-step connect, auto-descoberta e credenciais próprias
 
@@ -129,4 +131,10 @@ Todo provider passa pela mesma suíte (`packages/providers/test-kit`):
 2. Provider novo adicionável sem tocar no core (só pasta + registro) — validado adicionando um provider fake em teste.
 3. Suíte de contrato obrigatória no CI para todo provider.
 4. Tokens nunca aparecem em logs (teste de redaction) e estão cifrados no banco.
-5. `docs/platform-gates.md` existe e bloqueia release de provider com gate pendente (checklist de PR).
+5. [`docs/principal/platform-gates.md`](../principal/platform-gates.md) existe e bloqueia release de provider com gate pendente (checklist de PR).
+
+---
+
+**Specs irmãs:** [ARCHITECTURE](SPEC_ARCHITECTURE.md) · [BACKEND](SPEC_BACKEND.md) · [FRONTEND](SPEC_FRONTEND.md) · [DATA](SPEC_DATA.md) · [QUEUE_PUBLISHING](SPEC_QUEUE_PUBLISHING.md) · [API_MCP](SPEC_API_MCP.md) · [AI](SPEC_AI.md) · [INFRA](SPEC_INFRA.md) · [ROADMAP](SPEC_ROADMAP.md)
+
+**Navegação:** [Índice da documentação](../README.md) · [STATUS](../principal/STATUS.md) · [Decisões](../principal/DECISIONS.md) · [Marca](../brand/BRAND_SYSTEM.md) · [README do projeto](../../README.md) · [Contribuir](../../CONTRIBUTING.md)

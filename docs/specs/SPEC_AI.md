@@ -1,5 +1,7 @@
 # SPEC_AI.md — manypost: IA de criação e IA operacional (Monorepo 100% Open Source)
 
+[← Índice da documentação](../README.md) · [STATUS do projeto](../principal/STATUS.md) · [Decisões](../principal/DECISIONS.md) · [README do projeto](../../README.md)
+
 > **Escopo:** contexto **AI Creation** e **AI Operations** no monorepo AGPL-3.0. Regra de ouro: **nenhum provedor de IA é citado no código** — tudo atrás de ports. Depende de: SPEC_BACKEND (ports), SPEC_DATA (ai_credits), SPEC_API_MCP (tool `generate_content`), SPEC_ARCHITECTURE (feature flags).
 
 ## 1. Divisão de capacidades (Criação vs Operacional)
@@ -88,3 +90,9 @@ O **mecanismo** de teto de custo existe desde o dia 1 no monorepo; apenas os **n
 3. Créditos: decremento transacional; concorrência de 10 gerações simultâneas não fura a franquia (teste).
 4. Grep de provedores nominais fora de `infra/ai/*` falha o CI.
 5. Prompt de legenda respeita `maxLength` do canal em 100% dos casos de teste (com margem de 10%).
+
+---
+
+**Specs irmãs:** [ARCHITECTURE](SPEC_ARCHITECTURE.md) · [BACKEND](SPEC_BACKEND.md) · [FRONTEND](SPEC_FRONTEND.md) · [DATA](SPEC_DATA.md) · [QUEUE_PUBLISHING](SPEC_QUEUE_PUBLISHING.md) · [INTEGRATIONS](SPEC_INTEGRATIONS.md) · [API_MCP](SPEC_API_MCP.md) · [INFRA](SPEC_INFRA.md) · [ROADMAP](SPEC_ROADMAP.md)
+
+**Navegação:** [Índice da documentação](../README.md) · [STATUS](../principal/STATUS.md) · [Decisões](../principal/DECISIONS.md) · [Marca](../brand/BRAND_SYSTEM.md) · [README do projeto](../../README.md) · [Contribuir](../../CONTRIBUTING.md)
