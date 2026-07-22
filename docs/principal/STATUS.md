@@ -131,8 +131,9 @@ Mesmo assim, tudo abaixo pode ser implementado agora:
 ### Matriz de redes — escopo fechado em 2026-07-22
 
 **Toda rede com ícone em `apps/web/public/social` vira provider** (é a mesma matriz do Postiz).
-São 18 redes + `Google.svg`, que é login social, não canal. **9 prontas** (Mastodon, Bluesky,
-Telegram, Discord ×2, LinkedIn, X, TikTok, Threads) e **9 na fila** — a ordem, o gate e o esforço
+São 18 redes + `Google.svg`, que é login social, não canal. **8 prontas** — 9 providers, porque o
+Discord tem dois (Mastodon, Bluesky, Telegram, Discord ×2, LinkedIn, X, TikTok, Threads) — e
+**10 na fila** — a ordem, o gate e o esforço
 de cada uma estão na tabela nova de [platform-gates.md](platform-gates.md#-escopo-confirmado-toda-rede-com-ícone-em-appswebpublicsocial-vira-provider):
 Instagram → Facebook → Dev.to → Slack → YouTube → Pinterest → Reddit → Dribbble → Medium
 (+ Google Business Profile fora da onda, fase 3).

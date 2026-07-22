@@ -44,10 +44,10 @@ Os três providers da Meta (Facebook Pages, Instagram, Threads) compartilham **u
 mesmas que o Postiz implementa). São 18 redes + `Google.svg`, que é **login social** (já entregue,
 não é canal de publicação). Situação de cada uma:
 
-**Prontas (9 providers):** Mastodon · Bluesky · Telegram · Discord (OAuth2+Bot **e** webhook) ·
-LinkedIn · X · TikTok · Threads.
+**Prontas — 8 redes / 9 providers** (o Discord tem dois: OAuth2+Bot e webhook): Mastodon ·
+Bluesky · Telegram · Discord ×2 · LinkedIn · X · TikTok · Threads.
 
-**Faltam 9** — em ordem de custo/benefício (esforço de código × gate × valor p/ o usuário BR):
+**Faltam 10** — em ordem de custo/benefício (esforço de código × gate × valor p/ o usuário BR):
 
 | # | Rede | Gate | Esforço | Por que nesta posição |
 |---|---|---|---|---|
