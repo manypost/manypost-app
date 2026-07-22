@@ -18,8 +18,10 @@ const nextConfig: NextConfig = {
       { source: '/uploads/:path*', destination: `${API_URL}/uploads/:path*` },
       // superfície pública de aprovação (página /approve/[token] consome sem login)
       { source: '/public/:path*', destination: `${API_URL}/public/:path*` },
-      // servidor MCP (Streamable HTTP) — auth por API key escopo `mcp`, JSON puro
-      { source: '/mcp', destination: `${API_URL}/mcp` },
+      // NÃO proxie o /mcp aqui: o servidor MCP vive num host dedicado (MCP_PUBLIC_URL, ex.:
+      // mcp.manypost.com.br), apontado ao MESMO serviço da API. O rewrite era ponte temporária
+      // e saiu porque proxy de Next não é API gateway — bufferiza e tem timeout próprio, o que
+      // atrapalha o streaming do MCP. Ver docs/specs/SPEC_API_MCP.md §5.
     ];
   },
 };

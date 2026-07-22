@@ -4553,6 +4553,12 @@ export type components = {
                 };
                 enforced: boolean;
             };
+            endpoints: {
+                /** @example https://api.manypost.com.br/v1 */
+                restBaseUrl: string;
+                /** @example https://mcp.manypost.com.br */
+                mcpUrl: string;
+            };
         };
         PlanCatalog: {
             currency: string;

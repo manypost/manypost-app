@@ -39,7 +39,23 @@ Uma única pilha de autorização: qualquer credencial resolve para um **Princip
 ### Tokens OAuth das redes sociais
 Cifrados at-rest (AES-256-GCM, SPEC_DATA §5); nunca expostos por nenhuma superfície; decrypt só no worker no momento do uso.
 
-## 3. API pública `/public/v1`
+## 3. API pública para máquinas
+
+### Onde ela vive (hosts)
+
+O serviço de API atende **três hosts** (roteamento por `Host`, mesmo processo, um deploy só):
+
+| Host | Env | Serve |
+|---|---|---|
+| app (produto) | `PUBLIC_URL` | `/v1` interno (humano: cookie/JWT, autorização por **papel**), `/public/approval`, `/uploads`, `/public/v1` (compat) e `/mcp` (compat) |
+| `api.dominio` | `API_PUBLIC_URL` | **`/v1` = esta API** (mesmo sub-app de `/public/v1`, re-prefixado) + `/openapi.json` e `/docs` restritos a ela |
+| `mcp.dominio` | `MCP_PUBLIC_URL` | **servidor MCP na raiz** (§5), com `/mcp` como alias |
+
+Por que host e não caminho: a superfície de máquina é `Authorization: Bearer` e **nunca cookie**, então não precisa ser same-origin com o web — e o rewrite do Next não é API gateway (bufferiza, tem timeout próprio, atrapalha o streaming do MCP e o pull de mídia grande). Os subdomínios são domínios custom do MESMO serviço, então não há CORS server-to-server, deploy extra nem divergência de código. `PUBLIC_URL` **não se move**: OAuth de canal, link de aprovação, URL pública de mídia e cookies dependem dela.
+
+Sem as duas variáveis (self-host de um domínio só) nada muda: a API de máquina fica em `{PUBLIC_URL}/public/v1` e o MCP em `{PUBLIC_URL}/mcp`. Os endereços efetivos são devolvidos por `GET /v1/capabilities` (`endpoints.restBaseUrl`/`endpoints.mcpUrl`) — é o que a UI mostra ao criar a chave.
+
+**Fronteira humano × máquina:** API key `mp_live_` é **recusada com 403** no `/v1` do host do app (a resposta aponta a superfície de máquina). Sem isso a chave contornaria escopos, gate de plano (`public_api`) e rate-limit por credencial, que só existem na superfície de máquina. **CORS**: qualquer origem, **sem** `credentials` (bearer, sem cookie), expondo `mcp-session-id` e os `RateLimit-*`.
 
 Recursos (paridade com o Postiz + organização REST):
 
@@ -72,7 +88,7 @@ Eventos: `post.published`, `post.failed`, `post.scheduled`, `channel.refresh_req
 
 ## 5. Servidor MCP
 
-- **SDK oficial `@modelcontextprotocol/sdk`**, transporte **Streamable HTTP** em `/mcp` no mesmo processo da api (desvio do Postiz: sem dependência de framework de agente; o MCP expõe use-cases direto).
+- **SDK oficial `@modelcontextprotocol/sdk`**, transporte **Streamable HTTP** no mesmo processo da api (desvio do Postiz: sem dependência de framework de agente; o MCP expõe use-cases direto). **Endereço canônico = raiz do host `mcp.dominio`** (`MCP_PUBLIC_URL`) — é a URL que o usuário cola no cliente; `/mcp` responde como alias, e no self-host de um domínio só ele fica em `{PUBLIC_URL}/mcp`. Navegação humana no host (GET com `accept: text/html`) recebe uma página explicando como conectar, não um 401 cru.
 - Auth: API key com escopo `mcp` **ou** OAuth §2; discovery documents servidos pela api.
 - **Tools** (paridade com o Postiz + política):
 

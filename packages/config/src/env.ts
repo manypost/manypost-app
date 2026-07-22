@@ -8,7 +8,25 @@ const EnvSchema = z
   .object({
     MODE: z.enum(['api', 'worker', 'all', 'web', 'standalone', 'full']).default('all'),
     PORT: z.coerce.number().default(3000),
+    /**
+     * Origem do produto para humanos (web): OAuth de canal, link de aprovação, URL pública
+     * de mídia e cookies dependem dela. NÃO é o host das superfícies de máquina (abaixo).
+     */
     PUBLIC_URL: z.string().url(),
+
+    /**
+     * Host dedicado da API REST de máquina (ex.: `https://api.manypost.com.br`), servida ali
+     * em `/v1` — sem passar pelo proxy do Next (SPEC_API_MCP §3). É um 2º domínio custom no
+     * MESMO serviço da API: o roteamento é por Host. Vazio = superfície só em `/public/v1`
+     * na origem da própria API (self-host).
+     */
+    API_PUBLIC_URL: z.string().url().optional(),
+    /**
+     * Host dedicado do servidor MCP (ex.: `https://mcp.manypost.com.br`), servido na **raiz**
+     * (`/`, com `/mcp` como alias) — SPEC_API_MCP §5. Pode ser o MESMO host de `API_PUBLIC_URL`
+     * (aí um host serve `/v1` + `/mcp`). Vazio = MCP só em `/mcp` na origem da própria API.
+     */
+    MCP_PUBLIC_URL: z.string().url().optional(),
 
     /**
      * Flag de arquitetura 100% Open Source (monorepo unificado, estilo Postiz IS_GENERAL/IS_CLOUD):
@@ -97,9 +115,57 @@ const EnvSchema = z
   })
   .refine((env) => env.ENCRYPTION_KEY !== env.JWT_SECRET, {
     message: 'ENCRYPTION_KEY e JWT_SECRET devem ser segredos DISTINTOS (SPEC_DATA §5)',
+  })
+  .refine((env) => hostOf(env.API_PUBLIC_URL) !== hostOf(env.PUBLIC_URL), {
+    message:
+      'API_PUBLIC_URL precisa de um host DIFERENTE de PUBLIC_URL (ex.: api.dominio) — mesmo host esconderia a interface web',
+    path: ['API_PUBLIC_URL'],
+  })
+  .refine((env) => hostOf(env.MCP_PUBLIC_URL) !== hostOf(env.PUBLIC_URL), {
+    message:
+      'MCP_PUBLIC_URL precisa de um host DIFERENTE de PUBLIC_URL (ex.: mcp.dominio) — mesmo host esconderia a interface web',
+    path: ['MCP_PUBLIC_URL'],
   });
 
 export type Env = z.infer<typeof EnvSchema>;
+
+/** `host:porta` normalizado de uma URL (undefined se a URL não veio ou é inválida). */
+function hostOf(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  try {
+    return new URL(url).host.toLowerCase();
+  } catch {
+    return undefined; // URL inválida já é reprovada pelo z.string().url()
+  }
+}
+
+/**
+ * Hosts das superfícies de máquina (SPEC_API_MCP §3/§5). O roteamento da API é por **Host**:
+ * um mesmo serviço atende o host do app (`PUBLIC_URL`), o da API REST e o do MCP. Os dois
+ * últimos podem coincidir (um subdomínio servindo `/v1` + `/mcp`) ou ficar vazios (self-host,
+ * onde as superfícies vivem em `/public/v1` e `/mcp` da própria origem).
+ */
+/**
+ * URLs que uma máquina (integração/agente) deve usar — fonte única para a mensagem de erro da
+ * API, o `/v1/capabilities` (a UI mostra ao criar a chave) e a documentação. Com host dedicado
+ * são `api./v1` e `mcp.`; sem ele, caem nos caminhos da própria origem (self-host).
+ */
+export const machineEndpoints = (env: Env): { restBaseUrl: string; mcpUrl: string } => {
+  const base = (url: string) => url.replace(/\/+$/, '');
+  const api = env.API_PUBLIC_URL ? base(env.API_PUBLIC_URL) : undefined;
+  return {
+    restBaseUrl: api ? `${api}/v1` : `${base(env.PUBLIC_URL)}/public/v1`,
+    mcpUrl: env.MCP_PUBLIC_URL
+      ? base(env.MCP_PUBLIC_URL)
+      : `${api ?? base(env.PUBLIC_URL)}/mcp`,
+  };
+};
+
+export const machineHosts = (env: Env): { api?: string; mcp?: string } => {
+  const api = hostOf(env.API_PUBLIC_URL);
+  const mcp = hostOf(env.MCP_PUBLIC_URL);
+  return { ...(api ? { api } : {}), ...(mcp ? { mcp } : {}) };
+};
 
 /**
  * Fronteira Community × Cloud (DECISIONS §15). Cobrança e enforcement de plano só existem

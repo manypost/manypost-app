@@ -1,8 +1,11 @@
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { Context, MiddlewareHandler } from 'hono';
 import type { Container } from '../../container';
+import type { AppEnv } from '../middleware/context';
 import { buildMcpServer } from '../../mcp/mcp-server';
 import { requireAuth, requireScope } from '../middleware/auth';
+import { machineCors } from '../middleware/machine-cors';
 import { requirePlanFeature } from '../middleware/public-api';
 import { createApp } from '../openapi';
 
@@ -17,8 +20,46 @@ import { createApp } from '../openapi';
  * ignorado). O cliente encerra com DELETE (dispara `onsessionclosed`); sessões ociosas são
  * podadas por TTL. Registro em memória: em MODE=all (processo único) é suficiente — escala
  * horizontal exigiria sticky sessions ou store externo (follow-up junto do OAuth).
+ *
+ * **Montagem**: este sub-app atende `/` e `/mcp`, então serve tanto montado em `/mcp` (origem
+ * da própria API, self-host) quanto na **raiz** de um host dedicado `mcp.` (`MCP_PUBLIC_URL`).
+ * Os middlewares são presos a esses dois caminhos (e não a `*`) justamente para que montar na
+ * raiz não engula as demais rotas do host.
  */
 const SESSION_TTL_MS = 60 * 60 * 1000; // 1h ociosa
+
+/** Caminhos atendidos pelo sub-app (o 2º é alias — ver nota de montagem acima). */
+const ENDPOINTS = ['/', '/mcp'] as const;
+
+/**
+ * Quem abre `mcp.dominio` no navegador é gente, não cliente MCP: responde uma página curta em
+ * vez de um `401` cru. Cliente MCP nunca cai aqui — ele usa POST (JSON-RPC) ou GET com
+ * `accept: text/event-stream`; só a navegação humana pede `text/html`.
+ */
+const browserLanding: MiddlewareHandler<AppEnv> = async (c, next) => {
+  const accept = c.req.header('accept') ?? '';
+  if (c.req.method !== 'GET' || !accept.includes('text/html')) return next();
+  return c.html(`<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>manypost — servidor MCP</title>
+    <style>
+      body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 4rem auto; padding: 0 1rem; line-height: 1.6; }
+      code { background: #f2f2f2; padding: .1rem .35rem; border-radius: 4px; }
+    </style>
+  </head>
+  <body>
+    <h1>servidor MCP do manypost</h1>
+    <p>Este endereço não é uma página: é um servidor <strong>MCP</strong> (Streamable HTTP).
+       Cole esta URL no seu cliente de agente e autentique com uma <strong>API key</strong> de
+       escopo <code>mcp</code> em <code>Authorization: Bearer mp_live_…</code>.</p>
+    <p>A chave é criada em <em>Configurações → API keys</em> no app.</p>
+  </body>
+</html>`);
+};
 
 interface Session {
   server: McpServer;
@@ -36,11 +77,15 @@ export function mcpRoutes(ctn: Container) {
     for (const [id, s] of sessions) if (s.lastSeen < cutoff) sessions.delete(id);
   };
 
-  app.use('*', requireAuth({ signer: ctn.signer, verifyApiKey: ctn.auth.verifyApiKey }));
-  app.use('*', requireScope('mcp'));
-  app.use('*', requirePlanFeature(ctn.plan, 'public_api')); // "API REST e servidor MCP" = Pro+
+  for (const endpoint of ENDPOINTS) {
+    app.use(endpoint, machineCors()); // antes do auth: preflight não carrega credencial
+    app.use(endpoint, browserLanding); // navegação humana no host mcp. → página, não 401
+    app.use(endpoint, requireAuth({ signer: ctn.signer, verifyApiKey: ctn.auth.verifyApiKey }));
+    app.use(endpoint, requireScope('mcp'));
+    app.use(endpoint, requirePlanFeature(ctn.plan, 'public_api')); // "API REST e MCP" = Pro+
+  }
 
-  app.all('/', async (c) => {
+  const handle = async (c: Context<AppEnv>) => {
     const p = c.get('principal');
     const sessionId = c.req.header('mcp-session-id');
     const existing = sessionId ? sessions.get(sessionId) : undefined;
@@ -70,7 +115,9 @@ export function mcpRoutes(ctn: Container) {
     });
     await server.connect(transport);
     return transport.handleRequest(c.req.raw);
-  });
+  };
+
+  for (const endpoint of ENDPOINTS) app.all(endpoint, handle);
 
   return app;
 }

@@ -32,6 +32,9 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  // /v1, /uploads, /public e /mcp são proxy p/ a API; estáticos e _next ficam de fora
+  // /v1, /uploads e /public são proxy p/ a API; estáticos e _next ficam de fora.
+  // `mcp` segue na lista mesmo sem rewrite: o servidor MCP mudou para o host dedicado
+  // (MCP_PUBLIC_URL) e um cliente que ainda aponte para cá deve ver 404 — não um 302 para
+  // a tela de login, que ele não sabe interpretar.
   matcher: ['/((?!v1|uploads|public|mcp|_next|favicon\\.ico|.*\\..*).*)'],
 };

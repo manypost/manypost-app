@@ -5,8 +5,13 @@ export {}; // módulo (top-level await)
  * (initialize → mcp-session-id → tools/list → tools/call) contra /mcp, autenticando por API key
  * com escopo `mcp`. Cobre: descoberta de tools, list_channels, schedule_post (origem MCP +
  * audit_log actor_type=MCP), get_post, e recusa de credencial sem o escopo. Requer API MODE=all.
+ *
+ * `BASE` = host do app (registro/canal/chave). `MCP_URL` = endereço do servidor MCP: com host
+ * dedicado é a RAIZ dele (`https://mcp.dominio`); sem ele, `${BASE}/mcp`.
  */
 const BASE = process.env.BASE_URL ?? 'http://localhost:3991';
+const MCP = process.env.MCP_URL ?? `${BASE}/mcp`;
+const DEDICATED_HOST = new URL(MCP).host !== new URL(BASE).host;
 
 let failures = 0;
 function check(cond: unknown, msg: string) {
@@ -63,7 +68,7 @@ async function rpc(id: number, method: string, params: unknown, key = mcpKey) {
     authorization: `Bearer ${key}`,
     ...(sessionId ? { 'mcp-session-id': sessionId } : {}),
   };
-  const res = await fetch(`${BASE}/mcp`, { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id, method, params }) });
+  const res = await fetch(`${MCP}`, { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id, method, params }) });
   const sid = res.headers.get('mcp-session-id');
   if (sid) sessionId = sid;
   const msg = parseBody(res.headers.get('content-type') ?? '', await res.text());
@@ -92,7 +97,7 @@ const init = await rpc(1, 'initialize', {
 check(init.status === 200, `initialize → 200 (veio ${init.status})`);
 check(init.msg?.result?.serverInfo?.name === 'manypost', 'serverInfo.name = manypost');
 check(!!sessionId, 'mcp-session-id devolvido no initialize');
-await fetch(`${BASE}/mcp`, { method: 'POST', headers: MCP_HEADERS(), body: JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) });
+await fetch(`${MCP}`, { method: 'POST', headers: MCP_HEADERS(), body: JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) });
 
 // ---- 2) tools/list ----
 const tools = await rpc(2, 'tools/list', {});
@@ -130,9 +135,33 @@ const noScopeKey = await createKey('e2e-mcp-noscope', ['posts:read']);
 const denied = await rpc(99, 'initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'x', version: '1' } }, noScopeKey);
 check(denied.status === 403, `API key sem escopo mcp → 403 (veio ${denied.status})`);
 
-// ---- 7) audit_log gravado com actor_type=MCP ----
+// ---- 7) host dedicado: raiz E alias /mcp respondem; navegador vê página, não 401 ----
+if (DEDICATED_HOST) {
+  const origin = new URL(MCP).origin;
+  const alias = await fetch(`${origin}/mcp`, {
+    method: 'POST',
+    headers: MCP_HEADERS(),
+    body: JSON.stringify({ jsonrpc: '2.0', id: 200, method: 'tools/list', params: {} }),
+  });
+  check(alias.status === 200, `alias ${origin}/mcp responde (veio ${alias.status})`);
+  await alias.body?.cancel();
+
+  const landing = await fetch(origin, { headers: { accept: 'text/html' } });
+  check(landing.status === 200, `navegação humana na raiz → página (veio ${landing.status})`);
+  check(
+    (landing.headers.get('content-type') ?? '').includes('text/html'),
+    'a página do host mcp. é HTML (não um 401 cru)',
+  );
+
+  const restOnMcpHost = await fetch(`${origin}/v1/channels`, { headers: { authorization: `Bearer ${mcpKey}` } });
+  check(restOnMcpHost.status === 404, `host mcp. não serve a API REST (veio ${restOnMcpHost.status})`);
+}
+
+// ---- 8) audit_log gravado com actor_type=MCP ----
 // (checado fora do script via psql — aqui só sinalizamos o groupId p/ conferência)
 console.log(`  info: grupo criado via MCP p/ conferência de auditoria: ${groupId}`);
 
-console.log(failures ? `\n❌ ${failures} FALHA(S)` : '\n✅ TUDO OK (servidor MCP /mcp)');
+console.log(
+  failures ? `\n❌ ${failures} FALHA(S)` : `\n✅ TUDO OK (servidor MCP em ${MCP}${DEDICATED_HOST ? ' — host dedicado' : ''})`,
+);
 if (failures) process.exit(1);
