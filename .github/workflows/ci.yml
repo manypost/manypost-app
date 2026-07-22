@@ -74,7 +74,7 @@ jobs:
         run: |
           bun run apps/api/src/main.ts &
           for i in $(seq 1 30); do curl -sf http://localhost:3988/health >/dev/null && break; sleep 1; done
-          BASE_URL=http://localhost:3988 bun run scripts/e2e-auth.ts
+          BASE_URL=http://localhost:3988 API_BASE_URL=http://127.0.0.1:3988/v1 bun run scripts/e2e-auth.ts
           BASE_URL=http://localhost:3988 bun run scripts/e2e-publish.ts
           BASE_URL=http://localhost:3988 API_BASE_URL=http://127.0.0.1:3988/v1 bun run scripts/e2e-public.ts
           BASE_URL=http://localhost:3988 MCP_URL=http://127.0.0.2:3988 bun run scripts/e2e-mcp.ts

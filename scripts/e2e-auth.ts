@@ -1,11 +1,13 @@
 /**
  * E2E de auth contra a API real + Postgres real (rodado no CI e localmente).
  * Fluxo: register → me → refresh (rotação) → reuso detectado (família revogada)
- *        → login → API key (criar, usar, revogar).
+ *        → login → API key (criar, usar na superfície de máquina, revogar).
  */
 export {}; // torna o arquivo um módulo (top-level await)
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:3988';
+/** superfície de máquina: host dedicado (`https://api.dominio/v1`) ou o caminho da origem */
+const API = process.env.API_BASE_URL ?? `${BASE}/public/v1`;
 
 let failures = 0;
 function check(cond: unknown, msg: string) {
@@ -64,16 +66,31 @@ check(login.status === 200, 'login → 200');
 const loginBody = (await login.json()) as any;
 const bearer = { authorization: `Bearer ${loginBody.accessToken}` };
 
-const created = await post('/v1/api-keys', { name: 'e2e', scopes: ['posts:write'] }, bearer);
+const created = await post(
+  '/v1/api-keys',
+  { name: 'e2e', scopes: ['posts:write', 'channels:read'] },
+  bearer,
+);
 check(created.status === 201, `criar API key → 201 (veio ${created.status})`);
 const createdBody = (await created.json()) as any;
 check(createdBody.apiKey?.startsWith('mp_live_'), 'API key com prefixo mp_live_');
+const keyAuth = { authorization: `Bearer ${createdBody.apiKey}` };
 
-const meWithKey = await fetch(`${BASE}/v1/auth/me`, {
-  headers: { authorization: `Bearer ${createdBody.apiKey}` },
-});
-check(meWithKey.status === 200, '/me autenticado por API key → 200');
-check(((await meWithKey.json()) as any).kind === 'api_key', 'principal é api_key');
+// A API key é credencial de MÁQUINA (SPEC_API_MCP §3): a superfície interna /v1 — que é da
+// interface e é regida por PAPEL — a recusa e aponta a porta certa. Sem isso, ela driblaria
+// escopo, gate de plano e rate-limit por credencial entrando pela porta do web.
+const meWithKey = await fetch(`${BASE}/v1/auth/me`, { headers: keyAuth });
+check(meWithKey.status === 403, `API key no /v1 interno → 403 (veio ${meWithKey.status})`);
+const meWithKeyBody = (await meWithKey.json()) as any;
+check(meWithKeyBody.title === 'common.forbidden', '403 com title common.forbidden');
+check(
+  typeof meWithKeyBody.extra?.machineApiUrl === 'string',
+  `a recusa aponta a superfície de máquina (veio ${meWithKeyBody.extra?.machineApiUrl})`,
+);
+
+// ...e a MESMA chave funciona na superfície de máquina
+const keyOnMachine = await fetch(`${API}/channels`, { headers: keyAuth });
+check(keyOnMachine.status === 200, `API key em ${API}/channels → 200 (veio ${keyOnMachine.status})`);
 
 const revoked = await fetch(`${BASE}/v1/api-keys/${createdBody.record.id}`, {
   method: 'DELETE',
@@ -81,10 +98,8 @@ const revoked = await fetch(`${BASE}/v1/api-keys/${createdBody.record.id}`, {
 });
 check(revoked.status === 204, 'revogar API key → 204');
 
-const meAfterRevoke = await fetch(`${BASE}/v1/auth/me`, {
-  headers: { authorization: `Bearer ${createdBody.apiKey}` },
-});
-check(meAfterRevoke.status === 401, 'API key revogada → 401');
+const afterRevoke = await fetch(`${API}/channels`, { headers: keyAuth });
+check(afterRevoke.status === 401, `API key revogada → 401 (veio ${afterRevoke.status})`);
 
 // 7) sem credencial → 401
 const anon = await fetch(`${BASE}/v1/api-keys`);
