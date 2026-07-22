@@ -128,6 +128,20 @@ Mesmo assim, tudo abaixo pode ser implementado agora:
 6. **Previews**: `network-preview.tsx` precisa de layout para IG (grade quadrada/carrossel) e Facebook — os dois ainda caem no cartão neutro. (Threads já tem o seu, microblog com thread encadeada.)
 7. **Postiz tem `instagram` e `instagram-standalone` como providers SEPARADOS** (dois `identifier`), exatamente como fizemos com `discord` × `discord-webhook`. Seguir o mesmo desenho: o standalone não exige Página nem `business_management`, então é o caminho mais curto para o criador BR.
 
+### Matriz de redes — escopo fechado em 2026-07-22
+
+**Toda rede com ícone em `apps/web/public/social` vira provider** (é a mesma matriz do Postiz).
+São 18 redes + `Google.svg`, que é login social, não canal. **9 prontas** (Mastodon, Bluesky,
+Telegram, Discord ×2, LinkedIn, X, TikTok, Threads) e **9 na fila** — a ordem, o gate e o esforço
+de cada uma estão na tabela nova de [platform-gates.md](platform-gates.md#-escopo-confirmado-toda-rede-com-ícone-em-appswebpublicsocial-vira-provider):
+Instagram → Facebook → Dev.to → Slack → YouTube → Pinterest → Reddit → Dribbble → Medium
+(+ Google Business Profile fora da onda, fase 3).
+
+Dois pontos exigem **decisão do owner antes de virar código**: (1) **Reddit** — o free tier é
+explicitamente não-comercial, então cobrar no Cloud por cima dele viola os termos (só BYO-key
+self-hosted, ou buscar o acordo comercial pago); (2) **Medium** — a plataforma **não emite mais
+integration token**, então o provider só serviria a quem já tem token antigo.
+
 ### Backlog do backend (fase 1 — MVP, [SPEC_ROADMAP](../specs/SPEC_ROADMAP.md))
 
 **Fatias entregues** — o que cada uma deixou de fora, que é o backlog real (o detalhe de cada
