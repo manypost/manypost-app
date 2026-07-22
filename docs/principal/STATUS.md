@@ -138,10 +138,16 @@ de cada uma estão na tabela nova de [platform-gates.md](platform-gates.md#-esco
 Instagram → Facebook → Dev.to → Slack → YouTube → Pinterest → Reddit → Dribbble → Medium
 (+ Google Business Profile fora da onda, fase 3).
 
-Dois pontos exigem **decisão do owner antes de virar código**: (1) **Reddit** — o free tier é
+Três pontos exigem **decisão do owner antes de virar código**: (1) **Reddit** — o free tier é
 explicitamente não-comercial, então cobrar no Cloud por cima dele viola os termos (só BYO-key
 self-hosted, ou buscar o acordo comercial pago); (2) **Medium** — a plataforma **não emite mais
-integration token**, então o provider só serviria a quem já tem token antigo.
+integration token**, então o provider só serviria a quem já tem token antigo; (3) **Twitch e Kick**
+(o Postiz tem os dois, sem ícone no nosso app) — gate barato, mas **publicam em chat ao vivo, não
+em feed**: agendar mensagem para um canal offline é escrever para ninguém.
+
+Na UI, as redes da fila aparecem em **Conexões → "Em breve"** (`features/channels/upcoming.ts`),
+com o cartão desabilitado; cada uma some da lista sozinha quando o id passa a existir no catálogo
+da API. As três em decisão ficam fora dessa lista.
 
 ### Backlog do backend (fase 1 — MVP, [SPEC_ROADMAP](../specs/SPEC_ROADMAP.md))
 
@@ -178,7 +184,7 @@ O detalhe de cada onda (1 a 5) está no [changelog](CHANGELOG_ONDAS.md#frontend-
 |---|---|
 | Login / registro / login social | ✅ erros problem+json traduzidos por código estável |
 | Onboarding `/boas-vindas` e `/planos` | ✅ somem quando `billingEnabled=false` (self-hosted) |
-| **Conexões** | ✅ catálogo filtrado por env, OAuth em popup, formulário de credenciais gerado do JSON Schema do provider, reconectar/desconectar |
+| **Conexões** | ✅ catálogo filtrado por env, OAuth em popup, formulário de credenciais gerado do JSON Schema do provider, reconectar/desconectar, seção **"Em breve"** com as redes do roteiro (some sozinha quando o provider sai) |
 | **Calendário** (dia/semana/mês/lista) | ✅ a casa do app: painel de canais, drag para reagendar, "+" por slot vazio |
 | **Composer** (modal 2 colunas) | ✅ canais por avatar, texto por canal, settings por canal, mídia, threads, preview ao vivo por rede, agendar/publicar/exigir aprovação |
 | **Kanban** | ✅ colunas por estado do grupo; arrastar de Falhou → Agendado dispara retry |

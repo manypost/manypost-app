@@ -137,6 +137,9 @@
     "disconnectWarning": "Publicações futuras agendadas para este canal vão falhar. Nada do que já foi publicado é apagado.",
     "empty": "Nenhum canal conectado ainda — escolha uma rede abaixo para começar.",
     "catalogEmpty": "Nenhum provider configurado nesta instalação. Defina as credenciais no .env da API (docs/principal/INTEGRATIONS_SETUP.md).",
+    "upcomingTitle": "Em breve",
+    "upcomingSubtitle": "Redes que já estão no roteiro do manypost. Conforme cada uma fica pronta, ela passa para \"Redes disponíveis\".",
+    "upcomingBadge": "Em breve",
     "status": {
       "ACTIVE": "Ativo",
       "REFRESH_REQUIRED": "Reconexão necessária",

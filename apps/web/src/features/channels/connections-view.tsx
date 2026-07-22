@@ -32,6 +32,7 @@ import { ConnectDialog } from './connect-dialog';
 import { useChannels, useConnectChannel, useDisconnectChannel, useProviders } from './hooks';
 import { connectionFields } from './provider-fields';
 import { PROVIDER_ICONS, ProviderIcon } from './provider-icon';
+import { UPCOMING_PROVIDERS } from './upcoming';
 import { useOauthFlow } from './use-oauth-flow';
 
 type ProviderInfo = {
@@ -258,6 +259,8 @@ export function ConnectionsView() {
         )}
       </section>
 
+      <UpcomingSection available={providers.data?.map((p) => p.id)} />
+
       {fieldsProvider ? (
         <ConnectDialog
           provider={fieldsProvider}
@@ -270,6 +273,46 @@ export function ConnectionsView() {
 
       <DisconnectDialog channel={toDisconnect} onClose={() => setToDisconnect(null)} />
     </div>
+  );
+}
+
+/**
+ * Redes do roteiro que ainda não têm provider (UPCOMING_PROVIDERS), como cartões
+ * informativos — sem foco, sem clique, nada que prometa uma ação que não existe.
+ * Qualquer id que já esteja no catálogo é filtrado: entregar o provider tira a rede daqui.
+ */
+function UpcomingSection({ available }: { available?: string[] }) {
+  const t = useTranslations('connections');
+  const pending = UPCOMING_PROVIDERS.filter((p) => !available?.includes(p.id));
+  if (pending.length === 0) return null;
+
+  return (
+    <section aria-labelledby="upcoming-title" className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1">
+        <h2 id="upcoming-title" className="text-base font-semibold tracking-[-0.2px] text-ink">
+          {t('upcomingTitle')}
+        </h2>
+        <p className="text-sm leading-relaxed text-graphite">{t('upcomingSubtitle')}</p>
+      </div>
+      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        {pending.map((p) => (
+          <li key={p.id}>
+            <div className="flex h-full w-full items-center gap-3 rounded-lg border border-dashed border-line bg-surface-2 p-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-line bg-surface">
+                {/* logo em cinza: sinaliza "ainda não dá para conectar" sem inventar cor */}
+                <ProviderIcon provider={p.id} name={p.name} className="size-5 opacity-60 grayscale" />
+              </div>
+              <div className="flex flex-1 flex-col overflow-hidden">
+                <span className="truncate text-[13px] font-medium text-graphite">{p.name}</span>
+                <Badge variant="neutral" className="mt-1 h-4 w-fit px-1 text-[9px] uppercase tracking-wider">
+                  {t('upcomingBadge')}
+                </Badge>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
