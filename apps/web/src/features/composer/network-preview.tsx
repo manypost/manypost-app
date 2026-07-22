@@ -181,6 +181,45 @@ function ThreadsPreview({ p }: { p: NetworkProps }) {
   return <MicroblogPreview p={p} actions={[Heart, MessageCircle, Repeat2, Send]} />;
 }
 
+/**
+ * Twitch e Kick: o destino é o **chat ao vivo**, não um feed — o preview mostra a sala de chat
+ * com uma linha por item (mesmo desenho das duas redes). Deixa explícito para quem agenda que
+ * a mensagem cai no chat, e só tem plateia se a transmissão estiver no ar.
+ */
+function ChatPreview({ p }: { p: NetworkProps }) {
+  const t = useTranslations('composer.preview.chat');
+  const handle = p.username?.replace(/^@/, '') ?? p.name;
+  return (
+    <article className="overflow-hidden rounded-lg border border-line bg-surface">
+      <p className="flex items-center gap-2 border-b border-line bg-surface-2 px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-graphite">
+        <MessageCircle className="size-3.5" aria-hidden />
+        {t('title', { network: p.name })}
+      </p>
+      <ul className="flex flex-col gap-2 p-3">
+        {p.entries.map((entry, i) => (
+          <li key={i} className="flex gap-2 text-sm leading-relaxed">
+            <ChannelAvatar
+              name={p.name}
+              avatarUrl={p.avatarUrl}
+              provider={p.provider}
+              className="size-5"
+              badge={false}
+            />
+            <p className="min-w-0 flex-1 break-words text-ink">
+              <span className="font-semibold text-accent">{handle}</span>
+              <span className="text-graphite">: </span>
+              {entry.text}
+            </p>
+          </li>
+        ))}
+      </ul>
+      <p className="border-t border-line px-3 py-2 text-[11px] leading-relaxed text-mist">
+        {t('hint')}
+      </p>
+    </article>
+  );
+}
+
 /** Sem layout próprio da rede (ex.: fake) — cartão neutro, sem chrome. */
 function GenericPreview({ p }: { p: NetworkProps }) {
   return <MicroblogPreview p={p} />;
@@ -495,6 +534,8 @@ const PREVIEWS: Record<string, ComponentType<{ p: NetworkProps }>> = {
   discord: DiscordPreview,
   'discord-webhook': DiscordPreview,
   tiktok: TiktokPreview,
+  twitch: ChatPreview,
+  kick: ChatPreview,
 };
 
 export function NetworkPreview({

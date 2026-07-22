@@ -14,6 +14,7 @@
 
 | Onda | Data | Entrega |
 |---|---|---|
+| 12 | 2026-07-22 | Twitch e Kick (chat ao vivo) + catálogo deixa de esconder rede sem credencial |
 | 11 | 2026-07-22 | Threads — primeiro provider da família Meta (container → `threads_publish`) |
 | 10 | 2026-07-21 | Hosts dedicados para as superfícies de máquina (`api.` e `mcp.`) |
 | 9 | 2026-07-21 | Billing Stripe + `PlanPolicy` + onboarding de conversão |
@@ -29,6 +30,16 @@
 > As ondas 1 e 2 do frontend e as fatias de backend anteriores (fundação, banco, auth, publicação,
 > retry, webhooks, mídia, threads, aprovação por link, listagens/SSE, providers da onda 1) estão
 > registradas em [STATUS.md §2](STATUS.md#2-o-que-já-está-pronto-e-verificado), com spec e código de cada uma.
+
+---
+
+## Onda 12 — Twitch e Kick (chat ao vivo) + o catálogo parou de esconder rede
+
+**2026-07-22.** Duas entregas no mesmo dia da onda 11, encadeadas por um achado.
+
+**(A) O catálogo não esconde mais rede sem credencial.** Quando o Threads ficou pronto e **não apareceu** na tela de Conexões (o `.env` de dev não tem `THREADS_APP_ID`), ficou claro o buraco: provider sem credencial sumia do catálogo, e o self-hoster não tinha como saber que a rede existia nem o que configurar. Agora `GET /v1/channels/providers` (interno) devolve **todas** as redes implementadas com **`available: boolean`**; a indisponível traz **`setupEnv`** com os nomes das variáveis que faltam — **só em `IS_SELF_HOSTED=true`**, porque no gerenciado o usuário final não opera o env (lá o campo é omitido e a UI trata a rede como "em breve"). O mapa secret→variável virou fonte única em `@manypost/config` (`PROVIDER_ENV` + `providerEnvVarNames`), derivada do MESMO objeto que alimenta `providerSecretsFromEnv`, com `satisfies` barrando nome de variável inexistente. **A superfície de máquina (`/public/v1`) continua filtrando**: para um agente, listar rede que ele não pode conectar é ruído. Na UI, Conexões ganhou o bloco **"Precisa de credencial"** (nome da rede + a variável que falta + ponteiro para o guia), e o **"Em breve"** — criado na mesma leva, listando as redes do roteiro sem provider (`features/channels/upcoming.ts`, filtrado contra o catálogo) — passou a acolher também as implementadas que a instalação não habilitou. Cartões sem foco e sem clique: nada promete ação que não existe.
+
+**(B) Twitch e Kick, com paridade Postiz.** O owner verificou que o Postiz tem os dois e decidiu que entram **mesmo publicando em chat ao vivo em vez de feed** — com as mesmas features e particularidades que eles já mapearam. **Twitch**: OAuth2 clássico em `id.twitch.tv`, dois modos de publicação (mensagem em `/helix/chat/messages` ou **anúncio do canal** em `/helix/chat/announcements`, com cor), réplica por `reply_parent_message_id`, corte em 500 chars. **Kick**: **OAuth 2.1 com PKCE S256** em `id.kick.com`, mensagem em `/public/v1/chat` (`type: 'user'`, `broadcaster_user_id` numérico), réplica por `reply_to_message_id`. Três divergências deliberadas do Postiz, todas a favor da corretude: (1) **`is_sent:false` vira falha de verdade** — as duas redes respondem **200 mesmo descartando** a mensagem (seguidores-only, duplicada, chat travado) e o Postiz marca `status:'error'` e segue, o que deixaria o post "publicado" sem nunca ter entrado no chat; aqui levanta `422` com o `drop_reason`; (2) **zero mídia declarada** (`maxCount: 0` nos dois tipos) faz o composer barrar anexo no agendamento em vez de descartar no publish; (3) `broadcasterId`/`broadcasterUserId` em `channelSettings` (padrão do Threads) com falha legível se faltar, em vez de chamar a API sem alvo. Detalhes que mordem: a Helix exige **`Client-Id`** em toda chamada (bearer sozinho = 401) e devolve `scope` como **array**; o `/users` da Kick já apareceu como lista e como objeto — o provider aceita os dois. No composer, as duas ganharam **preview de chat** (sala com uma linha por item + aviso de que a mensagem cai ao vivo). **Provas**: `bun run check` verde — **341 testes** (+39: contrato + golden de OAuth/refresh/mensagem/anúncio/réplica/corte em 500/recusa da rede/canal sem broadcaster); E2E completo (`auth`, `publish`, `public`, `mcp`) **TUDO OK** em stack isolada (Postgres 5599 + Redis 6499), com blocos novos no `e2e-auth` para as duas redes (catálogo com zero mídia, connect → URL de consentimento real, PKCE S256 na Kick) e uma rodada extra **sem nenhuma credencial de provider** provando o `setupEnv` (telegram → `TELEGRAM_BOT_TOKEN`, discord → os três `DISCORD_*`, e assim por diante). **Fica valendo a ressalva de produto**: chat é efêmero, então mensagem agendada para canal offline vai para sala vazia — se um dia isso virar feature de verdade, o desenho é "avisar no chat quando eu entrar ao vivo", gatilho de evento e não horário no calendário.
 
 ---
 

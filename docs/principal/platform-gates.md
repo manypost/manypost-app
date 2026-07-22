@@ -24,8 +24,8 @@
 | Dev.to (Forem) | nenhum | ✅ livre | — | — | — | API key pessoal nas configurações do usuário (`api-key` no header) — **sem app, sem OAuth, sem review**. Provider mais barato de todos |
 | Medium | ⛔ **API fechada para novas integrações** | ⛔ **inviável hoje** | — | — | — | A Medium **parou de emitir integration tokens** e arquivou o repositório da API ("no longer supported"). Só quem já tem token antigo publica. Implementar = provider que quase ninguém consegue conectar — **decidir se entra assim mesmo (paridade Postiz) ou fica fora** |
 | Dribbble | registro auto-serviço; **uso comercial exige aprovação prévia** | ☐ pendente | ☐ | ☐ | ☐ | app em `dribbble.com/account/applications/new`, escopo `upload` p/ criar shot. Limites: 60 req/min e 1.440/dia por usuário; **48 shots/mês e 5/dia por conta**, e a conta precisa poder subir shot (`can_upload_shot`). Nicho (design), volume baixo |
-| Twitch | nenhum — app auto-serviço no dev console | ✅ livre (gate) — ⚠️ **decisão de produto** | ☐ | ☐ | ☐ | **não é feed**: o provider do Postiz manda **mensagem no chat** (`/helix/chat/messages`) ou **anúncio do canal** (`/helix/chat/announcements`), escopos `user:write:chat` + `moderator:manage:announcements`. Twitch pede que a app peça só os escopos que usa, sob pena de suspensão |
-| Kick | nenhum — app auto-serviço (OAuth 2.1 + PKCE) | ✅ livre (gate) — ⚠️ **decisão de produto** | ☐ | ☐ | ☐ | idem: publica **mensagem no chat** (`/public/v1/chat`, escopo `chat:write`). API pública recém-aberta e **em iteração rápida** — risco de quebra maior que o das outras |
+| Twitch | nenhum — app auto-serviço no dev console | ✅ livre — **provider pronto (onda 12)** | ☐ | ☐ | 2026-07-22 | **não é feed**: manda **mensagem no chat** (`/helix/chat/messages`) ou **anúncio do canal** (`/helix/chat/announcements`), escopos `user:write:chat` + `moderator:manage:announcements`. Toda chamada leva `Client-Id` junto do bearer. A Twitch pede que a app declare só os escopos que usa, sob pena de suspensão |
+| Kick | nenhum — app auto-serviço (OAuth 2.1 + PKCE) | ✅ livre — **provider pronto (onda 12)** | ☐ | ☐ | 2026-07-22 | idem: publica **mensagem no chat** (`/public/v1/chat`, escopo `chat:write`). API pública recém-aberta e **em iteração rápida** — risco de quebra maior que o das outras |
 
 **Atualização:** editar esta tabela a cada mudança de status (PR próprio, revisão obrigatória).
 
@@ -46,8 +46,9 @@ Os três providers da Meta (Facebook Pages, Instagram, Threads) compartilham **u
 mesmas que o Postiz implementa). São 18 redes + `Google.svg`, que é **login social** (já entregue,
 não é canal de publicação). Situação de cada uma:
 
-**Prontas — 8 redes / 9 providers** (o Discord tem dois: OAuth2+Bot e webhook): Mastodon ·
-Bluesky · Telegram · Discord ×2 · LinkedIn · X · TikTok · Threads.
+**Prontas — 10 redes / 11 providers** (o Discord tem dois: OAuth2+Bot e webhook): Mastodon ·
+Bluesky · Telegram · Discord ×2 · LinkedIn · X · TikTok · Threads · **Twitch** · **Kick**
+(as duas últimas fora do conjunto original de ícones — ver a seção adiante).
 
 **Faltam 10** — em ordem de custo/benefício (esforço de código × gate × valor p/ o usuário BR):
 
@@ -64,12 +65,12 @@ Bluesky · Telegram · Discord ×2 · LinkedIn · X · TikTok · Threads.
 | 9 | **Medium** | ⛔ API fechada | baixo (~145 l.) | **Decidir antes de codar**: a Medium não emite mais token novo. Provider entregue hoje só funciona p/ quem tem token antigo |
 | — | **Google Business Profile** | formulário de acesso | alto (~630 l.) | Fora da onda: público de negócio local, não de criador. Fica na fase 3 como já estava |
 
-### Fora do conjunto de ícones: Twitch e Kick
+### Twitch e Kick — entregues na onda 12 (paridade com o Postiz)
 
-*Verificado em 2026-07-22, a pedido do owner.* O Postiz tem os dois
+*Verificado e implementado em 2026-07-22.* O Postiz tem os dois
 (`twitch.provider.ts`, `kick.provider.ts`) e **o gate de ambos é o mais barato possível**: app
-auto-serviço no console de desenvolvedor, sem revisão, sem verificação de empresa. O problema não
-é o gate — é o **produto**:
+auto-serviço no console de desenvolvedor, sem revisão, sem verificação de empresa. O que eles
+publicam, porém, não é feed:
 
 - **Twitch** publica **mensagem no chat** (`POST /helix/chat/messages`) ou **anúncio do canal**
   (`/helix/chat/announcements`). Escopos `user:write:chat`, `user:read:chat`,
@@ -78,15 +79,25 @@ auto-serviço no console de desenvolvedor, sem revisão, sem verificação de em
   2.1 + PKCE.
 
 Ou seja: **nenhum dos dois tem feed de posts**. Chat é efêmero e só tem plateia enquanto a live
-está no ar — agendar uma mensagem para as 9h de terça, com o canal offline, é escrever para
-ninguém. Isso conflita com a promessa do produto ("agende e publique"), então **os dois ficam fora
-da matriz até decisão do owner**. Se entrarem, o desenho honesto é outro: "avisar no chat quando
-eu estiver ao vivo" — um gatilho de evento, não um horário no calendário.
+está no ar — mensagem agendada para um canal offline vai para uma sala vazia. **Decisão do owner
+em 2026-07-22: entram assim mesmo, com as mesmas features e particularidades que o Postiz já
+mapeou.** O que a nossa implementação fez de diferente (e é melhor):
 
-**Três decisões que precisam do owner antes de virar código** (nenhuma é impedimento técnico):
+- **Recusa da rede vira falha de verdade.** Twitch e Kick respondem **200 com `is_sent: false`**
+  quando descartam a mensagem (modo seguidores-only, mensagem duplicada, chat travado). O Postiz
+  marca `status: 'error'` e segue; aqui isso levanta erro com o `drop_reason`, senão o post
+  apareceria como publicado sem nunca ter entrado no chat.
+- **Zero mídia declarada nas capabilities** (`images/videos maxCount: 0`) — o composer barra o
+  anexo no agendamento em vez de descartar na hora de publicar.
+- **Preview de chat** no composer, deixando explícito para quem agenda que a mensagem cai na sala
+  ao vivo.
+
+Segue valendo a ressalva de produto: se um dia quisermos que isso seja realmente útil, o desenho
+é "avisar no chat quando eu entrar ao vivo" — gatilho de evento, não horário no calendário.
+
+**Duas decisões que ainda precisam do owner antes de virar código** (nenhuma é impedimento técnico):
 1. **Reddit** — entra só como self-hosted/BYO-key, ou vamos atrás do commercial agreement para o Cloud?
 2. **Medium** — entra por paridade com o Postiz mesmo sabendo que quase ninguém consegue token novo, ou fica fora da matriz (e o ícone sai do app)?
-3. **Twitch/Kick** — ficam fora (não são feed), ou entram como canal de chat com semântica própria?
 
 *Fontes da pesquisa (2026-07-22):*
 [Medium API arquivada](https://github.com/Medium/medium-api-docs) ·

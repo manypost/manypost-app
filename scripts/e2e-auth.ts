@@ -172,8 +172,9 @@ if (ids.includes('telegram')) {
   const off = await post('/v1/channels/connect', { provider: 'telegram' }, bearer);
   check(off.status === 404, 'provider sem env → connect 404 (capability.disabled)');
 }
-// discord (OAuth2+Bot), linkedin, x, tiktok e threads (credenciais de app no env) seguem a mesma regra do telegram
-for (const oauthId of ['discord', 'linkedin', 'x', 'tiktok', 'threads']) {
+// discord (OAuth2+Bot), linkedin, x, tiktok, threads, twitch e kick (credenciais de app no env)
+// seguem a mesma regra do telegram
+for (const oauthId of ['discord', 'linkedin', 'x', 'tiktok', 'threads', 'twitch', 'kick']) {
   if (ids.includes(oauthId)) {
     const entry = providers.find((p) => p.id === oauthId);
     check(entry?.connectType === 'oauth', `${oauthId} conecta por OAuth`);
@@ -229,6 +230,33 @@ if (ids.includes('threads')) {
       (u?.searchParams.get('scope') ?? '').includes('threads_content_publish'),
     'threads connect → URL de autorização da Meta com client_id + escopo threads_content_publish',
   );
+}
+
+// twitch/kick: redes de CHAT — o catálogo precisa deixar claro que não aceitam mídia
+for (const chatId of ['twitch', 'kick']) {
+  if (!ids.includes(chatId)) continue;
+  const entry = providers.find((p) => p.id === chatId);
+  check(
+    entry?.media?.images?.maxCount === 0 && entry?.media?.videos?.maxCount === 0,
+    `${chatId}: catálogo declara zero mídia (chat não carrega anexo)`,
+  );
+  check(entry?.threads === true && entry?.maxLength === 500, `${chatId}: réplica no chat, 500 chars`);
+  const res = await post('/v1/channels/connect', { provider: chatId }, bearer);
+  const url = ((await res.json()) as { url?: string })?.url;
+  const u = url ? new URL(url) : undefined;
+  const expected = chatId === 'twitch' ? 'https://id.twitch.tv/oauth2/authorize' : 'https://id.kick.com/oauth/authorize';
+  check(
+    u?.origin + (u?.pathname ?? '') === expected &&
+      !!u?.searchParams.get('client_id') &&
+      (u?.searchParams.get('scope') ?? '').includes(chatId === 'twitch' ? 'user:write:chat' : 'chat:write'),
+    `${chatId} connect → URL de autorização com client_id + escopo de escrita no chat`,
+  );
+  if (chatId === 'kick') {
+    check(
+      u?.searchParams.get('code_challenge_method') === 'S256',
+      'kick connect → PKCE S256 (OAuth 2.1 exige)',
+    );
+  }
 }
 
 if (failures > 0) {

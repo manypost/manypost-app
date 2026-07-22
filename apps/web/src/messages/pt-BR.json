@@ -242,6 +242,10 @@
         "comments": "1243",
         "bookmarks": "3401",
         "shares": "1092"
+      },
+      "chat": {
+        "title": "Chat da {network}",
+        "hint": "A mensagem vai para o chat ao vivo — quem estiver assistindo no horário vê."
       }
     },
     "channelSettings": {

@@ -194,6 +194,42 @@ LINKEDIN_CLIENT_SECRET=...
 
 📌 **Publicar como página de empresa** (não como perfil) exige outro produto, **Community Management API**, que tem formulário de parceria e análise que pode levar semanas. Comece pelo perfil pessoal; peça a parceria em paralelo se precisar de páginas.
 
+### 3.4 Twitch — mensagem no chat da sua live (10 minutos) ✅
+
+> ⚠️ **Leia antes:** a Twitch **não tem feed de posts**. O que o manypost publica é uma **mensagem no chat** da sua transmissão, ou um **anúncio do canal** (aquela mensagem destacada). Como chat só tem plateia enquanto você está ao vivo, agendar para um horário com o canal offline manda a mensagem para uma sala vazia. Use para avisos no meio da live, não como "post agendado".
+
+1. Acesse **https://dev.twitch.tv/console/apps** → faça login com sua conta da Twitch (precisa de **verificação em duas etapas** ativada na conta, senão o console não deixa criar app).
+2. **Register Your Application**: dê um nome, em **OAuth Redirect URLs** coloque `https://SEU_DOMINIO/v1/channels/callback/twitch` e escolha a categoria **Application Integration**.
+3. Clique em **Manage** no app criado → copie o **Client ID** e clique em **New Secret** para gerar o **Client Secret** (ele só aparece uma vez).
+4. No `.env`:
+
+```env
+TWITCH_CLIENT_ID=...
+TWITCH_CLIENT_SECRET=...
+```
+
+5. Reinicie o manypost, conecte em **Conexões** e autorize. Ao compor, o campo **Tipo de mensagem** escolhe entre mensagem comum e anúncio (com cor).
+
+📌 A Twitch **suspende apps que pedem escopos que não usam** — o manypost pede exatamente três (`user:write:chat`, `user:read:chat`, `moderator:manage:announcements`). Não adicione outros no console.
+
+### 3.5 Kick — mensagem no chat da sua live (10 minutos) ✅
+
+> ⚠️ Mesma ressalva da Twitch: o destino é o **chat ao vivo**, não um feed.
+
+1. Acesse **https://kick.com** logado → **Configurações** (Settings) → aba **Developer** → **Create new app**.
+2. Preencha o nome e, em **Redirect URI**, coloque `https://SEU_DOMINIO/v1/channels/callback/kick`.
+3. Copie o **Client ID** e o **Client Secret**.
+4. No `.env`:
+
+```env
+KICK_CLIENT_ID=...
+KICK_CLIENT_SECRET=...
+```
+
+5. Reinicie o manypost e conecte em **Conexões**. A Kick usa OAuth 2.1 (com PKCE) — do seu lado é igual às outras: clica, autoriza, pronto.
+
+📌 A API pública da Kick é **recente e ainda muda com frequência**. Se um dia a conexão parar de funcionar sem você ter mexido em nada, é provável que seja mudança do lado deles — vale conferir a documentação oficial antes de procurar erro na configuração.
+
 ---
 
 ## 4. Nível médio
@@ -363,6 +399,8 @@ O acesso à API do Google Business Profile depende de um **formulário de solici
 | Discord | *(nenhuma — URL do webhook do canal na conexão)* | §3.1 |
 | Reddit | `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` | §3.2 |
 | LinkedIn | `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET` | §3.3 |
+| Twitch (chat) | `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET` | §3.4 |
+| Kick (chat) | `KICK_CLIENT_ID`, `KICK_CLIENT_SECRET` | §3.5 |
 | X | `X_API_KEY`, `X_API_SECRET` | §4.1 |
 | Pinterest | `PINTEREST_APP_ID`, `PINTEREST_APP_SECRET` | §4.2 |
 | YouTube | `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET` | §5.1 |
