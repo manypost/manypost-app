@@ -189,26 +189,55 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
   return parsed.data;
 }
 
+/** chaves do Env que guardam texto — o `satisfies` abaixo barra nome de variável errado */
+type StringEnvKey = {
+  [K in keyof Env]-?: NonNullable<Env[K]> extends string ? K : never;
+}[keyof Env];
+
 /**
- * env → ctx.secrets por provider (SPEC_INTEGRATIONS §2). Fonte única para a api E o
- * worker dedicado — o refresh de token (LinkedIn/X) roda no worker e precisa das
- * credenciais do app tanto quanto o connect.
+ * `ctx.secrets` de cada provider ← variável de ambiente que o preenche (SPEC_INTEGRATIONS §2).
+ * Fonte única de DUAS coisas: os secrets injetados no provider e o **nome da variável que falta**
+ * quando ele aparece indisponível na UI (`providerEnvVarNames`) — sem isso o self-hoster só via
+ * a rede sumir do catálogo, sem pista do que configurar.
+ */
+const PROVIDER_ENV = {
+  mastodon: { defaultInstance: 'MASTODON_DEFAULT_INSTANCE' },
+  telegram: { botToken: 'TELEGRAM_BOT_TOKEN' },
+  discord: {
+    clientId: 'DISCORD_CLIENT_ID',
+    clientSecret: 'DISCORD_CLIENT_SECRET',
+    botToken: 'DISCORD_BOT_TOKEN',
+  },
+  linkedin: { clientId: 'LINKEDIN_CLIENT_ID', clientSecret: 'LINKEDIN_CLIENT_SECRET' },
+  x: { clientId: 'X_CLIENT_ID', clientSecret: 'X_CLIENT_SECRET' },
+  // TikTok usa client_key (não client_id) — SPEC_INTEGRATIONS §4 (onda 2)
+  tiktok: { clientKey: 'TIKTOK_CLIENT_KEY', clientSecret: 'TIKTOK_CLIENT_SECRET' },
+  threads: { appId: 'THREADS_APP_ID', appSecret: 'THREADS_APP_SECRET' },
+} as const satisfies Record<string, Record<string, StringEnvKey>>;
+
+/**
+ * env → ctx.secrets por provider. Fonte única para a api E o worker dedicado — o refresh de
+ * token (LinkedIn/X/Threads) roda no worker e precisa das credenciais do app tanto quanto o connect.
  */
 export function providerSecretsFromEnv(env: Env): Record<string, Record<string, string>> {
-  const prune = (o: Record<string, string | undefined>) =>
-    Object.fromEntries(Object.entries(o).filter(([, v]) => v)) as Record<string, string>;
-  return {
-    mastodon: prune({ defaultInstance: env.MASTODON_DEFAULT_INSTANCE }),
-    telegram: prune({ botToken: env.TELEGRAM_BOT_TOKEN }),
-    discord: prune({
-      clientId: env.DISCORD_CLIENT_ID,
-      clientSecret: env.DISCORD_CLIENT_SECRET,
-      botToken: env.DISCORD_BOT_TOKEN,
-    }),
-    linkedin: prune({ clientId: env.LINKEDIN_CLIENT_ID, clientSecret: env.LINKEDIN_CLIENT_SECRET }),
-    x: prune({ clientId: env.X_CLIENT_ID, clientSecret: env.X_CLIENT_SECRET }),
-    // TikTok usa client_key (não client_id) — SPEC_INTEGRATIONS §4 (onda 2)
-    tiktok: prune({ clientKey: env.TIKTOK_CLIENT_KEY, clientSecret: env.TIKTOK_CLIENT_SECRET }),
-    threads: prune({ appId: env.THREADS_APP_ID, appSecret: env.THREADS_APP_SECRET }),
-  };
+  return Object.fromEntries(
+    Object.entries(PROVIDER_ENV).map(([provider, keys]) => [
+      provider,
+      Object.fromEntries(
+        Object.entries(keys as Record<string, StringEnvKey>)
+          .map(([secret, envKey]) => [secret, env[envKey]])
+          .filter(([, value]) => value),
+      ) as Record<string, string>,
+    ]),
+  );
+}
+
+/**
+ * Nomes das variáveis de ambiente que preenchem estes secrets de um provider — é o que a UI
+ * mostra ao self-hoster ("falta THREADS_APP_ID") em vez de esconder a rede. Secret sem mapa
+ * (provider novo que esqueceu de entrar no PROVIDER_ENV) simplesmente não aparece na lista.
+ */
+export function providerEnvVarNames(providerId: string, secretKeys: string[]): string[] {
+  const map = (PROVIDER_ENV as Record<string, Record<string, string>>)[providerId] ?? {};
+  return secretKeys.map((k) => map[k]).filter((v): v is string => Boolean(v));
 }

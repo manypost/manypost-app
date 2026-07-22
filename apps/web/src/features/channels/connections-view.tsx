@@ -73,6 +73,14 @@ export function ConnectionsView() {
   const [fieldsProvider, setFieldsProvider] = useState<ProviderInfo | null>(null);
   const [toDisconnect, setToDisconnect] = useState<Channel | null>(null);
 
+  // O catálogo lista TODA rede implementada; `available` diz se as credenciais de app existem
+  // aqui. Quem não tem credencial não some da tela: em self-hosted vira "precisa de credencial"
+  // (com a variável que falta), no gerenciado cai junto das que ainda estão por vir.
+  const catalog = providers.data ?? [];
+  const connectable = catalog.filter((p) => p.available !== false);
+  const needsSetup = catalog.filter((p) => p.available === false && (p.setupEnv?.length ?? 0) > 0);
+  const notEnabled = catalog.filter((p) => p.available === false && !p.setupEnv?.length);
+
   /** Com campos de conexão no catálogo → dialog; OAuth puro → direto pro popup. */
   const startConnect = async (provider: ProviderInfo) => {
     if (provider.connectType === 'fields' || connectionFields(provider.connectionFieldsSchema).length > 0) {
@@ -210,13 +218,13 @@ export function ConnectionsView() {
               </Button>
             </AlertDescription>
           </Alert>
-        ) : providers.data.length === 0 ? (
+        ) : connectable.length === 0 ? (
           <div className="rounded-lg border border-dashed border-line bg-surface-2 px-6 py-10 text-center">
             <p className="text-sm leading-relaxed text-graphite">{t('catalogEmpty')}</p>
           </div>
         ) : (
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {providers.data.map((p) => {
+            {connectable.map((p) => {
               const connecting = connect.isPending && connect.variables?.provider === p.id;
               // rede que o plano atual não inclui (X no Grátis) — marca o cartão e leva a /planos
               const locked = Boolean(p.requiredFeature) && !has(p.requiredFeature as string);
@@ -259,7 +267,12 @@ export function ConnectionsView() {
         )}
       </section>
 
-      <UpcomingSection available={providers.data?.map((p) => p.id)} />
+      <NeedsSetupSection providers={needsSetup} />
+
+      <UpcomingSection
+        catalogIds={catalog.map((p) => p.id)}
+        notEnabled={notEnabled.map((p) => ({ id: p.id, name: p.name }))}
+      />
 
       {fieldsProvider ? (
         <ConnectDialog
@@ -277,13 +290,65 @@ export function ConnectionsView() {
 }
 
 /**
- * Redes do roteiro que ainda não têm provider (UPCOMING_PROVIDERS), como cartões
- * informativos — sem foco, sem clique, nada que prometa uma ação que não existe.
- * Qualquer id que já esteja no catálogo é filtrado: entregar o provider tira a rede daqui.
+ * Redes implementadas que esta instalação ainda não habilitou por falta de credencial no `.env`
+ * (só self-hosted — é lá que quem usa também opera). Antes elas sumiam do catálogo, e o
+ * self-hoster não tinha como saber que a rede existia nem o que configurar.
  */
-function UpcomingSection({ available }: { available?: string[] }) {
+function NeedsSetupSection({
+  providers,
+}: {
+  providers: Array<{ id: string; name: string; setupEnv?: string[] }>;
+}) {
   const t = useTranslations('connections');
-  const pending = UPCOMING_PROVIDERS.filter((p) => !available?.includes(p.id));
+  if (providers.length === 0) return null;
+
+  return (
+    <section aria-labelledby="setup-title" className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1">
+        <h2 id="setup-title" className="text-base font-semibold tracking-[-0.2px] text-ink">
+          {t('setupTitle')}
+        </h2>
+        <p className="text-sm leading-relaxed text-graphite">{t('setupSubtitle')}</p>
+      </div>
+      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        {providers.map((p) => (
+          <li key={p.id}>
+            <div className="flex h-full w-full items-center gap-3 rounded-lg border border-line bg-surface p-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-line bg-surface-2">
+                <ProviderIcon provider={p.id} name={p.name} className="size-5" />
+              </div>
+              <div className="flex flex-1 flex-col overflow-hidden">
+                <span className="truncate text-[13px] font-medium text-ink">{p.name}</span>
+                <span className="truncate text-xs text-graphite" title={p.setupEnv?.join(', ')}>
+                  {t('setupHint', { vars: (p.setupEnv ?? []).join(', ') })}
+                </span>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * Redes que ainda não dá para conectar: as do roteiro sem provider (UPCOMING_PROVIDERS) e, no
+ * serviço gerenciado, as implementadas que a instalação ainda não habilitou. Cartões
+ * informativos — sem foco, sem clique, nada que prometa uma ação que não existe. Id que já
+ * está no catálogo sai da lista fixa: entregar o provider tira a rede daqui sozinho.
+ */
+function UpcomingSection({
+  catalogIds,
+  notEnabled,
+}: {
+  catalogIds: string[];
+  notEnabled: Array<{ id: string; name: string }>;
+}) {
+  const t = useTranslations('connections');
+  const pending = [
+    ...notEnabled,
+    ...UPCOMING_PROVIDERS.filter((p) => !catalogIds.includes(p.id)),
+  ];
   if (pending.length === 0) return null;
 
   return (

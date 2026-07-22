@@ -115,11 +115,25 @@ check(
   `provider google → 302 (configurado) ou 404 (não configurado) — veio ${socialOff.status}`,
 );
 
-// 9) catálogo de providers de rede: só os disponíveis (env presente) aparecem
+// 9) catálogo de providers de rede: lista TODA rede implementada, com `available` dizendo
+// quem tem credencial de app aqui (e `setupEnv`, no self-hosted, dizendo o que falta)
 const providers = (await (
   await fetch(`${BASE}/v1/channels/providers`, { headers: bearer })
 ).json()) as any[];
-const ids = providers.map((p) => p.id);
+/** ids CONECTÁVEIS — é o que a tela de Conexões oferece; o resto vira "precisa de credencial" */
+const ids = providers.filter((p) => p.available).map((p) => p.id);
+check(
+  providers.every((p) => typeof p.available === 'boolean'),
+  'catálogo marca disponibilidade em vez de esconder a rede',
+);
+{
+  // rede implementada e sem credencial não some mais: aparece com available:false + a dica de env
+  const off = providers.filter((p) => !p.available);
+  check(
+    off.every((p) => Array.isArray(p.setupEnv) && p.setupEnv.length > 0),
+    `indisponível traz setupEnv com a variável que falta (${off.map((p) => `${p.id}:${(p.setupEnv ?? []).join('/')}`).join(', ') || 'nenhuma indisponível'})`,
+  );
+}
 check(ids.includes('bluesky'), 'bluesky sempre disponível (não precisa de env)');
 check(ids.includes('mastodon'), 'mastodon sempre disponível');
 const bsky = providers.find((p) => p.id === 'bluesky');
@@ -151,7 +165,7 @@ check(
   providers.find((p) => p.id === 'discord-webhook')?.connectionFieldsSchema?.properties?.webhookUrl !== undefined,
   'discord-webhook expõe connectionFieldsSchema (webhookUrl)',
 );
-// telegram só aparece com TELEGRAM_BOT_TOKEN; sem env → some do catálogo e connect dá 404
+// telegram só fica conectável com TELEGRAM_BOT_TOKEN; sem env → available:false e connect 404
 if (ids.includes('telegram')) {
   check(providers.find((p) => p.id === 'telegram')?.connectType === 'fields', 'telegram conecta por campos');
 } else {

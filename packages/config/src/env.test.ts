@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'bun:test';
-import { loadEnv, machineEndpoints, machineHosts } from './env';
+import {
+  loadEnv,
+  machineEndpoints,
+  machineHosts,
+  providerEnvVarNames,
+  providerSecretsFromEnv,
+} from './env';
 
 /** env mínima válida (os demais campos têm default) */
 const base = {
@@ -55,5 +61,27 @@ describe('superfícies de máquina (SPEC_API_MCP §3/§5)', () => {
     expect(() => loadEnv({ ...base, MCP_PUBLIC_URL: 'https://manypost.com.br/mcp' })).toThrow(
       /MCP_PUBLIC_URL/,
     );
+  });
+});
+
+describe('secrets de provider ← env (SPEC_INTEGRATIONS §2)', () => {
+  it('injeta só o que está preenchido, por provider', () => {
+    const env = loadEnv({ ...base, THREADS_APP_ID: 'app', THREADS_APP_SECRET: 'sec' });
+    const secrets = providerSecretsFromEnv(env);
+    expect(secrets.threads).toEqual({ appId: 'app', appSecret: 'sec' });
+    // sem env, o provider fica com o objeto vazio (e some do catálogo por requiredSecrets)
+    expect(secrets.tiktok).toEqual({});
+    expect(secrets.discord).toEqual({});
+  });
+
+  it('diz qual VARIÁVEL falta — é o que a UI mostra em vez de esconder a rede', () => {
+    expect(providerEnvVarNames('threads', ['appId', 'appSecret'])).toEqual([
+      'THREADS_APP_ID',
+      'THREADS_APP_SECRET',
+    ]);
+    expect(providerEnvVarNames('tiktok', ['clientKey'])).toEqual(['TIKTOK_CLIENT_KEY']);
+    // provider/secret sem mapa não inventa nome (fica de fora da dica)
+    expect(providerEnvVarNames('bluesky', ['handle'])).toEqual([]);
+    expect(providerEnvVarNames('x', ['clientId', 'inexistente'])).toEqual(['X_CLIENT_ID']);
   });
 });
