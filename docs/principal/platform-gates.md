@@ -12,8 +12,8 @@
 | Telegram | nenhum (BotFather) | ✅ livre | ☐ | ☐ | ☐ | onda 1 |
 | LinkedIn | member post aberto; Community Mgmt (orgs) exige programa de parceiro | ☐ pendente | ☐ | ☐ | ☐ | onda 1 (member); página corporativa pode escorregar p/ onda 2 |
 | X (Twitter) | app aprovado no portal; custo de tier | ☐ pendente | ☐ | ☐ | ☐ | **BYO-Key no Self-Hosted (`IS_SELF_HOSTED=true`); absorvido no plano Pro do SaaS Cloud** (DECISIONS v1.1 §13 / PLANS §4) |
-| Meta — Facebook Pages | App Review + Business Verification | ☐ pendente — **travado no CNPJ** | ☐ | ☐ | ☐ | onda 2; exige screencast do fluxo. **Os três "Meta" saem no MESMO app/review/verificação** — ver ⬇ |
-| Meta — Instagram | App Review (`instagram_content_publish`) | ☐ pendente — **travado no CNPJ** | ☐ | ☐ | ☐ | onda 2; mídia precisa de URL pública (Meta faz *pull* — depende de storage público/S3-R2); **marco de abertura ao público criador BR** |
+| Meta — Facebook Pages | App Review + Business Verification | ☐ App Review pendente — **travado no CNPJ**; **provider ✅ pronto (onda 16), rodando em Development Mode** | ☐ | ☑ (dev mode) | 2026-07-23 | **implementado**: OAuth `fb_exchange_token`, Página escolhida por post (sub-contas do Discord) com o token de Página **derivado no publish**, feed/álbum/reel/story/comentário. **Os três "Meta" saem no MESMO app/review/verificação** — ver ⬇ |
+| Meta — Instagram | App Review (`instagram_content_publish`) | **standalone (Instagram Login) ✅ pronto (onda 15, dev mode)**; a variante via Facebook Business ☐ pendente — **travado no CNPJ** | ☐ | ☑ (dev mode) | 2026-07-23 | mídia precisa de URL pública (Meta faz *pull* — depende de storage público/S3-R2); **marco de abertura ao público criador BR**. O `instagram-standalone` cobre o Instagram Login; falta só o `instagram` via Página (reusa o app/token de Página do `facebook`) |
 | Meta — Threads | Threads API (caso de uso próprio no app Meta) | ☐ App Review pendente — **travado no CNPJ**; **provider ✅ pronto (onda 11), rodando em Development Mode** | ☐ | ☑ (dev mode) | 2026-07-22 | **implementado**: OAuth token curto→longo, container→`threads_publish`, carrossel misto, réplicas nativas. Não exige Página do FB nem Portfólio p/ testar. Token de ~60 dias com renovação **reativa** — refresh proativo (`th_refresh_token` em cron) segue em aberto |
 | TikTok | auditoria da Content Posting API (Direct Post) | ⏳ **em revisão (submetida 2026-07-18)** — provider ✅ pronto em sandbox | ☑ | ☑ (sandbox) | 2026-07-17 | onda 2; **provider implementado e testado em sandbox** (OAuth2 PKCE + Direct Post/inbox, FILE_UPLOAD de vídeo, PULL_FROM_URL de foto). **Formulário de auditoria ENVIADO em 2026-07-18** — aguardando revisão (~2–3 semanas). Sem aprovação os posts ficam privados (SELF_ONLY). **marco de abertura ao público criador BR** |
 | YouTube | escopo **sensível** `youtube.upload` → verificação OAuth (marca + screencast) + quota | ☐ pendente | ☐ | ☐ | ☐ | onda 2; 10.000 units/dia por projeto e **upload = 1.600 units ⇒ ~6 vídeos/dia** por instalação. Aumento de quota é **auditoria separada** da verificação OAuth |
@@ -46,23 +46,23 @@ Os três providers da Meta (Facebook Pages, Instagram, Threads) compartilham **u
 mesmas que o Postiz implementa). São 18 redes + `Google.svg`, que é **login social** (já entregue,
 não é canal de publicação). Situação de cada uma:
 
-**Prontas — 10 redes / 11 providers** (o Discord tem dois: OAuth2+Bot e webhook): Mastodon ·
-Bluesky · Telegram · Discord ×2 · LinkedIn · X · TikTok · Threads · **Twitch** · **Kick**
-(as duas últimas fora do conjunto original de ícones — ver a seção adiante).
+**Prontas — 12 redes / 13 providers** (o Discord tem dois: OAuth2+Bot e webhook): Mastodon ·
+Bluesky · Telegram · Discord ×2 · LinkedIn · X · TikTok · Threads · **Instagram standalone** ·
+**Facebook Pages** · **Twitch** · **Kick** (as duas últimas fora do conjunto original de ícones —
+ver a seção adiante).
 
-**Faltam 10** — em ordem de custo/benefício (esforço de código × gate × valor p/ o usuário BR):
+**Faltam 8** — em ordem de custo/benefício (esforço de código × gate × valor p/ o usuário BR):
 
 | # | Rede | Gate | Esforço | Por que nesta posição |
 |---|---|---|---|---|
-| 1 | **Instagram** | App Review + Business Verification | alto (~1.100 l. de referência) | O canal mais pedido do público-alvo. Reusa o container→publish do Threads e as sub-contas do Discord. Vale a pena mesmo com o gate longo |
-| 2 | **Facebook Pages** | mesmo app/review do Instagram | alto (~890 l.) | Sai junto do Instagram: mesmo OAuth, mesmo review, e o token de **página** (`/me/accounts`) é o que publica |
-| 3 | **Dev.to** | nenhum | baixo (~190 l.) | Zero gate, API key pessoal. Entrega rápida que amplia a matriz enquanto os reviews da Meta correm |
-| 4 | **Slack** | nenhum p/ funcionar | médio (~290 l.) | Distribuição pública é auto-serviço. Canal de *equipe* (não de criador) — bom p/ o plano Pro/times |
-| 5 | **YouTube** | verificação OAuth + quota | alto (~640 l.) | Vídeo é caro (resumable upload) e a quota de ~6 uploads/dia limita o Cloud; BYO-key resolve no self-hosted |
-| 6 | **Pinterest** | trial → standard (vídeo) | médio (~530 l.) | Já em revisão. **Sem standard access o Pin nasce invisível**, então implementar antes da aprovação só serve p/ gravar o vídeo da submissão |
-| 7 | **Reddit** | acordo comercial p/ SaaS | médio (~510 l.) | ⚠️ Trava de **negócio**: no Cloud, cobrar por cima da chave grátis viola os termos. Só faz sentido como **BYO-key self-hosted** até existir decisão sobre o acordo pago |
-| 8 | **Dribbble** | aprovação p/ uso comercial | baixo (~225 l.) | Nicho de design, teto de 5 shots/dia. Barato de escrever, público pequeno |
-| 9 | **Medium** | ⛔ API fechada | baixo (~145 l.) | **Decidir antes de codar**: a Medium não emite mais token novo. Provider entregue hoje só funciona p/ quem tem token antigo |
+| 1 | **Instagram via Facebook Business** (`instagram`) | App Review + Business Verification | alto (~1.100 l. de referência) | A variante que conecta a conta IG **por uma Página** (o `instagram-standalone` da onda 15 já cobre o Instagram Login puro). Reusa o app Meta, o token de Página e o `listSubAccounts` do `facebook` (onda 16), resolvendo `instagram_business_account` na Página |
+| 2 | **Dev.to** | nenhum | baixo (~190 l.) | Zero gate, API key pessoal. Entrega rápida que amplia a matriz enquanto os reviews da Meta correm |
+| 3 | **Slack** | nenhum p/ funcionar | médio (~290 l.) | Distribuição pública é auto-serviço. Canal de *equipe* (não de criador) — bom p/ o plano Pro/times |
+| 4 | **YouTube** | verificação OAuth + quota | alto (~640 l.) | Vídeo é caro (resumable upload) e a quota de ~6 uploads/dia limita o Cloud; BYO-key resolve no self-hosted |
+| 5 | **Pinterest** | trial → standard (vídeo) | médio (~530 l.) | Já em revisão. **Sem standard access o Pin nasce invisível**, então implementar antes da aprovação só serve p/ gravar o vídeo da submissão |
+| 6 | **Reddit** | acordo comercial p/ SaaS | médio (~510 l.) | ⚠️ Trava de **negócio**: no Cloud, cobrar por cima da chave grátis viola os termos. Só faz sentido como **BYO-key self-hosted** até existir decisão sobre o acordo pago |
+| 7 | **Dribbble** | aprovação p/ uso comercial | baixo (~225 l.) | Nicho de design, teto de 5 shots/dia. Barato de escrever, público pequeno |
+| 8 | **Medium** | ⛔ API fechada | baixo (~145 l.) | **Decidir antes de codar**: a Medium não emite mais token novo. Provider entregue hoje só funciona p/ quem tem token antigo |
 | — | **Google Business Profile** | formulário de acesso | alto (~630 l.) | Fora da onda: público de negócio local, não de criador. Fica na fase 3 como já estava |
 
 ### Twitch e Kick — entregues na onda 12 (paridade com o Postiz)

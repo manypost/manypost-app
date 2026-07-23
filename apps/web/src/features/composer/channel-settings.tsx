@@ -115,17 +115,28 @@ function EnumField({
   );
 }
 
+/**
+ * Seletor de sub-conta (canal de texto do Discord, Página do Facebook…) alimentado por
+ * `GET /v1/channels/:id/sub-accounts`. Genérico: os rótulos vêm do i18n por `providerId`, com um
+ * fallback comum — nenhum texto de rede fica embutido aqui.
+ */
 function SubAccountsField({
   id,
+  providerId,
   channelId,
   value,
   onChange,
 }: {
   id: string;
+  providerId: string;
   channelId?: string;
   value: unknown;
   onChange: (value: unknown) => void;
 }) {
+  const t = useTranslations('composer.channelSettings.subAccount');
+  const label = (key: string) =>
+    t.has(`${providerId}.${key}`) ? t(`${providerId}.${key}`) : t(key);
+
   const { data: channels = [], isLoading } = useQuery({
     queryKey: ['sub-accounts', channelId],
     queryFn: async () => {
@@ -141,15 +152,12 @@ function SubAccountsField({
   const current = typeof value === 'string' && value !== '' ? value : UNSET;
 
   return (
-    <Select
-      value={current}
-      onValueChange={(v) => onChange(v === UNSET ? undefined : v)}
-    >
+    <Select value={current} onValueChange={(v) => onChange(v === UNSET ? undefined : v)}>
       <SelectTrigger id={id} className="w-full sm:w-64">
-        <SelectValue placeholder={isLoading ? 'Buscando canais disponíveis...' : 'Selecione o canal do Discord...'} />
+        <SelectValue placeholder={isLoading ? label('loading') : label('select')} />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value={UNSET}>-- Selecione um canal --</SelectItem>
+        <SelectItem value={UNSET}>{label('unset')}</SelectItem>
         {channels.map((c) => (
           <SelectItem key={c.externalId} value={c.externalId}>
             {c.name}
@@ -159,6 +167,9 @@ function SubAccountsField({
     </Select>
   );
 }
+
+/** Campos renderizados como seletor de sub-conta (o valor vem de `/sub-accounts`, não digitado). */
+const SUB_ACCOUNT_FIELDS: Record<string, string> = { discord: 'channelId', facebook: 'pageId' };
 
 /**
  * Configurações por canal do composer (paridade Postiz ref 8): acordeão que
@@ -268,10 +279,11 @@ export function ChannelSettingsCard({
             }
 
             const inner = (() => {
-              if (providerId === 'discord' && key === 'channelId') {
+              if (SUB_ACCOUNT_FIELDS[providerId] === key) {
                 return (
                   <SubAccountsField
                     id={fieldId}
+                    providerId={providerId}
                     channelId={channelId}
                     value={value}
                     onChange={(v) => onChange(key, v)}

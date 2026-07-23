@@ -362,6 +362,18 @@ THREADS_APP_SECRET=...
 - **A Meta busca a mídia na sua URL** (não recebe o arquivo). Se o seu manypost estiver em `localhost`, a publicação com foto/vídeo falha com "The media could not be fetched from this URI" — post só de texto funciona normalmente. Em produção, use armazenamento acessível por HTTPS.
 - **O acesso vale ~60 dias** e é renovado sozinho a cada publicação. Uma conta que fica 60 dias sem publicar pede reconexão (o canal aparece como "precisa reconectar").
 
+**Facebook Pages (já funciona no manypost — entregue na onda 16):** usa o **Facebook Login** do mesmo painel (as `FACEBOOK_APP_ID`/`FACEBOOK_APP_SECRET` acima). Passo a passo:
+
+1. No app da Meta, **Add Product → Facebook Login** (se ainda não tiver) e, em **Facebook Login → Settings**, no campo **Valid OAuth Redirect URIs**, cole `https://SEU_DOMINIO/v1/channels/callback/facebook` (precisa ser **HTTPS**; em dev use um túnel).
+2. Reinicie o manypost: o **Facebook** aparece em **Conexões**. Conecte com a sua conta — em modo desenvolvimento funciona **inteiro** para quem tem papel no app (**App Roles → Roles**).
+3. **A Página é escolhida em cada post, não na conexão.** O canal representa a sua conta; no compositor, em **Configurações** do canal Facebook, você seleciona a **Página** de destino (o manypost lista as Páginas que você administra) e se é **Feed** ou **Story**.
+4. Publica: **texto**, **foto/álbum** (até 10), **vídeo (reel)** e **story** (uma foto ou um vídeo). As **respostas da thread viram comentários** no post.
+5. Para outras pessoas conectarem, é o mesmo **App Review** do item 10 (peça `pages_manage_posts`, `pages_read_engagement`, `business_management`).
+
+**Facebook também busca a mídia na sua URL** (igual ao Threads/Instagram): em `localhost`, foto/vídeo falham; post só de texto funciona. Em produção, use armazenamento acessível por HTTPS.
+
+**Instagram — duas variantes:** o **Instagram Login** (produto "Instagram", `INSTAGRAM_APP_ID/SECRET`) já funciona no manypost desde a onda 15 como o canal **"Instagram"** (conta comercial ou de criador, **sem** precisar de Página do Facebook). A variante **via Facebook Business** (conecta a conta IG *por uma Página*, reusando as `FACEBOOK_APP_*`) ainda está no roteiro.
+
 ### 5.3 TikTok — auditoria obrigatória para post público
 
 Sem auditoria aprovada, a API **funciona mas publica como "somente eu"** (privado) — ou seja, inútil em produção. O processo:

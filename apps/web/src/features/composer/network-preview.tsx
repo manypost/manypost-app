@@ -285,6 +285,89 @@ function InstagramPreview({ p }: { p: NetworkProps }) {
   );
 }
 
+/**
+ * Facebook (Página): cartão de feed — nome da Página + hora/globo no cabeçalho, texto, mídia de
+ * ponta a ponta e barra Curtir/Comentar/Compartilhar. As réplicas da thread aparecem como
+ * comentários (é o que o provider publica no post raiz). O nome é o do canal (conta); a Página de
+ * destino é escolhida por post nas Configurações.
+ */
+function FacebookPreview({ p }: { p: NetworkProps }) {
+  const t = useTranslations('composer.preview.facebook');
+  const [main, ...replies] = p.entries;
+  if (!main) return null;
+  return (
+    <article className="rounded-lg border border-line bg-surface p-4">
+      <div className="flex gap-2.5">
+        <ChannelAvatar name={p.name} avatarUrl={p.avatarUrl} provider={p.provider} className="size-10" />
+        <div className="min-w-0">
+          <p className="text-[13px] font-semibold leading-tight text-ink">{p.name}</p>
+          <p className="mt-0.5 flex items-center gap-1 text-xs leading-tight text-mist">
+            {p.timeLabel} · <Globe className="size-3" aria-hidden />
+          </p>
+        </div>
+      </div>
+      {main.text ? (
+        <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed text-ink">
+          {main.text}
+        </p>
+      ) : null}
+      {main.media.length > 0 ? (
+        // mídia de ponta a ponta, como no feed do Facebook
+        <div className="-mx-4 mt-3 flex gap-px overflow-hidden border-y border-line">
+          {main.media.map((m, i) => (
+            <MediaThumb
+              key={i}
+              url={m.url}
+              mime={m.mime}
+              alt={m.alt}
+              className={cn('min-w-0 flex-1', main.media.length === 1 ? 'max-h-64' : 'aspect-square')}
+            />
+          ))}
+        </div>
+      ) : null}
+      <div
+        aria-hidden
+        className="mt-3 grid grid-cols-3 gap-1 border-t border-line pt-2.5 text-[11px] font-semibold text-graphite"
+      >
+        <span className="flex items-center justify-center gap-1">
+          <ThumbsUp className="size-3.5" /> {t('like')}
+        </span>
+        <span className="flex items-center justify-center gap-1">
+          <MessageCircle className="size-3.5" /> {t('comment')}
+        </span>
+        <span className="flex items-center justify-center gap-1">
+          <Share className="size-3.5" /> {t('share')}
+        </span>
+      </div>
+      {replies.length > 0 ? (
+        // no Facebook a thread vira comentários no post raiz (é o que o provider publica)
+        <div className="mt-3 flex flex-col gap-2 border-t border-line pt-3">
+          {replies.map((reply, i) => (
+            <div key={i} className="flex gap-2">
+              <ChannelAvatar
+                name={p.name}
+                avatarUrl={p.avatarUrl}
+                provider={p.provider}
+                className="size-7"
+                badge={false}
+              />
+              <div className="min-w-0 flex-1 rounded-lg bg-surface-2 px-3 py-2">
+                <p className="text-xs font-semibold text-ink">{p.name}</p>
+                {reply.text ? (
+                  <p className="mt-0.5 whitespace-pre-wrap break-words text-[13px] leading-relaxed text-ink">
+                    {reply.text}
+                  </p>
+                ) : null}
+                <MediaGrid media={reply.media} className="mt-1.5" singleClassName="max-h-40" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
 /** Sem layout próprio da rede (ex.: fake) — cartão neutro, sem chrome. */
 function GenericPreview({ p }: { p: NetworkProps }) {
   return <MicroblogPreview p={p} />;
@@ -600,6 +683,7 @@ const PREVIEWS: Record<string, ComponentType<{ p: NetworkProps }>> = {
   'discord-webhook': DiscordPreview,
   tiktok: TiktokPreview,
   'instagram-standalone': InstagramPreview,
+  facebook: FacebookPreview,
   twitch: ChatPreview,
   kick: ChatPreview,
 };

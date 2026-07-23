@@ -2,6 +2,7 @@ import type { ChannelProvider } from '@manypost/contracts';
 import { blueskyProvider } from './bluesky/bluesky.provider';
 import { discordProvider } from './discord/discord.provider';
 import { discordWebhookProvider } from './discord/discord-webhook.provider';
+import { facebookProvider } from './facebook/facebook.provider';
 import { fakeProvider } from './fake/fake.provider';
 import { instagramStandaloneProvider } from './instagram-standalone/instagram-standalone.provider';
 import { kickProvider } from './kick/kick.provider';
@@ -18,8 +19,9 @@ import { xProvider } from './x/x.provider';
  * mastodon, telegram, bluesky, discord (oauth), discord-webhook, linkedin, x — cada um em sua pasta, registrado
  * aqui, com a suíte de contrato (test-kit) verde antes do merge. Onda 2: tiktok (Content Posting API),
  * threads (primeiro da família Meta — container → threads_publish), a dupla de streaming
- * twitch/kick, que publica no **chat ao vivo** em vez de um feed (paridade com o Postiz), e
- * instagram-standalone (Instagram Login sem Página do Facebook — mesmo molde container→publish).
+ * twitch/kick, que publica no **chat ao vivo** em vez de um feed (paridade com o Postiz),
+ * instagram-standalone (Instagram Login sem Página do Facebook — mesmo molde container→publish) e
+ * facebook (Página; Página escolhida por post via sub-contas, token da Página derivado no publish).
  */
 export const providers: ChannelProvider[] = [
   mastodonProvider,
@@ -32,6 +34,7 @@ export const providers: ChannelProvider[] = [
   tiktokProvider,
   threadsProvider,
   instagramStandaloneProvider,
+  facebookProvider,
   twitchProvider,
   kickProvider,
   fakeProvider,
@@ -46,6 +49,7 @@ export {
   blueskyProvider,
   discordProvider,
   discordWebhookProvider,
+  facebookProvider,
   fakeProvider,
   instagramStandaloneProvider,
   kickProvider,

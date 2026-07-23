@@ -181,6 +181,7 @@ for (const oauthId of [
   'tiktok',
   'threads',
   'instagram-standalone',
+  'facebook',
   'twitch',
   'kick',
 ]) {
@@ -288,6 +289,28 @@ if (ids.includes('instagram-standalone')) {
       !!u?.searchParams.get('client_id') &&
       (u?.searchParams.get('scope') ?? '').includes('instagram_business_content_publish'),
     'instagram-standalone connect → URL do Instagram Login com escopo instagram_business_content_publish',
+  );
+}
+
+// facebook (Página): aceita só-texto, thread por comentário, e o connect leva ao consentimento da Meta
+if (ids.includes('facebook')) {
+  const entry = providers.find((p) => p.id === 'facebook');
+  check(
+    entry?.requiresMedia === false && entry?.maxLength === 63206,
+    'facebook: aceita só-texto e 63206 caracteres no catálogo',
+  );
+  check(
+    entry?.threads === true && entry?.settingsSchema?.properties?.pageId !== undefined,
+    'facebook: réplica por comentário e settingsSchema com pageId (Página escolhida por post)',
+  );
+  const res = await post('/v1/channels/connect', { provider: 'facebook' }, bearer);
+  const url = ((await res.json()) as { url?: string })?.url;
+  const u = url ? new URL(url) : undefined;
+  check(
+    u?.origin + (u?.pathname ?? '') === 'https://www.facebook.com/v20.0/dialog/oauth' &&
+      !!u?.searchParams.get('client_id') &&
+      (u?.searchParams.get('scope') ?? '').includes('pages_manage_posts'),
+    'facebook connect → URL de autorização da Meta com client_id + escopo pages_manage_posts',
   );
 }
 
