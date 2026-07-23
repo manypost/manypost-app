@@ -97,6 +97,10 @@ const EnvSchema = z
     // produto "Instagram" no painel da Meta (distintos dos FACEBOOK_APP_* do IG via Business)
     INSTAGRAM_APP_ID: z.string().optional(),
     INSTAGRAM_APP_SECRET: z.string().optional(),
+    // Facebook Pages (família Meta): App ID/Secret do produto "Facebook Login" no painel da Meta —
+    // mesma app serve o `instagram` via Facebook Business quando ele entrar
+    FACEBOOK_APP_ID: z.string().optional(),
+    FACEBOOK_APP_SECRET: z.string().optional(),
     // Streaming — publicam no CHAT ao vivo, não em feed (paridade Postiz)
     TWITCH_CLIENT_ID: z.string().optional(),
     TWITCH_CLIENT_SECRET: z.string().optional(),
@@ -223,6 +227,7 @@ const PROVIDER_ENV = {
   tiktok: { clientKey: 'TIKTOK_CLIENT_KEY', clientSecret: 'TIKTOK_CLIENT_SECRET' },
   threads: { appId: 'THREADS_APP_ID', appSecret: 'THREADS_APP_SECRET' },
   'instagram-standalone': { appId: 'INSTAGRAM_APP_ID', appSecret: 'INSTAGRAM_APP_SECRET' },
+  facebook: { appId: 'FACEBOOK_APP_ID', appSecret: 'FACEBOOK_APP_SECRET' },
   twitch: { clientId: 'TWITCH_CLIENT_ID', clientSecret: 'TWITCH_CLIENT_SECRET' },
   kick: { clientId: 'KICK_CLIENT_ID', clientSecret: 'KICK_CLIENT_SECRET' },
 } as const satisfies Record<string, Record<string, StringEnvKey>>;

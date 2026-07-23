@@ -72,10 +72,13 @@ describe('secrets de provider ← env (SPEC_INTEGRATIONS §2)', () => {
       THREADS_APP_SECRET: 'sec',
       INSTAGRAM_APP_ID: 'ig',
       INSTAGRAM_APP_SECRET: 'igsec',
+      FACEBOOK_APP_ID: 'fb',
+      FACEBOOK_APP_SECRET: 'fbsec',
     });
     const secrets = providerSecretsFromEnv(env);
     expect(secrets.threads).toEqual({ appId: 'app', appSecret: 'sec' });
     expect(secrets['instagram-standalone']).toEqual({ appId: 'ig', appSecret: 'igsec' });
+    expect(secrets.facebook).toEqual({ appId: 'fb', appSecret: 'fbsec' });
     // sem env, o provider fica com o objeto vazio (e some do catálogo por requiredSecrets)
     expect(secrets.tiktok).toEqual({});
     expect(secrets.discord).toEqual({});
@@ -90,6 +93,10 @@ describe('secrets de provider ← env (SPEC_INTEGRATIONS §2)', () => {
     expect(providerEnvVarNames('instagram-standalone', ['appId', 'appSecret'])).toEqual([
       'INSTAGRAM_APP_ID',
       'INSTAGRAM_APP_SECRET',
+    ]);
+    expect(providerEnvVarNames('facebook', ['appId', 'appSecret'])).toEqual([
+      'FACEBOOK_APP_ID',
+      'FACEBOOK_APP_SECRET',
     ]);
     // provider/secret sem mapa não inventa nome (fica de fora da dica)
     expect(providerEnvVarNames('bluesky', ['handle'])).toEqual([]);

@@ -9,12 +9,11 @@
  * aparece nem aqui nem no catálogo; o caminho dele é o `INTEGRATIONS_SETUP.md`. Fora da lista
  * de propósito: Medium (a plataforma não emite mais token novo), Twitch/Kick (publicam em chat
  * ao vivo, não em feed) e Google Business Profile (fase 3) — os três dependem de decisão.
- * Instagram também saiu daqui: o provider `instagram-standalone` (Instagram Login, sem Página do
- * Facebook) já cobre "Instagram" no catálogo. A variante via Facebook Business (`instagram`) e o
- * `facebook` continuam no roteiro.
+ * Instagram e Facebook também saíram daqui: `instagram-standalone` (Instagram Login) cobre
+ * "Instagram" e `facebook` (Página) cobre "Facebook" no catálogo. A variante do Instagram via
+ * Facebook Business (`instagram`) continua no roteiro.
  */
 export const UPCOMING_PROVIDERS = [
-  { id: 'facebook', name: 'Facebook' },
   { id: 'devto', name: 'Dev.to' },
   { id: 'slack', name: 'Slack' },
   { id: 'youtube', name: 'YouTube' },

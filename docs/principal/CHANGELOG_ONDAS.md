@@ -14,6 +14,7 @@
 
 | Onda | Data | Entrega |
 |---|---|---|
+| 16 | 2026-07-23 | Facebook Pages — 3º provider da família Meta (Página escolhida por post, token de Página derivado no publish) |
 | 15 | 2026-07-23 | Instagram (standalone) — 2º provider da família Meta (Instagram Login, sem Página do Facebook) |
 | 14 | 2026-07-23 | Profundidade 3D sem sombra (brand v1.3): relevo por gradiente + borda por lado em botões e cards |
 | 13 | 2026-07-23 | Nota humanizada de conexão por rede (ícone "?" + popover), específica por modo (self-host × nuvem) |
@@ -33,6 +34,81 @@
 > As ondas 1 e 2 do frontend e as fatias de backend anteriores (fundação, banco, auth, publicação,
 > retry, webhooks, mídia, threads, aprovação por link, listagens/SSE, providers da onda 1) estão
 > registradas em [STATUS.md §2](STATUS.md#2-o-que-já-está-pronto-e-verificado), com spec e código de cada uma.
+
+---
+
+## Onda 16 — Facebook Pages, 3º provider da família Meta
+
+**2026-07-23.** Novo `packages/providers/src/facebook` — a Página do Facebook, lendo o código do
+Postiz (`facebook.provider.ts`). É o provider que fecha o padrão que faltava na família Meta: o
+**token de Página + sub-conta escolhida por post**. Diferente de Threads/Instagram (uma conexão =
+uma conta), o Facebook publica com o **token da Página**, não o do usuário — e uma conta administra
+várias Páginas.
+
+**(A) O desenho central — Página por post, token derivado, nunca em settings.** A arquitetura do
+manypost guarda UM token por canal e não tem mecanismo de "trocar o token do canal pela sub-conta".
+Seguindo o STATUS §4.1 ("reusar o padrão de sub-contas do Discord"), o **canal representa a conta do
+usuário** (`externalId` = user id, token longo do usuário cifrado) e a **Página é escolhida por
+post** no composer: `settingsSchema.pageId` obrigatório, alimentado pelo `SubAccountsField` via
+`listSubAccounts`. No publish, o token da Página é **derivado na hora** do token do usuário
+(`GET /{pageId}?fields=access_token`) — e **NUNCA é gravado em `channelSettings`/settings**, que é
+jsonb sem cifra (um token ali seria vazamento). Derivar a cada publish é uma chamada extra barata e
+sempre pega um token fresco. `listSubAccounts` resolve as Páginas por `/me/accounts` **+ Business
+Manager** (`owned_pages`/`client_pages`, best-effort — exige `business_management`, então vem em
+try/catch). O `SubAccountsField` do composer virou **genérico** (mapa `SUB_ACCOUNT_FIELDS`
+provider→campo, rótulos por i18n) em vez de hard-coded no Discord.
+
+**(B) OAuth Facebook Login** (igual molde de token do Threads/IG): `code` → **token curto** em
+`GET graph.facebook.com/v20.0/oauth/access_token` → **token longo (~60d)** por
+`grant_type=fb_exchange_token`; checa `/me/permissions` (sem `pages_manage_posts` concedido → **403
+legível**) e `/me?fields=id,name,picture` para a identidade. **Não há refresh token separado** — o
+token longo se reapresenta ao `fb_exchange_token` para renovar (`accessToken` = `refreshToken`),
+refresh **reativo** (401 → `classifyError` → refresh; token que expira sem uso cai em
+`REFRESH_REQUIRED`). Escopos = paridade Postiz (`pages_show_list`, `business_management`,
+`pages_manage_posts`, `pages_manage_engagement`, `pages_read_engagement`, `read_insights`).
+
+**(C) Publicação por caminho** (a Meta faz *pull* da mídia por URL pública — não subimos bytes):
+- **Feed de texto/álbum**: cada foto sobe `/{pageId}/photos` `published:false` → o `/{pageId}/feed`
+  as anexa por `attached_media` num post atômico. Retry antes do `/feed` só deixa fotos ocultas
+  órfãs (a Meta as recolhe) — **nunca duplica**. Texto puro = só `message` (o Facebook aceita
+  só-texto: `requiresMedia:false`, diferente do IG).
+- **Vídeo único no feed = reel**: `/{pageId}/videos` com `file_url` + `description`.
+- **Story**: de foto (`/photos` `published:false` → `/photo_stories`) e de vídeo (`/video_stories`
+  em fases: start → upload hospedado com `file_url` no header → poll `video_status` → finish).
+  **Mídia única de propósito** (a Meta cria um story por mídia; publicar cada uma e falhar no meio
+  duplicaria no retry — mesma decisão do IG standalone). Como `validateMedia` não recebe settings,
+  a checagem `>1` mora no publish.
+- **Réplicas = comentários encadeados** no post raiz (`/{parentId}/comments`; item i responde ao
+  `externalId` do item i-1 → o Facebook aninha; texto + no máx. 1 foto via `attachment_url`).
+- Permalink best-effort (depois do post na rede, nada lança — senão a máquina de estados repostaria).
+
+**(D) Web.** `FacebookPreview` no `network-preview.tsx` (cabeçalho da Página com globo, mídia de
+ponta a ponta, barra Curtir/Comentar/Compartilhar, réplicas como comentários) — todas as redes agora
+têm preview próprio. `pageId` renderiza como `SubAccountsField` (busca `/sub-accounts`), `postType`
+como select feed/story. Facebook saiu do "Em breve" (`upcoming.ts`). Nota de conexão por modo
+(self-host mostra `FACEBOOK_APP_ID/SECRET`; nuvem "conecte e escolha a Página").
+
+**(E) `classifyError`** (paridade com os códigos do Postiz): token/permissão de Página →
+`refresh-token` (190/490/1404078, "Error validating access token", "REVOKED_ACCESS_TOKEN"); "posting
+too fast" (1390008), instabilidade (código 1/2, 1363047/1609010) e 5xx/429 → `transient`; política
+de conteúdo, arquivo inválido, foto grande demais → `permanent`.
+
+**Provas.** `bun run check` verde: **391 testes** (typecheck api+web, fronteiras, grep de IA, brand).
+O `facebook.provider.test.ts` cobre o test-kit de contrato + golden bodies: OAuth (curto →
+`fb_exchange_token` → 403 sem `pages_manage_posts`), `listSubAccounts` (dedup `/me/accounts` +
+Business Manager, e o token da Página **não** aparecendo em `channelSettings`), publicação
+(texto/álbum/reel com o token da Página derivado, story de foto e de vídeo em fases, story `>1` →
+422), réplica por comentário e `classifyError`. `env.test.ts`: mapa `FACEBOOK_APP_ID/SECRET` →
+`ctx.secrets`. `scripts/e2e-auth.ts` ganhou o Facebook: sem env → `connect 404`; com env, o `connect`
+leva à URL de consentimento da Meta com `pages_manage_posts` (o bloco dedicado roda localmente, como
+Threads/IG). **Smoke real** de publicação com mídia exige túnel HTTPS público (a Meta baixa a URL) e
+o **driver S3/R2** ainda pendente; App Review + Business Verification são o gate externo (não bloqueia
+o código — Development Mode cobre dono + testers).
+
+**Ficou de fora** (retomar): analytics (`read_insights` — rota + série), **refresh proativo** do
+token de 60 dias (decisão em aberto, comum a Threads/IG/FB), presets de fundo de texto
+(`text_format_preset_id`), e a variante `instagram` via Facebook Business — que reusa este mesmo app
+Meta, token de Página e `listSubAccounts`, resolvendo `instagram_business_account` na Página.
 
 ---
 

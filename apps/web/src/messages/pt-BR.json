@@ -209,6 +209,11 @@
         "selfHosted": "Crie um app com o produto \"Instagram\" (Instagram Login) no painel da Meta e ponha INSTAGRAM_APP_ID/INSTAGRAM_APP_SECRET no .env. A conta precisa ser comercial ou de criador, e a mídia tem que ficar acessível por HTTPS (a Meta baixa o arquivo pela URL).",
         "cloud": "Conecte a sua conta profissional do Instagram (comercial ou de criador) e autorize a publicação."
       },
+      "facebook": {
+        "what": "Publica em uma Página do Facebook que você administra: texto, foto, álbum, vídeo (reel) e story. A Página é escolhida em cada post, nas Configurações.",
+        "selfHosted": "Crie um app com o produto \"Facebook Login\" no painel da Meta e ponha FACEBOOK_APP_ID/FACEBOOK_APP_SECRET no .env. Você precisa ser administrador da Página, e a mídia tem que ficar acessível por HTTPS (a Meta baixa o arquivo pela URL).",
+        "cloud": "Conecte a sua conta do Facebook, autorize e escolha em cada post a Página onde publicar."
+      },
       "twitch": {
         "what": "Envia uma mensagem no chat da sua live — não é um feed. Com o canal offline, a sala fica vazia.",
         "selfHosted": "Crie um app em dev.twitch.tv e ponha TWITCH_CLIENT_ID/CLIENT_SECRET no .env."
@@ -315,11 +320,31 @@
       },
       "instagram": {
         "mediaHint": "O Instagram exige uma foto ou vídeo"
+      },
+      "facebook": {
+        "like": "Curtir",
+        "comment": "Comentar",
+        "share": "Compartilhar"
       }
     },
     "channelSettings": {
       "title": "Configurações de {name}",
       "default": "Padrão da rede",
+      "subAccount": {
+        "loading": "Buscando...",
+        "select": "Selecione uma opção...",
+        "unset": "-- Selecione --",
+        "discord": {
+          "loading": "Buscando canais disponíveis...",
+          "select": "Selecione o canal do Discord...",
+          "unset": "-- Selecione um canal --"
+        },
+        "facebook": {
+          "loading": "Buscando suas Páginas...",
+          "select": "Selecione a Página...",
+          "unset": "-- Selecione uma Página --"
+        }
+      },
       "fields": {
         "mastodon": {
           "visibility": "Visibilidade"
@@ -335,6 +360,10 @@
           "channelId": "Canal do Discord",
           "suppressEmbeds": "Ocultar previews de link",
           "silent": "Envio silencioso"
+        },
+        "facebook": {
+          "pageId": "Página do Facebook",
+          "postType": "Onde publicar"
         },
         "linkedin": {
           "visibility": "Visibilidade"
@@ -390,6 +419,12 @@
           "visibility": {
             "PUBLIC": "Público",
             "CONNECTIONS": "Só conexões"
+          }
+        },
+        "facebook": {
+          "postType": {
+            "feed": "Feed da Página",
+            "story": "Story (some em 24h)"
           }
         },
         "x": {
