@@ -4,6 +4,7 @@ import { discordProvider } from './discord/discord.provider';
 import { discordWebhookProvider } from './discord/discord-webhook.provider';
 import { facebookProvider } from './facebook/facebook.provider';
 import { fakeProvider } from './fake/fake.provider';
+import { instagramProvider } from './instagram/instagram.provider';
 import { instagramStandaloneProvider } from './instagram-standalone/instagram-standalone.provider';
 import { kickProvider } from './kick/kick.provider';
 import { linkedinProvider } from './linkedin/linkedin.provider';
@@ -20,8 +21,10 @@ import { xProvider } from './x/x.provider';
  * aqui, com a suíte de contrato (test-kit) verde antes do merge. Onda 2: tiktok (Content Posting API),
  * threads (primeiro da família Meta — container → threads_publish), a dupla de streaming
  * twitch/kick, que publica no **chat ao vivo** em vez de um feed,
- * instagram-standalone (Instagram Login sem Página do Facebook — mesmo molde container→publish) e
- * facebook (Página; Página escolhida por post via sub-contas, token da Página derivado no publish).
+ * instagram-standalone (Instagram Login sem Página do Facebook — mesmo molde container→publish),
+ * facebook (Página; Página escolhida por post via sub-contas, token da Página derivado no publish) e
+ * instagram (via Facebook Business — junta os dois moldes: OAuth/sub-contas do facebook + o fluxo
+ * container→poll→publish; a conta IG é resolvida pela Página escolhida no post).
  */
 export const providers: ChannelProvider[] = [
   mastodonProvider,
@@ -35,6 +38,7 @@ export const providers: ChannelProvider[] = [
   threadsProvider,
   instagramStandaloneProvider,
   facebookProvider,
+  instagramProvider,
   twitchProvider,
   kickProvider,
   fakeProvider,
@@ -51,6 +55,7 @@ export {
   discordWebhookProvider,
   facebookProvider,
   fakeProvider,
+  instagramProvider,
   instagramStandaloneProvider,
   kickProvider,
   linkedinProvider,

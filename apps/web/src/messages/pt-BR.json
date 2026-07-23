@@ -214,6 +214,11 @@
         "selfHosted": "Crie um app com o produto \"Facebook Login\" no painel da Meta e ponha FACEBOOK_APP_ID/FACEBOOK_APP_SECRET no .env. Você precisa ser administrador da Página, e a mídia tem que ficar acessível por HTTPS (a Meta baixa o arquivo pela URL).",
         "cloud": "Conecte a sua conta do Facebook, autorize e escolha em cada post a Página onde publicar."
       },
+      "instagram": {
+        "what": "Publica no Instagram profissional que está vinculado a uma Página do Facebook: foto, reel, carrossel e story. Você conecta pelo Facebook e escolhe a conta em cada post, nas Configurações. Se a sua conta não é ligada a nenhuma Página, use o \"Instagram\" da lista, que conecta direto.",
+        "selfHosted": "Usa a MESMA app do Facebook — se você já configurou FACEBOOK_APP_ID/FACEBOOK_APP_SECRET no .env, esta rede já está pronta. A conta do Instagram precisa ser comercial ou de criador e estar vinculada a uma Página que você administra, e a mídia tem que ficar acessível por HTTPS (a Meta baixa o arquivo pela URL).",
+        "cloud": "Conecte a sua conta do Facebook, autorize e escolha em cada post a conta do Instagram onde publicar."
+      },
       "twitch": {
         "what": "Envia uma mensagem no chat da sua live — não é um feed. Com o canal offline, a sala fica vazia.",
         "selfHosted": "Crie um app em dev.twitch.tv e ponha TWITCH_CLIENT_ID/CLIENT_SECRET no .env."
@@ -343,6 +348,11 @@
           "loading": "Buscando suas Páginas...",
           "select": "Selecione a Página...",
           "unset": "-- Selecione uma Página --"
+        },
+        "instagram": {
+          "loading": "Buscando suas contas do Instagram...",
+          "select": "Selecione a conta do Instagram...",
+          "unset": "-- Selecione uma conta --"
         }
       },
       "fields": {
@@ -363,6 +373,13 @@
         },
         "facebook": {
           "pageId": "Página do Facebook",
+          "postType": "Onde publicar"
+        },
+        "instagram": {
+          "pageId": "Conta do Instagram",
+          "postType": "Onde publicar"
+        },
+        "instagram-standalone": {
           "postType": "Onde publicar"
         },
         "linkedin": {
@@ -424,6 +441,18 @@
         "facebook": {
           "postType": {
             "feed": "Feed da Página",
+            "story": "Story (some em 24h)"
+          }
+        },
+        "instagram": {
+          "postType": {
+            "feed": "Feed (foto, reel ou carrossel)",
+            "story": "Story (some em 24h)"
+          }
+        },
+        "instagram-standalone": {
+          "postType": {
+            "feed": "Feed (foto, reel ou carrossel)",
             "story": "Story (some em 24h)"
           }
         },

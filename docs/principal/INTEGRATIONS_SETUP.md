@@ -372,7 +372,24 @@ THREADS_APP_SECRET=...
 
 **Facebook também busca a mídia na sua URL** (igual ao Threads/Instagram): em `localhost`, foto/vídeo falham; post só de texto funciona. Em produção, use armazenamento acessível por HTTPS.
 
-**Instagram — duas variantes:** o **Instagram Login** (produto "Instagram", `INSTAGRAM_APP_ID/SECRET`) já funciona no manypost desde a onda 15 como o canal **"Instagram"** (conta comercial ou de criador, **sem** precisar de Página do Facebook). A variante **via Facebook Business** (conecta a conta IG *por uma Página*, reusando as `FACEBOOK_APP_*`) ainda está no roteiro.
+**Instagram — duas variantes, as duas prontas.** Escolha pela sua conta:
+
+| | **Instagram** (Instagram Login) | **Instagram (Facebook Business)** |
+|---|---|---|
+| Quando usar | Sua conta profissional **não** é ligada a nenhuma Página | Sua conta é **vinculada a uma Página** que você administra |
+| Credenciais | `INSTAGRAM_APP_ID/SECRET` (produto "Instagram") | **as mesmas** `FACEBOOK_APP_ID/SECRET` — se o Facebook já funciona, esta rede já está pronta |
+| Como conecta | Login direto no Instagram | Login no Facebook; a conta é escolhida **em cada post** |
+| Entregue | onda 15 | **onda 17** |
+
+**Instagram via Facebook Business (entregue na onda 17)** — passo a passo:
+
+1. Em **Facebook Login → Settings → Valid OAuth Redirect URIs**, acrescente `https://SEU_DOMINIO/v1/channels/callback/instagram` (a mesma app do Facebook; **HTTPS**, em dev use um túnel).
+2. Reinicie o manypost: **Instagram (Facebook Business)** aparece em **Conexões**. Conecte com a sua conta do Facebook e **marque todas as permissões** no diálogo — sem `instagram_content_publish` a conexão é recusada com uma mensagem clara.
+3. **A conta do Instagram é escolhida em cada post**, nas **Configurações** do canal no compositor: o manypost lista as contas profissionais vinculadas às suas Páginas (pelo `@` da conta) e você escolhe **Feed** ou **Story**.
+4. Publica: **foto**, **reel** (vídeo único), **carrossel** (2 a 10, misturando foto e vídeo) e **story** (uma mídia). As **respostas da thread viram comentários** no post. Toda publicação leva mídia — o Instagram não aceita post só de texto.
+5. Se a Página escolhida não tiver conta do Instagram vinculada, o manypost avisa antes de publicar qualquer coisa (vincule em Instagram → Configurações → Central de Contas).
+
+**As duas variantes também buscam a mídia na sua URL:** em `localhost` a Meta não alcança o arquivo e a publicação falha — em produção, use armazenamento acessível por HTTPS.
 
 ### 5.3 TikTok — auditoria obrigatória para post público
 

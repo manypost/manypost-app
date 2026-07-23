@@ -182,6 +182,8 @@ for (const oauthId of [
   'threads',
   'instagram-standalone',
   'facebook',
+  // instagram (via Facebook Business) usa a MESMA app do facebook — habilitar um habilita os dois
+  'instagram',
   'twitch',
   'kick',
 ]) {
@@ -311,6 +313,29 @@ if (ids.includes('facebook')) {
       !!u?.searchParams.get('client_id') &&
       (u?.searchParams.get('scope') ?? '').includes('pages_manage_posts'),
     'facebook connect → URL de autorização da Meta com client_id + escopo pages_manage_posts',
+  );
+}
+
+// instagram (via Facebook Business): exige mídia, conta escolhida por post (pageId) e mesmo
+// diálogo da Meta do facebook — mas com os escopos do Instagram
+if (ids.includes('instagram')) {
+  const entry = providers.find((p) => p.id === 'instagram');
+  check(
+    entry?.requiresMedia === true && entry?.maxLength === 2200,
+    'instagram: exige mídia e 2200 caracteres no catálogo',
+  );
+  check(
+    entry?.threads === true && entry?.settingsSchema?.properties?.pageId !== undefined,
+    'instagram: réplica por comentário e settingsSchema com pageId (conta escolhida por post)',
+  );
+  const res = await post('/v1/channels/connect', { provider: 'instagram' }, bearer);
+  const url = ((await res.json()) as { url?: string })?.url;
+  const u = url ? new URL(url) : undefined;
+  check(
+    u?.origin + (u?.pathname ?? '') === 'https://www.facebook.com/v20.0/dialog/oauth' &&
+      !!u?.searchParams.get('client_id') &&
+      (u?.searchParams.get('scope') ?? '').includes('instagram_content_publish'),
+    'instagram connect → URL da Meta com client_id + escopo instagram_content_publish',
   );
 }
 
