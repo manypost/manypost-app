@@ -229,6 +229,10 @@ export function ChannelSettingsCard({
     t.has(`options.${providerId}.${key}.${option}`)
       ? t(`options.${providerId}.${key}.${option}`)
       : option;
+  // Campo opcional sem default: "Padrão da rede" não diz nada. Quando o comportamento de não
+  // escolher tem nome (em X, não limitar resposta = qualquer pessoa), o i18n dá o nome dele.
+  const unsetLabel = (key: string) =>
+    t.has(`unset.${providerId}.${key}`) ? t(`unset.${providerId}.${key}`) : t('default');
 
   return (
     <div className="overflow-hidden rounded-md border border-line bg-surface">
@@ -303,7 +307,7 @@ export function ChannelSettingsCard({
                     field={field}
                     value={value}
                     optionLabel={optionLabel(key)}
-                    unsetLabel={t('default')}
+                    unsetLabel={unsetLabel(key)}
                     onChange={(v) => onChange(key, v)}
                   />
                 );

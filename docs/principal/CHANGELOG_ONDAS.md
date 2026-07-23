@@ -14,6 +14,7 @@
 
 | Onda | Data | Entrega |
 |---|---|---|
+| 18 | 2026-07-23 | Linguagem de quem usa — settings do composer 100% em pt-BR e humanizadas; nota do catálogo no tooltip padrão |
 | 17 | 2026-07-23 | Instagram via Facebook Business — **família Meta completa** (conta IG resolvida pela Página escolhida no post) |
 | 16 | 2026-07-23 | Facebook Pages — 3º provider da família Meta (Página escolhida por post, token de Página derivado no publish) |
 | 15 | 2026-07-23 | Instagram (standalone) — 2º provider da família Meta (Instagram Login, sem Página do Facebook) |
@@ -35,6 +36,56 @@
 > As ondas 1 e 2 do frontend e as fatias de backend anteriores (fundação, banco, auth, publicação,
 > retry, webhooks, mídia, threads, aprovação por link, listagens/SSE, providers da onda 1) estão
 > registradas em [STATUS.md §2](STATUS.md#2-o-que-já-está-pronto-e-verificado), com spec e código de cada uma.
+
+---
+
+## Onda 18 — a linguagem de quem usa: settings do composer em pt-BR e sem jargão
+
+**2026-07-23.** Nenhum comportamento novo — é uma onda de **texto e apresentação**, e mesmo assim a
+mais visível para quem não é desenvolvedor. Três frentes:
+
+**1. As configurações por canal falavam a língua do schema, não a de quem usa.** O
+`ChannelSettingsCard` monta o formulário a partir do `settingsSchema` de cada provider e busca o
+rótulo em `composer.channelSettings.fields.<provider>.<campo>`; **quando a chave não existe, ele cai
+no nome cru do campo** e a explicação cai no `describe()` do zod. Resultado na tela: `suppressEmbeds`
+e `silent` no Discord (Webhook), `replyControl` e `linkAttachment` no Threads, `messageType` e
+`announcementColor` na Twitch — nomes de variável, em inglês, direto no rosto de quem só quer
+publicar. Nas opções era pior: `accounts_you_follow`, `mentioned_only`, `primary`, `blue`. Agora a
+cobertura é **100%** — todos os campos de todos os providers têm rótulo, explicação e opções em
+pt-BR, verificado cruzando os `settingsSchema` com o `pt-BR.json` (script único de conferência).
+
+**2. O que sobrava de jargão foi reescrito para linguagem de gente.** O que valia como explicação
+técnica não vale como ajuda: "Não expandir previews de link no post (`SUPPRESS_EMBEDS`)" virou
+"Publica só o texto, sem o cartão com imagem e resumo da página do link"; "Códigos BCP-47 separados
+por vírgula" virou "Ajuda o Bluesky a mostrar o post para quem fala esse idioma e a oferecer
+tradução"; `PUBLIC`/`CONNECTIONS` do LinkedIn viraram "Qualquer pessoa" / "Somente as minhas
+conexões". As opções agora respondem à pergunta do rótulo ("Quem pode ver" → "Qualquer pessoa"), em
+vez de repetir o enum da API.
+
+**3. Campo opcional sem padrão ganhou nome próprio.** Em X, não escolher quem responde significa
+"qualquer pessoa" — mas o seletor dizia "Padrão da rede", que não informa nada. Nova chave
+`channelSettings.unset.<provider>.<campo>` nomeia o comportamento de não escolher, com fallback no
+texto genérico de antes.
+
+**4. A nota do catálogo de redes voltou ao padrão do app.** A onda 13 tinha criado um popover
+próprio (ícone da rede + nome + divisória + linha do modo self-host/nuvem) — informação demais para
+um cartão que a pessoa está só passando o olho, e um componente fora do padrão. Agora é o
+**tooltip padrão** (`components/ui/tooltip`, superfície escura `bevel-ink`), com **só o texto
+explicativo**: o que aquela rede publica. O que **este modo** exige continua existindo, só que no
+**diálogo de conexão** — que é onde a informação vira ação. O ícone "?" deixou de ser cinza com
+face e borda próprias e virou **só o glifo em `accent-hover`** (o pé do gradiente do botão
+primário): ajuda no canto de um cartão não é controle elevado — o relevo é do cartão, e mais uma
+moldura só competia com ele.
+
+**Onde:** `apps/web/src/messages/pt-BR.json` (`composer.channelSettings`),
+`apps/web/src/features/composer/channel-settings.tsx` (lookup de `unset`),
+`apps/web/src/features/channels/provider-note.tsx` (tooltip + botão accent).
+
+**Provas:** `bun run typecheck:web` e `bun run check:brand` verdes; conferência automática de que
+todo campo/opção de todo `settingsSchema` tem chave no `pt-BR.json` (só o provider `fake`, de dev,
+segue sem explicação — de propósito). Verificado no navegador em `localhost:3000`: tooltip do
+catálogo em `/conexoes` e as configurações dos cinco canais conectados (Mastodon, Bluesky, Telegram,
+Discord, LinkedIn) no composer.
 
 ---
 

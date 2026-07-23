@@ -14,7 +14,7 @@
 
 | | |
 |---|---|
-| **Última entrega** | Onda 17 (2026-07-23) — **Instagram via Facebook Business**, que **fecha a família Meta**: a conta IG é resolvida pela **Página escolhida no post**, e uma chamada só (`?fields=access_token,instagram_business_account`) devolve o token da Página + o id da conta. Soma dos moldes das ondas 15 e 16, sem padrão novo e **sem variável de ambiente nova** (mesma app do `facebook`) |
+| **Última entrega** | Onda 18 (2026-07-23) — **linguagem de quem usa**: as configurações por canal do composer passaram a ter rótulo, explicação e opções em pt-BR para **100% dos campos de todos os providers** (nenhum termo técnico do `describe()` do schema vaza mais para a tela), e a nota do catálogo de redes virou o **tooltip padrão do app** com só o texto explicativo |
 | **Fase** | Fase 1 (MVP): backend completo e verificado, web com toda a superfície da API, billing do Cloud entregue |
 | **Provas** | `bun run check` verde — **431 testes** + typecheck (api/web) + fronteiras + grep de IA + brand. E2E reais no CI: `e2e-auth`, `e2e-publish`, `e2e-public`, `e2e-mcp`, `e2e-billing` |
 | **Redes prontas** | Mastodon, Bluesky, Telegram, Discord (OAuth2+Bot **e** webhook), LinkedIn, X, TikTok (sandbox — auditoria em revisão), **a família Meta inteira**: Threads, Instagram standalone, Facebook Pages e **Instagram via Facebook Business** (Development Mode), Twitch e Kick (chat ao vivo) + `fake` para testes |
@@ -210,9 +210,9 @@ O detalhe de cada onda (1 a 5) está no [changelog](CHANGELOG_ONDAS.md#frontend-
 |---|---|
 | Login / registro / login social | ✅ erros problem+json traduzidos por código estável |
 | Onboarding `/boas-vindas` e `/planos` | ✅ somem quando `billingEnabled=false` (self-hosted) |
-| **Conexões** | ✅ OAuth em popup, formulário de credenciais gerado do JSON Schema do provider, reconectar/desconectar. Três blocos: **disponíveis**, **"Precisa de credencial"** (rede pronta sem env — self-hosted vê a variável que falta) e **"Em breve"** (roteiro + redes ainda não habilitadas no gerenciado). Cada cartão tem um **ícone "?"** com popover explicando o que a rede publica e como conectá-la, **específico por modo** (self-host mostra o `.env`; nuvem mostra o que já está pronto) — a mesma nota aparece dentro do diálogo de conexão (onda 13) |
+| **Conexões** | ✅ OAuth em popup, formulário de credenciais gerado do JSON Schema do provider, reconectar/desconectar. Três blocos: **disponíveis**, **"Precisa de credencial"** (rede pronta sem env — self-hosted vê a variável que falta) e **"Em breve"** (roteiro + redes ainda não habilitadas no gerenciado). Cada cartão tem um **ícone "?"** em accent com relevo que mostra, no **tooltip padrão do app**, só o que a rede publica (onda 13, revista na onda 18); o que **este modo** exige (`.env` no self-host, nada na nuvem) ficou só no diálogo de conexão, onde vira ação |
 | **Calendário** (dia/semana/mês/lista) | ✅ a casa do app: painel de canais, drag para reagendar, "+" por slot vazio |
-| **Composer** (modal 2 colunas) | ✅ canais por avatar, texto por canal, settings por canal, mídia, threads, preview ao vivo por rede, agendar/publicar/exigir aprovação |
+| **Composer** (modal 2 colunas) | ✅ canais por avatar, texto por canal, settings por canal (**rótulo, explicação e opções em pt-BR para 100% dos campos de todos os providers** — onda 18), mídia, threads, preview ao vivo por rede, agendar/publicar/exigir aprovação |
 | **Kanban** | ✅ colunas por estado do grupo; arrastar de Falhou → Agendado dispara retry |
 | Detalhe do post | ✅ editar texto/horário/settings, cancelar, retry por canal, ciclo do link de aprovação, progresso de thread |
 | Mídia | ✅ dropzone, importar por URL, alt text, exclusão soft |
