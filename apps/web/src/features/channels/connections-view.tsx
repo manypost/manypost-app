@@ -32,6 +32,7 @@ import { ConnectDialog } from './connect-dialog';
 import { useChannels, useConnectChannel, useDisconnectChannel, useProviders } from './hooks';
 import { connectionFields } from './provider-fields';
 import { PROVIDER_ICONS, ProviderIcon } from './provider-icon';
+import { ProviderNoteHelp } from './provider-note';
 import { UPCOMING_PROVIDERS } from './upcoming';
 import { useOauthFlow } from './use-oauth-flow';
 
@@ -229,14 +230,14 @@ export function ConnectionsView() {
               // rede que o plano atual não inclui (X no Grátis) — marca o cartão e leva a /planos
               const locked = Boolean(p.requiredFeature) && !has(p.requiredFeature as string);
               return (
-                <li key={p.id}>
+                <li key={p.id} className="relative">
                   <button
                     type="button"
                     onClick={() => (locked ? router.push('/planos') : startConnect(p as ProviderInfo))}
                     disabled={connecting}
                     aria-label={t('connectTitle', { provider: p.name })}
                     className={cn(
-                      'group flex h-full w-full items-center gap-3 rounded-lg border border-line bg-surface p-3 text-left outline-none transition-colors duration-200',
+                      'group flex h-full w-full items-center gap-3 rounded-lg border border-line bg-surface p-3 pr-8 text-left outline-none transition-colors duration-200',
                       'hover:border-accent/40 hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
                       'disabled:cursor-progress disabled:opacity-60',
                     )}
@@ -260,6 +261,10 @@ export function ConnectionsView() {
                       </span>
                     </div>
                   </button>
+                  <ProviderNoteHelp
+                    provider={{ id: p.id, name: p.name, connectType: p.connectType }}
+                    className="absolute right-2 top-2 z-10"
+                  />
                 </li>
               );
             })}
@@ -297,7 +302,7 @@ export function ConnectionsView() {
 function NeedsSetupSection({
   providers,
 }: {
-  providers: Array<{ id: string; name: string; setupEnv?: string[] }>;
+  providers: Array<{ id: string; name: string; connectType: 'fields' | 'oauth'; setupEnv?: string[] }>;
 }) {
   const t = useTranslations('connections');
   if (providers.length === 0) return null;
@@ -312,8 +317,8 @@ function NeedsSetupSection({
       </div>
       <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {providers.map((p) => (
-          <li key={p.id}>
-            <div className="flex h-full w-full items-center gap-3 rounded-lg border border-line bg-surface p-3">
+          <li key={p.id} className="relative">
+            <div className="flex h-full w-full items-center gap-3 rounded-lg border border-line bg-surface p-3 pr-8">
               <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-line bg-surface-2">
                 <ProviderIcon provider={p.id} name={p.name} className="size-5" />
               </div>
@@ -324,6 +329,10 @@ function NeedsSetupSection({
                 </span>
               </div>
             </div>
+            <ProviderNoteHelp
+              provider={{ id: p.id, name: p.name, connectType: p.connectType }}
+              className="absolute right-2 top-2 z-10"
+            />
           </li>
         ))}
       </ul>

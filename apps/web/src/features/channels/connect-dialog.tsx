@@ -27,6 +27,7 @@ import { Input } from '@/components/ui/input';
 import { useApiErrorMessage } from '@/lib/api/errors';
 import { useConnectChannel, useInvalidateChannels } from './hooks';
 import { connectionFields } from './provider-fields';
+import { useProviderNote } from './provider-note';
 import { useOauthFlow } from './use-oauth-flow';
 
 type Provider = {
@@ -56,6 +57,7 @@ export function ConnectDialog({
   const connect = useConnectChannel();
   const invalidate = useInvalidateChannels();
   const runOauth = useOauthFlow();
+  const note = useProviderNote()(provider);
 
   const fields = connectionFields(provider.connectionFieldsSchema);
   const form = useForm<Record<string, string>>({
@@ -96,6 +98,14 @@ export function ConnectDialog({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+            <div className="rounded-md border border-line bg-surface-2 px-3 py-2.5 text-[13px] leading-relaxed">
+              <p className="text-ink">{note.what}</p>
+              {note.setup ? (
+                <p className="mt-1.5 text-graphite">
+                  <span className="font-medium text-ink">{note.modeLabel}:</span> {note.setup}
+                </p>
+              ) : null}
+            </div>
             {connect.isError ? (
               <Alert variant="destructive">
                 <CircleAlert aria-hidden />

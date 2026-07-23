@@ -14,7 +14,7 @@
 
 | | |
 |---|---|
-| **Última entrega** | Onda 12 (2026-07-22) — **Twitch e Kick** (chat ao vivo, paridade Postiz) + o catálogo de providers parou de esconder rede sem credencial. Antes, onda 11: **Threads** |
+| **Última entrega** | Onda 13 (2026-07-23) — **nota humanizada de conexão por rede** em Conexões (ícone "?" + popover), específica por modo (self-host × nuvem); `/v1/capabilities` passou a expor `selfHosted`. Antes, onda 12: **Twitch e Kick** + o catálogo parou de esconder rede sem credencial |
 | **Fase** | Fase 1 (MVP): backend completo e verificado, web com toda a superfície da API, billing do Cloud entregue |
 | **Provas** | `bun run check` verde — **341 testes** + typecheck (api/web) + fronteiras + grep de IA + brand. E2E reais no CI: `e2e-auth`, `e2e-publish`, `e2e-public`, `e2e-mcp`, `e2e-billing` |
 | **Redes prontas** | Mastodon, Bluesky, Telegram, Discord (OAuth2+Bot **e** webhook), LinkedIn, X, TikTok (sandbox — auditoria em revisão), Threads (Development Mode), Twitch e Kick (chat ao vivo) + `fake` para testes |
@@ -189,7 +189,7 @@ O detalhe de cada onda (1 a 5) está no [changelog](CHANGELOG_ONDAS.md#frontend-
 |---|---|
 | Login / registro / login social | ✅ erros problem+json traduzidos por código estável |
 | Onboarding `/boas-vindas` e `/planos` | ✅ somem quando `billingEnabled=false` (self-hosted) |
-| **Conexões** | ✅ OAuth em popup, formulário de credenciais gerado do JSON Schema do provider, reconectar/desconectar. Três blocos: **disponíveis**, **"Precisa de credencial"** (rede pronta sem env — self-hosted vê a variável que falta) e **"Em breve"** (roteiro + redes ainda não habilitadas no gerenciado) |
+| **Conexões** | ✅ OAuth em popup, formulário de credenciais gerado do JSON Schema do provider, reconectar/desconectar. Três blocos: **disponíveis**, **"Precisa de credencial"** (rede pronta sem env — self-hosted vê a variável que falta) e **"Em breve"** (roteiro + redes ainda não habilitadas no gerenciado). Cada cartão tem um **ícone "?"** com popover explicando o que a rede publica e como conectá-la, **específico por modo** (self-host mostra o `.env`; nuvem mostra o que já está pronto) — a mesma nota aparece dentro do diálogo de conexão (onda 13) |
 | **Calendário** (dia/semana/mês/lista) | ✅ a casa do app: painel de canais, drag para reagendar, "+" por slot vazio |
 | **Composer** (modal 2 colunas) | ✅ canais por avatar, texto por canal, settings por canal, mídia, threads, preview ao vivo por rede, agendar/publicar/exigir aprovação |
 | **Kanban** | ✅ colunas por estado do grupo; arrastar de Falhou → Agendado dispara retry |

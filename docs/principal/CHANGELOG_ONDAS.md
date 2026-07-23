@@ -14,6 +14,7 @@
 
 | Onda | Data | Entrega |
 |---|---|---|
+| 13 | 2026-07-23 | Nota humanizada de conexão por rede (ícone "?" + popover), específica por modo (self-host × nuvem) |
 | 12 | 2026-07-22 | Twitch e Kick (chat ao vivo) + catálogo deixa de esconder rede sem credencial |
 | 11 | 2026-07-22 | Threads — primeiro provider da família Meta (container → `threads_publish`) |
 | 10 | 2026-07-21 | Hosts dedicados para as superfícies de máquina (`api.` e `mcp.`) |
@@ -30,6 +31,16 @@
 > As ondas 1 e 2 do frontend e as fatias de backend anteriores (fundação, banco, auth, publicação,
 > retry, webhooks, mídia, threads, aprovação por link, listagens/SSE, providers da onda 1) estão
 > registradas em [STATUS.md §2](STATUS.md#2-o-que-já-está-pronto-e-verificado), com spec e código de cada uma.
+
+---
+
+## Onda 13 — nota humanizada de conexão por rede (ícone "?" + popover), específica por modo
+
+**2026-07-23.** Cada rede tem sua própria forma de ser configurada, e a tela de Conexões não explicava nenhuma — o cartão só dizia "Conectar". Agora cada cartão (em **Redes disponíveis** e em **Precisa de credencial**) ganhou um **ícone de interrogação no canto superior direito** que, no hover ou no foco, abre um popover explicando **o que a rede publica** e **como conectá-la**. A mesma nota aparece inline dentro do **diálogo de conexão** (o momento real da ação). Reusa o `HoverPopover` que já existia; o ícone é um botão **irmão** do cartão (não aninhado — evita `<button>` dentro de `<button>` e mantém o clique do ícone separado da conexão).
+
+**A segunda linha muda com o modo da instalação.** Como "cada um tem sua própria forma de ser configurado", a nota é honesta sobre o cenário: em **self-host** ela diz o que pôr no `.env` (ex.: Telegram → "crie o bot no @BotFather e ponha `TELEGRAM_BOT_TOKEN` no `.env`"); no **manypost na nuvem** ela diz que as credenciais já estão prontas e o que a pessoa ainda precisa fazer (ex.: "adicione o bot como admin do seu canal e informe o @ dele"). Para não chutar o modo errado, isso exigiu um sinal novo do servidor: **`GET /v1/capabilities` agora devolve `selfHosted: boolean`** — não dava para deduzir de `billingEnabled` (o gerenciado sem Stripe também vem `false`). Enquanto `/capabilities` não responde, o popover mostra só o "o que publica" e omite a instrução de setup — mandar quem está na nuvem editar um `.env` (ou o contrário) é pior que não dizer nada.
+
+**Copy por rede + fallback** (`connections.notes.*` no pt-BR): textos próprios para mastodon, bluesky, telegram, discord, discord-webhook, linkedin, x, tiktok, threads, twitch e kick; rede sem texto próprio cai num genérico por `connectType` (`oauth`/`fields`), então um provider novo nunca fica mudo — só ganha uma explicação mais rasa até alguém escrever a dele. Nenhuma chave/segredo real nos textos (só nomes de variável). **Provas**: `bun run check` verde — **341 testes** (sem teste novo: a fatia é de UI + um campo de leitura no `/capabilities`), typecheck (api + **web**, o campo entrou no snapshot OpenAPI `apps/web/openapi.json` + `schema.d.ts` regenerados), fronteiras, grep de IA e brand OK (ícone `text-mist`→`text-accent` só por cor, zero sombra/transform, popover em `border-line`/`bg-surface`). Verificado na stack de dev do owner (web `:3000` recarrega sozinho). **Ficou de fora**: internacionalização além do pt-BR (o app é pt-BR only hoje) e nota específica para as redes ainda "em breve" (sem provider, não têm o que conectar).
 
 ---
 

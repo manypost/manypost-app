@@ -9,6 +9,12 @@ const Capabilities = z
   .object({
     /** false = self-hosted/Community: sem cobrança e sem limites (a UI esconde o billing) */
     billingEnabled: z.boolean(),
+    /**
+     * true = instalação self-hosted (`IS_SELF_HOSTED`): quem usa também opera o `.env`.
+     * Não dá para deduzir de `billingEnabled` (o gerenciado sem Stripe também vem `false`),
+     * e a UI precisa disso para explicar a conexão de cada rede no modo certo.
+     */
+    selfHosted: z.boolean(),
     plan: z.object({
       tier: z.enum(PlanTiers),
       status: z.enum(SubscriptionStatuses).nullable(),
@@ -68,6 +74,7 @@ export function capabilityRoutes(ctn: Container) {
       return c.json(
         {
           billingEnabled: Boolean(ctn.billing),
+          selfHosted: ctn.env.IS_SELF_HOSTED,
           plan: {
             ...plan,
             currentPeriodEnd: plan.currentPeriodEnd?.toISOString() ?? null,

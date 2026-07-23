@@ -22,6 +22,15 @@ export function useCapabilities() {
   });
 }
 
+/**
+ * Modo desta instalação: `true` = self-hosted, onde quem usa também opera o `.env`.
+ * `undefined` enquanto carrega — texto que muda de sentido conforme o modo (ex.: a nota de
+ * cada rede em Conexões) não deve chutar e mostrar a instrução do modo errado.
+ */
+export function useIsSelfHosted(): boolean | undefined {
+  return useCapabilities().data?.selfHosted;
+}
+
 /** Atalho para gatear a UI: `has('approval_link')` e o plano mínimo do CTA de upgrade. */
 export function usePlanFeatures() {
   const capabilities = useCapabilities();
