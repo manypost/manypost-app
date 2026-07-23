@@ -220,6 +220,71 @@ function ChatPreview({ p }: { p: NetworkProps }) {
   );
 }
 
+/**
+ * Instagram (standalone): cartão de feed — header com avatar + @handle, mídia quadrada de ponta a
+ * ponta (carrossel indica 1/N), barra de ações curtir/comentar/enviar + salvar, e a legenda com o
+ * @handle em negrito. As réplicas da thread aparecem como comentários (é o que o provider publica).
+ */
+function InstagramPreview({ p }: { p: NetworkProps }) {
+  const t = useTranslations('composer.preview.instagram');
+  const [main, ...replies] = p.entries;
+  if (!main) return null;
+  const handle = p.username?.replace(/^@/, '') ?? p.name.toLowerCase().replace(/[^a-z0-9._]/g, '');
+  return (
+    <article className="overflow-hidden rounded-lg border border-line bg-surface">
+      <div className="flex items-center gap-2.5 px-3 py-2.5">
+        <ChannelAvatar name={p.name} avatarUrl={p.avatarUrl} provider={p.provider} className="size-8" badge={false} />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[13px] font-semibold leading-tight text-ink">{handle}</p>
+          <p className="text-[11px] leading-tight text-mist">{p.timeLabel}</p>
+        </div>
+      </div>
+      {main.media.length > 0 ? (
+        <div className="relative">
+          <MediaThumb
+            url={main.media[0]!.url}
+            mime={main.media[0]!.mime}
+            alt={main.media[0]!.alt}
+            className="aspect-square w-full border-y border-line object-cover"
+          />
+          {main.media.length > 1 ? (
+            <span
+              aria-hidden
+              className="absolute right-2 top-2 rounded-full bg-ink/80 px-2 py-0.5 text-[10px] font-semibold text-paper"
+            >
+              1/{main.media.length}
+            </span>
+          ) : null}
+        </div>
+      ) : (
+        // o Instagram exige mídia — sem ela, o preview avisa (o agendamento também barra)
+        <div className="mx-3 my-2 flex aspect-square items-center justify-center rounded-md border border-dashed border-line bg-surface-2 text-center text-xs text-mist">
+          {t('mediaHint')}
+        </div>
+      )}
+      <ActionRow icons={[Heart, MessageCircle, Send]} className="mt-2.5 max-w-none px-3" />
+      {main.text ? (
+        <p className="mt-2 whitespace-pre-wrap break-words px-3 pb-3 text-sm leading-relaxed text-ink">
+          <span className="mr-1.5 font-semibold">{handle}</span>
+          {main.text}
+        </p>
+      ) : (
+        <div className="pb-3" />
+      )}
+      {replies.length > 0 ? (
+        <div className="flex flex-col gap-2 border-t border-line px-3 py-2.5">
+          {replies.map((reply, i) => (
+            <p key={i} className="whitespace-pre-wrap break-words text-[13px] leading-relaxed text-ink">
+              <span className="mr-1.5 font-semibold">{handle}</span>
+              {reply.text}
+            </p>
+          ))}
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
 /** Sem layout próprio da rede (ex.: fake) — cartão neutro, sem chrome. */
 function GenericPreview({ p }: { p: NetworkProps }) {
   return <MicroblogPreview p={p} />;
@@ -534,6 +599,7 @@ const PREVIEWS: Record<string, ComponentType<{ p: NetworkProps }>> = {
   discord: DiscordPreview,
   'discord-webhook': DiscordPreview,
   tiktok: TiktokPreview,
+  'instagram-standalone': InstagramPreview,
   twitch: ChatPreview,
   kick: ChatPreview,
 };

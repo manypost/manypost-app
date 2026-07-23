@@ -174,7 +174,16 @@ if (ids.includes('telegram')) {
 }
 // discord (OAuth2+Bot), linkedin, x, tiktok, threads, twitch e kick (credenciais de app no env)
 // seguem a mesma regra do telegram
-for (const oauthId of ['discord', 'linkedin', 'x', 'tiktok', 'threads', 'twitch', 'kick']) {
+for (const oauthId of [
+  'discord',
+  'linkedin',
+  'x',
+  'tiktok',
+  'threads',
+  'instagram-standalone',
+  'twitch',
+  'kick',
+]) {
   if (ids.includes(oauthId)) {
     const entry = providers.find((p) => p.id === oauthId);
     check(entry?.connectType === 'oauth', `${oauthId} conecta por OAuth`);
@@ -257,6 +266,29 @@ for (const chatId of ['twitch', 'kick']) {
       'kick connect → PKCE S256 (OAuth 2.1 exige)',
     );
   }
+}
+
+// instagram-standalone: exige mídia e leva ao consentimento do Instagram Login (sem Facebook)
+if (ids.includes('instagram-standalone')) {
+  const entry = providers.find((p) => p.id === 'instagram-standalone');
+  check(
+    entry?.requiresMedia === true && entry?.maxLength === 2200,
+    'instagram-standalone: exige mídia e 2200 caracteres no catálogo',
+  );
+  check(
+    entry?.threads === true && entry?.media?.images?.maxCount === 10,
+    'instagram-standalone: réplica por comentário e carrossel de até 10 no catálogo',
+  );
+  const res = await post('/v1/channels/connect', { provider: 'instagram-standalone' }, bearer);
+  const url = ((await res.json()) as { url?: string })?.url;
+  const u = url ? new URL(url) : undefined;
+  check(
+    u?.origin + (u?.pathname ?? '') === 'https://www.instagram.com/oauth/authorize' &&
+      u?.searchParams.get('enable_fb_login') === '0' &&
+      !!u?.searchParams.get('client_id') &&
+      (u?.searchParams.get('scope') ?? '').includes('instagram_business_content_publish'),
+    'instagram-standalone connect → URL do Instagram Login com escopo instagram_business_content_publish',
+  );
 }
 
 if (failures > 0) {

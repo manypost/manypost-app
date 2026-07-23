@@ -14,6 +14,7 @@
 
 | Onda | Data | Entrega |
 |---|---|---|
+| 15 | 2026-07-23 | Instagram (standalone) — 2º provider da família Meta (Instagram Login, sem Página do Facebook) |
 | 14 | 2026-07-23 | Profundidade 3D sem sombra (brand v1.3): relevo por gradiente + borda por lado em botões e cards |
 | 13 | 2026-07-23 | Nota humanizada de conexão por rede (ícone "?" + popover), específica por modo (self-host × nuvem) |
 | 12 | 2026-07-22 | Twitch e Kick (chat ao vivo) + catálogo deixa de esconder rede sem credencial |
@@ -32,6 +33,70 @@
 > As ondas 1 e 2 do frontend e as fatias de backend anteriores (fundação, banco, auth, publicação,
 > retry, webhooks, mídia, threads, aprovação por link, listagens/SSE, providers da onda 1) estão
 > registradas em [STATUS.md §2](STATUS.md#2-o-que-já-está-pronto-e-verificado), com spec e código de cada uma.
+
+---
+
+## Onda 15 — Instagram (standalone), 2º provider da família Meta
+
+**2026-07-23.** Novo `packages/providers/src/instagram-standalone` — o caminho mais curto da família
+Meta para o criador BR: **Instagram Login, sem Página do Facebook no meio** (só uma conta comercial
+ou de criador). Reusa o molde **container → poll → publish** que o Threads (onda 11) deixou pronto,
+lendo o código do Postiz (`instagram.standalone.provider.ts`, que delega `post`/`comment` ao
+`instagram.provider.ts` passando o host `graph.instagram.com`).
+
+**(A) OAuth Instagram Login** (três saltos, diferente do Threads): `code` → **token curto (1h)** em
+`POST https://api.instagram.com/oauth/access_token` (form-urlencoded, não a Graph) → **token longo
+(~60 dias)** em `GET graph.instagram.com/access_token?grant_type=ig_exchange_token` — é o longo que
+fica cifrado. A URL de consentimento é `www.instagram.com/oauth/authorize?enable_fb_login=0&…`
+(escopos `instagram_business_*` separados por vírgula). Se a Meta informa as permissões e falta
+`instagram_business_content_publish`, a conexão **recusa com 403 legível** (mesmo padrão de
+Threads/TikTok). `channelSettings = {userId, username}`: o `userId` (campo `user_id` do `/me`)
+endereça `/{userId}/media`; o `username` monta a URL de fallback. **Não há refresh token separado**
+— o próprio token longo vai ao `/refresh_access_token` (`ig_refresh_token`), então `accessToken` e
+`refreshToken` guardam o mesmo valor e o worker persiste a rotação; renovação **reativa** (401 →
+`classifyError` → refresh), token que expira sem uso cai em `REFRESH_REQUIRED`.
+
+**(B) Publicação em container** (paridade com o `post` do Postiz): foto única → `image_url` +
+`caption` no container; **vídeo único no feed → REELS**; **carrossel 2–10** misturando imagem e
+vídeo (filhos `is_carousel_item` SEM legenda, pai `CAROUSEL` com `children` + caption; dentro do
+carrossel o vídeo é `VIDEO`, não REELS); **story** → `media_type=STORIES`. Poll de `status_code`
+até `FINISHED`, com **orçamento de polls compartilhado** pela publicação inteira (< watchdog de 15
+min), `ERROR`/`EXPIRED` = 422 permanente, estouro de orçamento = 504 transient (nada publicado ⇒
+retry seguro). **Réplicas de thread viram COMENTÁRIOS** no post raiz (`/{postId}/comments`, só
+texto — `validateMedia` barra mídia em itens 1+), que é o `comment()` do Postiz. `requiresMedia:
+true` (o IG não aceita post só-texto, como o TikTok); `maxLength` 2200.
+
+**Três divergências de corretude do Postiz, todas registradas no código:** (1) **story é uma mídia
+só** — não existe carrossel de story; agendar story com >1 mídia levanta 422 ANTES de publicar
+qualquer coisa (o Postiz publica cada mídia como um story separado e devolve o último; aqui isso
+duplicaria no retry, então barramos). (2) **permalink best-effort** — depois do `media_publish` o
+post já está na rede, então a busca do permalink nunca lança (senão a máquina de estados retentaria
+e repostaria); falhou, cai no perfil `@handle`. (3) **parâmetros no CORPO do POST** (o Postiz monta
+query string) e **ctx injetado** (nada de env/fetch global), como no nosso Threads.
+
+**(C) Encaixe**: registrado no registry; `providerSecretsFromEnv`/`PROVIDER_ENV` ganharam
+`instagram-standalone` (`INSTAGRAM_APP_ID`/`INSTAGRAM_APP_SECRET`); `.env.example` com redirect
+(`/v1/channels/callback/instagram-standalone`) e escopos; ícone `Instagram.svg` mapeado; **preview
+de feed no composer** (`InstagramPreview` — header com @handle, mídia quadrada, indicador 1/N do
+carrossel, barra curtir/comentar/enviar, legenda com @handle em negrito e réplicas como comentários);
+nota humanizada de conexão (`connections.notes.instagram-standalone`, específica por modo); e o
+**Instagram saiu do "Em breve"** (o `instagram-standalone` cobre "Instagram" no catálogo; a variante
+via Facebook Business e o `facebook` seguem no roteiro). Nome do provider = **"Instagram"** (o
+standalone é o caminho primário; a variante FB-business se diferencia quando entrar).
+
+**Provas**: `bun run check` **verde — 365 testes** (+24 do instagram-standalone: contrato + golden de
+OAuth/`ig_exchange_token`/refresh/foto/reel/carrossel misto/story/`publishReply` por comentário/
+permalink indisponível/container ERROR/classificação de erro) + typecheck (api + web), fronteiras,
+grep de IA e brand OK. **E2E real** contra stack **isolada** (Postgres 5599 + Redis 6499 efêmeros,
+API 3987): `e2e-auth` **TUDO OK** com o bloco novo (catálogo declara mídia obrigatória + 2200 chars +
+carrossel 10 + réplica por comentário; connect → URL real do Instagram Login com
+`instagram_business_content_publish`) e `e2e-publish` **TUDO OK** (regressão da pipeline). **Ficou
+de fora** (não bloqueia): analytics (`instagram_manage_insights`), refresh proativo do token de 60
+dias, colaboradores/áudio/trial reels (settings do Postiz que só o standalone não expõe), a variante
+`instagram` via Facebook Business e a submissão do App Review (gate jurídico — [platform-gates](platform-gates.md));
+o código roda inteiro em **Development Mode**. Como a Meta faz *pull* da mídia por URL pública, o
+smoke real de publicação com mídia exige túnel HTTPS (localhost é inalcançável — mesma pegadinha do
+Threads) e reforça a pendência do **driver S3/R2**.
 
 ---
 
