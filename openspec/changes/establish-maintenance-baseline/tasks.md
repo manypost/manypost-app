@@ -19,7 +19,7 @@
 - [x] 3.1 Classify all initial Postiz occurrences into the six decision categories
 - [x] 3.2 Replace only safe current wording and run the residual tracked-file search
 - [x] 3.3 Document preserved references, residual count and future identity decisions
-- [ ] 3.4 Create the Keep a Changelog entry for user, developer and operator impact
+- [x] 3.4 Create the Keep a Changelog entry for user, developer and operator impact
 
 ## 4. Deterministic delivery
 
@@ -38,8 +38,8 @@
 
 ## 6. Backlog, validation and delivery
 
-- [ ] 6.1 Create validated future OpenSpec changes for publication idempotency and outbound-request security
-- [ ] 6.2 Publish the prioritized technical backlog with evidence and recommendations
+- [x] 6.1 Create validated future OpenSpec changes for publication idempotency and outbound-request security
+- [x] 6.2 Publish the prioritized technical backlog with evidence and recommendations
 - [ ] 6.3 Run clean install, typechecks, tests, boundaries, brand, DB, build, OpenSpec, audit, Semgrep, identity and secret checks
 - [ ] 6.4 Archive this completed change and revalidate living specs
 - [ ] 6.5 Review commit authorship/diff, push, open the PR and wait for all required checks

@@ -159,7 +159,7 @@ O guia passo a passo — criar conta, conectar um canal de mentira e ver um post
 ### Desenvolvimento
 
 ```bash
-bun install
+bun install --frozen-lockfile
 cp .env.example .env      # gere os segredos: openssl rand -hex 32
 docker compose up postgres redis -d
 bun run dev:all           # API em :3100 + web em :3000
@@ -170,6 +170,7 @@ bun run dev:all           # API em :3100 + web em :3000
 | `bun run dev:all` | API + web juntos, com hot reload |
 | `bun run dev` / `dev:worker` / `dev:web` | cada processo isolado |
 | `bun run check` | typecheck + testes + fronteiras + lints de IA e de marca — **rode antes de todo PR** |
+| `bun run check:ci` | matriz de PR: `check` + Drizzle + build web + OpenSpec |
 | `bun run stripe:sync` | cria o catálogo de planos na sua conta Stripe (só no modo gerenciado) |
 
 Todas as variáveis estão comentadas no [`.env.example`](.env.example).

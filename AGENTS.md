@@ -19,7 +19,7 @@ derivada do Postiz e licenciada sob AGPL-3.0. O monorepo Bun/TypeScript contém:
 - `packages/providers`: adaptadores de redes sociais;
 - `packages/queue`: pg-boss, Redis, rate limit, idempotência e realtime.
 
-Comece por `docs/architecture/README.md` quando ele existir e use
+Comece por `docs/architecture/README.md` e use
 `docs/audits/2026-07-23-initial-diagnosis.md` apenas como fotografia datada.
 Documentos em `docs/principal/` e `docs/specs/` podem conter decisões históricas
 ou aspiracionais; confirme comportamento no código e nos specs vivos em

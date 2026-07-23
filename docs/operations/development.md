@@ -97,6 +97,7 @@ Next.js. As credenciais no compose são públicas e exclusivas para teste local.
 | `bun run check:ai-providers` | isolamento nominal de IA |
 | `bun run check:brand` | regras visuais/wordmark |
 | `bun run check` | todos os itens locais acima |
+| `bun run check:ci` | `check` + Drizzle + build web + OpenSpec |
 | `bun run db:check` | integridade Drizzle |
 | `bun run build:web` | build Next de produção |
 | `bun run spec:validate` | mudanças/specs OpenSpec estritos |
@@ -158,7 +159,7 @@ inclua evidência; essa verificação não substitui `check:brand`/build.
 | CI/Docker | `bun run check`, DB, web, OpenSpec + `docker build` |
 | dependência | instalação congelada, full matrix e `bun audit` |
 
-Antes de PR, use o agregado `check:ci` quando disponível no `package.json`.
+Antes de PR, execute o agregado `bun run check:ci`.
 
 ## Debug de boot
 

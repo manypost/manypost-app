@@ -35,7 +35,10 @@ planejamento anterior e podem conter números ou topologias históricos.
 | [architecture/data-and-infrastructure.md](architecture/data-and-infrastructure.md) | entidades, migrations, cache, filas, storage, env, CI e Railway |
 | [operations/development.md](operations/development.md) | instalação, execução, testes, debug e recipes de mudança |
 | [openspec.md](openspec.md) | criar, validar, implementar e arquivar mudanças OpenSpec |
-| [audits/](audits/) | diagnósticos e inventários datados; fatos, hipóteses e backlog |
+| [audits/2026-07-23-initial-diagnosis.md](audits/2026-07-23-initial-diagnosis.md) | fotografia inicial, evidências e severidade |
+| [audits/postiz-reference-inventory.md](audits/postiz-reference-inventory.md) | decisões de identidade Manypost e referências preservadas |
+| [audits/technical-backlog.md](audits/technical-backlog.md) | riscos abertos, advisories e ordem recomendada |
+| [`CHANGELOG.md`](../CHANGELOG.md) | impacto de cada entrega para usuário, desenvolvimento e operação |
 
 ---
 

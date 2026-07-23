@@ -24,6 +24,7 @@ derivam desse escopo.
 | Como funcionam dados, filas, env e deploy? | [Dados e infraestrutura](data-and-infrastructure.md) |
 | Como instalar, testar, depurar ou alterar? | [Guia de desenvolvimento](../operations/development.md) |
 | Quais problemas foram confirmados? | [Diagnóstico inicial](../audits/2026-07-23-initial-diagnosis.md) |
+| O que permanece no backlog? | [Backlog técnico](../audits/technical-backlog.md) |
 | Como especificar uma mudança? | [OpenSpec no Manypost](../openspec.md) |
 | Quais regras um agente deve cumprir? | [`AGENTS.md`](../../AGENTS.md) |
 
@@ -33,10 +34,10 @@ derivam desse escopo.
 | --- | --- |
 | Runtime/workspace | Bun 1.3.14, TypeScript, workspaces |
 | HTTP | Hono, `@hono/zod-openapi`, OpenAPI 3.1, Scalar |
-| Web | Next.js 16 App Router, React 19, next-intl, Tailwind 4 |
+| Web | Next.js 16.2.11 App Router, React 19, next-intl, Tailwind 4 |
 | Estado/UI | TanStack Query, Zustand, TipTap |
 | Domínio | casos de uso e ports TypeScript em `packages/core` |
-| Persistência | PostgreSQL, Drizzle ORM/Kit |
+| Persistência | PostgreSQL, Drizzle ORM 0.45.2/Kit |
 | Assíncrono | pg-boss no PostgreSQL |
 | Coordenação | Redis para rate limit, semáforo, idempotência e pub/sub |
 | Integrações | adaptadores próprios em `packages/providers` |

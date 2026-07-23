@@ -46,24 +46,35 @@ Imagens binárias foram classificadas pelo path e pelo índice textual em
 | baseline `main` antes da iniciativa | 298 | 71 |
 | branch antes das substituições seguras | 340 | 85 |
 | depois das substituições, antes deste inventário | 309 | 67 |
-| busca final incluindo este inventário | 323 | 68 |
+| após adicionar este inventário | 323 | 68 |
+| branch final antes do Pull Request | 328 | 71 |
 
 O aumento intermediário não foi rebranding regressivo: 42 menções foram
 adicionadas pelo diagnóstico, OpenSpec, AGENTS e plano para governar e
 documentar a migração. Elas são classificadas como registro histórico ou regra
 de preservação.
 
-As 14 ocorrências adicionais da última linha pertencem a este próprio
-inventário e são categoria 5: registrar o termo pesquisado é necessário para a
-auditoria permanecer reproduzível.
+As 14 ocorrências adicionadas pelo próprio inventário são categoria 5:
+registrar o termo pesquisado é necessário para a auditoria permanecer
+reproduzível.
 
-Há 15 paths rastreados com o nome legado:
+Depois do inventário, cinco ocorrências processuais foram adicionadas:
+duas no changelog, duas nas propostas de riscos futuros e uma no índice de
+documentação. Elas não expõem identidade de produto; registram atribuição ou
+apontam para esta auditoria e são categoria 5.
+
+A busca por path retorna 16 arquivos. Quinze têm nome legado:
 
 - `docs/principal/POSTIZ_ANALYSIS.md`;
 - o diretório `docs/references for postiz/`, seu README e 13 imagens.
 
-Todos são categoria 5. Renomeá-los quebraria links e apagaria contexto de
-proveniência sem benefício ao produto atual.
+O décimo sexto é o próprio arquivo deste inventário, cujo nome descreve a
+auditoria atual. Todos são categoria 5. Renomear os 15 históricos quebraria
+links e apagaria contexto de proveniência sem benefício ao produto atual.
+
+Na busca final, as 328 ocorrências se dividem em 82 de licença/atribuição
+(categoria 4) e 246 históricas/processuais (categoria 5). As categorias 1, 2,
+3 e 6 têm zero ocorrência residual indevida.
 
 ## Categorias
 
