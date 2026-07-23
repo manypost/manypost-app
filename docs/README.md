@@ -36,6 +36,7 @@ planejamento anterior e podem conter números ou topologias históricos.
 | [operations/development.md](operations/development.md) | instalação, execução, testes, debug e recipes de mudança |
 | [openspec.md](openspec.md) | criar, validar, implementar e arquivar mudanças OpenSpec |
 | [audits/2026-07-23-initial-diagnosis.md](audits/2026-07-23-initial-diagnosis.md) | fotografia inicial, evidências e severidade |
+| [audits/2026-07-23-validation-report.md](audits/2026-07-23-validation-report.md) | comandos executados, resultados, limitações e estado do PR |
 | [audits/postiz-reference-inventory.md](audits/postiz-reference-inventory.md) | decisões de identidade Manypost e referências preservadas |
 | [audits/technical-backlog.md](audits/technical-backlog.md) | riscos abertos, advisories e ordem recomendada |
 | [`CHANGELOG.md`](../CHANGELOG.md) | impacto de cada entrega para usuário, desenvolvimento e operação |

@@ -19,14 +19,14 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
   dados/infraestrutura, Railway e desenvolvimento.
 - Diagnóstico inicial, inventário de identidade legada e backlog técnico
   priorizado com evidência, impacto e recomendação.
-- Comando `bun run check:ci` para reunir typechecks, 400 testes, boundaries,
+- Comando `bun run check:ci` para reunir typechecks, 404 testes, boundaries,
   checks próprios, Drizzle, build web e OpenSpec.
 
 ### Changed
 
 - Bun fixado em `1.3.14`; CI e imagem usam instalação congelada pelo `bun.lock`.
-- GitHub Actions passa a executar typecheck web, brand, build Next e validação
-  OpenSpec além das verificações anteriores.
+- GitHub Actions passa a executar typecheck web, brand, build Next, build da
+  imagem Docker e validação OpenSpec além das verificações anteriores.
 - Docker e Railpack deixam de aceitar instalação ou build web com falha.
 - Next.js atualizado de `16.2.10` para `16.2.11` e Drizzle ORM de `0.44.7`
   para `0.45.2`, mantendo contratos e schema.

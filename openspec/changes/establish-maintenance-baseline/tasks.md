@@ -26,7 +26,7 @@
 - [x] 4.1 Pin Bun 1.3.14 and add the aggregate CI validation script
 - [x] 4.2 Use frozen install and the complete validation matrix in GitHub Actions
 - [x] 4.3 Stop Docker and Railpack from masking install or web-build failures
-- [ ] 4.4 Build the production Docker image successfully
+- [x] 4.4 Build the production Docker image successfully
 
 ## 5. Tested fixes
 
@@ -40,7 +40,7 @@
 
 - [x] 6.1 Create validated future OpenSpec changes for publication idempotency and outbound-request security
 - [x] 6.2 Publish the prioritized technical backlog with evidence and recommendations
-- [ ] 6.3 Run clean install, typechecks, tests, boundaries, brand, DB, build, OpenSpec, audit, Semgrep, identity and secret checks
+- [x] 6.3 Run clean install, typechecks, tests, boundaries, brand, DB, build, OpenSpec, audit, Semgrep, identity and secret checks
 - [ ] 6.4 Archive this completed change and revalidate living specs
-- [ ] 6.5 Review commit authorship/diff, push, open the PR and wait for all required checks
+- [x] 6.5 Review commit authorship/diff, push, open the PR and wait for all required CI checks
 - [ ] 6.6 Merge without bypassing protection and verify the resulting `main` commit and Railway deployment

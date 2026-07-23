@@ -41,7 +41,7 @@ Imagens binárias foram classificadas pelo path e pelo índice textual em
 
 ## Métricas da busca
 
-| Momento | Ocorrências textuais | Arquivos |
+| Momento | Linhas correspondentes | Arquivos |
 | --- | ---: | ---: |
 | baseline `main` antes da iniciativa | 298 | 71 |
 | branch antes das substituições seguras | 340 | 85 |
@@ -54,11 +54,11 @@ adicionadas pelo diagnóstico, OpenSpec, AGENTS e plano para governar e
 documentar a migração. Elas são classificadas como registro histórico ou regra
 de preservação.
 
-As 14 ocorrências adicionadas pelo próprio inventário são categoria 5:
+As 14 linhas adicionadas pelo próprio inventário são categoria 5:
 registrar o termo pesquisado é necessário para a auditoria permanecer
 reproduzível.
 
-Depois do inventário, cinco ocorrências processuais foram adicionadas:
+Depois do inventário, cinco linhas processuais foram adicionadas:
 duas no changelog, duas nas propostas de riscos futuros e uma no índice de
 documentação. Elas não expõem identidade de produto; registram atribuição ou
 apontam para esta auditoria e são categoria 5.
@@ -72,9 +72,13 @@ O décimo sexto é o próprio arquivo deste inventário, cujo nome descreve a
 auditoria atual. Todos são categoria 5. Renomear os 15 históricos quebraria
 links e apagaria contexto de proveniência sem benefício ao produto atual.
 
-Na busca final, as 328 ocorrências se dividem em 82 de licença/atribuição
-(categoria 4) e 246 históricas/processuais (categoria 5). As categorias 1, 2,
-3 e 6 têm zero ocorrência residual indevida.
+Na busca final, as 328 linhas correspondentes se dividem em 82 de
+licença/atribuição (categoria 4) e 246 históricas/processuais (categoria 5). As
+categorias 1, 2, 3 e 6 têm zero ocorrência residual indevida.
+
+A métrica conta uma linha uma única vez, ainda que o termo apareça mais de uma
+vez nela. A mesma busca com `git grep -I -o` encontra 406 matches individuais
+nas 328 linhas e nos mesmos 71 arquivos.
 
 ## Categorias
 
@@ -120,7 +124,7 @@ registro histórico.
 
 ### 4. Precisa permanecer por licença ou atribuição
 
-82 das 309 ocorrências residuais anteriores a este relatório pertencem a esta
+82 das 309 linhas residuais anteriores a este relatório pertencem a esta
 categoria.
 
 | Arquivos/grupo | Contagem | Motivo | Risco de alteração | Recomendação |
@@ -141,7 +145,7 @@ tratam do processo/auditoria, não constituem por si só aviso de atribuição.
 
 ### 5. É histórica e não deve ser modificada
 
-227 das 309 ocorrências residuais anteriores a este relatório pertencem a esta
+227 das 309 linhas residuais anteriores a este relatório pertencem a esta
 categoria.
 
 | Arquivos/grupo | Contagem | Motivo | Risco de alteração | Recomendação |

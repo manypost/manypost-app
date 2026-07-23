@@ -9,7 +9,8 @@ atualizar este arquivo e, para mudança material, abrir ou alterar um OpenSpec.
 
 Nenhum achado crítico foi confirmado. Dos 19 achados classificados no
 diagnóstico, oito foram resolvidos nesta iniciativa, um foi parcialmente
-remediado e dez permanecem deliberadamente no backlog.
+remediado e dez permanecem deliberadamente no backlog. A CI final acrescentou
+uma observação de baixo risco sobre o runtime de uma action.
 
 | ID | Severidade | Estado | Resultado ou próximo passo |
 | --- | --- | --- | --- |
@@ -32,6 +33,7 @@ remediado e dez permanecem deliberadamente no backlog.
 | L-03 | baixo | aberto | exigir/proteger métricas no modo gerenciado |
 | L-04 | baixo | aberto | avaliar Biome ou ESLint sem churn massivo |
 | L-05 | baixo | triado | falso positivo atual; migrar para JSON TipTap se houver rich text |
+| L-06 | baixo | aberto | atualizar action que ainda declara Node.js 20 após revisão da versão compatível |
 
 ## Prioridade 1 — segurança e efeitos externos
 
@@ -113,6 +115,9 @@ reescrever migrations existentes.
 - L-05: o escape atual converte texto em parágrafos sem interpolar atributos e
   não teve bypass confirmado. Se rich text for aceito, guardar JSON TipTap e
   renderizar por pipeline sanitizado.
+- L-06: o runner registrou que `actions/checkout@v4` ainda declara Node.js 20 e
+  foi forçado a executar em Node.js 24. Atualizar a action em PR separado após
+  revisar notas de versão e repetir a matriz completa.
 
 ## Advisories de dependências restantes
 
