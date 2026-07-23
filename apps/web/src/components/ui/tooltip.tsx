@@ -19,7 +19,7 @@ function TooltipContent({
         data-slot="tooltip-content"
         sideOffset={sideOffset}
         className={cn(
-          'z-50 animate-fade-in rounded-sm bg-ink px-2.5 py-1 text-xs font-medium text-paper',
+          'bevel-ink z-50 animate-fade-in rounded-sm border px-2.5 py-1 text-xs font-medium text-paper',
           className,
         )}
         {...props}

@@ -38,7 +38,7 @@ function DialogContent({
   const base =
     size === 'panel'
       ? 'fixed inset-0 z-50 flex flex-col overflow-hidden bg-surface animate-fade-in outline-none sm:inset-auto sm:left-1/2 sm:top-1/2 sm:h-[90dvh] sm:max-h-[920px] sm:w-[calc(100vw-2rem)] sm:max-w-[1640px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg sm:border sm:border-line'
-      : 'fixed left-1/2 top-1/2 z-50 grid w-full max-w-md -translate-x-1/2 -translate-y-1/2 gap-4 rounded-md border border-line bg-surface p-6 animate-fade-in';
+      : 'bevel-surface fixed left-1/2 top-1/2 z-50 grid w-full max-w-md -translate-x-1/2 -translate-y-1/2 gap-4 rounded-md border p-6 animate-fade-in';
   return (
     <DialogPortal>
       <DialogOverlay />

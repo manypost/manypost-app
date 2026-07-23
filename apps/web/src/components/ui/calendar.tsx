@@ -89,7 +89,7 @@ export function Calendar({
                 'mx-auto my-0.5 grid size-8 place-items-center rounded-md text-[13px] tabular-nums outline-none transition-colors duration-200',
                 'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
                 isSelected
-                  ? 'bg-accent font-semibold text-paper'
+                  ? 'bevel-primary border font-semibold text-paper'
                   : isDisabled
                     ? 'cursor-not-allowed text-mist/50'
                     : cn(

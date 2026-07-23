@@ -92,8 +92,8 @@ export function ChannelsPanel({
                       'flex shrink-0 items-center gap-2.5 rounded-md border px-3.5 py-2 text-left outline-none transition-all duration-200 min-h-[42px]',
                       'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent active:scale-[0.98]',
                       selected
-                        ? 'border-accent bg-accent-tint font-bold text-accent'
-                        : 'border-line bg-surface hover:bg-surface-2 text-ink',
+                        ? 'bevel-accent font-bold text-accent'
+                        : 'bevel-surface hover:bg-surface-2 text-ink',
                     )}
                   >
                     <span className="relative shrink-0">
@@ -169,7 +169,7 @@ export function ChannelsPanel({
                       'flex w-full items-center gap-2.5 rounded-md border px-2 py-1.5 text-left outline-none transition-colors duration-200',
                       'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
                       selected
-                        ? 'border-accent bg-accent-tint'
+                        ? 'bevel-accent'
                         : 'border-transparent hover:bg-surface-2',
                     )}
                   >

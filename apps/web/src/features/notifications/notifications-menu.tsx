@@ -37,7 +37,7 @@ export function NotificationsMenu() {
           {unread > 0 ? (
             <span
               aria-hidden
-              className="absolute -right-0.5 -top-0.5 grid min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold leading-4 text-paper"
+              className="bevel-chip absolute -right-0.5 -top-0.5 grid min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold leading-4 text-paper"
             >
               {unread > 9 ? '9+' : unread}
             </span>

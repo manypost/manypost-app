@@ -88,18 +88,18 @@ export function PlanPickerCard({
         'flex flex-col items-start gap-1 rounded-lg border px-4 py-3.5 text-left outline-none transition-colors duration-200',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
         selected
-          ? 'border-accent bg-accent-tint'
-          : 'border-line bg-surface hover:border-accent hover:bg-surface-2',
+          ? 'bevel-accent'
+          : 'bevel-surface hover:border-accent hover:bg-surface-2',
       )}
     >
       <span className="flex w-full items-center gap-1.5">
         <span className="text-sm font-semibold text-ink">{PLAN_LABEL[tier]}</span>
         {current ? (
-          <Badge variant="accent" className="ml-auto">
+          <Badge variant="solid" className="ml-auto">
             {t('currentPlan')}
           </Badge>
         ) : tier === 'PRO' ? (
-          <Badge variant="accent" className="ml-auto">
+          <Badge variant="solid" className="ml-auto">
             {to('recommended')}
           </Badge>
         ) : null}

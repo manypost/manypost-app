@@ -32,6 +32,17 @@
   --state-failed-tint: #fee2e2;
   --state-review: #a16207;
   --state-review-tint: #fef9c3;
+
+  /*
+   * Profundidade sem sombra (brand v1.3 — 2026-07-23): relevo por
+   * gradiente de preenchimento + cor de borda por lado (topo claro, base
+   * escura). NENHUM box-shadow — mantém o pilar "zero sombras" (BRAND §2.2).
+   * Estes 4 tokens governam a intensidade globalmente (aqui: média).
+   */
+  --edge-light: 22%; /* branco misturado na borda de topo */
+  --edge-dark: 16%; /* preto misturado na borda de base */
+  --bevel-gloss: 0.16; /* alpha do brilho fino logo abaixo da borda de topo */
+  --bevel-lift: 9%; /* rebaixo do fundo entre o topo e a base */
 }
 
 /*
@@ -128,6 +139,112 @@
   body {
     @apply bg-background font-sans text-foreground antialiased;
   }
+}
+
+/*
+ * Relevo 3D sem sombra (BRAND §2.2 · §6 · §7). Camada `components` (perde
+ * para utilitários, então um `bg-*`/`border-*` passado por um caller ainda
+ * vence). Face: topo claro → base escura via gradiente; bordas por lado
+ * (topo clareado, base escurecida); brilho fino de 1–3px sob o topo. Toda a
+ * matemática de cor deriva dos tokens do brand (único arquivo com hex).
+ * Escopo: botões preenchidos + cards. Ghost/link, inputs, badges e overlays
+ * permanecem flat (relevo = elemento elevado/clicável).
+ */
+@layer components {
+  .bevel-primary {
+    background:
+      linear-gradient(180deg, rgb(255 255 255 / var(--bevel-gloss)) 0, rgb(255 255 255 / 0) 3px),
+      linear-gradient(180deg, var(--accent), var(--accent-hover));
+    border-color: color-mix(in srgb, var(--accent), #fff var(--edge-light)) var(--accent)
+      color-mix(in srgb, var(--accent-hover), #000 var(--edge-dark)) var(--accent);
+  }
+
+  .bevel-enterprise {
+    background:
+      linear-gradient(180deg, rgb(255 255 255 / var(--bevel-gloss)) 0, rgb(255 255 255 / 0) 3px),
+      linear-gradient(180deg, color-mix(in srgb, var(--ink), #fff 9%), var(--ink));
+    border-color: color-mix(in srgb, var(--ink), #fff 30%) var(--ink-soft) #000 var(--ink-soft);
+  }
+
+  /*
+   * Outline: a face é clara, então o relevo vem sobretudo das BORDAS + um
+   * degradê mais perceptível. Usa valores próprios (mais fortes que os
+   * globais) para a tecla secundária "subir" de verdade — senão outline lê
+   * como flat ao lado do primary. Ainda assim, mais quieto que o primary.
+   */
+  .bevel-outline {
+    background: linear-gradient(180deg, var(--surface), color-mix(in srgb, var(--surface), var(--line) 26%));
+    border-color: color-mix(in srgb, var(--line), #fff 45%) var(--line)
+      color-mix(in srgb, var(--line), #000 32%) var(--line);
+  }
+
+  .bevel-destructive {
+    background:
+      linear-gradient(180deg, rgb(255 255 255 / var(--bevel-gloss)) 0, rgb(255 255 255 / 0) 3px),
+      linear-gradient(180deg, color-mix(in srgb, var(--state-failed), #fff 12%), var(--state-failed));
+    border-color: color-mix(in srgb, var(--state-failed), #fff var(--edge-light)) var(--state-failed)
+      color-mix(in srgb, var(--state-failed), #000 var(--edge-dark)) var(--state-failed);
+  }
+
+  /* Superfície clara subtil — cards, tiles E overlays (popover, dropdown,
+     dialog, sheet, select) e a sidebar. Superfície grande pede degradê mínimo. */
+  .bevel-surface {
+    background:
+      linear-gradient(180deg, rgb(255 255 255 / calc(var(--bevel-gloss) * 2.4)) 0, rgb(255 255 255 / 0) 2px),
+      linear-gradient(180deg, var(--surface), color-mix(in srgb, var(--surface), var(--line) var(--bevel-lift)));
+    border-color: color-mix(in srgb, var(--line), #fff var(--edge-light)) var(--line)
+      color-mix(in srgb, var(--line), #000 var(--edge-dark)) var(--line);
+  }
+
+  /* Superfície ESCURA subtil — tooltip e overlays sobre --ink. */
+  .bevel-ink {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--ink), #fff 12%), var(--ink));
+    border-color: color-mix(in srgb, var(--ink), #fff 22%) var(--ink-soft) #000 var(--ink-soft);
+  }
+
+  /*
+   * Estado ativo/selecionado em acento (nav ativa, chip/plano selecionado,
+   * notificação não lida). Contorno de acento DE VERDADE (é o que marca a
+   * seleção) com bevel na própria borda — topo clareado, base em `--accent-hover`
+   * — sobre um tint legível. Sem contorno roxo o item "não fica selecionado".
+   */
+  .bevel-accent {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent-tint), #fff 25%), var(--accent-tint));
+    border-color: color-mix(in srgb, var(--accent), #fff 35%) var(--accent) var(--accent-hover) var(--accent);
+  }
+
+  /*
+   * CAMPO AFUNDADO (input/select/textarea e caixas de digitação). Profundidade
+   * pra DENTRO — topo mais escuro (lábio sombreado), base mais clara (a luz bate
+   * no fundo do poço). É o oposto de um botão: campo é recuo, não relevo. Sem
+   * sombra; só gradiente + borda por lado invertida.
+   */
+  .inset-field {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--surface), var(--line) 16%), var(--surface));
+    border-color: color-mix(in srgb, var(--line), #000 12%) var(--line)
+      color-mix(in srgb, var(--line), #fff 40%) var(--line);
+  }
+
+  /*
+   * BRILHO UNIVERSAL para qualquer superfície colorida (badges, chips e caixas
+   * de tint de qualquer estado). Só background-IMAGE translúcido — topo clareia,
+   * base escurece — então compõe sobre a `background-color` que o elemento já
+   * tem, seja qual for o tom. Dá volume de "pastilha" sem tocar na cor base.
+   */
+  .bevel-chip {
+    background-image: linear-gradient(180deg, rgb(255 255 255 / 0.32), rgb(255 255 255 / 0) 55%, rgb(0 0 0 / 0.06));
+  }
+}
+
+/*
+ * Aba ativa dos seletores (Tabs) = tecla elevada sobre o trilho --surface-2.
+ * Regra sem camada (bate o utilitário de fundo do kit); o gatilho ganha
+ * `border border-transparent` para não deslocar ao ativar.
+ */
+[data-slot='tabs-trigger'][data-state='active'] {
+  background: linear-gradient(180deg, var(--surface), color-mix(in srgb, var(--surface), var(--line) 12%));
+  border-color: color-mix(in srgb, var(--line), #fff 40%) var(--line)
+    color-mix(in srgb, var(--line), #000 24%) var(--line);
 }
 
 /*

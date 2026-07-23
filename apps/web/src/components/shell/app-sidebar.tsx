@@ -62,10 +62,10 @@ function RailItem({
       href={href}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'relative flex items-center gap-2.5 rounded-md outline-none transition-colors duration-200',
+        'relative flex items-center gap-2.5 rounded-md border border-transparent outline-none transition-colors duration-200',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
         collapsed ? 'h-9 w-9 justify-center mx-auto' : 'w-full h-9 px-2.5',
-        active ? 'bg-accent-tint text-accent font-semibold' : 'text-graphite hover:bg-surface-2 hover:text-ink',
+        active ? 'bevel-accent text-accent font-semibold' : 'text-graphite hover:bg-surface-2 hover:text-ink',
       )}
     >
       <Icon className="size-4 shrink-0" aria-hidden />
@@ -124,7 +124,7 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        'sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-line bg-surface transition-[width] duration-300 ease-in-out md:flex',
+        'bevel-surface sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-line transition-[width] duration-300 ease-in-out md:flex',
         isCollapsed ? 'w-20 items-center' : 'w-60',
       )}
     >

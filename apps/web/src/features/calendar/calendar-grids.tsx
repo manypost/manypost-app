@@ -176,7 +176,7 @@ function SlotAddButton({ date, onSchedule }: { date: Date; onSchedule: (date: Da
     >
       <span
         aria-hidden
-        className="grid size-6 place-items-center rounded-md bg-accent text-paper opacity-30 md:opacity-0 transition-[opacity,background-color] duration-200 hover:bg-accent-hover group-hover/add:opacity-100 group-focus-visible/add:opacity-100 active:opacity-100 motion-reduce:transition-none"
+        className="bevel-primary grid size-6 place-items-center rounded-md border text-paper opacity-30 md:opacity-0 transition-[opacity,filter] duration-200 hover:brightness-95 group-hover/add:opacity-100 group-focus-visible/add:opacity-100 active:opacity-100 motion-reduce:transition-none"
       >
         <Plus className="size-3.5" strokeWidth={2.5} />
       </span>
@@ -287,7 +287,7 @@ export function MonthGrid({
                     className={cn(
                       'self-end text-[11px] font-semibold tabular-nums',
                       isToday
-                        ? 'grid size-5 place-items-center rounded-full bg-accent text-paper'
+                        ? 'grid size-5 place-items-center rounded-full bevel-primary border text-paper'
                         : inMonth
                           ? 'text-ink'
                           : 'text-mist',
@@ -375,7 +375,7 @@ export function MonthGrid({
                     className={cn(
                       'text-xs font-semibold tabular-nums flex items-center justify-center size-6 rounded-full',
                       isToday
-                        ? 'bg-accent text-paper'
+                        ? 'bevel-primary border text-paper'
                         : isSelected
                           ? 'text-accent font-bold'
                           : 'text-ink',
@@ -601,7 +601,7 @@ export function TimeGrid({
                     className={cn(
                       'text-[13px] font-semibold tabular-nums',
                       isToday
-                        ? 'grid size-6 -translate-y-0.5 place-items-center rounded-full bg-accent text-paper'
+                        ? 'grid size-6 -translate-y-0.5 place-items-center rounded-full bevel-primary border text-paper'
                         : 'text-ink',
                     )}
                   >
@@ -685,7 +685,7 @@ export function TimeGrid({
                       className={cn(
                         'text-sm font-bold tabular-nums flex items-center justify-center size-6 rounded-full',
                         isToday
-                          ? 'bg-accent text-paper'
+                          ? 'bevel-primary border text-paper'
                           : isSelected
                             ? 'text-accent font-extrabold'
                             : 'text-ink',

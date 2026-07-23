@@ -256,7 +256,7 @@ export function PostDetailSheet({
             <div className="flex min-w-0 flex-col gap-5">
               {/* canais (avatares — como o composer, porém só leitura) */}
               {previewList.length > 0 ? (
-                <div className="rounded-lg border border-line bg-surface p-3">
+                <div className="bevel-surface rounded-lg border p-3">
                   <ul className="flex flex-wrap gap-2.5">
                     {previewList.map((c) => (
                       <li key={c.id}>
@@ -297,7 +297,7 @@ export function PostDetailSheet({
                 {editing ? (
                   <div className="flex flex-col gap-3">
                     {hasOverrides ? (
-                      <p className="rounded-md border border-line bg-state-review-tint px-3 py-2 text-xs leading-relaxed text-state-review">
+                      <p className="bevel-chip rounded-md border border-line bg-state-review-tint px-3 py-2 text-xs leading-relaxed text-state-review">
                         {t('editResetsOverrides')}
                       </p>
                     ) : null}
@@ -356,7 +356,7 @@ export function PostDetailSheet({
                     </div>
                   </div>
                 ) : (
-                  <div className="rounded-md border border-line bg-surface">
+                  <div className="bevel-surface rounded-md border">
                     {texts.length <= 1 ? (
                       <p className="whitespace-pre-wrap px-3 py-2.5 text-sm leading-relaxed text-ink">
                         {items[0]?.text ?? '…'}
@@ -413,7 +413,7 @@ export function PostDetailSheet({
                       return (
                         <li
                           key={pub.id}
-                          className="flex flex-col gap-2.5 rounded-md border border-line bg-surface p-3 sm:flex-row sm:items-center sm:gap-3"
+                          className="bevel-surface flex flex-col gap-2.5 rounded-md border p-3 sm:flex-row sm:items-center sm:gap-3"
                         >
                           <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:shrink-0">
                             <div className="flex items-center gap-2">
@@ -558,7 +558,7 @@ export function PostDetailSheet({
         </div>
 
         {/* rodapé de ações mobile-first */}
-        <footer className="shrink-0 border-t border-line bg-surface px-4 py-3 sm:px-6 sm:py-4">
+        <footer className="bevel-surface shrink-0 border-t border-line px-4 py-3 sm:px-6 sm:py-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <Button
               variant="outline"
@@ -669,7 +669,7 @@ function ApprovalLinkSection({ groupId }: { groupId: string }) {
       ) : (
         <>
           {link?.status === 'CHANGES_REQUESTED' ? (
-            <div className="rounded-md border border-line bg-state-review-tint px-3 py-2">
+            <div className="bevel-chip rounded-md border border-line bg-state-review-tint px-3 py-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-state-review">
                 {t('changesRequested', { name: link.approverName ?? t('anonymous') })}
               </p>
@@ -682,7 +682,7 @@ function ApprovalLinkSection({ groupId }: { groupId: string }) {
           ) : null}
 
           {freshUrl ? (
-            <div className="flex items-center gap-2 rounded-md border border-accent bg-accent-tint px-3 py-2">
+            <div className="bevel-chip flex items-center gap-2 rounded-md border border-accent bg-accent-tint px-3 py-2">
               <span className="min-w-0 flex-1 truncate text-[13px] text-accent">{freshUrl}</span>
               <Button variant="ghost" size="icon-sm" aria-label={t('copy')} onClick={() => copy(freshUrl)}>
                 <Copy aria-hidden />

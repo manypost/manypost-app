@@ -1,12 +1,17 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
-/** Card de app (densidade docs/brand/README.md §2): borda 1px, radius 8, sem sombra. */
+/**
+ * Card de app (densidade docs/brand/README.md §2): borda 1px, radius 8, relevo
+ * 3D sutil e sem sombra (`.bevel-surface`) — topo levemente claro, base
+ * assentada, borda de topo clara e de base escura (BRAND §7). Um `bg-*` passado
+ * por um caller ainda vence (utilitário > camada components).
+ */
 function Card({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="card"
-      className={cn('rounded-lg border border-line bg-card text-card-foreground', className)}
+      className={cn('bevel-surface rounded-lg border text-card-foreground', className)}
       {...props}
     />
   );
