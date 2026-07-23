@@ -151,8 +151,7 @@ export function CalendarChip({
 }
 
 /**
- * Área vazia do slot que revela um "+" no hover/foco (e visível sutil no touch/mobile)
- * (direção do Postiz).
+ * Área vazia do slot que revela um "+" no hover/foco (e visível sutil no touch/mobile).
  */
 function SlotAddButton({ date, onSchedule }: { date: Date; onSchedule: (date: Date) => void }) {
   const t = useTranslations('calendar');
@@ -479,7 +478,7 @@ export function MonthGrid({
   );
 }
 
-/** Slot de hora dropável — passado é hachurado e não aceita drop (Postiz). */
+/** Slot de hora dropável — passado é hachurado e não aceita drop. */
 function HourCell({
   date,
   hour,
@@ -515,7 +514,7 @@ function HourCell({
 }
 
 /**
- * Grade com linhas de hora (visões dia e semana — direção do Postiz):
+ * Grade com linhas de hora para as visões dia e semana:
  * cabeçalho fixo com os dias, rolagem vertical pelas 24h, hoje em destaque.
  */
 export function TimeGrid({

@@ -43,7 +43,7 @@ import { ChannelsPanel } from './channels-panel';
 
 type ViewMode = 'dia' | 'semana' | 'mes' | 'lista';
 
-/** filtro de estado do modo lista (paridade Postiz: All | Scheduled | Draft | Published) */
+/** Filtro do modo lista: todos, agendados, rascunhos e publicados. */
 const LIST_FILTERS: Record<string, string | undefined> = {
   todos: undefined,
   agendados: 'SCHEDULED',
@@ -52,8 +52,8 @@ const LIST_FILTERS: Record<string, string | undefined> = {
 };
 
 /**
- * Calendário (SPEC_FRONTEND §3.1, direção do Postiz): painel de canais à
- * esquerda (clique filtra), visões dia/semana/mês com grade de horas e
+ * Calendário (SPEC_FRONTEND §3.1): painel de canais à esquerda (clique filtra),
+ * visões dia/semana/mês com grade de horas e
  * lista com filtro por estado; drag-and-drop otimista com rollback.
  */
 export function CalendarView() {
@@ -388,7 +388,7 @@ export function CalendarView() {
   );
 }
 
-/** Modo lista (paridade Postiz): dias como cabeçalho, linhas com hora à direita;
+/** Modo lista: dias como cabeçalho, linhas com hora à direita;
  *  hover revela duplicar/remover no canto direito (como nos chips das grades). */
 function ListView({
   items,

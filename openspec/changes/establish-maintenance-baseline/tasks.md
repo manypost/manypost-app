@@ -16,9 +16,9 @@
 
 ## 3. Product identity and change record
 
-- [ ] 3.1 Classify all initial Postiz occurrences into the six decision categories
-- [ ] 3.2 Replace only safe current wording and run the residual tracked-file search
-- [ ] 3.3 Document preserved references, residual count and future identity decisions
+- [x] 3.1 Classify all initial Postiz occurrences into the six decision categories
+- [x] 3.2 Replace only safe current wording and run the residual tracked-file search
+- [x] 3.3 Document preserved references, residual count and future identity decisions
 - [ ] 3.4 Create the Keep a Changelog entry for user, developer and operator impact
 
 ## 4. Deterministic delivery

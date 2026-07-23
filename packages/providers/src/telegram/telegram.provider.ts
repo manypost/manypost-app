@@ -176,8 +176,8 @@ export const telegramProvider: ChannelProvider = {
 
     let chatId: string | number = /^-?\d+$/.test(chatRef) ? Number(chatRef) : chatRef;
 
-    // Auto-descoberta (Paridade Postiz): se não for ID numérico nem começar com @, verificamos
-    // se o usuário enviou /connect ABCD ou ABCD no canal/grupo via getUpdates
+    // Auto-descoberta: se não for ID numérico nem começar com @, verificamos se
+    // o usuário enviou /connect ABCD ou ABCD no canal/grupo via getUpdates.
     if (typeof chatId === 'string' && !chatId.startsWith('@')) {
       const code = chatId.replace(/^\/connect\s+/i, '').trim();
       interface TgUpdate {

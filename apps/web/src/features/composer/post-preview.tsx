@@ -13,8 +13,8 @@ interface PreviewItem {
 }
 
 /**
- * Preview ao vivo do composer (direção do Postiz "Post Preview"): um cartão
- * por canal selecionado com o layout aproximado da REDE de destino
+ * Preview ao vivo do composer: um cartão por canal selecionado com o layout
+ * aproximado da rede de destino
  * (network-preview.tsx), texto efetivo (override quando houver) e thread.
  */
 export function PostPreview({

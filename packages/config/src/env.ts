@@ -1,9 +1,6 @@
 import { z } from 'zod';
 
-/**
- * Env tipada, fail-fast com mensagem clara (SPEC_INFRA §3).
- * Equivalente melhorado do ConfigurationChecker do Postiz.
- */
+/** Env tipada, fail-fast com mensagem clara (SPEC_INFRA §3). */
 const EnvSchema = z
   .object({
     MODE: z.enum(['api', 'worker', 'all', 'web', 'standalone', 'full']).default('all'),
@@ -29,7 +26,7 @@ const EnvSchema = z
     MCP_PUBLIC_URL: z.string().url().optional(),
 
     /**
-     * Flag de arquitetura 100% Open Source (monorepo unificado, estilo Postiz IS_GENERAL/IS_CLOUD):
+     * Flag de arquitetura 100% Open Source no monorepo unificado:
      * true = modo Community/Self-Hosted (recursos e limites comerciais liberados localmente);
      * false = modo Managed/Cloud (ativa enforcement comercial de planos Grátis/Pro/Premium no SaaS)
      */
@@ -38,7 +35,7 @@ const EnvSchema = z
       .default('true')
       .transform((v) => v === true || v === 'true'),
     /**
-     * Oculta botões de upgrade, telas de faturamento da Stripe e promoções de planos na UI (estilo Postiz DISALLOW_PLUS)
+     * Oculta botões de upgrade, telas de faturamento da Stripe e promoções de planos na UI.
      */
     HIDE_BILLING: z
       .union([z.boolean(), z.string()])
@@ -46,8 +43,8 @@ const EnvSchema = z
       .transform((v) => v === true || v === 'true'),
 
     // Cobrança (Stripe) — só no gerenciado. Sem STRIPE_SECRET_KEY o billing fica desligado
-    // e o PlanPolicy libera tudo, mesmo com IS_SELF_HOSTED=false (equivale ao gate por
-    // STRIPE_PUBLISHABLE_KEY do Postiz): instalação sem cobrança não se auto-bloqueia.
+    // e o PlanPolicy libera tudo, mesmo com IS_SELF_HOSTED=false: instalação sem cobrança
+    // não se auto-bloqueia.
     STRIPE_SECRET_KEY: z.string().optional(),
     /** `whsec_…` do endpoint de webhook (Stripe Dashboard → Developers → Webhooks) */
     STRIPE_WEBHOOK_SECRET: z.string().optional(),
@@ -101,7 +98,7 @@ const EnvSchema = z
     // mesma app serve o `instagram` via Facebook Business quando ele entrar
     FACEBOOK_APP_ID: z.string().optional(),
     FACEBOOK_APP_SECRET: z.string().optional(),
-    // Streaming — publicam no CHAT ao vivo, não em feed (paridade Postiz)
+    // Streaming — publicam no chat ao vivo, não em feed.
     TWITCH_CLIENT_ID: z.string().optional(),
     TWITCH_CLIENT_SECRET: z.string().optional(),
     KICK_CLIENT_ID: z.string().optional(),

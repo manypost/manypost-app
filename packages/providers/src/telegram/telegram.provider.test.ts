@@ -75,7 +75,7 @@ describe('telegram: conexão por campos', () => {
     });
   });
 
-  test('auto-descoberta por comando /connect ABCD no canal (paridade Postiz)', async () => {
+  test('auto-descoberta por comando /connect ABCD no canal', async () => {
     const ctx = route({
       getUpdates: (b) => {
         expect(b.allowed_updates).toEqual(['message', 'channel_post']);

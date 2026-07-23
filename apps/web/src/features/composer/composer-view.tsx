@@ -41,8 +41,8 @@ import { PostPreview } from './post-preview';
 import { useComposerStore } from './store';
 
 /**
- * Composer (SPEC_FRONTEND §3.3, direção do Postiz): vive dentro do popup
- * (composer-modal). Avatares p/ escolher canais → abas global/por canal →
+ * Composer (SPEC_FRONTEND §3.3): vive dentro do popup (composer-modal).
+ * Avatares p/ escolher canais → abas global/por canal →
  * editor com toolbar e contador no canto → thread empilhada → preview ao vivo →
  * rodapé mobile-first com data e CTAs. Estado no Zustand com persist (rascunho
  * sobrevive a F5). O corpo rola; o rodapé fica fixo no pé do popup.
@@ -275,7 +275,7 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
     </div>
   );
 
-  /** contador do canto do editor (Postiz): pill que abre a validação por canal ou erros via hover */
+  /** Pill no canto do editor que abre a validação por canal ou erros via hover. */
   const counterPill = (
     <HoverPopover align="end" className="flex w-80 flex-col gap-2 p-3" content={validationContent}>
       <button
@@ -331,7 +331,7 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
               </TabsList>
 
               <TabsContent value="global" className="flex flex-col gap-3">
-                {/* cartão do editor com toolbar embaixo (Postiz) */}
+                {/* cartão do editor com toolbar embaixo */}
                 <div className="rounded-md border bevel-surface transition-colors duration-200 focus-within:border-accent">
                   <ComposerEditor
                     key={`global-${store.editorNonce}`}
@@ -563,7 +563,7 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
       </div>
 
       {/* rodapé de ações mobile-first: no mobile empilha (CTA primário no topo);
-          no desktop vira uma linha com os CTAs à direita (Postiz: data + rascunho + CTA) */}
+          no desktop vira uma linha com data, rascunho e CTA à direita */}
       <footer className="bevel-surface shrink-0 border-t border-line px-4 py-3 sm:px-6 sm:py-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-2">
           <div className="flex items-center gap-2">

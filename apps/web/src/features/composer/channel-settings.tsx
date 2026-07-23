@@ -172,8 +172,8 @@ function SubAccountsField({
 const SUB_ACCOUNT_FIELDS: Record<string, string> = { discord: 'channelId', facebook: 'pageId' };
 
 /**
- * Configurações por canal do composer (paridade Postiz ref 8): acordeão que
- * renderiza o formulário a partir do `settingsSchema` (JSON Schema) do catálogo
+ * Configurações por canal do composer: acordeão que renderiza o formulário a
+ * partir do `settingsSchema` (JSON Schema) do catálogo
  * `GET /v1/channels/providers` — nada aqui conhece providers específicos; os
  * valores alterados viram `settingsByChannel` no POST /v1/posts.
  */
