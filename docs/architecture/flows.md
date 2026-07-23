@@ -403,7 +403,9 @@ evento e possuem persistência/entrega distintas.
 5. Adapter traduz o contrato público para os mesmos casos de uso internos.
 6. Mutações registram ator/origin API.
 
-Sem Redis, rate limit/idempotência falham abertos por decisão atual. A
+Quando o runtime é construído sem adapter Redis, rate limit/idempotência falham
+abertos por decisão atual. A aplicação normal exige `REDIS_URL`; indisponibilidade
+do servidor não deve ser confundida com ausência deliberada do adapter. A
 autorização por organização e scope não depende do Redis.
 
 ## MCP

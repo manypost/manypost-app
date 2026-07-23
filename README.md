@@ -91,7 +91,7 @@ um, está no [STATUS.md](docs/principal/STATUS.md#2-o-que-já-está-pronto-e-ver
 
 **Verifique você mesmo:** `bun run check` roda os dois typechecks, a suíte
 vigente, fronteiras de arquitetura e checks próprios de IA/marca. →
-[como rodar os E2E](docs/principal/STATUS.md#5-como-rodarverificar-localmente)
+[como rodar os E2E](docs/operations/development.md#e2e-http)
 
 ## 🔌 Redes suportadas
 

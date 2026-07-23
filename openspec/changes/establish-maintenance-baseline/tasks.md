@@ -11,8 +11,8 @@
 - [x] 2.1 Add root, database and provider `AGENTS.md` rules and extend the PR template
 - [x] 2.2 Create the canonical architecture overview and repository map
 - [x] 2.3 Document authentication, connection, publishing, media, webhook, API/MCP, approval and billing flows
-- [ ] 2.4 Document data, migrations, cache, queues, storage, environment, Railway, observability and CI
-- [ ] 2.5 Document clean install, development, testing, debugging and common change recipes
+- [x] 2.4 Document data, migrations, cache, queues, storage, environment, Railway, observability and CI
+- [x] 2.5 Document clean install, development, testing, debugging and common change recipes
 
 ## 3. Product identity and change record
 

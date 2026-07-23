@@ -21,6 +21,8 @@ derivam desse escopo.
 | --- | --- |
 | O que existe e onde? | [Mapa do repositório](repository-map.md) |
 | Como uma ação atravessa as camadas? | [Fluxos ponta a ponta](flows.md) |
+| Como funcionam dados, filas, env e deploy? | [Dados e infraestrutura](data-and-infrastructure.md) |
+| Como instalar, testar, depurar ou alterar? | [Guia de desenvolvimento](../operations/development.md) |
 | Quais problemas foram confirmados? | [Diagnóstico inicial](../audits/2026-07-23-initial-diagnosis.md) |
 | Como especificar uma mudança? | [OpenSpec no Manypost](../openspec.md) |
 | Quais regras um agente deve cumprir? | [`AGENTS.md`](../../AGENTS.md) |
@@ -174,8 +176,10 @@ Redis não substitui dados de negócio. Ele coordena:
 - idempotência de mutações da API pública;
 - realtime entre worker e API.
 
-Sem Redis, publish/filas continuam pelo pg-boss, mas rate limit, idempotência e
-realtime degradam conforme políticas de falha aberta.
+No nível do package, sem adapter Redis, publish/filas continuam pelo pg-boss e
+rate limit, idempotência/realtime degradam conforme políticas de falha aberta.
+O env da aplicação, porém, exige `REDIS_URL`; deployment normal sem URL Redis
+não é suportado.
 
 Uploads ficam no volume local `/app/uploads`. O enum aceita `s3`, mas o adapter
 S3 ainda não existe; não escale horizontalmente a mídia supondo storage

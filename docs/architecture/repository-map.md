@@ -202,6 +202,7 @@ validação automática ou mostre seus valores.
 | Área | Natureza | Regra |
 | --- | --- | --- |
 | `architecture/` | canônico do código vigente | atualizar com arquitetura/fluxo |
+| `operations/` | recipes vigentes | comandos precisam ser executáveis |
 | `audits/` | fotografia datada | não tratar hipótese como regra |
 | `brand/` | normativo para UI | CI verifica tokens/restrições |
 | `principal/` | estado, decisões e história | pode conter números/topologia antigos |

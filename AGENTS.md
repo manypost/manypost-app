@@ -116,8 +116,9 @@ Não amplie essa exceção sem design OpenSpec e sem atualizar as fronteiras.
   permanecem cifrados; não contorne `CryptoService`.
 - Mudanças em auth, cookies, CORS, SSRF, uploads, webhooks, MCP ou API pública
   exigem testes negativos e revisão explícita de autorização/organização.
-- Redis opcional cria falha aberta em rate limit/idempotência/realtime: não
-  altere essa política de forma implícita.
+- Os ports Redis são opcionais no package de queue e falham abertos quando
+  ausentes, mas o env atual exige `REDIS_URL`; não altere esse contrato de forma
+  implícita.
 - Não faça operação destrutiva de dados, volume, Railway ou Git sem alvo
   resolvido, justificativa, rollback e autorização correspondente.
 
