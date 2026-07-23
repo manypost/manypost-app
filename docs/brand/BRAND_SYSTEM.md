@@ -40,9 +40,15 @@ O ManyPost preenche a lacuna entre o design visual e a engenharia de software, u
 ## 2. Princípios Fundamentais de Design & Experiência
 
 1. **Estética Limpa, Profissional e Acolhedora:**
-   O ManyPost é uma plataforma de gestão de redes sociais e automação de IA para quem valoriza seu tempo. Elementos decorativos em excesso (como globos 3D giratórios, sombras flutuantes ou animações exageradas) são evitados para manter o foco no conteúdo.
-2. **Regra do Zero Sombras (`box-shadow: none !important`):**
-   Inspirado no padrão visual da Zapier, abolimos todas as sombras artificiais. A hierarquia visual, separação de blocos e destaque são construídos exclusivamente por **bordas limpas** (`1px solid var(--line)`) e **sobreposição de cores de fundo** (ex: `--surface-2` sobre `--surface`).
+   O ManyPost é uma plataforma de gestão de redes sociais e automação de IA para quem valoriza seu tempo. Elementos decorativos em excesso (como globos 3D giratórios, **sombras flutuantes** ou animações exageradas) são evitados para manter o foco no conteúdo. Profundidade é permitida, mas **assentada na superfície** (relevo por gradiente, ver princípio 2) — nunca uma sombra pairando sob o elemento.
+2. **Regra do Zero Sombras + Profundidade por Gradiente (`box-shadow` continua proibido):** *(brand v1.3 — 2026-07-23)*
+   Inspirado no padrão visual da Zapier, **abolimos todas as sombras artificiais (`box-shadow`)** — a proibição de `box-shadow` é inviolável e vale para o app inteiro. A separação de blocos continua vindo de **bordas** e **sobreposição de cores de fundo** (ex: `--surface-2` sobre `--surface`). O que mudou: a profundidade agora é **linguagem pervasiva — nada de superfície flat**, construída por **gradiente de preenchimento** e **cor de borda por lado** + brilho fino sob o topo, sempre sem `box-shadow`. A **direção** codifica a função: superfícies e controles **sobem** (topo claro, base escura); campos **afundam** (topo escuro, base clara). Quatro tratamentos:
+   - **Relevo forte (controle elevado):** botões preenchidos (`primary`/`enterprise`/`outline`/`destructive`), aba ativa dos seletores, pílula do dia atual/selecionado. Classes `.bevel-primary|enterprise|outline|destructive`.
+   - **Relevo sutil (superfície elevada):** cards, tiles clicáveis, **todos os overlays** (popover, dropdown, dialog, sheet, tooltip, select), a **sidebar**, cabeçalhos/rodapés de painel; estados **ativos/selecionados** de acento (nav ativa, chip selecionado, notificação não lida) via `.bevel-accent`. Classes `.bevel-surface` (claro), `.bevel-ink` (escuro, tooltip), `.bevel-accent` (tint elevado).
+   - **Pastilha (brilho universal):** badges/chips de estado e caixas de tint de qualquer estado — `.bevel-chip` (só `background-image` translúcido: topo clareia, base escurece, compõe sobre qualquer cor sem alterá-la).
+   - **Profundidade pra dentro (campo afundado):** input/select/textarea e caixas de digitação — `.inset-field` (recuo: topo escuro/lábio, base clara). Campo é recuo, não relevo — daí a direção invertida.
+
+   **Único plano de referência (não recebe volume):** o fundo da página e o texto puro — o "chão" contra o qual tudo o mais tem profundidade. Anatomia técnica em §6 (botões) e §7 (cards); tokens de intensidade `--edge-light`/`--edge-dark`/`--bevel-gloss`/`--bevel-lift` no §3.1.
 3. **Regra de Estabilidade em Botões:**
    Botões e elementos interativos não saltam ou se deslocam no hover. Ao passar o mouse, deve ocorrer apenas uma transição suave de cor (`background-color`, `border-color`, `color` em `0.2s ease`), mantendo o elemento firme e confortável na tela.
 4. **Alinhamento e Espaçamento Harmoniosos (`align-items: stretch`):**
@@ -91,6 +97,19 @@ O sistema é **light-first**: a base é o branco, o texto é quase-preto e o rox
   --line: #E2E2E7;
 }
 ```
+
+### 3.1 Tokens de Profundidade · Relevo 3D sem Sombra *(brand v1.3)*
+
+O relevo dos elementos elevados (botões preenchidos e cards, ver §2.2, §6, §7) é derivado dos tokens de cor acima — **nenhuma cor nova, nenhum `box-shadow`**. Quatro tokens governam a **intensidade** de todo o app (padrão: média). Ajuste-os em um único ponto (`globals.css`) para deixar o relevo mais sutil ou mais forte.
+
+| Token CSS | Valor (médio) | O que controla |
+| :--- | :--- | :--- |
+| `--edge-light` | `22%` | Quanto de branco entra na **borda de topo** (o lado que "pega luz"). Maior = topo mais claro. |
+| `--edge-dark` | `16%` | Quanto de preto entra na **borda de base** (o lado assentado). Maior = base mais funda. |
+| `--bevel-gloss` | `0.16` | Alpha do **brilho fino de 1–3px** logo abaixo da borda de topo (o realce "vidro"). |
+| `--bevel-lift` | `9%` | Rebaixo do **fundo do topo para a base** no gradiente de preenchimento. |
+
+Regra de contraste: no `primary`, a face vai de `--accent` (topo) a `--accent-hover` (base) — **os dois já passam AA com texto branco**, então o relevo nunca custa legibilidade. `--edge-light`/`--edge-dark` afetam só bordas (decorativas), nunca o texto.
 
 ---
 
@@ -153,12 +172,17 @@ Para garantir uma navegação agradável e equilibrada, nosso sistema adota exat
 * **Medium (`md`):** `font-size: 13px`, `padding: 10px 20px`, `height: ~38px`. (Padrão universal para formulários, cards e modais).
 * **Large (`lg`):** `font-size: 15px`, `padding: 14px 28px`, `height: ~44px`, `font-weight: 700`. (CTAs principais em cabeçalhos ou destaques de página).
 
+> **Relevo 3D nas variantes preenchidas (brand v1.3):** `primary`, `enterprise`, `outline` e `destructive` usam **relevo por gradiente + borda por lado** (classes `.bevel-*` em `globals.css`), nunca cor de fundo chapada. `ghost` e `link` **permanecem flat** (não têm preenchimento a biselar). Todos os botões usam `cursor: pointer`.
+
 ### Variações de Estilo (`variant`)
-1. **Primary (`primary`):** Fundo `--accent` (`#7C3AED`), texto branco. Hover: Fundo `--accent-hover` (`#6D28D9`). Reservado para a ação principal da tela.
-2. **Enterprise (`enterprise`):** Fundo `--ink` (`#111111`), texto `--paper`. Hover: Fundo `--ink-soft` (`#262626`). Para ações corporativas ou secundárias de alta relevância.
-3. **Outline (`outline`):** Fundo `--surface`, texto `--ink`, borda `1px solid var(--line)`. Hover: Fundo `--surface-2`, borda `--ink`.
-4. **Ghost (`ghost`):** Fundo transparente, texto `--ink`. Hover: Fundo `--surface-2`, texto `--accent`.
-5. **Link (`link`):** Fundo transparente, texto `--accent`, sem borda ou padding. Hover: Texto `--accent-hover`.
+1. **Primary (`primary`):** Face em gradiente `--accent` (topo) → `--accent-hover` (base), texto branco; borda de topo = `--accent` clareado, borda de base = `--accent-hover` escurecido; brilho fino no topo. Hover: `filter: brightness(.95)` (escurece — sem mover). Ação principal da tela.
+2. **Enterprise (`enterprise`):** Face `--ink` clareado (topo) → `--ink` (base), texto `--paper`; base preta, topo clareado. Hover: `brightness(1.5)` (clareia rumo a `--ink-soft`). Ações corporativas ou secundárias de alta relevância.
+3. **Outline (`outline`):** Face `--surface` → `--surface` rebaixado com `--line`, texto `--ink`; borda de topo clara, de base escura. Hover: `brightness(.9)`. Ação secundária.
+4. **Ghost (`ghost`):** **Flat.** Fundo transparente, texto `--ink`. Hover: Fundo `--surface-2`, texto `--accent`.
+5. **Link (`link`):** **Flat.** Fundo transparente, texto `--accent`, sem borda ou padding. Hover: Texto `--accent-hover`.
+6. **Destructive (`destructive`):** Face `--state-failed` clareado (topo) → `--state-failed` (base), texto branco; mesmas bordas por lado. Hover: `brightness(.95)`. Ações destrutivas.
+
+> **Hover sem deslocamento (BRAND §2.3 permanece):** como não dá para transicionar um `linear-gradient` com `background-color`, o hover das variantes preenchidas usa `filter: brightness()` — escurece/clareia suavemente em `0.2s`, **sem** `translate`/`scale`. O elemento continua firme.
 
 ### Especificação de Estilo CSS (Botões Firmes e Estáveis)
 ```css
@@ -184,8 +208,9 @@ Para garantir uma navegação agradável e equilibrada, nosso sistema adota exat
 
 ### A. Cards Interativos (`.card`)
 Cards estruturais devem ter altura igualizada (`height: 100%` em grids com `align-items: stretch`).
-* **Estado Normal:** `background: var(--surface-2)`, `border: 1px solid var(--line)`, `border-radius: 8px`, `padding: 32px`.
-* **Estado Hover:** `border-color: var(--accent)`, `background: var(--surface)`. (A borda ilumina em roxo suavemente, sem criar sombras ou saltos verticais).
+* **Estado Normal:** **relevo 3D sutil e sem sombra** (`.bevel-surface`): face em gradiente `--surface` (topo levemente claro) → `--surface` rebaixado com `--line` (base assentada), borda de topo clara e borda de base escura, `border-radius: 8px`. O degradê é **mínimo** de propósito — superfície grande com relevo forte vira "plástico".
+* **Estado Hover (cards clicáveis):** `border-color: var(--accent)` — a borda ilumina em roxo, sem criar sombras nem saltos verticais. (Ao pintar as 4 bordas de roxo, o relevo cede lugar ao destaque de foco; é o comportamento desejado no hover.)
+* **`box-shadow` continua proibido** — a profundidade do card vem só do gradiente + bordas.
 
 ### B. Badges de Indicadores (`.badge`)
 * **Especificação:** `font-size: 11px`, `font-weight: 600`, `padding: 4px 10px`, `border-radius: 4px`, `background: var(--surface)`, `border: 1px solid var(--line)`, `color: var(--graphite)`, `text-transform: uppercase`.

@@ -36,7 +36,7 @@ function SheetContent({
       <SheetPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          'fixed inset-y-0 z-50 flex w-full max-w-lg animate-fade-in flex-col bg-surface',
+          'bevel-surface fixed inset-y-0 z-50 flex w-full max-w-lg animate-fade-in flex-col',
           side === 'right' ? 'right-0 border-l border-line' : 'left-0 border-r border-line',
           className,
         )}

@@ -34,9 +34,10 @@ Plataforma de agendamento/publicação multicanal. **O wordmark é sempre `manyp
 
 ## Regras visuais (resumo — a fonte é docs/brand/)
 
-- **Zero sombras** (`box-shadow` proibido) — hierarquia por borda `1px solid var(--line)` e camadas de fundo.
-- **Hover estável**: só transição de cor 0.2s; `translateY`/`scale` no hover são proibidos.
-- Cores **somente via tokens CSS** do brand system (nunca hex ad-hoc); radius só 4/6/8px.
+- **Zero sombras** (`box-shadow` proibido, sempre). **Profundidade pervasiva por gradiente (brand v1.3) — nada de superfície flat:** a direção codifica a função — superfícies/controles **sobem** (botões, cards, overlays, sidebar, aba ativa, estados selecionados: `.bevel-*`), badges e caixas de tint ganham **brilho** (`.bevel-chip`), campos **afundam** (input/select/textarea: `.inset-field`, direção invertida). Só o fundo da página e o texto puro ficam sem volume. Tudo via gradiente + borda por lado; hover de relevo por `filter: brightness()`. Fonte: BRAND §2.2/§3.1/§6/§7.
+- **Hover estável**: nada de `translateY`/`scale`/`rotate` no hover; flat transiciona cor 0.2s, relevo usa `filter: brightness()` 0.2s.
+- **Cursor**: todo botão usa `cursor: pointer`.
+- Cores **somente via tokens CSS** do brand system (nunca hex ad-hoc; o relevo deriva dos tokens via `color-mix` só em `globals.css`); radius só 4/6/8px.
 - Fontes: Inter (UI/corpo) + Plus Jakarta Sans (títulos/marca), self-hosted via `next/font`.
 - Light-first: o app v1 é light-only.
 

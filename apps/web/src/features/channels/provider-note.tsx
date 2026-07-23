@@ -86,7 +86,7 @@ export function ProviderNoteHelp({
         aria-label={t('help', { provider: provider.name })}
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          'grid size-5 place-items-center rounded-full text-mist outline-none transition-colors duration-200',
+          'bevel-surface grid size-5 place-items-center rounded-full border text-mist outline-none transition-colors duration-200',
           'hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
           className,
         )}

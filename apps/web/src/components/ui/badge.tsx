@@ -7,12 +7,13 @@ import { cn } from '@/lib/utils';
  * com a cor cheia como texto, radius 4px, 11px semibold uppercase.
  */
 const badgeVariants = cva(
-  'inline-flex items-center gap-1 rounded-sm border border-transparent px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-colors duration-200',
+  'bevel-chip inline-flex items-center gap-1 rounded-sm border border-transparent px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-colors duration-200',
   {
     variants: {
       variant: {
         neutral: 'border-line bg-surface text-graphite',
         accent: 'bg-accent-tint text-accent',
+        solid: 'bg-accent text-paper',
         scheduled: 'bg-state-scheduled-tint text-state-scheduled',
         publishing: 'bg-state-publishing-tint text-state-publishing',
         published: 'bg-state-published-tint text-state-published',

@@ -237,7 +237,7 @@ export function ConnectionsView() {
                     disabled={connecting}
                     aria-label={t('connectTitle', { provider: p.name })}
                     className={cn(
-                      'group flex h-full w-full items-center gap-3 rounded-lg border border-line bg-surface p-3 pr-8 text-left outline-none transition-colors duration-200',
+                      'group bevel-surface flex h-full w-full items-center gap-3 rounded-lg border p-3 pr-8 text-left outline-none transition-colors duration-200',
                       'hover:border-accent/40 hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
                       'disabled:cursor-progress disabled:opacity-60',
                     )}

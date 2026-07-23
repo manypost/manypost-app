@@ -61,7 +61,7 @@ export function NotificationsView() {
   return (
     <div className="flex flex-col gap-4">
       {unread > 0 ? (
-        <div className="flex items-center justify-between rounded-lg border border-line bg-accent-tint px-4 py-2.5">
+        <div className="bevel-chip flex items-center justify-between rounded-lg border border-line bg-accent-tint px-4 py-2.5">
           <span className="text-[13px] font-semibold text-accent">
             {t('unreadCount', { count: unread })}
           </span>
@@ -86,9 +86,9 @@ export function NotificationsView() {
                 if (!n.readAt) markRead.mutate(n.id);
               }}
               className={cn(
-                'flex w-full items-start gap-3 rounded-lg border border-line p-4 text-left outline-none transition-colors duration-200',
+                'flex w-full items-start gap-3 rounded-lg border p-4 text-left outline-none transition-colors duration-200',
                 'hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
-                n.readAt ? 'bg-surface' : 'bg-surface-2',
+                n.readAt ? 'bevel-surface' : 'bevel-accent',
               )}
             >
               <span

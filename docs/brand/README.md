@@ -31,9 +31,10 @@
 ## 2. Adaptação para o app (Next.js + shadcn/ui + Tailwind)
 
 - **Tokens**: as CSS vars do BRAND_SYSTEM entram em `globals.css` como estão; o tema shadcn referencia elas (`--background: var(--surface)`, `--foreground: var(--ink)`, `--primary: var(--accent)`, `--muted: var(--surface-2)`, `--border: var(--line)`, `--radius: 8px` com botões/inputs em 6px e badges em 4px).
-- **Zero sombras**: sobrescrever as shadows padrão do shadcn (popover, dropdown, dialog, card) por `border: 1px solid var(--line)` + camadas de `--surface-2`. Nenhum componente entra com `shadow-*`.
-- **Hover estável**: proibido `translate`/`scale` em hover — só transição de `background-color/border-color/color` 0.2s (regra da marca; vira regra de lint de classe Tailwind).
-- **Botões**: `primary|enterprise|outline|ghost|link` × `sm|md|lg` exatamente como BRAND §6 (11/13/15px, radius 6px).
+- **Zero sombras (`box-shadow` proibido) + profundidade pervasiva por gradiente** *(brand v1.3)*: nenhum componente usa `shadow-*`/`box-shadow`. **Nada de superfície flat** — a direção codifica a função (BRAND §2.2): **relevo forte** = botões preenchidos, aba ativa, pílula do dia (`.bevel-primary|enterprise|outline|destructive`); **relevo sutil** = cards, tiles, **overlays**, **sidebar**, cabeçalhos/rodapés e estados selecionados de acento (`.bevel-surface`/`.bevel-ink`/`.bevel-accent`); **pastilha** = badges e caixas de tint (`.bevel-chip`, brilho sobre qualquer cor); **campo afundado** = input/select/textarea (`.inset-field`, recuo com direção invertida). Só o **fundo da página** e o texto puro ficam sem volume (o plano de referência).
+- **Hover estável**: proibido `translate`/`scale`/`rotate` em hover. Variantes flat transicionam `background-color/border-color/color` 0.2s; variantes com relevo (gradiente) usam `filter: brightness()` 0.2s — também sem deslocar o elemento (regra da marca; vira regra de lint de classe Tailwind).
+- **Cursor**: todo botão usa `cursor: pointer` (base do `<Button>`); `disabled` cai para `pointer-events: none`.
+- **Botões**: `primary|enterprise|outline|ghost|link` (+`destructive`) × `sm|md|lg` exatamente como BRAND §6 (11/13/15px, radius 6px).
 - **Densidade do app** (substitui as métricas de landing): páginas com padding 24px; cards de app com padding 16–24px; linhas de tabela/lista 40–48px; gaps 8/12/16/24px — sempre múltiplos de 4/8 (princípio da marca preservado, escala reduzida).
 - **Fontes**: `next/font` self-hosted — Inter 400/500/600/700 e Plus Jakarta Sans 600/700/800.
 - **Wordmark**: `manypost` sempre minúsculo (UI, `<title>`, e-mails, docs). Logo: mark 500×500 roxo em `public/images/logo.png`, 28px no header com wordmark ao lado.
@@ -62,8 +63,8 @@ Uso: badge/chip de estado = `tint` de fundo + cor como texto/borda (padrão `.ba
 
 ## 4. Critérios de aceite de conformidade (entram no CI/review do web)
 
-1. Nenhum hex fora de `globals.css` (lint: cores só via token).
-2. Nenhum `shadow-*`/`box-shadow` e nenhum `translate`/`scale` em hover (lint de classes).
+1. Nenhum hex fora de `globals.css` (lint: cores só via token — inclui a matemática de cor do relevo via `color-mix`).
+2. Nenhum `shadow-*`/`box-shadow` e nenhum `translate`/`scale`/`rotate` em hover (lint de classes). Relevo 3D é permitido **apenas** por gradiente + borda por lado; hover de relevo usa `filter: brightness()`.
 3. Radius apenas 4/6/8px (e `9999px` só em avatar).
 4. Fontes só Inter/Plus Jakarta Sans via `next/font`.
 5. Wordmark minúsculo em 100% das ocorrências (grep no CI: `Manypost|MANYPOST` proibidos em UI/docs voltados a usuário).

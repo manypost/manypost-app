@@ -332,7 +332,7 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
 
               <TabsContent value="global" className="flex flex-col gap-3">
                 {/* cartão do editor com toolbar embaixo (Postiz) */}
-                <div className="rounded-md border border-line bg-surface transition-colors duration-200 focus-within:border-accent">
+                <div className="rounded-md border bevel-surface transition-colors duration-200 focus-within:border-accent">
                   <ComposerEditor
                     key={`global-${store.editorNonce}`}
                     initialText={store.text}
@@ -359,7 +359,7 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
                 return (
                   <TabsContent key={ch.id} value={ch.id} className="flex flex-col gap-3">
                     {overridden ? (
-                      <div className="rounded-md border border-line bg-surface transition-colors duration-200 focus-within:border-accent">
+                      <div className="rounded-md border bevel-surface transition-colors duration-200 focus-within:border-accent">
                         <div className="flex items-center justify-between border-b border-line bg-surface-2/60 px-3 py-1.5">
                           <span className="flex items-center gap-1.5 text-xs font-semibold text-ink">
                             <LockOpen className="size-3.5 text-accent" aria-hidden />
@@ -410,8 +410,8 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
                         </div>
                       </div>
                     ) : (
-                      <div className="flex min-h-[240px] flex-col items-center justify-center rounded-md border border-line bg-surface p-6 text-center transition-colors duration-200">
-                        <div className="mb-3 flex size-10 items-center justify-center rounded-full border border-line bg-surface-2 text-ink">
+                      <div className="bevel-surface flex min-h-[240px] flex-col items-center justify-center rounded-md border p-6 text-center transition-colors duration-200">
+                        <div className="bevel-surface mb-3 flex size-10 items-center justify-center rounded-full border text-ink">
                           <Lock className="size-4" aria-hidden />
                         </div>
                         <p className="text-sm font-semibold text-ink">Edição global ativa</p>
@@ -456,7 +456,7 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
                     <div key={item.key} className="relative pl-6">
                       {/* conector vertical da thread */}
                       <span aria-hidden className="absolute bottom-0 left-2.5 top-0 w-px bg-line" />
-                      <div className="rounded-md border border-line bg-surface transition-colors duration-200 focus-within:border-accent">
+                      <div className="rounded-md border bevel-surface transition-colors duration-200 focus-within:border-accent">
                         <ComposerEditor
                           key={`${item.key}-${store.editorNonce}`}
                           initialText={item.text}
@@ -532,7 +532,7 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="w-fit gap-1.5 bg-accent-tint text-accent hover:bg-accent-tint hover:text-accent-hover"
+                    className="bevel-accent w-fit gap-1.5 border-accent text-accent hover:text-accent-hover"
                     disabled={store.thread.length >= 24}
                     onClick={() => store.addThreadItem()}
                   >
@@ -564,7 +564,7 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
 
       {/* rodapé de ações mobile-first: no mobile empilha (CTA primário no topo);
           no desktop vira uma linha com os CTAs à direita (Postiz: data + rascunho + CTA) */}
-      <footer className="shrink-0 border-t border-line bg-surface px-4 py-3 sm:px-6 sm:py-4">
+      <footer className="bevel-surface shrink-0 border-t border-line px-4 py-3 sm:px-6 sm:py-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-2">
           <div className="flex items-center gap-2">
             <Checkbox
