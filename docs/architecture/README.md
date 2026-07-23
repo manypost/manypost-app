@@ -20,6 +20,7 @@ derivam desse escopo.
 | Pergunta | Documento |
 | --- | --- |
 | O que existe e onde? | [Mapa do repositório](repository-map.md) |
+| Como uma ação atravessa as camadas? | [Fluxos ponta a ponta](flows.md) |
 | Quais problemas foram confirmados? | [Diagnóstico inicial](../audits/2026-07-23-initial-diagnosis.md) |
 | Como especificar uma mudança? | [OpenSpec no Manypost](../openspec.md) |
 | Quais regras um agente deve cumprir? | [`AGENTS.md`](../../AGENTS.md) |

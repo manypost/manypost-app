@@ -31,6 +31,7 @@ planejamento anterior e podem conter números ou topologias históricos.
 |---|---|
 | [architecture/README.md](architecture/README.md) ⭐ | visão geral, stack, componentes, dependências, runtime e onde implementar |
 | [architecture/repository-map.md](architecture/repository-map.md) | responsabilidade, entradas, dependências, consumidores e riscos de cada diretório |
+| [architecture/flows.md](architecture/flows.md) | autenticação, canais, publicação, mídia, webhooks, API/MCP e billing ponta a ponta |
 | [openspec.md](openspec.md) | criar, validar, implementar e arquivar mudanças OpenSpec |
 | [audits/](audits/) | diagnósticos e inventários datados; fatos, hipóteses e backlog |
 
