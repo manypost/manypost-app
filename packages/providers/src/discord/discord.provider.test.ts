@@ -7,7 +7,7 @@ runProviderContract(p);
 const token = { accessToken: 'oauth-token-123', externalId: 'guild-333', channelSettings: { guildId: 'guild-333', channelId: 'channel-222' }, scopes: ['bot', 'identify', 'guilds'] };
 const settings = { guildId: 'guild-333', channelId: 'channel-222' };
 
-describe('discord: OAuth2 + Bot (Paridade Postiz)', () => {
+describe('discord: OAuth2 + Bot', () => {
   test('getAuthUrl: gera URL OAuth do Discord com permissions=377957124096 e scopes bot/identify/guilds', async () => {
     const ctx = mockCtx(() => jsonResponse({}), { clientId: 'client-111', clientSecret: 'secret-222', botToken: 'bot-token-999' });
     const { url, state } = await p.getAuthUrl(ctx, { redirectUri: 'https://mp/cb' });

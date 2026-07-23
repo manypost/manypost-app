@@ -12,8 +12,8 @@ import { PROVIDER_ICONS } from '@/features/channels/provider-icon';
 import { cn } from '@/lib/utils';
 
 /**
- * Seleção de canais do composer (direção do Postiz): fileira de avatares —
- * apagado = fora do post, colorido com check = dentro. Só ACTIVE seleciona.
+ * Seleção de canais do composer: fileira de avatares; apagado = fora do post,
+ * colorido com check = dentro. Só ACTIVE seleciona.
  */
 export function ChannelPicker({
   selectedIds,

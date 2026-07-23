@@ -2,7 +2,7 @@ import { Wordmark } from '@/components/brand/wordmark';
 
 /**
  * Shell do onboarding: sem sidebar e sem topbar do app — a tela de conversão pós-cadastro
- * fica sozinha na página (paridade com o onboarding do Postiz, ver docs/references).
+ * fica sozinha na página, sem a navegação do produto.
  */
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
   return (

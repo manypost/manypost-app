@@ -4,7 +4,7 @@
  * — todo adapter deve passar o mesmo teste de contrato.
  */
 export interface EnqueueOptions {
-  /** dedup: 1 job ativo por chave (equivalente funcional do workflowId TERMINATE_EXISTING do Postiz) */
+  /** Dedup: no máximo um job ativo por singleton key. */
   singletonKey?: string;
   startAfter?: Date;
   retryLimit?: number;

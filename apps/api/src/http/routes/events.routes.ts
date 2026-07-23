@@ -1,10 +1,9 @@
 import { z } from '@hono/zod-openapi';
 import { streamSSE } from 'hono/streaming';
 import type { Container } from '../../container';
+import { SSE_KEEPALIVE_MS } from '../server-options';
 import { requireAuth } from '../middleware/auth';
 import { AUTH_SECURITY, createApp, errorResponses } from '../openapi';
-
-const KEEPALIVE_MS = 25_000; // proxies derrubam conexões ociosas antes dos 30s típicos
 
 /**
  * SSE `GET /v1/events` (SPEC_FRONTEND §4): a UI invalida queries quando o estado
@@ -49,7 +48,7 @@ export function eventRoutes(ctn: Container) {
       });
       stream.onAbort(() => void unsubscribe?.());
       while (!stream.aborted && !stream.closed) {
-        await stream.sleep(KEEPALIVE_MS);
+        await stream.sleep(SSE_KEEPALIVE_MS);
         if (stream.aborted || stream.closed) break;
         await stream.writeSSE({ event: 'ping', data: String(Date.now()) });
       }

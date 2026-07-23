@@ -6,6 +6,17 @@
  * `location` do popup e fechá-lo. Popup bloqueado → navega na própria aba
  * (o usuário volta pelo histórico; a lista refaz o fetch no focus).
  */
+export function isExpectedOauthMessage(
+  event: Pick<MessageEvent, 'data' | 'origin' | 'source'>,
+  popup: Window,
+  appOrigin: string,
+): boolean {
+  if (event.origin !== appOrigin || event.source !== popup) return false;
+  return (
+    event.data?.type === 'manypost:oauth:success' || event.data?.type === 'manypost:oauth:done'
+  );
+}
+
 export function openOauthPopup(url: string): Promise<'done' | 'closed'> {
   return new Promise((resolve) => {
     const w = 600;
@@ -39,7 +50,7 @@ export function openOauthPopup(url: string): Promise<'done' | 'closed'> {
     };
 
     const onMessage = (e: MessageEvent) => {
-      if (e.data?.type === 'manypost:oauth:success' || e.data?.type === 'manypost:oauth:done') {
+      if (isExpectedOauthMessage(e, popup, window.location.origin)) {
         finish('done');
       }
     };

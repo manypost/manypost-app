@@ -87,7 +87,7 @@ export function Topbar() {
         </DropdownMenu>
         <Wordmark />
       </div>
-      {/* título da página (padrão do Postiz: título vive na topbar) */}
+      {/* o título da página vive na topbar */}
       <h1 className="hidden text-lg font-semibold tracking-[-0.3px] text-ink md:block">
         {title ? t(title.key) : ''}
       </h1>

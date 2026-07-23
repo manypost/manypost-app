@@ -33,6 +33,7 @@
 - [Instalação](#-instalação)
 - [API pública e servidor MCP](#-api-pública-e-servidor-mcp)
 - [Estrutura do monorepo](#️-estrutura-do-monorepo)
+- [Mapa de arquitetura e manutenção](#-mapa-de-arquitetura-e-manutenção)
 - [Regras invioláveis](#-regras-invioláveis)
 - [Documentação](#-documentação)
 - [Como contribuir](#-como-contribuir)
@@ -88,8 +89,9 @@ um, está no [STATUS.md](docs/principal/STATUS.md#2-o-que-já-está-pronto-e-ver
 | Billing do serviço gerenciado (desligado por padrão) | ✅ |
 | IA de criação · analytics · multi-organização | ⏳ [no backlog](docs/principal/STATUS.md#4-o-que-falta--em-ordem-sugerida-com-referências) |
 
-**Verifique você mesmo:** `bun run check` roda typecheck, 278 testes, fronteiras de arquitetura e os
-lints próprios do projeto. → [como rodar os E2E](docs/principal/STATUS.md#5-como-rodarverificar-localmente)
+**Verifique você mesmo:** `bun run check` roda os dois typechecks, a suíte
+vigente, fronteiras de arquitetura e checks próprios de IA/marca. →
+[como rodar os E2E](docs/operations/development.md#e2e-http)
 
 ## 🔌 Redes suportadas
 
@@ -103,7 +105,10 @@ lints próprios do projeto. → [como rodar os E2E](docs/principal/STATUS.md#5-c
 | **LinkedIn** | OAuth (perfil de membro) | texto + até 20 imagens | ✅ comentários |
 | **X** | OAuth2 PKCE (traga sua chave) | texto, imagens, vídeo | ✅ |
 | **TikTok** | OAuth2 PKCE | vídeo e foto | — |
-| Facebook · Instagram · Threads | próxima onda | — | — |
+| **Threads** | OAuth | texto, mídia e carrossel | ✅ |
+| **Instagram** | Instagram Login | imagem, vídeo e carrossel | — |
+| **Facebook** | OAuth + Página | texto e mídia | — |
+| **Twitch / Kick** | OAuth | chat ao vivo | — |
 
 Configurar as credenciais de cada uma, passo a passo e sem tecniquês:
 **[docs/principal/INTEGRATIONS_SETUP.md](docs/principal/INTEGRATIONS_SETUP.md)**.
@@ -138,7 +143,7 @@ billing retornam 404 porque nem chegam a existir. → [PLANS.md](docs/principal/
 
 ## 🚀 Instalação
 
-### Testar em 5 minutos (só Docker)
+### Testar o backend em 5 minutos (só Docker)
 
 ```bash
 git clone https://github.com/manypost/manypost-app.git manypost
@@ -146,14 +151,15 @@ cd manypost
 docker compose up
 ```
 
-Sobe app + Postgres + Redis, aplica as migrations e abre em **<http://localhost:3000>**.
+Sobe API + worker, Postgres e Redis, aplica as migrations e abre o explorador
+em **<http://localhost:3000/docs>**. Esse compose não inicia a interface Next.js.
 O guia passo a passo — criar conta, conectar um canal de mentira e ver um post publicar — está em
 **[TESTING.md](TESTING.md)**, escrito para quem não programa.
 
 ### Desenvolvimento
 
 ```bash
-bun install
+bun install --frozen-lockfile
 cp .env.example .env      # gere os segredos: openssl rand -hex 32
 docker compose up postgres redis -d
 bun run dev:all           # API em :3100 + web em :3000
@@ -164,6 +170,7 @@ bun run dev:all           # API em :3100 + web em :3000
 | `bun run dev:all` | API + web juntos, com hot reload |
 | `bun run dev` / `dev:worker` / `dev:web` | cada processo isolado |
 | `bun run check` | typecheck + testes + fronteiras + lints de IA e de marca — **rode antes de todo PR** |
+| `bun run check:ci` | matriz de PR: `check` + Drizzle + build web + OpenSpec |
 | `bun run stripe:sync` | cria o catálogo de planos na sua conta Stripe (só no modo gerenciado) |
 
 Todas as variáveis estão comentadas no [`.env.example`](.env.example).
@@ -190,7 +197,7 @@ Configurações mostra os endereços e um prompt pronto para colar no seu agente
 apps/api           Bun + Hono: REST (/v1), servidor MCP, webhooks, SSE, OpenAPI
 apps/worker        Bun: consumidores da fila (publicação, retry, scanner de zumbis)
 apps/web           Next.js + Tailwind: a interface
-packages/core      DDD puro: domínio, use-cases e ports — zero I/O
+packages/core      Domínio, use-cases, ports e infra compartilhada (crypto/mídia)
 packages/db        Drizzle: schema, migrations e repositórios
 packages/providers  Um diretório por rede social
 packages/contracts Tipos, schemas e o catálogo de planos — zero lógica
@@ -201,15 +208,32 @@ docs/              Toda a documentação — specs, decisões, status, marca
 
 Detalhe de cada fronteira: [SPEC_ARCHITECTURE §4](docs/specs/SPEC_ARCHITECTURE.md).
 
+## 🗺 Mapa de arquitetura e manutenção
+
+A documentação canônica do código vigente começa em
+**[docs/architecture/README.md](docs/architecture/README.md)**. O
+[mapa do repositório](docs/architecture/repository-map.md) mostra, para cada
+app/package, responsabilidade, entradas, dependências, consumidores, riscos,
+comandos e onde alterar.
+
+Antes de contribuir, leia [`AGENTS.md`](AGENTS.md) e use o
+[workflow OpenSpec](docs/openspec.md). Os documentos históricos em
+`docs/principal/` e as specs anteriores continuam preservados, mas podem conter
+números e topologias do momento em que foram escritos.
+
 ## 🔒 Regras invioláveis
 
 Verificadas por CI em todo PR (`bun run check`):
 
 1. **Monorepo 100% aberto** — nenhuma dependência de código fechado; a separação Community × Cloud é
    sempre de ambiente, nunca de código. → [DECISIONS §15](docs/principal/DECISIONS.md)
-2. **Núcleo puro** — `packages/core` não importa de `apps/*` nem de infraestrutura
-   (`dependency-cruiser`). → [SPEC_BACKEND](docs/specs/SPEC_BACKEND.md)
-3. **Multi-tenant** — toda query filtra por `org_id`. → [SPEC_DATA](docs/specs/SPEC_DATA.md)
+2. **Dependência dirigida ao core** — `packages/core` não importa de `apps/*`,
+   `packages/db` ou `packages/providers`; o domínio não importa framework
+   (`dependency-cruiser`). `packages/core/src/infra` é uma exceção histórica
+   documentada. → [arquitetura](docs/architecture/README.md)
+3. **Multi-tenant** — toda operação prova escopo por organização diretamente
+   ou por pai já escopado; várias tabelas filhas não possuem `org_id`.
+   → [dados e riscos](docs/audits/2026-07-23-initial-diagnosis.md)
 4. **IA agnóstica** — nenhum provedor de IA nominal fora de `infra/ai/*`, e toda operação passa por
    um teto de custo. → [SPEC_AI](docs/specs/SPEC_AI.md)
 5. **Segredos protegidos** — tokens cifrados com chave dedicada, nunca logados.
@@ -222,6 +246,10 @@ Verificadas por CI em todo PR (`bun run check`):
 
 Tudo está em **[docs/](docs/README.md)** — comece pelo índice, que roteia por perfil (quem só quer
 usar, quem vai contribuir, quem integra por API).
+
+**Código vigente** — [arquitetura](docs/architecture/README.md) ·
+[mapa do repositório](docs/architecture/repository-map.md) ·
+[OpenSpec](docs/openspec.md) · [`AGENTS.md`](AGENTS.md)
 
 **Estado e planejamento** — [docs/principal/](docs/README.md#principal--estado-decisões-e-planejamento)
 
@@ -255,7 +283,8 @@ usar, quem vai contribuir, quem integra por API).
 **Na raiz:** [TESTING.md](TESTING.md) (testar sem programar) ·
 [CONTRIBUTING.md](CONTRIBUTING.md) · [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) ·
 [ATTRIBUTION.md](ATTRIBUTION.md) · [NOTICE](NOTICE) · [LICENSE](LICENSE) ·
-[CLAUDE.md](CLAUDE.md) (instruções para agentes de IA que trabalham no repo)
+[AGENTS.md](AGENTS.md) (instruções canônicas para humanos e agentes) ·
+[CLAUDE.md](CLAUDE.md) (instruções legadas específicas)
 
 ## 🤝 Como contribuir
 

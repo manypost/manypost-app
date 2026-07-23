@@ -23,9 +23,9 @@ import { MediaThumb } from '@/features/media/media-thumb';
 import { cn } from '@/lib/utils';
 
 /**
- * Preview por rede (SPEC_FRONTEND §3.3 — "aproximação visual do post em cada
- * plataforma, como o Postiz"): cada provider ganha um layout que lembra a rede
- * de destino, na versão minimalista do brand (tokens, zero sombras). Usado no
+ * Preview por rede (SPEC_FRONTEND §3.3): cada provider ganha uma aproximação
+ * visual da rede de destino na versão minimalista do brand (tokens, zero
+ * sombras). Usado no
  * composer E na página pública de aprovação (§3.6 — mesmos componentes).
  * Todo o chrome da rede (ícones de ação, contadores) é decorativo: aria-hidden.
  */

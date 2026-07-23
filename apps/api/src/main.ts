@@ -7,6 +7,7 @@ import { buildContainer } from './container';
 import { humansOnly } from './http/middleware/auth';
 import { createApp } from './http/openapi';
 import { buildSurfaceRouter, installBaseMiddleware } from './http/surfaces';
+import { serverNetworkOptions } from './http/server-options';
 import { apiKeyRoutes } from './http/routes/api-keys.routes';
 import { approvalPublicRoutes } from './http/routes/approvals-public.routes';
 import { authRoutes } from './http/routes/auth.routes';
@@ -256,7 +257,7 @@ console.log(
 
 // Despacho por Host: app (PUBLIC_URL) × API de máquina (api.) × MCP (mcp.) — ver http/surfaces.ts
 export default {
+  ...serverNetworkOptions,
   port: env.PORT,
-  hostname: '0.0.0.0',
   fetch: buildSurfaceRouter({ env, ctn, app, publicV1, mcp }),
 };

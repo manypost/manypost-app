@@ -19,7 +19,7 @@ import { xProvider } from './x/x.provider';
  * mastodon, telegram, bluesky, discord (oauth), discord-webhook, linkedin, x — cada um em sua pasta, registrado
  * aqui, com a suíte de contrato (test-kit) verde antes do merge. Onda 2: tiktok (Content Posting API),
  * threads (primeiro da família Meta — container → threads_publish), a dupla de streaming
- * twitch/kick, que publica no **chat ao vivo** em vez de um feed (paridade com o Postiz),
+ * twitch/kick, que publica no **chat ao vivo** em vez de um feed,
  * instagram-standalone (Instagram Login sem Página do Facebook — mesmo molde container→publish) e
  * facebook (Página; Página escolhida por post via sub-contas, token da Página derivado no publish).
  */

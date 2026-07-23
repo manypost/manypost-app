@@ -1,0 +1,40 @@
+schema: spec-driven
+
+context: |
+  Manypost is a Bun/TypeScript workspace derived from Postiz. It contains a
+  Hono API, Next.js web app, pg-boss worker, PostgreSQL/Drizzle repositories,
+  Redis coordination and social-network provider adapters.
+
+  Package direction is contracts/config -> core ports and use cases ->
+  db/providers/queue adapters -> api/worker composition roots. The web app
+  consumes the API through the generated OpenAPI client.
+
+  Use Bun for dependency and script operations. Production deploys to Railway
+  from docker/Dockerfile. Preserve tenant isolation, publication idempotency,
+  token encryption and external-provider compatibility.
+
+  The current product name is Manypost. Postiz references require explicit
+  classification before editing; legal attribution, historical material,
+  compatibility identifiers and already-applied migrations must be preserved.
+
+  Never include secret values in specifications, tasks, examples or logs.
+  Existing migrations and generated files must not be edited manually.
+
+rules:
+  proposal:
+    - Include explicit Goals, Non-goals, Compatibility and Rollback sections.
+    - State data, security, product-identity and Railway impact when applicable.
+    - Classify any Postiz name change as safe, refactor, compatibility, attribution, historical or human decision.
+  specs:
+    - Use SHALL or MUST for normative requirements and Given/When/Then-style scenarios.
+    - Cover organization scoping, authorization and failure behavior for API or persistence changes.
+    - Cover retries, idempotency and partial external success for asynchronous or provider changes.
+    - Never include real environment values, tokens, credentials or personal data.
+  design:
+    - Explain package boundaries and why the selected layer owns each change.
+    - Include migration, rollback, security, observability and compatibility decisions where relevant.
+    - Identify generated files and the command that regenerates them.
+  tasks:
+    - Order implementation test-first for behavior changes and name exact validation commands.
+    - Include documentation, CHANGELOG and OpenSpec validation tasks.
+    - Require bun install --frozen-lockfile and the relevant typecheck, test, build and database checks.

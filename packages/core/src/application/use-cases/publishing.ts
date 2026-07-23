@@ -616,7 +616,7 @@ export const makeCancelPost = (deps: Pick<MutatePostDeps, 'publishing' | 'schedu
     return deps.publishing.getGroup(orgId, groupId);
   };
 
-/** Edita texto/horário do que ainda está pendente (equivalente ao TERMINATE_EXISTING do Postiz). */
+/** Edita texto/horário pendente e invalida jobs anteriores pela versão. */
 export const makeReschedulePost = (deps: MutatePostDeps) =>
   async (input: {
     orgId: string;

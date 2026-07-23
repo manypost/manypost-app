@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { api } from '@/lib/api/client';
+import { expireBrowserSession, realtimeSessionAction } from './realtime-session';
 
 /**
  * SSE da UI (SPEC_FRONTEND §4): `GET /v1/events` só "cutuca" — todo evento
@@ -49,8 +50,22 @@ export function useRealtime() {
 
     const open = async () => {
       // renova o cookie de acesso se preciso (refresh-em-401 do cliente)
-      await api.GET('/v1/auth/me').catch(() => {});
+      const session = await api.GET('/v1/auth/me').catch(() => null);
       if (closed) return;
+      const sessionAction = realtimeSessionAction(session?.response);
+      if (sessionAction === 'expire') {
+        closed = true;
+        await expireBrowserSession({
+          logout: () => api.POST('/v1/auth/logout', {}),
+          target: document,
+          navigate: (path) => window.location.replace(path),
+        });
+        return;
+      }
+      if (sessionAction === 'retry') {
+        retry = setTimeout(open, 15_000);
+        return;
+      }
       source = new EventSource('/v1/events');
       const EVENTS = [
         'post.scheduled',

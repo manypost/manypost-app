@@ -13,8 +13,8 @@ import { useComposerModal } from '@/features/composer/use-composer-modal';
 import { cn } from '@/lib/utils';
 
 /**
- * Painel "Canais" do calendário (direção do Postiz: canais à esquerda da
- * grade). Clicar num canal liga/desliga o filtro do calendário.
+ * Painel "Canais" à esquerda da grade do calendário. Clicar num canal
+ * liga/desliga o filtro.
  */
 export function ChannelsPanel({
   selectedIds,

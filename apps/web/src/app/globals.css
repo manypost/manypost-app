@@ -286,7 +286,7 @@
   vector-effect: non-scaling-stroke;
 }
 
-/* células passadas do calendário: hachura sutil com tokens (direção do Postiz) */
+/* células passadas do calendário: hachura sutil com tokens */
 .cal-past {
   background-image: repeating-linear-gradient(
     135deg,

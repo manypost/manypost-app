@@ -13,16 +13,40 @@ você está lendo — [por quê](#por-que-o-planejamento-também-é-público).
 | Você é… | Comece por | Depois |
 |---|---|---|
 | **Quem quer só usar** (self-host) | [TESTING.md](../TESTING.md) — subir com Docker e publicar um post de teste | [INTEGRATIONS_SETUP.md](principal/INTEGRATIONS_SETUP.md) para conectar redes de verdade |
-| **Quem vai contribuir com código** | [STATUS.md](principal/STATUS.md) — o que funciona, o que falta, com prova | [CONTRIBUTING.md](../CONTRIBUTING.md) + a spec da área que você vai mexer |
+| **Quem vai contribuir com código** | [Arquitetura vigente](architecture/README.md) — componentes, limites e onde alterar | [`AGENTS.md`](../AGENTS.md) + [OpenSpec](openspec.md) + a spec da mudança |
+| **Agente de IA trabalhando no repo** | [`AGENTS.md`](../AGENTS.md) — regras verificáveis e segurança | [Mapa do repositório](architecture/repository-map.md) + [OpenSpec](openspec.md) |
 | **Quem integra por API ou agente de IA** | [SPEC_API_MCP.md](specs/SPEC_API_MCP.md) — REST pública e servidor MCP | `/docs` na sua instância (explorador OpenAPI ao vivo) |
 | **Quem vai mexer em qualquer tela** | [BRAND_SYSTEM.md](brand/BRAND_SYSTEM.md) — **obrigatório** | [brand/README.md](brand/README.md) + [SPEC_FRONTEND.md](specs/SPEC_FRONTEND.md) |
 | **Quem quer entender as escolhas** | [DECISIONS.md](principal/DECISIONS.md) — decisões congeladas, com o porquê | [POSTIZ_ANALYSIS.md](principal/POSTIZ_ANALYSIS.md) — a análise que as originou |
 
 ---
 
+## Arquitetura, operação e governança
+
+Estes documentos descrevem o repositório vigente e prevalecem para localização
+de código/comandos. Os diretórios `principal/` e `specs/` abaixo preservam o
+planejamento anterior e podem conter números ou topologias históricos.
+
+| Documento | O que responde |
+|---|---|
+| [architecture/README.md](architecture/README.md) ⭐ | visão geral, stack, componentes, dependências, runtime e onde implementar |
+| [architecture/repository-map.md](architecture/repository-map.md) | responsabilidade, entradas, dependências, consumidores e riscos de cada diretório |
+| [architecture/flows.md](architecture/flows.md) | autenticação, canais, publicação, mídia, webhooks, API/MCP e billing ponta a ponta |
+| [architecture/data-and-infrastructure.md](architecture/data-and-infrastructure.md) | entidades, migrations, cache, filas, storage, env, CI e Railway |
+| [operations/development.md](operations/development.md) | instalação, execução, testes, debug e recipes de mudança |
+| [openspec.md](openspec.md) | criar, validar, implementar e arquivar mudanças OpenSpec |
+| [audits/2026-07-23-initial-diagnosis.md](audits/2026-07-23-initial-diagnosis.md) | fotografia inicial, evidências e severidade |
+| [audits/2026-07-23-validation-report.md](audits/2026-07-23-validation-report.md) | comandos executados, resultados, limitações e estado do PR |
+| [audits/postiz-reference-inventory.md](audits/postiz-reference-inventory.md) | decisões de identidade Manypost e referências preservadas |
+| [audits/technical-backlog.md](audits/technical-backlog.md) | riscos abertos, advisories e ordem recomendada |
+| [`CHANGELOG.md`](../CHANGELOG.md) | impacto de cada entrega para usuário, desenvolvimento e operação |
+
+---
+
 ## `principal/` — estado, decisões e planejamento
 
-O planejamento vivo do projeto: onde estamos, o que já foi decidido e o que falta.
+Registro do planejamento anterior ao OpenSpec: onde estávamos, o que foi
+decidido e o que faltava no momento de cada edição.
 
 | Documento | O que responde |
 |---|---|
@@ -34,10 +58,12 @@ O planejamento vivo do projeto: onde estamos, o que já foi decidido e o que fal
 | [INTEGRATIONS_SETUP.md](principal/INTEGRATIONS_SETUP.md) | **Guia para humanos**: como obter as credenciais de cada rede social, passo a passo e sem tecniquês |
 | [POSTIZ_ANALYSIS.md](principal/POSTIZ_ANALYSIS.md) | A análise técnica do [Postiz](https://github.com/gitroomhq/postiz-app) que fundamenta a arquitetura e a derivação declarada |
 
-## `specs/` — especificações técnicas
+## `specs/` — especificações técnicas legadas
 
-Cada spec cobre um contexto do sistema e diz o que vale como certo. Quando código e spec divergem,
-um dos dois está errado — corrija o par, não só um lado.
+Cada spec cobre um contexto anterior à adoção do OpenSpec. Elas continuam úteis
+como intenção e histórico, mas novos requisitos vivem em `openspec/changes/` e,
+após archive, em `openspec/specs/`. Se código e documento divergirem, registre a
+evidência e corrija o conjunto no mesmo PR.
 
 | Spec | Contexto | Leia quando for mexer em |
 |---|---|---|
@@ -88,6 +114,13 @@ e [PLANS §2](principal/PLANS.md).
 
 ## Como manter esta documentação
 
+- **Mudança material nova** → crie/atualize o OpenSpec antes do código e valide
+  com `bun run spec:validate`.
+- **Arquitetura ou ownership mudou** → atualize `architecture/` e o
+  `AGENTS.md` aplicável.
+- **Comando, env ou operação mudou** → atualize `operations/` e
+  `architecture/data-and-infrastructure.md`.
+- **Impacto para usuário/dev/operação** → atualize `CHANGELOG.md`.
 - **Fatia entregue** → atualize [STATUS.md](principal/STATUS.md) e abra uma entrada nova no topo do
   [CHANGELOG_ONDAS.md](principal/CHANGELOG_ONDAS.md).
 - **Decisão estrutural nova** → versão nova em [DECISIONS.md](principal/DECISIONS.md) com changelog;

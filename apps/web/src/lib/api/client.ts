@@ -1,15 +1,17 @@
 import createClient from 'openapi-fetch';
 import type { paths } from './schema';
+import { shouldAttemptSessionRefresh } from './session-refresh';
 
 /**
  * Único ponto de saída HTTP do app (SPEC_FRONTEND §5.1: nenhum fetch manual
  * fora do cliente gerado). Tudo é same-origin: o Next proxeia /v1 → API, e a
  * autenticação vai em cookies httpOnly.
  *
- * Sessão: `mp_at` dura 15min. Num 401 (fora de /v1/auth/*) tentamos UMA vez
- * POST /v1/auth/refresh (deduplicado entre chamadas concorrentes — rotação de
- * refresh token detecta reuso e revoga a família, então NUNCA dispare dois
- * refresh em paralelo) e repetimos a requisição original.
+ * Sessão: `mp_at` dura 15min. Num 401 de recurso protegido (inclusive
+ * `/v1/auth/me`) tentamos UMA vez POST /v1/auth/refresh. Endpoints que criam,
+ * renovam ou encerram credenciais ficam de fora para não recursar. O refresh é
+ * deduplicado entre chamadas concorrentes — a rotação detecta reuso e revoga a
+ * família, então NUNCA dispare dois em paralelo.
  */
 let refreshing: Promise<boolean> | null = null;
 
@@ -32,7 +34,7 @@ const fetchWithRefresh: typeof fetch = async (input, init) => {
 
   const url =
     typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-  if (url.includes('/v1/auth/')) return res; // login/refresh falhando é falha de verdade
+  if (!shouldAttemptSessionRefresh(url)) return res;
 
   if (!(await refreshSession())) return res;
   return fetch(retryable ?? input, init);

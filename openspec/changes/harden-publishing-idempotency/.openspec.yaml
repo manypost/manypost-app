@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-07-23
+goal: Design transactional fencing and provider-call idempotency before changing
+  the publishing state machine.
