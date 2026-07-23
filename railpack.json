@@ -3,8 +3,8 @@
   "provider": "bun",
   "build": {
     "commands": [
-      "bun install --frozen-lockfile || bun install",
-      "cd apps/web && bun run build || true"
+      "bun install --frozen-lockfile",
+      "cd apps/web && bun run build"
     ]
   },
   "deploy": {

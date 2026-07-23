@@ -23,9 +23,9 @@
 
 ## 4. Deterministic delivery
 
-- [ ] 4.1 Pin Bun 1.3.14 and add the aggregate CI validation script
-- [ ] 4.2 Use frozen install and the complete validation matrix in GitHub Actions
-- [ ] 4.3 Stop Docker and Railpack from masking install or web-build failures
+- [x] 4.1 Pin Bun 1.3.14 and add the aggregate CI validation script
+- [x] 4.2 Use frozen install and the complete validation matrix in GitHub Actions
+- [x] 4.3 Stop Docker and Railpack from masking install or web-build failures
 - [ ] 4.4 Build the production Docker image successfully
 
 ## 5. Tested fixes

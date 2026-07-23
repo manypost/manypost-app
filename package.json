@@ -2,6 +2,7 @@
   "name": "manypost-monorepo",
   "private": true,
   "license": "AGPL-3.0-only",
+  "packageManager": "bun@1.3.14",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -28,7 +29,8 @@
     "db:check": "bun run --cwd packages/db check",
     "stripe:sync": "bun run scripts/stripe-sync.ts",
     "stripe:webhook": "bun run scripts/stripe-webhook.ts",
-    "check": "bun run typecheck && bun run typecheck:web && bun run test && bun run check:boundaries && bun run check:ai-providers && bun run check:brand"
+    "check": "bun run typecheck && bun run typecheck:web && bun run test && bun run check:boundaries && bun run check:ai-providers && bun run check:brand",
+    "check:ci": "bun run check && bun run db:check && bun run build:web && bun run spec:validate"
   },
   "devDependencies": {
     "@fission-ai/openspec": "1.6.0",
