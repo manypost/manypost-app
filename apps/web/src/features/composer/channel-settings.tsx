@@ -169,7 +169,13 @@ function SubAccountsField({
 }
 
 /** Campos renderizados como seletor de sub-conta (o valor vem de `/sub-accounts`, não digitado). */
-const SUB_ACCOUNT_FIELDS: Record<string, string> = { discord: 'channelId', facebook: 'pageId' };
+const SUB_ACCOUNT_FIELDS: Record<string, string> = {
+  discord: 'channelId',
+  facebook: 'pageId',
+  // no Instagram via Facebook Business o valor gravado também é o id da PÁGINA (a conta do
+  // Instagram é resolvida por ela no publish) — o rótulo da opção é o @ da conta
+  instagram: 'pageId',
+};
 
 /**
  * Configurações por canal do composer: acordeão que renderiza o formulário a

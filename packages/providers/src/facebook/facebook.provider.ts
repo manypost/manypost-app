@@ -9,6 +9,7 @@ import type {
   SubAccount,
 } from '@manypost/contracts';
 import { checkMediaRules } from '../shared/media-rules';
+import { GRAPH_BASE, type GraphPage, fetchPages, metaFetch as fb } from '../shared/meta-graph';
 
 // Derived from Postiz (AGPL-3.0): libraries/nestjs-libraries/src/integrations/social/facebook.provider.ts
 // Portado: o OAuth do Facebook Login (code → token curto → fb_exchange_token → token longo ~60d), a
@@ -24,7 +25,7 @@ import { checkMediaRules } from '../shared/media-rules';
 // best-effort: depois que o post está na rede, nada lança (senão a máquina de estados repostaria).
 // Traga-sua-chave: FACEBOOK_APP_ID/FACEBOOK_APP_SECRET vêm do env do self-hoster.
 
-const API_BASE = 'https://graph.facebook.com/v20.0';
+const API_BASE = GRAPH_BASE;
 const AUTHORIZE_URL = 'https://www.facebook.com/v20.0/dialog/oauth';
 const SCOPES = [
   'pages_show_list',
@@ -68,19 +69,8 @@ interface PublishSettings {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/**
- * Chamada à Graph API do Facebook. Erro da Meta é `{ error: { message, type, code, error_subcode } }`;
- * alguns endpoints devolvem esse envelope com HTTP 200, por isso checamos o corpo também. O corpo cru
- * vai no throw para o classifyError casar código e mensagem.
- */
-async function fb<T>(ctx: ProviderContext, url: string, init?: RequestInit): Promise<T> {
-  const res = await ctx.fetch(url, init);
-  const text = await res.text();
-  if (!res.ok) throw { status: res.status, body: text.slice(0, 2000) };
-  const json = (text ? JSON.parse(text) : {}) as { error?: unknown };
-  if (json.error) throw { status: 400, body: text.slice(0, 2000) };
-  return json as T;
-}
+/** campos das Páginas na listagem de sub-contas */
+const PAGE_FIELDS = 'id,name,username,picture.type(large)';
 
 /** POST com corpo JSON; o access_token (do usuário OU da Página) vai na query, como no Postiz. */
 function fbPost<T>(
@@ -129,64 +119,6 @@ async function pageToken(ctx: ProviderContext, userToken: string, pageId: string
     };
   }
   return access_token;
-}
-
-interface FbPage {
-  id: string;
-  name: string;
-  username?: string;
-  picture?: { data?: { url?: string } };
-}
-
-/**
- * Páginas administradas pela pessoa: /me/accounts (as escolhidas no diálogo) + Business Manager
- * (owned_pages/client_pages, para as que não apareceram no passo de seleção). O Business Manager
- * exige `business_management` e nem todo usuário tem — por isso é best-effort (try/catch).
- */
-async function fetchPages(ctx: ProviderContext, userToken: string): Promise<FbPage[]> {
-  const seen = new Set<string>();
-  const all: FbPage[] = [];
-  const fields = 'id,name,username,picture.type(large)';
-
-  const paginate = async (start: string) => {
-    let next: string | undefined = start;
-    while (next) {
-      // tipo anotado (não inferido) — `next` é reatribuído a partir de `resp`, o que criaria inferência circular
-      const resp: { data?: FbPage[]; paging?: { next?: string } } = await fb(ctx, next);
-      for (const pg of resp.data ?? []) {
-        if (!seen.has(pg.id)) {
-          seen.add(pg.id);
-          all.push(pg);
-        }
-      }
-      next = resp.paging?.next;
-    }
-  };
-
-  await paginate(`${API_BASE}/me/accounts?fields=${fields}&limit=100&access_token=${userToken}`);
-
-  try {
-    let bizUrl: string | undefined = `${API_BASE}/me/businesses?access_token=${userToken}`;
-    while (bizUrl) {
-      const biz: { data?: Array<{ id: string }>; paging?: { next?: string } } = await fb(ctx, bizUrl);
-      for (const b of biz.data ?? []) {
-        for (const edge of ['owned_pages', 'client_pages']) {
-          try {
-            await paginate(
-              `${API_BASE}/${b.id}/${edge}?fields=${fields}&limit=100&access_token=${userToken}`,
-            );
-          } catch {
-            // outra Página/negócio pode falhar isolado — segue
-          }
-        }
-      }
-      bizUrl = biz.paging?.next;
-    }
-  } catch {
-    // Business Manager indisponível para esta conta — /me/accounts já basta
-  }
-
-  return all;
 }
 
 const feedUrl = (id: string) => `https://www.facebook.com/${id}`;
@@ -409,8 +341,8 @@ export const facebookProvider: ChannelProvider = {
   },
 
   async listSubAccounts(ctx, token: ConnectedToken): Promise<SubAccount[]> {
-    const pages = await fetchPages(ctx, token.accessToken);
-    return pages.map((pg) => ({
+    const pages = await fetchPages(ctx, token.accessToken, PAGE_FIELDS);
+    return pages.map((pg: GraphPage) => ({
       externalId: pg.id,
       name: pg.name,
       ...(pg.username ? { username: pg.username } : {}),

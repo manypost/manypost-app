@@ -14,6 +14,7 @@
 
 | Onda | Data | Entrega |
 |---|---|---|
+| 17 | 2026-07-23 | Instagram via Facebook Business — **família Meta completa** (conta IG resolvida pela Página escolhida no post) |
 | 16 | 2026-07-23 | Facebook Pages — 3º provider da família Meta (Página escolhida por post, token de Página derivado no publish) |
 | 15 | 2026-07-23 | Instagram (standalone) — 2º provider da família Meta (Instagram Login, sem Página do Facebook) |
 | 14 | 2026-07-23 | Profundidade 3D sem sombra (brand v1.3): relevo por gradiente + borda por lado em botões e cards |
@@ -34,6 +35,67 @@
 > As ondas 1 e 2 do frontend e as fatias de backend anteriores (fundação, banco, auth, publicação,
 > retry, webhooks, mídia, threads, aprovação por link, listagens/SSE, providers da onda 1) estão
 > registradas em [STATUS.md §2](STATUS.md#2-o-que-já-está-pronto-e-verificado), com spec e código de cada uma.
+
+---
+
+## Onda 17 — Instagram via Facebook Business: a família Meta fechada
+
+**2026-07-23.** Novo `packages/providers/src/instagram`, lendo o código do Postiz
+(`instagram.provider.ts`, 1096 l.). É a **última peça da família Meta** e, de propósito, não trouxe
+nenhum padrão novo: ela é a **soma dos dois moldes** que as ondas 11/15/16 já haviam provado — o
+OAuth e as sub-contas do `facebook` (onda 16) + o `container → poll → media_publish` do
+`instagram-standalone` (onda 15). Como no Postiz (e como o nosso `discord` × `discord-webhook`), as
+duas variantes do Instagram são **providers separados**: `instagram-standalone` (Instagram Login,
+sem Página) e `instagram` (via Facebook Business).
+
+**(A) Uma chamada resolve tudo o que o publish precisa.** O desenho herdado da onda 16 vale igual: o
+canal representa a **conta do usuário do Facebook**, e a conta de destino é escolhida **por post**
+(`settingsSchema.pageId`, alimentado pelo `SubAccountsField`). A diferença é que aqui o publish
+precisa de **duas** coisas derivadas — o token da Página e o **id da conta do Instagram** — e as duas
+saem de uma requisição só: `GET /{pageId}?fields=access_token,instagram_business_account{id,username}`.
+Continua valendo a invariante da onda 16: **o token da Página nunca é gravado em settings** (jsonb
+sem cifra) — ele é derivado a cada publicação e sempre chega fresco. O teste
+`JSON.stringify(subs)).not.toContain(PAGE_TOKEN)` trava isso.
+
+**(B) O valor gravado é o `pageId`, mas o rótulo é o `@` da conta.** `listSubAccounts` lista as
+Páginas (`/me/accounts` + Business Manager) e **filtra as que têm `instagram_business_account`** —
+Página sem Instagram vinculado não publica aqui e some da lista. Para cada uma, busca o perfil do IG
+e devolve `{ externalId: pageId, name: '@handle' }`: a pessoa escolhe pela conta que reconhece, e o
+que vai para o settings é o id da Página (de onde saem token e conta IG). Isso mantém o
+`SUB_ACCOUNT_FIELDS` do composer com **um** campo por provider, sem alargar o contrato de sub-contas.
+
+**(C) Publicação idêntica ao standalone, só que na `graph.facebook.com` e com o token da Página.**
+Foto, **reel** (vídeo único no feed), **carrossel 2–10** misturando imagem e vídeo (filhos
+`is_carousel_item` sem legenda; só o pai leva a `caption`) e **story** (mídia única). Mantidas as
+duas decisões de segurança do standalone: **story com mais de uma mídia é 422 antes de qualquer
+chamada** (a Meta cria um story por mídia; publicar uma e falhar duplicaria no retry) e **permalink
+best-effort** (depois do `media_publish` o post está na rede — lançar ali faria a máquina de estados
+repostar; sem permalink, cai no perfil). Réplicas de thread viram **comentários** no post raiz.
+
+**(D) Faxina junto:** a resolução de Páginas (`/me/accounts` + `owned_pages`/`client_pages` do
+Business Manager, paginando e deduplicando) era idêntica no `facebook` e no provider novo — virou
+fonte única em `packages/providers/src/shared/meta-graph.ts` (`metaFetch` + `fetchPages`, com os
+`fields` por provider). O `facebook` passou a usá-la sem mudança de comportamento (os goldens dele
+continuam verdes).
+
+**(E) Zero variável de ambiente nova:** o provider usa a **mesma app Meta do `facebook`
+(`FACEBOOK_APP_ID`/`FACEBOOK_APP_SECRET`)**, porque é o mesmo produto "Facebook Login" — quem já
+habilitou o Facebook ganha o Instagram Business de graça. `providerSecretsFromEnv` mapeia os dois ids
+para o mesmo par (o `.env.example` avisa que o par habilita duas redes).
+
+**Prova:** `bun run check` verde — **431 testes** (+40 nesta onda) + typecheck (api/web) + fronteiras
++ grep de IA + brand. Golden bodies novos cobrem: URL de consentimento com os 7 escopos do Postiz,
+as duas trocas de token, recusa legível sem `instagram_content_publish`, refresh por
+`fb_exchange_token`, sub-contas (Página sem IG filtrada; Business Manager indisponível não derruba a
+lista), os quatro caminhos de publicação com a asserção de que **quem assina é o token da Página**,
+story >1 barrado **sem tocar na rede**, Página sem IG vinculado, container `ERROR` antes do
+`media_publish`, permalink que falha sem derrubar o post, comentários e a taxonomia de erros
+(190/REVOKED → refresh; 2207003 → transient; 2207042/2207001 → permanent). `scripts/e2e-auth.ts`
+ganhou o bloco do `instagram` (catálogo + URL de consentimento real).
+
+**Ficou de fora:** analytics (`instagram_manage_insights`), refresh proativo do token de 60 dias,
+colaboradores/áudio/trial reels (settings extras do Postiz) e a submissão do App Review. Smoke real
+de publicação exige túnel HTTPS + driver S3/R2 (a Meta faz *pull* da mídia pela URL).
 
 ---
 

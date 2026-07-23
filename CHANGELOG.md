@@ -8,6 +8,15 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Added
 
+- Canal **Instagram (Facebook Business)**: publica em conta profissional do Instagram
+  vinculada a uma Página do Facebook, com a conta escolhida a cada post. Publica foto,
+  reel, carrossel de 2 a 10 (misturando foto e vídeo) e story de mídia única; réplicas de
+  thread saem como comentários. **Não exige credencial nova** — usa a mesma aplicação Meta
+  do canal Facebook, então quem já configurou o Facebook só precisa registrar o redirect
+  URI do novo callback. O token de publicação da Página é derivado a cada publicação e
+  nunca é gravado em configurações, que são armazenadas sem cifra. Mudança OpenSpec:
+  `add-instagram-facebook-business-provider`.
+
 - OpenSpec `1.6.0` como dependência local exata, com configuração, scripts,
   guia de criação/validação/implementação/archive e a mudança real
   `establish-maintenance-baseline`.
@@ -24,6 +33,10 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Changed
 
+- A descoberta de Páginas da Meta (listagem direta mais Business Manager, paginada e
+  deduplicada) passou a ter fonte única em `packages/providers/src/shared/meta-graph.ts`,
+  compartilhada pelos canais Facebook e Instagram (Facebook Business), sem mudança de
+  comportamento do Facebook.
 - Bun fixado em `1.3.14`; CI e imagem usam instalação congelada pelo `bun.lock`.
 - GitHub Actions passa a executar typecheck web, brand, build Next, build da
   imagem Docker e validação OpenSpec além das verificações anteriores.

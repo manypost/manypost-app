@@ -6,7 +6,13 @@ Plataforma de agendamento/publicação multicanal. **O wordmark é sempre `manyp
 >
 > **Nota (mudou em 2026-07-22):** `docs/principal/` **é versionado e público** como o resto do repositório. Se o código é 100% aberto, esconder o planejamento não protege nada e só dificulta a contribuição. Consequência prática: **nunca** escreva segredo, chave, id de conta de faturamento ou dado pessoal em qualquer doc — use marcadores (`sk_test_...`).
 >
-> **Ao fechar uma fatia:** atualize o STATUS **e** abra uma entrada no topo de [`docs/principal/CHANGELOG_ONDAS.md`](docs/principal/CHANGELOG_ONDAS.md). O STATUS é sobre o presente (enxuto); o changelog guarda o histórico com as provas.
+> **⚠️ ANTES DE CODAR — o [`AGENTS.md`](AGENTS.md) da raiz é o contrato operacional e prevalece sobre este arquivo.** Ele torna o **fluxo OpenSpec obrigatório**: feature, mudança de comportamento, schema, **integração/provider**, deploy ou refatoração entre módulos exigem uma mudança em `openspec/changes/` **antes** da implementação (`bun run spec:new`, instruções do CLI por artefato, `bun run spec:validate`). Só correção ortográfica ou edição estritamente local sem mudança de comportamento dispensa — e o PR precisa justificar. Guia: [`docs/openspec.md`](docs/openspec.md).
+>
+> **Ao fechar uma fatia — são DOIS registros, não um:**
+> 1. **`CHANGELOG.md` da raiz** (Keep a Changelog) + a mudança OpenSpec correspondente — exigidos pelo `AGENTS.md`;
+> 2. **`docs/principal/STATUS.md`** + uma entrada no topo de [`docs/principal/CHANGELOG_ONDAS.md`](docs/principal/CHANGELOG_ONDAS.md) — a narrativa por ondas deste arquivo. O STATUS é sobre o presente (enxuto); o CHANGELOG_ONDAS guarda o histórico com as provas.
+>
+> Esquecer o item 1 já aconteceu (onda 17, regularizada depois): `docs/principal/` é narrativa do projeto, **não substitui** o changelog nem o OpenSpec.
 
 ## Leia antes de trabalhar
 

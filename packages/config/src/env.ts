@@ -94,8 +94,8 @@ const EnvSchema = z
     // produto "Instagram" no painel da Meta (distintos dos FACEBOOK_APP_* do IG via Business)
     INSTAGRAM_APP_ID: z.string().optional(),
     INSTAGRAM_APP_SECRET: z.string().optional(),
-    // Facebook Pages (família Meta): App ID/Secret do produto "Facebook Login" no painel da Meta —
-    // mesma app serve o `instagram` via Facebook Business quando ele entrar
+    // Facebook Pages + Instagram via Facebook Business (família Meta): App ID/Secret do produto
+    // "Facebook Login" no painel da Meta — a MESMA app serve os dois providers
     FACEBOOK_APP_ID: z.string().optional(),
     FACEBOOK_APP_SECRET: z.string().optional(),
     // Streaming — publicam no chat ao vivo, não em feed.
@@ -225,6 +225,9 @@ const PROVIDER_ENV = {
   threads: { appId: 'THREADS_APP_ID', appSecret: 'THREADS_APP_SECRET' },
   'instagram-standalone': { appId: 'INSTAGRAM_APP_ID', appSecret: 'INSTAGRAM_APP_SECRET' },
   facebook: { appId: 'FACEBOOK_APP_ID', appSecret: 'FACEBOOK_APP_SECRET' },
+  // Instagram via Facebook Business usa a MESMA app do `facebook` (produto "Facebook Login"):
+  // habilitar o Facebook habilita as duas redes, sem par de variáveis novo
+  instagram: { appId: 'FACEBOOK_APP_ID', appSecret: 'FACEBOOK_APP_SECRET' },
   twitch: { clientId: 'TWITCH_CLIENT_ID', clientSecret: 'TWITCH_CLIENT_SECRET' },
   kick: { clientId: 'KICK_CLIENT_ID', clientSecret: 'KICK_CLIENT_SECRET' },
 } as const satisfies Record<string, Record<string, StringEnvKey>>;

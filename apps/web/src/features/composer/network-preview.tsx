@@ -683,6 +683,8 @@ const PREVIEWS: Record<string, ComponentType<{ p: NetworkProps }>> = {
   'discord-webhook': DiscordPreview,
   tiktok: TiktokPreview,
   'instagram-standalone': InstagramPreview,
+  // a variante via Facebook Business publica o mesmo feed — mesmo preview
+  instagram: InstagramPreview,
   facebook: FacebookPreview,
   twitch: ChatPreview,
   kick: ChatPreview,

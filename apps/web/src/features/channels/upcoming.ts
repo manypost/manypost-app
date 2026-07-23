@@ -10,8 +10,8 @@
  * de propósito: Medium (a plataforma não emite mais token novo), Twitch/Kick (publicam em chat
  * ao vivo, não em feed) e Google Business Profile (fase 3) — os três dependem de decisão.
  * Instagram e Facebook também saíram daqui: `instagram-standalone` (Instagram Login) cobre
- * "Instagram" e `facebook` (Página) cobre "Facebook" no catálogo. A variante do Instagram via
- * Facebook Business (`instagram`) continua no roteiro.
+ * "Instagram", `facebook` (Página) cobre "Facebook" e `instagram` (via Facebook Business) cobre a
+ * conta profissional vinculada a uma Página — os três já estão no catálogo.
  */
 export const UPCOMING_PROVIDERS = [
   { id: 'devto', name: 'Dev.to' },

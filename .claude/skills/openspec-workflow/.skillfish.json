@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "name": "openspec-workflow",
+  "owner": "laelluo",
+  "repo": "claude-code-marketplace",
+  "path": "plugins/openspec-workflow/skills/openspec-workflow",
+  "branch": "main",
+  "sha": "ad6ae31664a474afa0864a5f336e80b19ddde4b3",
+  "source": "manual"
+}
