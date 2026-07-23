@@ -3,6 +3,7 @@ import { blueskyProvider } from './bluesky/bluesky.provider';
 import { discordProvider } from './discord/discord.provider';
 import { discordWebhookProvider } from './discord/discord-webhook.provider';
 import { fakeProvider } from './fake/fake.provider';
+import { instagramStandaloneProvider } from './instagram-standalone/instagram-standalone.provider';
 import { kickProvider } from './kick/kick.provider';
 import { linkedinProvider } from './linkedin/linkedin.provider';
 import { mastodonProvider } from './mastodon/mastodon.provider';
@@ -16,8 +17,9 @@ import { xProvider } from './x/x.provider';
  * Registry de providers (SPEC_INTEGRATIONS §2). Onda 1 (SPEC_ROADMAP) completa:
  * mastodon, telegram, bluesky, discord (oauth), discord-webhook, linkedin, x — cada um em sua pasta, registrado
  * aqui, com a suíte de contrato (test-kit) verde antes do merge. Onda 2: tiktok (Content Posting API),
- * threads (primeiro da família Meta — container → threads_publish) e a dupla de streaming
- * twitch/kick, que publica no **chat ao vivo** em vez de um feed (paridade com o Postiz).
+ * threads (primeiro da família Meta — container → threads_publish), a dupla de streaming
+ * twitch/kick, que publica no **chat ao vivo** em vez de um feed (paridade com o Postiz), e
+ * instagram-standalone (Instagram Login sem Página do Facebook — mesmo molde container→publish).
  */
 export const providers: ChannelProvider[] = [
   mastodonProvider,
@@ -29,6 +31,7 @@ export const providers: ChannelProvider[] = [
   xProvider,
   tiktokProvider,
   threadsProvider,
+  instagramStandaloneProvider,
   twitchProvider,
   kickProvider,
   fakeProvider,
@@ -44,6 +47,7 @@ export {
   discordProvider,
   discordWebhookProvider,
   fakeProvider,
+  instagramStandaloneProvider,
   kickProvider,
   linkedinProvider,
   mastodonProvider,

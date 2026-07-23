@@ -14,6 +14,7 @@ export const PROVIDER_ICONS: Record<string, string> = {
   facebook: '/social/Facebook.svg',
   gmb: '/social/Gmb.svg',
   instagram: '/social/Instagram.svg',
+  'instagram-standalone': '/social/Instagram.svg',
   linkedin: '/social/Linkedin.svg',
   medium: '/social/Medium.svg',
   pinterest: '/social/Pinterest.svg',

@@ -66,9 +66,16 @@ describe('superfícies de máquina (SPEC_API_MCP §3/§5)', () => {
 
 describe('secrets de provider ← env (SPEC_INTEGRATIONS §2)', () => {
   it('injeta só o que está preenchido, por provider', () => {
-    const env = loadEnv({ ...base, THREADS_APP_ID: 'app', THREADS_APP_SECRET: 'sec' });
+    const env = loadEnv({
+      ...base,
+      THREADS_APP_ID: 'app',
+      THREADS_APP_SECRET: 'sec',
+      INSTAGRAM_APP_ID: 'ig',
+      INSTAGRAM_APP_SECRET: 'igsec',
+    });
     const secrets = providerSecretsFromEnv(env);
     expect(secrets.threads).toEqual({ appId: 'app', appSecret: 'sec' });
+    expect(secrets['instagram-standalone']).toEqual({ appId: 'ig', appSecret: 'igsec' });
     // sem env, o provider fica com o objeto vazio (e some do catálogo por requiredSecrets)
     expect(secrets.tiktok).toEqual({});
     expect(secrets.discord).toEqual({});
@@ -80,6 +87,10 @@ describe('secrets de provider ← env (SPEC_INTEGRATIONS §2)', () => {
       'THREADS_APP_SECRET',
     ]);
     expect(providerEnvVarNames('tiktok', ['clientKey'])).toEqual(['TIKTOK_CLIENT_KEY']);
+    expect(providerEnvVarNames('instagram-standalone', ['appId', 'appSecret'])).toEqual([
+      'INSTAGRAM_APP_ID',
+      'INSTAGRAM_APP_SECRET',
+    ]);
     // provider/secret sem mapa não inventa nome (fica de fora da dica)
     expect(providerEnvVarNames('bluesky', ['handle'])).toEqual([]);
     expect(providerEnvVarNames('x', ['clientId', 'inexistente'])).toEqual(['X_CLIENT_ID']);

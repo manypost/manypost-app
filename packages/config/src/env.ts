@@ -93,6 +93,10 @@ const EnvSchema = z
     // Threads (família Meta): id/secret da app Meta com o caso de uso "Threads API"
     THREADS_APP_ID: z.string().optional(),
     THREADS_APP_SECRET: z.string().optional(),
+    // Instagram (standalone, via Instagram Login — sem Página do Facebook): App ID/Secret do
+    // produto "Instagram" no painel da Meta (distintos dos FACEBOOK_APP_* do IG via Business)
+    INSTAGRAM_APP_ID: z.string().optional(),
+    INSTAGRAM_APP_SECRET: z.string().optional(),
     // Streaming — publicam no CHAT ao vivo, não em feed (paridade Postiz)
     TWITCH_CLIENT_ID: z.string().optional(),
     TWITCH_CLIENT_SECRET: z.string().optional(),
@@ -218,6 +222,7 @@ const PROVIDER_ENV = {
   // TikTok usa client_key (não client_id) — SPEC_INTEGRATIONS §4 (onda 2)
   tiktok: { clientKey: 'TIKTOK_CLIENT_KEY', clientSecret: 'TIKTOK_CLIENT_SECRET' },
   threads: { appId: 'THREADS_APP_ID', appSecret: 'THREADS_APP_SECRET' },
+  'instagram-standalone': { appId: 'INSTAGRAM_APP_ID', appSecret: 'INSTAGRAM_APP_SECRET' },
   twitch: { clientId: 'TWITCH_CLIENT_ID', clientSecret: 'TWITCH_CLIENT_SECRET' },
   kick: { clientId: 'KICK_CLIENT_ID', clientSecret: 'KICK_CLIENT_SECRET' },
 } as const satisfies Record<string, Record<string, StringEnvKey>>;
