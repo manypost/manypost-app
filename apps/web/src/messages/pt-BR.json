@@ -357,19 +357,23 @@
       },
       "fields": {
         "mastodon": {
-          "visibility": "Visibilidade"
+          "visibility": "Quem pode ver"
         },
         "telegram": {
-          "disableLinkPreview": "Desativar preview de link",
-          "silent": "Envio silencioso"
+          "disableLinkPreview": "Não mostrar prévia dos links",
+          "silent": "Publicar sem notificar"
         },
         "bluesky": {
-          "langs": "Idiomas do post"
+          "langs": "Idioma da publicação"
         },
         "discord": {
           "channelId": "Canal do Discord",
-          "suppressEmbeds": "Ocultar previews de link",
-          "silent": "Envio silencioso"
+          "suppressEmbeds": "Não mostrar prévia dos links",
+          "silent": "Publicar sem notificar"
+        },
+        "discord-webhook": {
+          "suppressEmbeds": "Não mostrar prévia dos links",
+          "silent": "Publicar sem notificar"
         },
         "facebook": {
           "pageId": "Página do Facebook",
@@ -382,23 +386,31 @@
         "instagram-standalone": {
           "postType": "Onde publicar"
         },
+        "threads": {
+          "replyControl": "Quem pode responder",
+          "linkAttachment": "Link em destaque"
+        },
         "linkedin": {
-          "visibility": "Visibilidade"
+          "visibility": "Quem pode ver"
         },
         "x": {
           "replySettings": "Quem pode responder"
         },
+        "twitch": {
+          "messageType": "Tipo da mensagem",
+          "announcementColor": "Cor do destaque"
+        },
         "tiktok": {
-          "privacyLevel": "Visibilidade do post",
-          "contentPostingMethod": "Método de publicação",
-          "title": "Título (apenas fotos)",
-          "disableComment": "Desativar comentários",
-          "disableDuet": "Desativar gravação de Duetos",
-          "disableStitch": "Desativar Costura (Stitch)",
-          "brandContentToggle": "Conteúdo de marca (parceria paga)",
-          "brandOrganicToggle": "Promover própria marca",
-          "videoMadeWithAi": "Conteúdo gerado por IA (AIGC)",
-          "autoAddMusic": "Adicionar música em alta automaticamente (apenas fotos)"
+          "privacyLevel": "Quem pode ver",
+          "contentPostingMethod": "Como publicar",
+          "title": "Título do carrossel de fotos",
+          "disableComment": "Não permitir comentários",
+          "disableDuet": "Não permitir duetos",
+          "disableStitch": "Não permitir costura (stitch)",
+          "brandContentToggle": "Publicidade de outra marca",
+          "brandOrganicToggle": "Divulgação da sua própria marca",
+          "videoMadeWithAi": "Conteúdo criado com inteligência artificial",
+          "autoAddMusic": "Adicionar música automaticamente"
         },
         "fake": {
           "failFirstAttempts": "Falhar as N primeiras tentativas (dev)",
@@ -408,73 +420,139 @@
         }
       },
       "hints": {
+        "mastodon": {
+          "visibility": "Escolhe quem alcança esta publicação na sua instância do Mastodon."
+        },
+        "telegram": {
+          "disableLinkPreview": "Quando o texto tem um link, o Telegram costuma abrir um cartão com a imagem e o resumo da página. Ative para publicar só o texto.",
+          "silent": "Quem segue o canal recebe a publicação sem o som de aviso no celular."
+        },
         "bluesky": {
-          "langs": "Códigos BCP-47 separados por vírgula — ex.: pt, en"
+          "langs": "Ajuda o Bluesky a mostrar o post para quem fala esse idioma e a oferecer tradução. Se o texto tiver mais de um, separe por vírgula — ex.: pt, en."
+        },
+        "discord": {
+          "channelId": "Canal de texto do servidor onde a mensagem será publicada.",
+          "suppressEmbeds": "Publica só o texto, sem o cartão com imagem e resumo da página do link.",
+          "silent": "Os membros do servidor não recebem aviso desta mensagem."
+        },
+        "discord-webhook": {
+          "suppressEmbeds": "Publica só o texto, sem o cartão com imagem e resumo da página do link.",
+          "silent": "Os membros do servidor não recebem aviso desta mensagem."
+        },
+        "facebook": {
+          "pageId": "Escolha em qual das suas Páginas esta publicação vai sair.",
+          "postType": "No feed a publicação fica na Página para sempre; no story ela some depois de 24 horas."
+        },
+        "instagram": {
+          "pageId": "Escolha em qual das suas contas do Instagram esta publicação vai sair.",
+          "postType": "No feed a publicação fica no seu perfil para sempre; no story ela some depois de 24 horas."
+        },
+        "instagram-standalone": {
+          "postType": "No feed a publicação fica no seu perfil para sempre; no story ela some depois de 24 horas."
+        },
+        "threads": {
+          "replyControl": "Escolhe quem consegue comentar esta publicação.",
+          "linkAttachment": "Endereço de uma página para aparecer como cartão junto do post. Só funciona quando a publicação é apenas de texto."
+        },
+        "linkedin": {
+          "visibility": "Publicações públicas podem ser vistas por qualquer pessoa, inclusive fora do LinkedIn."
+        },
+        "x": {
+          "replySettings": "Escolhe quem consegue comentar esta publicação. Sem escolher nada, qualquer pessoa pode responder."
+        },
+        "twitch": {
+          "messageType": "O anúncio aparece realçado no chat; a mensagem comum entra na conversa junto com as outras.",
+          "announcementColor": "Cor da faixa que realça o anúncio no chat. Só tem efeito quando o tipo é anúncio."
         },
         "tiktok": {
-          "privacyLevel": "Define quem poderá visualizar o post no TikTok. (Nota: aplicativos sem auditoria de Direct Post aprovada pelo TikTok só permitem publicar como 'Privado / Somente eu')",
-          "contentPostingMethod": "Publicação direta envia o post para o feed imediatamente; Enviar para Caixa de Entrada manda como rascunho para o aplicativo do TikTok no seu celular para finalização",
-          "title": "Título exibido no topo do carrossel de fotos (máximo de 90 caracteres)",
-          "disableComment": "Bloqueia comentários de outros usuários no seu post",
-          "disableDuet": "Impede que outros usuários gravem duetos com este vídeo",
-          "disableStitch": "Impede que outros usuários recortem e usem trechos deste vídeo",
-          "brandContentToggle": "Ative caso o conteúdo seja patrocinado, publicidade ou parceria com marca de terceiros",
-          "brandOrganicToggle": "Ative se a publicação promove seu próprio negócio, serviço ou marca pessoal",
-          "videoMadeWithAi": "Exibe o selo oficial de Conteúdo Gerado por IA do TikTok no vídeo",
-          "autoAddMusic": "Permite que o algoritmo do TikTok escolha e adicione uma música em alta às suas fotos"
+          "privacyLevel": "Escolhe quem consegue ver a publicação no TikTok. Enquanto o TikTok não aprovar a publicação direta desta instalação, só é possível publicar como \"Somente eu\".",
+          "contentPostingMethod": "Publicar direto envia para o seu perfil na hora. Enviar como rascunho deixa a publicação esperando no aplicativo do TikTok do seu celular, para você revisar e postar.",
+          "title": "Aparece no topo quando a publicação é um carrossel de fotos, com até 90 caracteres. Em vídeos, quem vale é o texto do post.",
+          "disableComment": "Ninguém consegue comentar esta publicação.",
+          "disableDuet": "Impede que outras pessoas gravem um vídeo lado a lado com o seu.",
+          "disableStitch": "Impede que outras pessoas usem um trecho do seu vídeo no vídeo delas.",
+          "brandContentToggle": "Ative quando a publicação for publicidade ou parceria paga com a marca de outra empresa.",
+          "brandOrganicToggle": "Ative quando a publicação divulga o seu próprio negócio, produto ou marca pessoal.",
+          "videoMadeWithAi": "Mostra no vídeo o selo do TikTok que avisa que o conteúdo foi criado com inteligência artificial.",
+          "autoAddMusic": "O TikTok escolhe uma música em alta para acompanhar as fotos. Vale só para carrossel de fotos."
         }
       },
       "options": {
         "mastodon": {
           "visibility": {
-            "public": "Público",
-            "unlisted": "Não listado",
-            "private": "Só seguidores"
+            "public": "Qualquer pessoa",
+            "unlisted": "Não listado — visível, mas fora do feed público",
+            "private": "Somente quem me segue"
           }
         },
         "linkedin": {
           "visibility": {
-            "PUBLIC": "Público",
-            "CONNECTIONS": "Só conexões"
+            "PUBLIC": "Qualquer pessoa",
+            "CONNECTIONS": "Somente as minhas conexões"
           }
         },
         "facebook": {
           "postType": {
-            "feed": "Feed da Página",
-            "story": "Story (some em 24h)"
+            "feed": "No feed da Página",
+            "story": "Como story (some em 24 horas)"
           }
         },
         "instagram": {
           "postType": {
-            "feed": "Feed (foto, reel ou carrossel)",
-            "story": "Story (some em 24h)"
+            "feed": "No feed (foto, reel ou carrossel)",
+            "story": "Como story (some em 24 horas)"
           }
         },
         "instagram-standalone": {
           "postType": {
-            "feed": "Feed (foto, reel ou carrossel)",
-            "story": "Story (some em 24h)"
+            "feed": "No feed (foto, reel ou carrossel)",
+            "story": "Como story (some em 24 horas)"
+          }
+        },
+        "threads": {
+          "replyControl": {
+            "everyone": "Qualquer pessoa",
+            "accounts_you_follow": "Somente perfis que eu sigo",
+            "mentioned_only": "Somente perfis mencionados no post"
           }
         },
         "x": {
           "replySettings": {
-            "following": "Contas que sigo",
-            "mentionedUsers": "Só contas mencionadas",
-            "subscribers": "Assinantes",
-            "verified": "Contas verificadas"
+            "following": "Somente contas que eu sigo",
+            "mentionedUsers": "Somente contas mencionadas no post",
+            "subscribers": "Somente assinantes do meu perfil",
+            "verified": "Somente contas verificadas"
+          }
+        },
+        "twitch": {
+          "messageType": {
+            "message": "Mensagem comum no chat",
+            "announcement": "Anúncio em destaque"
+          },
+          "announcementColor": {
+            "primary": "Cor padrão do canal",
+            "blue": "Azul",
+            "green": "Verde",
+            "orange": "Laranja",
+            "purple": "Roxo"
           }
         },
         "tiktok": {
           "privacyLevel": {
-            "PUBLIC_TO_EVERYONE": "Público (Todos)",
-            "MUTUAL_FOLLOW_FRIENDS": "Amigos (Seguidores mútuos)",
-            "FOLLOWER_OF_CREATOR": "Seguidores do criador",
-            "SELF_ONLY": "Privado (Somente eu)"
+            "PUBLIC_TO_EVERYONE": "Qualquer pessoa",
+            "MUTUAL_FOLLOW_FRIENDS": "Amigos (quem eu sigo e me segue de volta)",
+            "FOLLOWER_OF_CREATOR": "Somente quem me segue",
+            "SELF_ONLY": "Somente eu"
           },
           "contentPostingMethod": {
-            "DIRECT_POST": "Publicação direta no perfil",
-            "UPLOAD": "Enviar para Caixa de Entrada (Rascunho no celular)"
+            "DIRECT_POST": "Publicar direto no perfil",
+            "UPLOAD": "Enviar como rascunho para o celular"
           }
+        }
+      },
+      "unset": {
+        "x": {
+          "replySettings": "Qualquer pessoa"
         }
       }
     },

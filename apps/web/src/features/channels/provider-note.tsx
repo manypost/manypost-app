@@ -1,11 +1,9 @@
 'use client';
 
-import { CircleHelp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { HoverPopover } from '@/components/ui/hover-popover';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useIsSelfHosted } from '@/features/billing/hooks';
 import { cn } from '@/lib/utils';
-import { ProviderIcon } from './provider-icon';
 
 export type NoteProvider = { id: string; name: string; connectType: 'fields' | 'oauth' };
 
@@ -47,9 +45,14 @@ export function useProviderNote(): (provider: NoteProvider) => ProviderNote {
 }
 
 /**
- * Ícone de interrogação para o canto de um cartão de rede — abre o popover com a nota ao passar
- * o mouse ou focar. É um botão irmão do cartão (não aninhado): o clique explica, não conecta.
- * `className` posiciona o ícone (ex.: `absolute right-2 top-2`).
+ * Ícone de interrogação para o canto de um cartão de rede — mostra a nota ao passar o mouse ou
+ * focar, no tooltip padrão do app (superfície escura, só texto). É um botão irmão do cartão (não
+ * aninhado): o clique explica, não conecta. `className` posiciona o ícone (ex.: `absolute right-2
+ * top-2`).
+ *
+ * Aqui entra só o `what` — o que a rede publica. O que ESTA instalação exige (chaves no `.env` ou
+ * nada) fica no diálogo de conexão, que é onde a informação vira ação; no catálogo ela só
+ * atravancava a leitura.
  */
 export function ProviderNoteHelp({
   provider,
@@ -62,37 +65,30 @@ export function ProviderNoteHelp({
   const note = useProviderNote()(provider);
 
   return (
-    <HoverPopover
-      side="bottom"
-      align="end"
-      className="w-72"
-      content={
-        <div className="flex flex-col gap-2 text-[13px] leading-relaxed">
-          <div className="flex items-center gap-2">
-            <ProviderIcon provider={provider.id} name={provider.name} className="size-4" />
-            <p className="font-medium text-ink">{provider.name}</p>
-          </div>
-          <p className="text-graphite">{note.what}</p>
-          {note.setup ? (
-            <p className="border-t border-line pt-2 text-graphite">
-              <span className="font-medium text-ink">{note.modeLabel}:</span> {note.setup}
-            </p>
-          ) : null}
-        </div>
-      }
-    >
-      <button
-        type="button"
-        aria-label={t('help', { provider: provider.name })}
-        onClick={(e) => e.stopPropagation()}
-        className={cn(
-          'bevel-surface grid size-5 place-items-center rounded-full border text-mist outline-none transition-colors duration-200',
-          'hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
-          className,
-        )}
-      >
-        <CircleHelp className="size-4" aria-hidden />
-      </button>
-    </HoverPopover>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label={t('help', { provider: provider.name })}
+          onClick={(e) => e.stopPropagation()}
+          className={cn(
+            // Pastilha de acento igual ao botão primário (`bevel-primary`: face em gradiente
+            // accent→accent-hover, hover por brightness) com a interrogação em branco no centro.
+            // O glifo é texto, não `CircleHelp`: o ícone traz o próprio círculo e desenharia um
+            // segundo anel dentro da pastilha.
+            'bevel-primary grid size-5 cursor-pointer place-items-center rounded-full border',
+            'text-[11px] font-bold leading-none text-paper outline-none',
+            'transition duration-200 hover:brightness-95',
+            'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+            className,
+          )}
+        >
+          <span aria-hidden>?</span>
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" align="end" className="max-w-72 font-normal leading-relaxed">
+        {note.what}
+      </TooltipContent>
+    </Tooltip>
   );
 }

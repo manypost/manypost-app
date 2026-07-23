@@ -33,6 +33,19 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Changed
 
+- As configurações por canal do composer passaram a ter rótulo, explicação e opções em
+  pt-BR para **todos** os campos de **todos** os providers. Antes, campo sem tradução caía
+  no nome cru da variável (`suppressEmbeds`, `replyControl`, `announcementColor`) e a
+  explicação vinha do `describe()` do schema, com jargão técnico e nomes de enum da API
+  (`SUPPRESS_EMBEDS`, `BCP-47`, `PUBLIC`/`CONNECTIONS`, `accounts_you_follow`). Os textos
+  existentes também foram reescritos em linguagem de quem usa o produto.
+- Campo de configuração opcional e sem valor padrão pode nomear o comportamento de não
+  escolher pela chave `composer.channelSettings.unset.<provider>.<campo>` (em X, "Qualquer
+  pessoa" no lugar de "Padrão da rede"); sem a chave, o texto genérico continua valendo.
+- A nota de cada rede no catálogo de conexões passou a usar o tooltip padrão do app e a
+  mostrar apenas o texto explicativo do que a rede publica. A orientação específica do modo
+  da instalação (chaves no `.env` em self-host, nada no gerenciado) continua no diálogo de
+  conexão. O ícone "?" do cartão passou a usar accent com relevo, como os demais controles.
 - A descoberta de Páginas da Meta (listagem direta mais Business Manager, paginada e
   deduplicada) passou a ter fonte única em `packages/providers/src/shared/meta-graph.ts`,
   compartilhada pelos canais Facebook e Instagram (Facebook Business), sem mudança de
