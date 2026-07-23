@@ -4533,6 +4533,7 @@ export type components = {
         };
         Capabilities: {
             billingEnabled: boolean;
+            selfHosted: boolean;
             plan: {
                 /** @enum {string} */
                 tier: "FREE" | "PRO" | "PREMIUM";

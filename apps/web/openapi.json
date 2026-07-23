@@ -1120,6 +1120,9 @@
           "billingEnabled": {
             "type": "boolean"
           },
+          "selfHosted": {
+            "type": "boolean"
+          },
           "plan": {
             "type": "object",
             "properties": {
@@ -1255,6 +1258,7 @@
         },
         "required": [
           "billingEnabled",
+          "selfHosted",
           "plan",
           "endpoints"
         ]
