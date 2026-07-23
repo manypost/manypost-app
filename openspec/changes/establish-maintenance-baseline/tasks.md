@@ -34,7 +34,7 @@
 - [x] 5.2 Add failing OAuth trust regressions and require same origin plus popup source
 - [x] 5.3 Add failing GCM regressions and make the 16-byte authentication tag explicit
 - [x] 5.4 Add failing session-result regressions and prevent SSE retry after session expiry
-- [ ] 5.5 Apply minimal affected direct dependency updates and rerun the full matrix
+- [x] 5.5 Apply minimal affected direct dependency updates and rerun the full matrix
 
 ## 6. Backlog, validation and delivery
 
