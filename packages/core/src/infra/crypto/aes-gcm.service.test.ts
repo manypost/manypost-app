@@ -5,6 +5,14 @@ const HEX_KEY = 'a'.repeat(64);
 const svc = AesGcmCryptoService.fromHex(HEX_KEY);
 
 describe('AesGcmCryptoService (SPEC_DATA §5)', () => {
+  test('fixa explicitamente a tag de autenticação GCM em 16 bytes', async () => {
+    const cryptoModule = (await import('./aes-gcm.service')) as unknown as {
+      GCM_AUTH_TAG_LENGTH?: number;
+    };
+
+    expect(cryptoModule.GCM_AUTH_TAG_LENGTH).toBe(16);
+  });
+
   test('round-trip com AAD', async () => {
     const { ciphertext, keyVersion } = await svc.encrypt('token-secreto-da-rede', 'channel-123');
     expect(keyVersion).toBe(1);

@@ -2,7 +2,7 @@ import { createCipheriv, createDecipheriv, randomBytes, timingSafeEqual } from '
 import type { CryptoService } from '../../application/ports/crypto';
 
 const NONCE_LEN = 12;
-const TAG_LEN = 16;
+export const GCM_AUTH_TAG_LENGTH = 16;
 const KEY_LEN = 32;
 
 /**
@@ -36,7 +36,9 @@ export class AesGcmCryptoService implements CryptoService {
   async encrypt(plaintext: string, aad: string) {
     const key = this.keys.get(this.currentVersion)!;
     const nonce = randomBytes(NONCE_LEN);
-    const cipher = createCipheriv('aes-256-gcm', key, nonce);
+    const cipher = createCipheriv('aes-256-gcm', key, nonce, {
+      authTagLength: GCM_AUTH_TAG_LENGTH,
+    });
     cipher.setAAD(Buffer.from(aad, 'utf8'));
     const body = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
     const tag = cipher.getAuthTag();
@@ -50,13 +52,15 @@ export class AesGcmCryptoService implements CryptoService {
     const key = this.keys.get(keyVersion);
     if (!key) throw new Error(`versão de chave desconhecida: ${keyVersion}`);
     const buf = Buffer.from(ciphertext);
-    if (buf.length < NONCE_LEN + TAG_LEN) throw new Error('ciphertext malformado');
+    if (buf.length < NONCE_LEN + GCM_AUTH_TAG_LENGTH) throw new Error('ciphertext malformado');
 
     const nonce = buf.subarray(0, NONCE_LEN);
-    const tag = buf.subarray(buf.length - TAG_LEN);
-    const body = buf.subarray(NONCE_LEN, buf.length - TAG_LEN);
+    const tag = buf.subarray(buf.length - GCM_AUTH_TAG_LENGTH);
+    const body = buf.subarray(NONCE_LEN, buf.length - GCM_AUTH_TAG_LENGTH);
 
-    const decipher = createDecipheriv('aes-256-gcm', key, nonce);
+    const decipher = createDecipheriv('aes-256-gcm', key, nonce, {
+      authTagLength: GCM_AUTH_TAG_LENGTH,
+    });
     decipher.setAAD(Buffer.from(aad, 'utf8'));
     decipher.setAuthTag(tag);
     return Buffer.concat([decipher.update(body), decipher.final()]).toString('utf8');
