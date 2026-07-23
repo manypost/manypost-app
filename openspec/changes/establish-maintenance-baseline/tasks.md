@@ -30,7 +30,7 @@
 
 ## 5. Tested fixes
 
-- [ ] 5.1 Add a failing SSE server-option regression and configure an idle timeout above 25 seconds
+- [x] 5.1 Add a failing SSE server-option regression and configure an idle timeout above 25 seconds
 - [ ] 5.2 Add failing OAuth trust regressions and require same origin plus popup source
 - [ ] 5.3 Add failing GCM regressions and make the 16-byte authentication tag explicit
 - [ ] 5.4 Add failing session-result regressions and prevent SSE retry after session expiry
