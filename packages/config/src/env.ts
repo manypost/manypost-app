@@ -87,6 +87,12 @@ const EnvSchema = z
     X_CLIENT_SECRET: z.string().optional(),
     TIKTOK_CLIENT_KEY: z.string().optional(),
     TIKTOK_CLIENT_SECRET: z.string().optional(),
+    // YouTube: client OAuth do tipo "Web application" no Google Cloud. Os dois escopos que o
+    // provider pede (youtube.upload/youtube.readonly) sao sensiveis e passam pela verificacao
+    // do Google; metricas exigem um TERCEIRO escopo sensivel, por isso ficam atras de um flag.
+    YOUTUBE_CLIENT_ID: z.string().optional(),
+    YOUTUBE_CLIENT_SECRET: z.string().optional(),
+    YOUTUBE_ENABLE_ANALYTICS: z.string().optional(),
     // Threads (família Meta): id/secret da app Meta com o caso de uso "Threads API"
     THREADS_APP_ID: z.string().optional(),
     THREADS_APP_SECRET: z.string().optional(),
@@ -256,6 +262,13 @@ const PROVIDER_ENV = {
   x: { clientId: 'X_CLIENT_ID', clientSecret: 'X_CLIENT_SECRET' },
   // TikTok usa client_key (não client_id) — SPEC_INTEGRATIONS §4 (onda 2)
   tiktok: { clientKey: 'TIKTOK_CLIENT_KEY', clientSecret: 'TIKTOK_CLIENT_SECRET' },
+  // enableAnalytics NAO entra em requiredSecrets do provider: ausente, a rede continua disponivel
+  // e so as metricas ficam de fora (o escopo sensivel a mais so entra quando a instalacao liga)
+  youtube: {
+    clientId: 'YOUTUBE_CLIENT_ID',
+    clientSecret: 'YOUTUBE_CLIENT_SECRET',
+    enableAnalytics: 'YOUTUBE_ENABLE_ANALYTICS',
+  },
   threads: { appId: 'THREADS_APP_ID', appSecret: 'THREADS_APP_SECRET' },
   'instagram-standalone': { appId: 'INSTAGRAM_APP_ID', appSecret: 'INSTAGRAM_APP_SECRET' },
   facebook: { appId: 'FACEBOOK_APP_ID', appSecret: 'FACEBOOK_APP_SECRET' },

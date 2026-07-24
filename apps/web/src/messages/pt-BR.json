@@ -237,6 +237,9 @@
       },
       "devto": {
         "what": "Publica um artigo no seu Dev.to. Cada post vira um texto longo com título próprio, escrito em Markdown — o título você preenche nas Configurações do canal, na hora de agendar."
+      },
+      "youtube": {
+        "what": "Publica um vídeo no seu canal do YouTube. Toda publicação leva um vídeo — o texto do post vira a descrição, e o título você preenche nas Configurações. Se o vídeo for vertical e tiver até 3 minutos, o YouTube publica como Short."
       }
     },
     "fields": {
@@ -349,6 +352,14 @@
       "devto": {
         "titlePlaceholder": "Sem título ainda",
         "readTime": "{minutes} min de leitura"
+      },
+      "youtube": {
+        "titlePlaceholder": "Sem título ainda",
+        "media": "Nenhum vídeo adicionado",
+        "mediaHint": "O YouTube exige um vídeo em toda publicação",
+        "short": "Short",
+        "views": "1,2 mil visualizações",
+        "scheduled": "Liberar automaticamente em {when}"
       }
     },
     "channelSettings": {
@@ -388,6 +399,16 @@
           "tags": "Tags",
           "canonicalUrl": "Endereço original do texto",
           "organizationId": "Publicar como"
+        },
+        "youtube": {
+          "title": "Título do vídeo",
+          "privacyStatus": "Quem pode ver",
+          "categoryId": "Categoria",
+          "selfDeclaredMadeForKids": "Conteúdo feito para crianças",
+          "tags": "Tags",
+          "shortsIntent": "Formato",
+          "thumbnailUrl": "Miniatura personalizada",
+          "publishAt": "Liberar automaticamente em"
         },
         "telegram": {
           "disableLinkPreview": "Não mostrar prévia dos links",
@@ -459,6 +480,16 @@
           "canonicalUrl": "Se este texto já saiu no seu blog ou em outro site, cole aqui o endereço original. O Dev.to avisa aos buscadores qual é a versão principal, e assim uma não atrapalha a outra.",
           "organizationId": "Sai pelo seu perfil ou pela organização que você escolher. A lista traz só as organizações pelas quais você já publicou algum artigo."
         },
+        "youtube": {
+          "title": "É o título que aparece embaixo do vídeo e nas buscas. Obrigatório, até 100 caracteres — o texto do post vira a descrição, não o título.",
+          "privacyStatus": "“Público” aparece para todo mundo, “não listado” só para quem tem o link e “privado” só para você. Atenção: enquanto o seu projeto no Google não passar pela auditoria de conformidade, o YouTube publica como privado mesmo que você peça público.",
+          "categoryId": "Ajuda o YouTube a recomendar o vídeo para o público certo. O padrão (22) é “Pessoas e blogs”, que serve para quase tudo.",
+          "selfDeclaredMadeForKids": "Declaração exigida por lei pelo YouTube. Marque só se o vídeo é mesmo voltado a crianças — isso desliga comentários e notificações no vídeo.",
+          "tags": "Palavras que ajudam o YouTube a entender o assunto. Somadas, todas as tags cabem em 500 caracteres (tag com espaço gasta 2 a mais).",
+          "shortsIntent": "O YouTube não tem botão de Short: ele decide sozinho pelo arquivo — vídeo vertical (ou quadrado) e de até 3 minutos vira Short. Deixe em “decidir pelo vídeo” para aceitar o que sair, ou trave no formato que você quer e o manypost avisa antes de enviar se o arquivo não for dar nisso.",
+          "thumbnailUrl": "Imagem de capa do vídeo. Só funciona em canal com conta verificada no YouTube; se for recusada, o vídeo é publicado do mesmo jeito, com a capa automática.",
+          "publishAt": "Deixe em branco para o vídeo sair com a visibilidade escolhida assim que subir. Se preencher, ele sobe privado e o próprio YouTube libera no horário marcado."
+        },
         "telegram": {
           "disableLinkPreview": "Quando o texto tem um link, o Telegram costuma abrir um cartão com a imagem e o resumo da página. Ative para publicar só o texto.",
           "silent": "Quem segue o canal recebe a publicação sem o som de aviso no celular."
@@ -514,6 +545,18 @@
         }
       },
       "options": {
+        "youtube": {
+          "privacyStatus": {
+            "public": "Público",
+            "unlisted": "Não listado (só quem tem o link)",
+            "private": "Privado (só eu)"
+          },
+          "shortsIntent": {
+            "auto": "Decidir pelo vídeo",
+            "short": "Short (vertical, até 3 min)",
+            "video": "Vídeo comum"
+          }
+        },
         "mastodon": {
           "visibility": {
             "public": "Qualquer pessoa",

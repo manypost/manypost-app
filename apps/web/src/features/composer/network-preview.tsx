@@ -8,6 +8,7 @@ import {
   Heart,
   MessageCircle,
   Music,
+  Play,
   Plus,
   Repeat2,
   Send,
@@ -736,6 +737,77 @@ function DevtoPreview({ p }: { p: NetworkProps }) {
   );
 }
 
+/**
+ * O preview do YouTube muda de forma conforme o formato: Short desenha a tela vertical do
+ * celular, video comum desenha o cartao 16:9 da pagina de assistir. Ver o formato antes de
+ * agendar e metade do valor do campo, ja que o YouTube nao tem botao de Short — ele decide
+ * pelo arquivo.
+ */
+function YoutubePreview({ p }: { p: NetworkProps }) {
+  const t = useTranslations('composer.preview.youtube');
+  const main = p.entries[0];
+  if (!main) return null;
+
+  const title = typeof p.settings.title === 'string' ? p.settings.title.trim() : '';
+  const isShort = p.settings.shortsIntent === 'short';
+  const video = main.media[0];
+
+  return (
+    <article className={cn('rounded-lg border border-line bg-surface p-3', isShort ? 'max-w-[300px]' : 'max-w-[380px]')}>
+      <div
+        className={cn(
+          'relative w-full overflow-hidden rounded-md border border-line bg-ink select-none',
+          isShort ? 'aspect-[9/16]' : 'aspect-video',
+        )}
+      >
+        {video ? (
+          <MediaThumb
+            url={video.url}
+            mime={video.mime}
+            alt={video.alt}
+            className="absolute inset-0 size-full object-cover"
+          />
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center">
+            <div className="flex size-11 items-center justify-center rounded-full border border-paper/10 bg-paper/5 text-paper/80">
+              <Play className="size-5" />
+            </div>
+            <span className="text-xs font-semibold text-paper/90">{t('media')}</span>
+            <span className="text-[11px] leading-tight text-paper/60">{t('mediaHint')}</span>
+          </div>
+        )}
+
+        {isShort ? (
+          <span className="absolute left-2 top-2 rounded-sm bg-ink/70 px-1.5 py-0.5 text-[10px] font-semibold text-paper">
+            {t('short')}
+          </span>
+        ) : null}
+      </div>
+
+      <div className="mt-2.5 flex gap-2">
+        <ChannelAvatar name={p.name} avatarUrl={p.avatarUrl} provider={p.provider} className="size-7 shrink-0" />
+        <div className="flex min-w-0 flex-col gap-0.5">
+          {title ? (
+            <h4 className="line-clamp-2 text-sm font-semibold leading-snug text-ink break-words">{title}</h4>
+          ) : (
+            <p className="text-sm font-semibold italic leading-snug text-mist">{t('titlePlaceholder')}</p>
+          )}
+          <span className="truncate text-[11px] text-mist">{p.name}</span>
+          <span className="text-[11px] text-mist" aria-hidden>
+            {t('views')} &middot; {p.timeLabel}
+          </span>
+        </div>
+      </div>
+
+      {main.text ? (
+        <p className="mt-2 line-clamp-2 whitespace-pre-wrap break-words text-xs leading-relaxed text-graphite">
+          {main.text}
+        </p>
+      ) : null}
+    </article>
+  );
+}
+
 const PREVIEWS: Record<string, ComponentType<{ p: NetworkProps }>> = {
   x: XPreview,
   bluesky: BlueskyPreview,
@@ -753,6 +825,7 @@ const PREVIEWS: Record<string, ComponentType<{ p: NetworkProps }>> = {
   twitch: ChatPreview,
   kick: ChatPreview,
   devto: DevtoPreview,
+  youtube: YoutubePreview,
 };
 
 export function NetworkPreview({

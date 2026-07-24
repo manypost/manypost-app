@@ -14,6 +14,7 @@
 
 | Onda | Data | Entrega |
 |---|---|---|
+| 23 | 2026-07-24 | YouTube — primeiro destino de **vídeo** puro: upload resumível em streaming e Short medido no arquivo |
 | 22 | 2026-07-24 | OAuth 2.1 no MCP — dual-auth `mpo_`/`mp_live_`, AS + consent + DCR/CIMD/static |
 | 21 | 2026-07-24 | Superfície de auth redesenhada — placeholders, palco de altura fixa, controles unificados e a arte provando a manchete |
 | 20 | 2026-07-24 | Clerk-only — autenticação humana no Clerk; Manypost autoriza org/papel; sem JWT/exchange legado |
@@ -40,6 +41,57 @@
 > As ondas 1 e 2 do frontend e as fatias de backend anteriores (fundação, banco, auth, publicação,
 > retry, webhooks, mídia, threads, aprovação por link, listagens/SSE, providers da onda 1) estão
 > registradas em [STATUS.md §2](STATUS.md#2-o-que-já-está-pronto-e-verificado), com spec e código de cada uma.
+
+---
+
+## Onda 23 — YouTube: o primeiro destino de vídeo puro (2026-07-24)
+
+**O que mudou.** O `youtube` saiu de "em breve" e virou canal: conecta por OAuth do Google, publica
+vídeo e Short com título, descrição, categoria, tags, miniatura e liberação programada. É a primeira
+rede em que **o vídeo é a publicação** e o texto do post é só a descrição.
+
+**Motivo de ter sido priorizado agora:** a verificação OAuth do Google estava travada *neste
+repositório*, não no Google — o vídeo de demonstração exigido pede o app usando os escopos, e o canal
+não existia.
+
+**Quatro decisões que valem registro:**
+
+1. **Dois escopos sensíveis, não oito.** O Postiz pede `youtube`, `youtube.force-ssl`,
+   `youtubepartner` e `yt-analytics.readonly` além dos dois necessários. Cada escopo sensível é
+   justificado e demonstrado à parte na verificação do Google, então pedimos só `youtube.upload` +
+   `youtube.readonly`. Nem `openid`/`userinfo` entram: a identidade que importa é o **canal**, e
+   `channels.list` já devolve. Métricas ficam atrás de `YOUTUBE_ENABLE_ANALYTICS` justamente para
+   não empurrar um terceiro escopo sensível para dentro de uma verificação pendente.
+2. **Não existe parâmetro de Short na API** — o YouTube classifica pela proporção e pela duração do
+   arquivo. Então o provider **mede**: `mp4-geometry.ts` lê as caixas `moov/mvhd` e `moov/trak/tkhd`
+   do container ISO BMFF (sem dependência, no molde do `sniff.ts` do core) e o campo **Formato**
+   (`auto`/`short`/`video`) recusa **antes de enviar** quando o arquivo não corresponde. Duas
+   armadilhas cobertas por teste: `mvhd` versão 1 guarda a duração em 64 bits (ler com offset de
+   versão 0 erra por ordens de grandeza) e vídeo de celular vem 1920×1080 **com matriz de rotação
+   de 90°** — sem aplicar a matriz, um Short legítimo seria recusado como horizontal.
+3. **O canal é identidade da conexão, não campo por post.** Descoberto na implementação e derrubou o
+   plano original: o Google amarra o token ao canal escolhido no seletor dele durante o
+   consentimento, e `channels.list?mine=true` devolve **um** canal. Um seletor por post seria um
+   campo com uma opção só que não muda o destino. O `externalId` da conexão passou a ser o **id do
+   canal** — com isso, conectar dois canais da mesma conta Google vira dois canais no produto, de
+   graça. A spec da mudança foi corrigida antes de o código ser escrito.
+4. **Upload resumível com o corpo em streaming.** O TikTok carrega o arquivo inteiro em memória
+   (teto de 64 MB); para vídeo isso não serve. São duas requisições — abrir a sessão com
+   `X-Upload-Content-Length`/`Type` e o `PUT` da stream na `Location` devolvida. Origem sem
+   `Content-Length` é **recusada antes** de abrir a sessão, em vez de bufferizada para descobrir o
+   tamanho (o que anularia o streaming).
+
+**Portas que continuam fechadas (e não são código):** enquanto o projeto no Google não passar pela
+**auditoria de conformidade**, todo vídeo enviado por API sai **privado**, mesmo pedindo público —
+regra para projetos criados depois de 28/07/2020. O provider trata isso como **sucesso** e registra
+o aviso; retentar só duplicaria o vídeo. Cota: ~6 envios/dia por projeto (`maxConcurrent: 1`).
+
+**Provas.** `bun test packages/providers/src/youtube` — 46 passam (14 do parser de container, 32 do
+provider), 0 falham. `bun run check` — 560 testes, 0 falhas; fronteiras, grep de IA e brand limpos.
+`bun run typecheck` e `typecheck:web` limpos; `build:web` passa. `bun run spec:validate` — 10/10.
+**Falta a prova de campo**: conectar um canal real e publicar um vídeo real (tarefa 5.3 da mudança
+`add-youtube-provider`) — golden test contra `fetch` mockado não é evidência de que a plataforma
+aceita o corpo.
 
 ---
 

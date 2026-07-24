@@ -16,7 +16,7 @@
 | Meta — Instagram | App Review (`instagram_content_publish`) | ☐ App Review pendente — **travado no CNPJ**; **as DUAS variantes ✅ prontas, rodando em Development Mode**: standalone/Instagram Login (onda 15) e via Facebook Business (onda 17) | ☐ | ☑ (dev mode) | 2026-07-23 | mídia precisa de URL pública (Meta faz *pull* — depende de storage público/S3-R2); **marco de abertura ao público criador BR**. `instagram-standalone` = Instagram Login (sem Página); `instagram` = via Página, **reusando a mesma app/`FACEBOOK_APP_*` do `facebook`** (conta IG resolvida por `instagram_business_account`) |
 | Meta — Threads | Threads API (caso de uso próprio no app Meta) | ☐ App Review pendente — **travado no CNPJ**; **provider ✅ pronto (onda 11), rodando em Development Mode** | ☐ | ☑ (dev mode) | 2026-07-22 | **implementado**: OAuth token curto→longo, container→`threads_publish`, carrossel misto, réplicas nativas. Não exige Página do FB nem Portfólio p/ testar. Token de ~60 dias com renovação **reativa** — refresh proativo (`th_refresh_token` em cron) segue em aberto |
 | TikTok | auditoria da Content Posting API (Direct Post) | ⏳ **em revisão (submetida 2026-07-18)** — provider ✅ pronto em sandbox | ☑ | ☑ (sandbox) | 2026-07-17 | onda 2; **provider implementado e testado em sandbox** (OAuth2 PKCE + Direct Post/inbox, FILE_UPLOAD de vídeo, PULL_FROM_URL de foto). **Formulário de auditoria ENVIADO em 2026-07-18** — aguardando revisão (~2–3 semanas). Sem aprovação os posts ficam privados (SELF_ONLY). **marco de abertura ao público criador BR** |
-| YouTube | escopo **sensível** `youtube.upload` → verificação OAuth (marca + screencast) + quota | ☐ pendente | ☐ | ☐ | ☐ | onda 2; 10.000 units/dia por projeto e **upload = 1.600 units ⇒ ~6 vídeos/dia** por instalação. Aumento de quota é **auditoria separada** da verificação OAuth |
+| YouTube | escopo **sensível** `youtube.upload` + `youtube.readonly` → verificação OAuth (para terceiros) e **auditoria de conformidade** (para vídeo público) | ☐ verificação OAuth pendente; ☐ auditoria pendente — **provider ✅ pronto (onda 22)** | ☐ | ☑ (privado) | 2026-07-24 | **implementado**: OAuth com `access_type=offline`, canal resolvido no consentimento (o token é preso a UM canal — `mine=true`), upload **resumível em streaming**, Short medido no container (`mp4-geometry.ts`), miniatura e `publishAt` best-effort. **Dois portões independentes**: sem auditoria, todo vídeo por API sai **privado** mesmo pedindo público (projetos pós-28/07/2020) — tratado como sucesso, não como falha. Cota: 10.000 units/dia e upload = 1.600 ⇒ **~6 vídeos/dia**; aumento é auditoria à parte. Métricas exigem um 3º escopo sensível e ficam atrás de `YOUTUBE_ENABLE_ANALYTICS` |
 | Pinterest | trial → **standard access** (review com vídeo do fluxo) | ⏳ em revisão — owner iniciou (informado em 2026-07-22; data exata a confirmar) | ☐ | ☐ | ☐ | onda 2; **no trial, Pin/Board criados são sandbox — só o criador vê** (ou seja, sem standard o produto não serve). Semanas de fila e reprovação comum na 1ª rodada |
 | Reddit | acesso aprovado por formulário + **uso comercial exige acordo pago** | ☐ pendente — ⚠️ **decisão de negócio, não só técnica** | ☐ | ☐ | ☐ | onda 2; free = 100 QPM por client OAuth e **só uso não-comercial**. SaaS pago sobre a chave grátis viola os termos ⇒ **Cloud precisa de commercial agreement (relatos de ~US$ 12k/ano)**; **self-hosted resolve com BYO-key** (chave do próprio usuário, uso pessoal) — mesmo desenho do X |
 | Google Business Profile | formulário de acesso à API (GBP API contact form) | ☐ pendente | ☐ | ☐ | ☐ | onda 3; **resposta em até 14 dias**, quota padrão 300 QPM por API quando aprovado (teto rígido de 10 edições/min por ficha). Público diferente do resto (negócio local, não criador) |
@@ -46,11 +46,12 @@ Os providers da Meta (Facebook Pages, Instagram nas duas variantes, Threads) com
 mesmas que o Postiz implementa). São 18 redes + `Google.svg`, que é **login social** (já entregue,
 não é canal de publicação). Situação de cada uma:
 
-**Prontas — 12 redes / 14 providers** (o Discord tem dois — OAuth2+Bot e webhook — e o Instagram
+**Prontas — 14 redes / 16 providers** (o Discord tem dois — OAuth2+Bot e webhook — e o Instagram
 também: Instagram Login e via Facebook Business): Mastodon · Bluesky · Telegram · Discord ×2 ·
 LinkedIn · X · TikTok · Threads · **Instagram standalone** · **Instagram via Facebook Business** ·
-**Facebook Pages** · **Twitch** · **Kick** (as duas últimas fora do conjunto original de ícones —
-ver a seção adiante). **A família Meta está completa** desde a onda 17.
+**Facebook Pages** · **Twitch** · **Kick** · **Dev.to** · **YouTube** (Twitch e Kick estão fora do
+conjunto original de ícones — ver a seção adiante). **A família Meta está completa** desde a onda 17;
+o **YouTube** entrou na onda 22 e publica **privado** até a auditoria de conformidade do Google sair.
 
 **Faltam 6** — em ordem de custo/benefício (esforço de código × gate × valor p/ o usuário BR).
 O **Dev.to** era o #1 e foi entregue na onda 19: confirmou a previsão (zero gate, esforço baixo) e
@@ -59,7 +60,6 @@ entrou publicando em produção no mesmo dia, sem depender de nenhum processo ex
 | # | Rede | Gate | Esforço | Por que nesta posição |
 |---|---|---|---|---|
 | 1 | **Slack** | nenhum p/ funcionar | médio (~290 l.) | Distribuição pública é auto-serviço. Canal de *equipe* (não de criador) — bom p/ o plano Pro/times |
-| 2 | **YouTube** | verificação OAuth + quota | alto (~640 l.) | Vídeo é caro (resumable upload) e a quota de ~6 uploads/dia limita o Cloud; BYO-key resolve no self-hosted |
 | 3 | **Pinterest** | trial → standard (vídeo) | médio (~530 l.) | Já em revisão. **Sem standard access o Pin nasce invisível**, então implementar antes da aprovação só serve p/ gravar o vídeo da submissão |
 | 4 | **Reddit** | acordo comercial p/ SaaS | médio (~510 l.) | ⚠️ Trava de **negócio**: no Cloud, cobrar por cima da chave grátis viola os termos. Só faz sentido como **BYO-key self-hosted** até existir decisão sobre o acordo pago |
 | 5 | **Dribbble** | aprovação p/ uso comercial | baixo (~225 l.) | Nicho de design, teto de 5 shots/dia. Barato de escrever, público pequeno |

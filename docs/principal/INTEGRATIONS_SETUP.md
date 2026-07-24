@@ -40,6 +40,8 @@ https://SEU_DOMINIO/v1/channels/callback/NOME_DA_REDE
 
 Exemplo para o X: `https://social.suaempresa.com.br/v1/channels/callback/x`. A tela de conexão do manypost também mostra a URL exata para copiar.
 
+⚠️ `NOME_DA_REDE` é o **id interno do canal**, que nem sempre é o nome comercial. Os dois casos em que isso pega: **Instagram de login direto** → `.../callback/instagram-standalone` (o `.../callback/instagram` é do Instagram via Facebook Business) e **Discord por webhook** → não usa callback. Na dúvida, copie da tela de conexão.
+
 ### Onde colar as chaves no manypost
 
 Todas as chaves vão no arquivo `.env` (ou nas variáveis de ambiente do seu servidor/painel). Depois de colar, **reinicie o manypost**. Rede sem chave configurada simplesmente não aparece no catálogo de conexões — nada quebra.
@@ -57,8 +59,8 @@ Todas as chaves vão no arquivo `.env` (ou nas variáveis de ambiente do seu ser
 | LinkedIn (perfil) | média | grátis | não (produtos instantâneos) | 30 minutos |
 | X (Twitter) | média | **grátis limitado; pago para volume** | cadastro com justificativa | 1 dia |
 | Pinterest | média | grátis | trial imediato; acesso pleno sob revisão | dias–semanas |
-| YouTube (Google) | difícil | grátis (quota limitada) | verificação do app + auditoria de quota | dias–semanas |
-| Meta (Facebook/Instagram/Threads) | **difícil** | grátis | **App Review + verificação de negócio** | **semanas** |
+| YouTube (Google) | difícil | grátis (~6 vídeos/dia por cota) | verificação OAuth (p/ clientes) + auditoria de conformidade (p/ vídeo público) | ~30 min p/ publicar privado; **semanas** p/ público |
+| Meta (Facebook/Instagram/Threads) | **difícil** | grátis | **App Review + verificação de negócio** — só para *outras pessoas* conectarem | ~1h para você mesmo publicar (Development Mode); **semanas** para clientes |
 | TikTok | **difícil** | grátis | **auditoria obrigatória p/ post público** | **semanas** |
 
 **Estratégia recomendada:** conecte hoje as fáceis (Mastodon, Bluesky, Dev.to, Telegram, Discord, Reddit, LinkedIn) e **inicie hoje mesmo** os processos da Meta e do TikTok — eles são a fila mais lenta.
@@ -296,120 +298,220 @@ PINTEREST_APP_SECRET=...
 
 ### 5.1 Google / YouTube
 
-Aqui você cria um projeto no **Google Cloud** (é só um cadastro, não paga nada) e passa por duas etapas de aprovação: a **verificação do app OAuth** e, se precisar de volume, a **auditoria de quota**.
+**O canal do YouTube já funciona no manypost** (onda 20): publica **vídeo** e **Short**, com título, descrição, categoria, tags, miniatura e liberação programada. Toda publicação leva um vídeo — o YouTube não tem post só de texto.
+
+> ⚠️ **Antes de qualquer coisa, entenda os DOIS portões do Google** — eles são separados e muita gente perde semanas confundindo os dois:
+>
+> | Portão | O que trava | Quando você precisa |
+> |---|---|---|
+> | **Verificação OAuth** | outras pessoas conectarem o canal delas | só quando você abrir para clientes |
+> | **Auditoria de conformidade** | o vídeo sair **público** | para qualquer vídeo público, inclusive o seu |
+>
+> Enquanto a auditoria não sai, **todo vídeo enviado por API fica privado**, mesmo pedindo público — é regra do Google para projetos criados depois de 28/07/2020, não é bug do manypost. É o mesmo formato do Direct Post do TikTok (§5.3). O manypost trata isso como **sucesso** e avisa nos registros; ele não fica retentando.
 
 **Parte A — criar o projeto e ativar a API (15 min):**
-1. Acesse **https://console.cloud.google.com** com uma conta Google (ideal: conta da empresa).
-2. Topo da tela → seletor de projeto → **New Project** → nome `manypost` → Create.
+1. Acesse **https://console.cloud.google.com** com a conta Google **dona do canal**.
+2. Topo da tela → seletor de projeto → **New Project** → nome `manypost` → **Create**.
 3. Menu ☰ → **APIs & Services** → **Library** → procure **"YouTube Data API v3"** → **Enable**.
 
-**Parte B — tela de consentimento OAuth (20 min):**
-4. **APIs & Services** → **OAuth consent screen**: tipo **External** → preencha nome do app (`manypost`), e-mail de suporte, domínio, **URL da política de privacidade e dos termos** (obrigatórias), e-mail do desenvolvedor.
-5. Em **Scopes**, adicione: `.../auth/youtube.upload` e `.../auth/youtube.readonly`.
-6. Em **Test users**, adicione o seu e-mail (e de quem for testar).
+**Parte B — tela de consentimento (20 min):**
+4. **APIs & Services** → **OAuth consent screen** (nos painéis novos: **Google Auth Platform** → **Branding**): tipo **External**, nome do app (`manypost` — sem "s" no fim, o nome tem que bater com a marca do site), e-mail de suporte, **domínio autorizado**, **URL da política de privacidade e dos termos**, e-mail do desenvolvedor.
+5. Em **Data Access** (antes: *Scopes*) → **Add or remove scopes**, marque **exatamente estes dois**:
+
+   | Escopo | Para quê |
+   |---|---|
+   | `.../auth/youtube.upload` | enviar o vídeo — não existe escopo menor que publique |
+   | `.../auth/youtube.readonly` | identificar o canal conectado e mostrar o nome/avatar |
+
+   **Não adicione mais nada.** O manypost não usa `youtube`, `youtube.force-ssl` nem `youtubepartner`, e cada escopo sensível a mais é justificado e demonstrado separadamente na verificação. Métricas exigem um terceiro escopo sensível e ficam atrás de um botão à parte — ver a Parte E.
+6. Em **Audience** → **Test users**, adicione o seu e-mail (e de quem for testar).
 
 **Parte C — credenciais (5 min):**
-7. **APIs & Services** → **Credentials** → **Create Credentials** → **OAuth client ID** → tipo **Web application** → em Authorized redirect URIs adicione `https://SEU_DOMINIO/v1/channels/callback/youtube` → Create.
-8. Copie **Client ID** e **Client Secret** para o `.env`:
+7. **APIs & Services** → **Credentials** → **Create Credentials** → **OAuth client ID** → tipo **Web application**.
+8. Em **Authorized redirect URIs**, cole `https://SEU_DOMINIO/v1/channels/callback/youtube` (**HTTPS**; em desenvolvimento use um túnel e ponha a mesma URL no `PUBLIC_URL`).
+9. Copie **Client ID** e **Client Secret**:
 
 ```env
 YOUTUBE_CLIENT_ID=...apps.googleusercontent.com
 YOUTUBE_CLIENT_SECRET=...
 ```
 
-**Parte D — as pegadinhas do Google (leia!):**
-- Enquanto o app está em modo **Testing**, só os test users conectam **e o acesso expira a cada 7 dias** (o canal "desconecta" sozinho — é normal nessa fase, reconecte).
-- Para produção: OAuth consent screen → **Publish app** → como `youtube.upload` é escopo sensível, o Google exige **verificação**: comprovar que o domínio é seu (Search Console) e, às vezes, um vídeo demonstrando o fluxo. Leva de dias a ~2 semanas.
-- **Quota:** todo projeto tem 10.000 "unidades"/dia e **cada upload de vídeo custa ~1.600** → ±6 vídeos/dia no total. Para mais, peça aumento no formulário *YouTube API Services – Audit and Quota Extension* (auditoria de conformidade; semanas). Publicação de texto/imagem não existe no YouTube — é vídeo (e Shorts).
+10. Reinicie o manypost → **YouTube** aparece em **Conexões** → conecte com a conta do canal.
 
-### 5.2 Meta — Facebook, Instagram e Threads (o processo mais longo)
+> **Se a conta tem mais de um canal**, o Google mostra o seletor de canais no consentimento: o token fica preso ao canal escolhido ali. Para publicar em outro canal, conecte de novo e escolha o outro — vira um segundo canal no manypost, não um seletor por post.
 
-**Pré-requisitos (sem eles nada anda):**
-- Conta pessoal do Facebook (a Meta não permite conta "fake" de empresa como dev);
-- Uma **Página do Facebook** da sua marca;
-- **Instagram profissional** (Business ou Creator — muda grátis no app: Configurações → Tipo de conta) **vinculado à Página** (Instagram → Configurações → Central de Contas / Página);
-- Um **Portfólio de Negócios** em **https://business.facebook.com** (crie com os dados da empresa).
+**Parte D — Shorts e vídeo comum (leia antes de agendar):**
 
-**Parte A — virar desenvolvedor e criar o app (20 min):**
-1. Acesse **https://developers.facebook.com** → **Get Started** → aceite os termos, confirme telefone.
-2. **My Apps** → **Create App** → caso de uso: algo como **"Manage everything on your Page"** / tipo **Business** → associe ao seu Portfólio de Negócios → Create.
-3. No painel do app: **Settings → Basic**: copie **App ID** e **App Secret**; preencha **Privacy Policy URL**, **Terms of Service URL**, **App domains** (seu domínio) e **Data deletion instructions URL** (pode ser uma página sua explicando como pedir exclusão). Salve.
+**O YouTube não tem botão de Short.** Ele decide sozinho, pelo arquivo:
 
-**Parte B — produtos e login (20 min):**
-4. No painel, **Add Product**: adicione **Facebook Login for Business** e **Instagram** (API do Instagram).
-5. Em **Facebook Login → Settings**: em **Valid OAuth Redirect URIs** adicione `https://SEU_DOMINIO/v1/channels/callback/facebook` e `https://SEU_DOMINIO/v1/channels/callback/instagram`.
-6. No `.env`:
+| Vira **Short** | Vira **vídeo comum** |
+|---|---|
+| vertical ou quadrado (altura ≥ largura) | horizontal |
+| **e** até 3 minutos | mais de 3 minutos |
+
+Como isso é decisão da plataforma e não um parâmetro, o manypost **mede o seu arquivo antes de enviar** (proporção, duração e a rotação gravada pelo celular) e o campo **Formato** nas Configurações do canal serve para você travar o resultado:
+
+- **Decidir pelo vídeo** — envia e aceita o que sair;
+- **Short** — se o arquivo for horizontal ou passar de 3 min, o manypost **recusa antes de enviar** e diz a medida encontrada;
+- **Vídeo comum** — se o arquivo fosse virar Short, também recusa, para você não agendar um vídeo e receber um Short.
+
+Detalhe que evita um falso negativo: vídeo de celular costuma ser gravado como 1920×1080 **com rotação de 90°** no arquivo. O manypost aplica a rotação, então um Short legítimo não é recusado por parecer horizontal.
+
+**Parte E — o que fica de fora por padrão:**
+- **Métricas**: exigem o escopo sensível `yt-analytics.readonly`, que aumenta a verificação. Ficam desligadas até você definir `YOUTUBE_ENABLE_ANALYTICS=true` e **reconectar** o canal. Deixe para depois de a verificação sair.
+- **Miniatura personalizada**: só funciona em canal com conta verificada no YouTube. Se for recusada, o vídeo é publicado do mesmo jeito, com a capa automática — o manypost nunca derruba uma publicação por causa da miniatura.
+
+**Parte F — cota (o teto que ninguém avisa):**
+Todo projeto começa com **10.000 unidades/dia** e **cada envio de vídeo custa ~1.600** ⇒ **cerca de 6 vídeos por dia**, no total da instalação. Para mais, existe um formulário à parte (*YouTube API Services – Audit and Quota Extension*), que é outra auditoria e leva semanas. O manypost publica um vídeo por vez, justamente para não queimar a cota do dia em retentativa.
+
+**Parte G — verificação OAuth (só quando for abrir para clientes):**
+11. **Google Auth Platform** → **Verification center** → envie: justificativa de cada escopo + **um vídeo no YouTube** demonstrando o fluxo.
+12. O vídeo precisa mostrar, sem cortes: entrar no manypost → conectar o canal **com a tela de consentimento do Google visível** (dá para ler o ID do client) → compor um post com vídeo → publicar → o vídeo aparecendo no canal. 2–4 minutos, em inglês simples.
+13. O domínio precisa estar verificado no **Google Search Console** pela mesma conta.
+14. Enquanto o app está em **Testing**, o acesso expira a cada 7 dias e o canal "desconecta" sozinho — é normal nessa fase. Publicar o app resolve.
+
+> **Se você só quer o login com Google** (entrar no manypost com a conta Google, §1.5), **não precisa de nada disso**: `openid`, `userinfo.email` e `userinfo.profile` são escopos **não confidenciais** e a documentação do Google diz que app que usa só eles não precisa passar por verificação. Tire os dois escopos do YouTube da tela de consentimento e publique o app — o login funciona na hora.
+
+### 5.2 Meta — Facebook, Instagram e Threads (um app só, quatro canais)
+
+O painel da Meta mudou: hoje tudo gira em torno de **casos de uso** (*use cases*) — não existe mais "escolher o tipo do app" e sair adicionando "produtos". **Um único app da Meta atende os quatro canais** do manypost; você adiciona um caso de uso para cada.
+
+#### Mapa: de onde sai cada canal (guarde esta tabela — é o resumo da seção)
+
+| Canal em **Conexões** | Caso de uso no app Meta | Variáveis no `.env` | Redirect URI (cole exatamente) |
+|---|---|---|---|
+| **Facebook** | *Manage everything on your Page* | `FACEBOOK_APP_ID` / `FACEBOOK_APP_SECRET` | `https://SEU_DOMINIO/v1/channels/callback/facebook` |
+| **Instagram (Facebook Business)** | *Manage messaging and content on Instagram* → painel **API setup with Facebook login** | **as mesmas** `FACEBOOK_APP_*` | `https://SEU_DOMINIO/v1/channels/callback/instagram` |
+| **Instagram** (login direto) | *Manage messaging and content on Instagram* → painel **API setup with Instagram business login** | `INSTAGRAM_APP_ID` / `INSTAGRAM_APP_SECRET` | `https://SEU_DOMINIO/v1/channels/callback/instagram-standalone` |
+| **Threads** | *Access the Threads API* | `THREADS_APP_ID` / `THREADS_APP_SECRET` | `https://SEU_DOMINIO/v1/channels/callback/threads` |
+
+> ⚠️ **Pegadinha nº 1:** o redirect do Instagram de login direto termina em **`instagram-standalone`** (é o id interno do canal), **não** em `instagram`. Trocar os dois dá `redirect_uri mismatch` na hora de conectar.
+> ⚠️ **Pegadinha nº 2:** todos precisam ser **HTTPS**. A Meta recusa `http://localhost` — em desenvolvimento suba um túnel (`ngrok http 3100` ou `cloudflared`) e use a URL `https://...` gerada **tanto no `PUBLIC_URL` do `.env` quanto no portal**, idênticas.
+
+#### O que você precisa ter ANTES (por canal)
+
+| Canal | Página do Facebook | Conta profissional (Business/Creator) | Instagram vinculado à Página | Portfólio de Negócios |
+|---|---|---|---|---|
+| Facebook | ✅ obrigatória | — | — | opcional para testar |
+| Instagram (Facebook Business) | ✅ obrigatória | ✅ | ✅ obrigatório | opcional para testar |
+| Instagram (login direto) | ❌ não precisa | ✅ | ❌ não precisa | opcional para testar |
+| Threads | ❌ não precisa | — | — | ❌ não precisa |
+
+Para **testar** (Development Mode) você **não precisa** de CNPJ, Business Verification nem App Review — isso só entra quando *outras pessoas* forem conectar as contas delas (Parte F). A conta de desenvolvedor é a sua conta **pessoal** do Facebook.
+
+**Parte A — criar o app (o passo que mudou de cara)**
+
+1. Entre em **https://developers.facebook.com** com a sua conta pessoal do Facebook → canto superior direito → **My Apps** → **Create app**. (Na primeira vez ele pede para "virar desenvolvedor": aceite os termos e confirme telefone/e-mail.)
+2. **Tela "App details"**: em **App name** use algo como `manypost` — **não coloque as palavras Facebook, Instagram, WhatsApp, Threads ou Meta no nome**, a Meta bloqueia nomes que usam as marcas dela. Preencha **App contact email** → **Next**.
+3. **Tela "Use cases"** — é aqui que quase todo mundo trava. Escolha **um** caso de uso agora (os outros entram depois, no mesmo app):
+   - **Manage everything on your Page** → dá o canal **Facebook**;
+   - **Manage messaging and content on Instagram** → dá os **dois** canais de Instagram;
+   - **Access the Threads API** → dá o **Threads**;
+   - *Other* → só se quiser um app "cru" e montar tudo na mão (não recomendado).
+
+   Se você vai usar Facebook + Instagram, comece por **Manage everything on your Page**. → **Next**.
+4. **Tela "Business portfolio"**: pode marcar **"I don't want to connect a business portfolio yet"** e seguir — dá para conectar depois. (O portfólio *verificado* só é exigido lá na frente, no App Review.) → **Next**.
+5. Revise e clique em **Create app** → digite a senha do seu Facebook para confirmar.
+6. **Adicione os outros casos de uso**: menu esquerdo → **Dashboard** → **Add use case** → escolha o próximo → confirme. Repita até ter todos os que você quer no mesmo app.
+
+**Parte B — onde ficam os escopos hoje (era isto que faltava na doc antiga)**
+
+> Nos painéis antigos, escopo se habilitava em **App Review → Permissions and Features**. **Não é mais lá.** Para *testar*, o escopo é habilitado **dentro do caso de uso**:
+>
+> **menu esquerdo → nome do caso de uso** (ex.: *Manage everything on your Page*) **→ seção `Permissions` → botão `Add` na linha de cada permissão.**
+>
+> O status vai ficar **Standard Access** — suficiente para *você* publicar em Development Mode. O **App Review** só serve depois, para pedir **Advanced Access** (quando clientes seus forem conectar).
+
+**Parte C — canal Facebook** (entregue na onda 16)
+
+1. Menu esquerdo → **Manage everything on your Page** → **Permissions**. Já vêm por padrão: `public_profile`, `pages_show_list`, `business_management`. Clique em **Add** nestas quatro:
+
+   | Permissão | Para quê |
+   |---|---|
+   | `pages_manage_posts` | publicar na Página |
+   | `pages_read_engagement` | ler a Página e listar as suas Páginas |
+   | `pages_manage_engagement` | comentar (as respostas da thread viram comentários) |
+   | `read_insights` | métricas |
+
+   Essa lista (mais as três padrão) é **exatamente** o que o manypost pede na tela de autorização. Se faltar uma no app, ela some do diálogo e a conexão falha com "not enough scopes".
+2. Menu esquerdo → **Facebook Login for Business** → **Settings** → campo **Valid OAuth Redirect URIs**: cole `https://SEU_DOMINIO/v1/channels/callback/facebook` → **Save changes**. Logo abaixo há um campo **Redirect URI to Check**: cole a mesma URL e clique em **Check URI** para confirmar que ficou válida.
+3. Menu esquerdo → **App settings → Basic**: copie o **App ID** e clique em **Show** para revelar o **App secret**. Aproveite e preencha (obrigatórios no review, mas já deixe pronto): **Privacy Policy URL**, **Terms of Service URL**, **User data deletion** e **App domains** → **Save changes**.
+4. No `.env`:
 
 ```env
 FACEBOOK_APP_ID=...
 FACEBOOK_APP_SECRET=...
 ```
 
-**Parte C — teste em modo desenvolvimento (funciona já!):**
-7. Em modo desenvolvimento, o app funciona **para quem tem papel no app**: adicione você mesmo em **App Roles → Roles** (Administrator/Tester).
-8. Conecte no manypost e publique na sua Página/Instagram de teste. Tudo deve funcionar — só não funciona para *outras* pessoas ainda.
+5. Reinicie o manypost → **Facebook** aparece em **Conexões** → conecte com a sua conta e **marque todas as permissões** no diálogo da Meta (desmarcar uma quebra a conexão).
+6. **A Página é escolhida em cada post, não na conexão.** No compositor, em **Configurações** do canal Facebook, você escolhe a **Página** de destino (o manypost lista as que você administra) e se é **Feed** ou **Story**. Publica **texto**, **foto/álbum** (até 10), **vídeo (reel)** e **story**.
 
-**Parte D — App Review (o que trava a maioria — reserve semanas):**
-9. **Business Verification**: em Settings → Basic → Verification (ou no Business Manager → Security Center) envie documentos da empresa (CNPJ, contrato social, conta de luz/telefone no nome da empresa). Resposta em dias.
-10. **App Review → Permissions and Features**: solicite **Advanced Access** para:
-    - `pages_show_list`, `pages_read_engagement`, `pages_manage_posts` (Facebook Pages),
-    - `instagram_basic`, `instagram_content_publish` (publicar no Instagram),
-    - `business_management`,
-    - (para métricas: `read_insights`, `instagram_manage_insights`).
-11. Para **cada permissão**, a Meta exige: descrição de como você usa + **um screencast** (vídeo da tela) mostrando o fluxo completo *no seu manypost*: entrar → conectar a conta → compor um post → publicar → o post aparecendo no Instagram/Facebook. Grave com o app em modo dev usando sua conta de teste. Dicas: vídeo curto (2–4 min), sem cortes no fluxo essencial, narração ou legendas em inglês simples.
-12. Envie e aguarde (tipicamente 3–10 dias úteis por rodada). **Rejeição na primeira tentativa é normal** — leia o motivo, ajuste o vídeo/descrição e reenvie.
-13. Aprovado tudo: mude o app para **Live** (chave no topo do painel). Agora qualquer cliente seu conecta.
+**Parte D — canal Instagram (Facebook Business)** — mesmo app, nenhuma credencial nova (onda 17)
 
-**Particularidades do Instagram:** a API publica via URL pública da mídia — o manypost precisa estar com armazenamento acessível por HTTPS (S3/R2 ou o próprio domínio), nunca `localhost`. Carrossel, Reels e Stories têm regras próprias de formato — o manypost valida antes de enviar.
+Use esta variante se a sua conta do Instagram é **vinculada a uma Página** que você administra.
 
-**Threads (já funciona no manypost — entregue na onda 11):** é um caso de uso separado dentro do mesmo painel da Meta, e **não exige Página do Facebook nem Portfólio de Negócios** para testar. Passo a passo:
+1. **Dashboard → Add use case → Manage messaging and content on Instagram** (se ainda não adicionou).
+2. Menu esquerdo → **Instagram** → painel **API setup with Facebook login**.
+3. Na seção **Permissions** desse caso de uso, garanta (botão **Add**) todas estas — é o conjunto que o manypost pede:
+   `instagram_basic`, `instagram_content_publish`, `instagram_manage_comments`, `instagram_manage_insights`, `pages_show_list`, `pages_read_engagement`, `business_management`.
+4. **Facebook Login for Business → Settings → Valid OAuth Redirect URIs**: **acrescente** `https://SEU_DOMINIO/v1/channels/callback/instagram` (o campo aceita várias URLs — a do Facebook continua lá) → **Save changes**.
+5. **Não há variável nova**: este canal usa as mesmas `FACEBOOK_APP_ID`/`FACEBOOK_APP_SECRET`. Se o Facebook já funciona, aqui só falta o redirect do passo 4.
+6. Reinicie → **Instagram (Facebook Business)** aparece em **Conexões** → conecte com a sua conta do **Facebook** e marque tudo (sem `instagram_content_publish` a conexão é recusada com mensagem clara).
+7. **A conta do Instagram é escolhida em cada post**, nas **Configurações** do canal no compositor (o manypost lista as contas profissionais vinculadas às suas Páginas pelo `@`), junto com **Feed** ou **Story**. Publica **foto**, **reel**, **carrossel** (2 a 10, misturando foto e vídeo) e **story**.
+8. Se a Página escolhida não tiver Instagram vinculado, o manypost avisa antes de publicar (vincule em Instagram → Configurações → Central de Contas).
 
-1. Em **https://developers.facebook.com** → **My Apps** → seu app (ou **Create App**) → adicione o caso de uso **Threads API** ("Access the Threads API").
+**Parte E — canal Instagram (login direto, sem Página)** (onda 15)
+
+Use esta variante se a sua conta profissional **não** é ligada a nenhuma Página.
+
+1. Mesmo caso de uso, **outro painel**: menu esquerdo → **Instagram** → **API setup with Instagram business login**.
+2. Abra o bloco **3. Set up Instagram business login** → **Business login settings**:
+   - em **OAuth redirect URIs** (em algumas telas aparece como *Redirect Callback URLs*), cole `https://SEU_DOMINIO/v1/channels/callback/instagram-standalone`;
+   - marque as permissões `instagram_business_basic`, `instagram_business_content_publish`, `instagram_business_manage_comments`, `instagram_business_manage_insights`;
+   - **Save**.
+3. Ainda nesse painel, no bloco **1**, ficam o **Instagram app ID** e o **Instagram app secret**. ⚠️ **Não são** o *App ID*/*App secret* de **App settings → Basic** — são credenciais próprias deste painel, e confundir os dois é o erro mais comum aqui.
+4. No `.env`:
+
+```env
+INSTAGRAM_APP_ID=...
+INSTAGRAM_APP_SECRET=...
+```
+
+5. Reinicie → **Instagram** aparece em **Conexões** → conecte fazendo login direto no Instagram. Aqui **não** se escolhe conta por post: o canal **é** a conta conectada; no compositor você só escolhe **Feed** ou **Story**.
+
+**Parte F — quando outras pessoas forem conectar (App Review + Business Verification)**
+
+Em **Development Mode** tudo funciona **para quem tem papel no app** — e isso já basta para você operar o manypost com as suas próprias contas.
+
+1. Para liberar alguém no modo dev: **App roles → Roles → Add people** → papel **Administrator**, **Developer** ou **Tester**. A pessoa recebe um convite e **precisa aceitar** (nas solicitações/notificações dela em developers.facebook.com) — enquanto não aceitar, a conexão falha como se o app não existisse.
+2. Para o público em geral: **Business Verification** (documentos da empresa; no Brasil, CNPJ com atividade compatível com desenvolvimento de software) **+ App Review** pedindo **Advanced Access** para os escopos de publicação — `pages_manage_posts`, `pages_read_engagement`, `business_management`, `instagram_basic`, `instagram_content_publish` (e `instagram_business_content_publish` no login direto, `threads_content_publish` no Threads).
+3. Cada permissão exige descrição de uso + **screencast** com o fluxo completo no manypost: entrar → conectar a conta → compor → publicar → post visível na rede. 2–4 minutos, sem cortes no essencial, inglês simples.
+4. Rodada típica: 3–10 dias úteis. **Rejeição na primeira tentativa é normal** — leia o motivo, ajuste e reenvie.
+5. Aprovado: vire a chave no topo do painel de **Development** para **Live**.
+
+> No manypost, o andamento desse gate fica em [`platform-gates.md`](platform-gates.md). Os quatro providers da Meta estão **prontos e rodando em Development Mode** — o que falta é jurídico (CNPJ/verificação), não código.
+
+**Threads (canal `threads`)** (onda 11) — é o caso de uso mais simples da Meta: **não exige Página do Facebook nem Portfólio de Negócios** para testar.
+
+1. **Dashboard → Add use case → Access the Threads API** (ou escolha esse caso de uso já na criação do app).
 2. Na configuração do caso de uso, marque as permissões: **`threads_basic`**, **`threads_content_publish`**, `threads_manage_replies` e `threads_manage_insights`.
-3. Em **Threads API → Settings**, no campo **Redirect Callback URLs**, cole:
-   `https://SEU_DOMINIO/v1/channels/callback/threads` — precisa ser **HTTPS** (a Meta recusa `http://localhost`; em desenvolvimento use um túnel, ex.: `ngrok`/`cloudflared`).
-4. Copie o **Threads App ID** e o **Threads App Secret** dessa tela (são os do caso de uso, não confunda com os de outro produto) e preencha:
+3. Em **Threads API → Settings**, no campo **Redirect Callback URLs**, cole `https://SEU_DOMINIO/v1/channels/callback/threads` (**HTTPS** obrigatório).
+4. Copie o **Threads App ID** e o **Threads App Secret** dessa tela (são os do caso de uso — como no Instagram de login direto, não são os de *App settings → Basic*):
 
 ```env
 THREADS_APP_ID=...
 THREADS_APP_SECRET=...
 ```
 
-5. Reinicie o manypost: o Threads aparece na tela **Conexões**. Conecte com a sua conta — em modo desenvolvimento funciona **inteiro** (publicar texto, foto, carrossel e thread) para quem tem papel no app (**App Roles → Roles**).
-6. Para outras pessoas conectarem, é o mesmo **App Review** do item 10 acima, pedindo `threads_content_publish` com screencast.
+5. Reinicie o manypost: o **Threads** aparece em **Conexões**. Conecte com a sua conta — em modo desenvolvimento funciona inteiro (texto, foto, carrossel e thread) para quem tem papel no app.
 
-**Duas coisas que costumam pegar no Threads:**
-- **A Meta busca a mídia na sua URL** (não recebe o arquivo). Se o seu manypost estiver em `localhost`, a publicação com foto/vídeo falha com "The media could not be fetched from this URI" — post só de texto funciona normalmente. Em produção, use armazenamento acessível por HTTPS.
-- **O acesso vale ~60 dias** e é renovado sozinho a cada publicação. Uma conta que fica 60 dias sem publicar pede reconexão (o canal aparece como "precisa reconectar").
+#### As pegadinhas que valem para os quatro canais
 
-**Facebook Pages (já funciona no manypost — entregue na onda 16):** usa o **Facebook Login** do mesmo painel (as `FACEBOOK_APP_ID`/`FACEBOOK_APP_SECRET` acima). Passo a passo:
-
-1. No app da Meta, **Add Product → Facebook Login** (se ainda não tiver) e, em **Facebook Login → Settings**, no campo **Valid OAuth Redirect URIs**, cole `https://SEU_DOMINIO/v1/channels/callback/facebook` (precisa ser **HTTPS**; em dev use um túnel).
-2. Reinicie o manypost: o **Facebook** aparece em **Conexões**. Conecte com a sua conta — em modo desenvolvimento funciona **inteiro** para quem tem papel no app (**App Roles → Roles**).
-3. **A Página é escolhida em cada post, não na conexão.** O canal representa a sua conta; no compositor, em **Configurações** do canal Facebook, você seleciona a **Página** de destino (o manypost lista as Páginas que você administra) e se é **Feed** ou **Story**.
-4. Publica: **texto**, **foto/álbum** (até 10), **vídeo (reel)** e **story** (uma foto ou um vídeo). As **respostas da thread viram comentários** no post.
-5. Para outras pessoas conectarem, é o mesmo **App Review** do item 10 (peça `pages_manage_posts`, `pages_read_engagement`, `business_management`).
-
-**Facebook também busca a mídia na sua URL** (igual ao Threads/Instagram): em `localhost`, foto/vídeo falham; post só de texto funciona. Em produção, use armazenamento acessível por HTTPS.
-
-**Instagram — duas variantes, as duas prontas.** Escolha pela sua conta:
-
-| | **Instagram** (Instagram Login) | **Instagram (Facebook Business)** |
-|---|---|---|
-| Quando usar | Sua conta profissional **não** é ligada a nenhuma Página | Sua conta é **vinculada a uma Página** que você administra |
-| Credenciais | `INSTAGRAM_APP_ID/SECRET` (produto "Instagram") | **as mesmas** `FACEBOOK_APP_ID/SECRET` — se o Facebook já funciona, esta rede já está pronta |
-| Como conecta | Login direto no Instagram | Login no Facebook; a conta é escolhida **em cada post** |
-| Entregue | onda 15 | **onda 17** |
-
-**Instagram via Facebook Business (entregue na onda 17)** — passo a passo:
-
-1. Em **Facebook Login → Settings → Valid OAuth Redirect URIs**, acrescente `https://SEU_DOMINIO/v1/channels/callback/instagram` (a mesma app do Facebook; **HTTPS**, em dev use um túnel).
-2. Reinicie o manypost: **Instagram (Facebook Business)** aparece em **Conexões**. Conecte com a sua conta do Facebook e **marque todas as permissões** no diálogo — sem `instagram_content_publish` a conexão é recusada com uma mensagem clara.
-3. **A conta do Instagram é escolhida em cada post**, nas **Configurações** do canal no compositor: o manypost lista as contas profissionais vinculadas às suas Páginas (pelo `@` da conta) e você escolhe **Feed** ou **Story**.
-4. Publica: **foto**, **reel** (vídeo único), **carrossel** (2 a 10, misturando foto e vídeo) e **story** (uma mídia). As **respostas da thread viram comentários** no post. Toda publicação leva mídia — o Instagram não aceita post só de texto.
-5. Se a Página escolhida não tiver conta do Instagram vinculada, o manypost avisa antes de publicar qualquer coisa (vincule em Instagram → Configurações → Central de Contas).
-
-**As duas variantes também buscam a mídia na sua URL:** em `localhost` a Meta não alcança o arquivo e a publicação falha — em produção, use armazenamento acessível por HTTPS.
+- **A Meta busca a mídia na sua URL** (não recebe upload do arquivo). Com o manypost em `localhost`, publicação com foto/vídeo falha com *"The media could not be fetched from this URI"*. Post só de texto (Facebook e Threads) funciona normalmente; o Instagram **sempre** exige mídia. Em produção, use armazenamento acessível por HTTPS (S3/R2 ou o próprio domínio).
+- **Imagem: prefira JPEG.** A documentação da Meta declara **JPEG como único formato de imagem aceito** no Instagram — PNG pode falhar na criação do container mesmo o manypost aceitando o arquivo.
+- **Os tokens duram ~60 dias** e se renovam sozinhos a cada publicação. Uma conta que passa 60 dias sem publicar pede reconexão (o canal aparece como "precisa reconectar").
+- **Limite de publicação do Instagram:** 100 posts por API a cada 24h por conta (carrossel conta como 1 post; máximo de 50 carrosséis).
+- **Um escopo desmarcado no diálogo derruba a conexão.** Se você clicou em "Editar acesso" e tirou alguma permissão, reconecte marcando tudo.
 
 ### 5.3 TikTok — auditoria obrigatória para post público
 
@@ -453,8 +555,9 @@ O acesso à API do Google Business Profile depende de um **formulário de solici
 | Kick (chat) | `KICK_CLIENT_ID`, `KICK_CLIENT_SECRET` | §3.5 |
 | X | `X_API_KEY`, `X_API_SECRET` | §4.1 |
 | Pinterest | `PINTEREST_APP_ID`, `PINTEREST_APP_SECRET` | §4.2 |
-| YouTube | `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET` | §5.1 |
-| Facebook/Instagram | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET` | §5.2 |
+| YouTube | `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET` (+ `YOUTUBE_ENABLE_ANALYTICS` opcional) | §5.1 |
+| Facebook **e** Instagram (Facebook Business) | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET` | §5.2 |
+| Instagram (login direto) | `INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET` | §5.2 |
 | Threads | `THREADS_APP_ID`, `THREADS_APP_SECRET` | §5.2 |
 | TikTok | `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET` | §5.3 |
 
@@ -466,11 +569,20 @@ Depois de editar o `.env`: reinicie o manypost → a rede aparece em **Conexões
 |---|---|---|
 | `redirect_uri mismatch` ao autorizar | A URL cadastrada no portal não é **idêntica** à do manypost | Compare letra a letra (https, barra final, domínio) e corrija no portal |
 | "App not active" / só você consegue conectar | App em modo desenvolvimento | Adicione a pessoa como tester, ou conclua o review e mude para Live |
-| Canal do YouTube desconecta sozinho toda semana | App Google em modo *Testing* (token expira em 7 dias) | Publique o app e conclua a verificação (§5.1 D) |
+| Canal do YouTube desconecta sozinho toda semana | App Google em modo *Testing* (token expira em 7 dias) | Publique o app (§5.1 G) |
+| Vídeo do YouTube sai privado mesmo pedindo público | Projeto sem **auditoria de conformidade** — o Google força privado, não é erro do manypost | §5.1, quadro dos dois portões |
+| YouTube recusa: "o vídeo é horizontal e um Short precisa ser vertical" | O campo **Formato** está travado em Short e o arquivo não vira Short | Use um vídeo vertical de até 3 min, ou mude para "decidir pelo vídeo" (§5.1 D) |
+| YouTube: "o Google não devolveu refresh token" | Consentimento reaproveitado de uma autorização anterior | Remova o acesso do manypost em myaccount.google.com/permissions e conecte de novo |
+| Métricas do YouTube vazias / pedem reconexão | `YOUTUBE_ENABLE_ANALYTICS` desligado quando o canal foi conectado | Ligue a variável e **reconecte** o canal (§5.1 E) |
 | Instagram recusa a mídia | Conta não é profissional/não vinculada à Página, ou mídia sem URL pública | §5.2 pré-requisitos; storage com HTTPS |
 | Post do TikTok fica privado | Auditoria de Direct Post ainda não aprovada | §5.3 passo 7 |
 | Erro 429 (rate limit) no X | Teto do plano do app (Free/Basic) atingido no mês | Aguarde a virada do mês ou faça upgrade do tier |
-| "Not enough scopes" ao conectar | Você desmarcou permissões na tela de autorização, ou o produto/escopo não foi adicionado no portal | Reconecte marcando tudo; confira os produtos do app |
+| "Not enough scopes" ao conectar | Você desmarcou permissões na tela de autorização, ou o escopo não foi adicionado no portal | Reconecte marcando tudo; na Meta, confira **caso de uso → Permissions → Add** (§5.2 Parte B) |
+| Meta: não acho onde adicionar escopo | O painel mudou — não é mais em *App Review → Permissions and Features* | Menu esquerdo → **nome do caso de uso** → **Permissions** → **Add** (§5.2 Parte B) |
+| Meta: `redirect_uri mismatch` só no Instagram | Confundiu as duas variantes: login direto usa `.../callback/instagram-standalone` | §5.2 Parte E, passo 2 |
+| Meta: o App ID não funciona no Instagram/Threads | Usou o App ID de *App settings → Basic* no lugar do **Instagram app ID** / **Threads App ID** do painel do caso de uso | §5.2 Partes E e Threads |
+| Meta: outra pessoa não consegue conectar em modo dev | Papel atribuído mas **convite não aceito** | A pessoa aceita em developers.facebook.com (solicitações) — §5.2 Parte F |
+| Instagram recusa a imagem PNG | A Meta aceita **só JPEG** para publicação no Instagram | Converta para JPEG antes de subir |
 
 ## 8. Dicas de ouro para passar nas revisões (Meta, TikTok, Google)
 

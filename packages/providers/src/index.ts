@@ -15,6 +15,7 @@ import { threadsProvider } from './threads/threads.provider';
 import { tiktokProvider } from './tiktok/tiktok.provider';
 import { twitchProvider } from './twitch/twitch.provider';
 import { xProvider } from './x/x.provider';
+import { youtubeProvider } from './youtube/youtube.provider';
 
 /**
  * Registry de providers (SPEC_INTEGRATIONS §2). Onda 1 (SPEC_ROADMAP) completa:
@@ -28,6 +29,9 @@ import { xProvider } from './x/x.provider';
  * container→poll→publish; a conta IG é resolvida pela Página escolhida no post).
  * Onda 3: devto — primeiro destino de ARTIGO (markdown, título obrigatório em settings, capa vinda
  * da mídia anexada) e a primeira rede sem nenhum gate externo: conecta por chave pessoal, sem env.
+ * Onda 4: youtube — primeiro destino de VÍDEO puro (o vídeo é a publicação, o texto é a descrição):
+ * upload resumível com o corpo em streaming e a geometria do arquivo lida do container, porque a API
+ * não tem parâmetro de Short — quem classifica é o YouTube, pela proporção e duração.
  */
 export const providers: ChannelProvider[] = [
   mastodonProvider,
@@ -45,6 +49,7 @@ export const providers: ChannelProvider[] = [
   twitchProvider,
   kickProvider,
   devtoProvider,
+  youtubeProvider,
   fakeProvider,
 ];
 
@@ -70,6 +75,7 @@ export {
   tiktokProvider,
   twitchProvider,
   xProvider,
+  youtubeProvider,
 };
 
 export { settingsJsonSchema } from './shared/settings-json-schema';

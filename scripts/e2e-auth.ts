@@ -157,6 +157,29 @@ check(
   ) === true,
   'devto exige title no settingsSchema (artigo sem título é recusado ao agendar)',
 );
+// youtube: vídeo é a publicação (requiresMedia, 1 vídeo, zero imagem) e o título é obrigatório.
+// A rede só aparece com YOUTUBE_CLIENT_ID/SECRET no env — como toda rede OAuth.
+{
+  const yt = providers.find((p) => p.id === 'youtube');
+  if (ids.includes('youtube')) {
+    check(yt?.connectType === 'oauth', 'youtube conecta por OAuth (redirect do Google)');
+    check(yt?.capabilities?.requiresMedia === true, 'youtube exige mídia (não existe post só-texto)');
+    check(yt?.capabilities?.media?.videos?.maxCount === 1, 'youtube aceita exatamente 1 vídeo por post');
+    check(yt?.capabilities?.media?.images?.maxCount === 0, 'youtube não aceita imagem anexa (capa é setting)');
+    check(
+      (yt?.settingsSchema?.required as string[] | undefined)?.includes('title') === true,
+      'youtube exige title no settingsSchema (vídeo sem título é recusado ao agendar)',
+    );
+    check(
+      (yt?.settingsSchema?.properties as Record<string, { enum?: string[] }> | undefined)
+        ?.shortsIntent?.enum?.includes('short') === true,
+      'youtube publica o campo de formato (auto/short/video) no catálogo',
+    );
+  } else {
+    const off = await post('/v1/channels/connect', { provider: 'youtube' }, bearer);
+    check(off.status === 404, 'youtube sem env → connect 404 (capability.disabled)');
+  }
+}
 // telegram só fica conectável com TELEGRAM_BOT_TOKEN; sem env → available:false e connect 404
 if (ids.includes('telegram')) {
   check(providers.find((p) => p.id === 'telegram')?.connectType === 'fields', 'telegram conecta por campos');
