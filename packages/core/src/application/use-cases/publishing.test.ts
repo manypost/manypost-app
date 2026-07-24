@@ -23,6 +23,8 @@ function makeProvider(behavior: {
   reject?: boolean;
   failReplyFirst?: number;
   noThreads?: boolean;
+  /** provider com campo de settings OBRIGATÓRIO (Dev.to: artigo sem título não existe) */
+  requiredSetting?: boolean;
 }) {
   let calls = 0;
   let replyCalls = 0;
@@ -44,7 +46,12 @@ function makeProvider(behavior: {
       customInstance: false,
     },
     rateDefaults: { maxConcurrent: 2, perChannelWindow: { limit: 10, windowSec: 60 } },
-    settingsSchema: z.object({ tag: z.string().optional() }),
+    // getter (como threads): o behavior é ajustado depois que o provider já foi construído
+    get settingsSchema() {
+      return behavior.requiredSetting
+        ? z.object({ title: z.string().min(2), tag: z.string().optional() })
+        : z.object({ tag: z.string().optional() });
+    },
     async getAuthUrl() {
       return { url: 'http://fake', state: 's' };
     },
@@ -294,6 +301,7 @@ let behavior: {
   reject?: boolean;
   failReplyFirst?: number;
   noThreads?: boolean;
+  requiredSetting?: boolean;
 };
 let prov: ReturnType<typeof makeProvider>;
 let f: ReturnType<typeof makeFakes>;
@@ -359,6 +367,62 @@ describe('schedulePost', () => {
   test('canal desativado é recusado', async () => {
     await f.channels.setStatus(f._state.channels[0]!.id, 'DISABLED');
     await expect(schedule()).rejects.toMatchObject({ code: 'channel.disabled' });
+  });
+});
+
+/**
+ * Provider com campo de settings obrigatório (Dev.to: título do artigo). O agendamento parseia
+ * `settingsByChannel[canal] ?? {}` contra o schema do provider — então o campo que falta é barrado
+ * aqui, no composer, e não no horário agendado. Ver openspec/changes/add-devto-provider.
+ */
+describe('schedulePost com settings obrigatórios do provider', () => {
+  beforeEach(async () => {
+    behavior.requiredSetting = true;
+    await connect(f, prov.provider);
+  });
+
+  test('campo obrigatório ausente → post.invalid_settings no AGENDAMENTO (nada é enfileirado)', async () => {
+    await expect(schedule()).rejects.toMatchObject({ code: 'post.invalid_settings' });
+    expect(f._state.pubs).toHaveLength(0);
+    expect(f._state.jobs).toHaveLength(0);
+  });
+
+  test('o erro nomeia o campo que falta', async () => {
+    const err = await schedule().catch((e) => e);
+    expect(JSON.stringify(err.details ?? err)).toContain('title');
+  });
+
+  test('campo obrigatório presente → agenda normalmente', async () => {
+    const group = await schedule({
+      settingsByChannel: { [f._state.channels[0]!.id]: { title: 'Meu artigo' } },
+    });
+    expect(group!.publications[0]!.state).toBe('SCHEDULED');
+    expect(f._state.pubs[0]!.settings).toMatchObject({ title: 'Meu artigo' });
+  });
+
+  test('editar só o horário preserva o obrigatório já gravado', async () => {
+    const group = await schedule({
+      settingsByChannel: { [f._state.channels[0]!.id]: { title: 'Meu artigo' } },
+    });
+    await makeReschedulePost(f as any)({
+      orgId: 'org-1',
+      groupId: group!.id,
+      publishAt: new Date(Date.now() + 60_000),
+    });
+    expect(f._state.pubs[0]!.settings).toMatchObject({ title: 'Meu artigo' });
+  });
+});
+
+describe('schedulePost em rede sem thread (artigo)', () => {
+  beforeEach(async () => {
+    behavior.noThreads = true;
+    await connect(f, prov.provider);
+  });
+
+  test('réplicas em canal sem suporte a thread → capability.disabled', async () => {
+    await expect(schedule({ thread: [{ text: 'réplica' }] })).rejects.toMatchObject({
+      code: 'capability.disabled',
+    });
   });
 });
 

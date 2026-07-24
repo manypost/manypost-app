@@ -165,6 +165,23 @@ check(
   providers.find((p) => p.id === 'discord-webhook')?.connectionFieldsSchema?.properties?.webhookUrl !== undefined,
   'discord-webhook expõe connectionFieldsSchema (webhookUrl)',
 );
+// devto conecta por chave pessoal do usuário (sem app, sem env) → sempre disponível, por campos
+check(ids.includes('devto'), 'devto sempre disponível (chave pessoal, não precisa de env)');
+check(
+  providers.find((p) => p.id === 'devto')?.connectType === 'fields',
+  'devto conecta por campos (chave de API)',
+);
+check(
+  providers.find((p) => p.id === 'devto')?.connectionFieldsSchema?.properties?.apiKey !== undefined,
+  'devto expõe connectionFieldsSchema (apiKey)',
+);
+// artigo: título é o primeiro campo de settings OBRIGATÓRIO do catálogo (recusa no agendamento)
+check(
+  (providers.find((p) => p.id === 'devto')?.settingsSchema?.required as string[] | undefined)?.includes(
+    'title',
+  ) === true,
+  'devto exige title no settingsSchema (artigo sem título é recusado ao agendar)',
+);
 // telegram só fica conectável com TELEGRAM_BOT_TOKEN; sem env → available:false e connect 404
 if (ids.includes('telegram')) {
   check(providers.find((p) => p.id === 'telegram')?.connectType === 'fields', 'telegram conecta por campos');

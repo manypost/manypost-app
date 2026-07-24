@@ -50,6 +50,8 @@ interface NetworkProps {
   avatarUrl: string | null;
   entries: PreviewEntryData[];
   timeLabel: string;
+  /** settings por canal já mesclados — redes cujo post não é só texto (Dev.to: título, tags) */
+  settings: Record<string, unknown>;
 }
 
 type Icon = ComponentType<{ className?: string }>;
@@ -672,6 +674,68 @@ function TiktokPreview({ p }: { p: NetworkProps }) {
   );
 }
 
+/**
+ * Dev.to: o destino é um ARTIGO, não um post de feed — o cartão é o da listagem da
+ * plataforma: capa, título (que vem das settings, não do corpo), autor e tags.
+ * Sem título o cartão mostra o placeholder, porque o agendamento vai recusar assim.
+ */
+function DevtoPreview({ p }: { p: NetworkProps }) {
+  const t = useTranslations('composer.preview.devto');
+  const main = p.entries[0];
+  if (!main) return null;
+
+  const title = typeof p.settings.title === 'string' ? p.settings.title.trim() : '';
+  const tags = Array.isArray(p.settings.tags) ? (p.settings.tags as string[]) : [];
+  const cover = main.media.find((m) => m.mime.startsWith('image/'));
+  // ~200 palavras/min, o mesmo arredondamento para cima que a plataforma usa
+  const minutes = Math.max(1, Math.round(main.text.trim().split(/\s+/).filter(Boolean).length / 200));
+
+  return (
+    <article className="max-w-[380px] overflow-hidden rounded-lg border border-line bg-surface">
+      {cover ? (
+        <MediaThumb url={cover.url} mime={cover.mime} alt={cover.alt} className="h-36 w-full object-cover" />
+      ) : null}
+
+      <div className="flex flex-col gap-2 p-3">
+        <div className="flex items-center gap-2">
+          <ChannelAvatar name={p.name} avatarUrl={p.avatarUrl} provider={p.provider} className="size-6" />
+          <div className="flex min-w-0 flex-col leading-tight">
+            <span className="truncate text-xs font-semibold text-ink">{p.name}</span>
+            <span className="text-[11px] text-mist">{p.timeLabel}</span>
+          </div>
+        </div>
+
+        {title ? (
+          <h4 className="text-lg font-bold leading-snug tracking-[-0.2px] text-ink break-words">{title}</h4>
+        ) : (
+          <p className="text-lg font-bold leading-snug text-mist italic">{t('titlePlaceholder')}</p>
+        )}
+
+        {tags.length > 0 ? (
+          <ul className="flex flex-wrap gap-1.5">
+            {tags.map((tag) => (
+              <li key={tag} className="bevel-chip rounded-sm px-1.5 py-0.5 text-[11px] text-graphite">
+                #{tag}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
+        {main.text ? (
+          <p className="line-clamp-3 whitespace-pre-wrap break-words text-xs leading-relaxed text-graphite">
+            {main.text}
+          </p>
+        ) : null}
+
+        <div className="flex items-center justify-between">
+          <ActionRow icons={[Heart, MessageCircle, Bookmark]} className="max-w-20" />
+          <span className="text-[11px] text-mist">{t('readTime', { minutes })}</span>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 const PREVIEWS: Record<string, ComponentType<{ p: NetworkProps }>> = {
   x: XPreview,
   bluesky: BlueskyPreview,
@@ -688,6 +752,7 @@ const PREVIEWS: Record<string, ComponentType<{ p: NetworkProps }>> = {
   facebook: FacebookPreview,
   twitch: ChatPreview,
   kick: ChatPreview,
+  devto: DevtoPreview,
 };
 
 export function NetworkPreview({
@@ -697,6 +762,7 @@ export function NetworkPreview({
   avatarUrl,
   entries,
   publishAt,
+  settings,
 }: {
   provider: string;
   name: string;
@@ -705,6 +771,8 @@ export function NetworkPreview({
   entries: PreviewEntryData[];
   /** horário agendado — sem valor, o chrome mostra "agora" */
   publishAt?: Date | null;
+  /** settings do canal; só as redes cujo post não é só texto usam (Dev.to: título, tags) */
+  settings?: Record<string, unknown> | null;
 }) {
   const locale = useLocale();
   const t = useTranslations('composer.preview');
@@ -730,6 +798,7 @@ export function NetworkPreview({
         avatarUrl: avatarUrl ?? null,
         entries,
         timeLabel,
+        settings: settings ?? {},
       }}
     />
   );

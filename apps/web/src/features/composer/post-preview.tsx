@@ -20,12 +20,15 @@ interface PreviewItem {
 export function PostPreview({
   channels,
   textFor,
+  settingsFor,
   mediaIds,
   thread,
   publishAt,
 }: {
   channels: Channel[];
   textFor: (channelId: string) => string;
+  /** settings em edição do canal — o preview do Dev.to tira o título do artigo daqui */
+  settingsFor?: (channelId: string) => Record<string, unknown>;
   mediaIds: string[];
   thread: PreviewItem[];
   publishAt?: Date | null;
@@ -58,6 +61,7 @@ export function PostPreview({
           username={ch.username}
           avatarUrl={ch.avatarUrl}
           publishAt={publishAt}
+          settings={settingsFor?.(ch.id)}
           entries={[
             { text: textFor(ch.id), media: resolve(mediaIds) },
             ...thread.map((item) => ({ text: item.text, media: resolve(item.mediaIds) })),

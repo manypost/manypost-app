@@ -170,6 +170,9 @@ function SubAccountsField({
 
 /** Campos renderizados como seletor de sub-conta (o valor vem de `/sub-accounts`, não digitado). */
 const SUB_ACCOUNT_FIELDS: Record<string, string> = {
+  // organização do Dev.to; lista vazia = o autor nunca publicou por uma (a API não lista
+  // organizações direto), e aí publicar pelo perfil pessoal é o padrão correto
+  devto: 'organizationId',
   discord: 'channelId',
   facebook: 'pageId',
   // no Instagram via Facebook Business o valor gravado também é o id da PÁGINA (a conta do

@@ -53,7 +53,10 @@ export function runProviderContract(provider: ChannelProvider) {
     });
 
     test('settingsSchema aceita objeto vazio ou aplica defaults sem lançar', () => {
-      // publicação sem settings explícitos é o caminho comum — não pode explodir
+      // publicação sem settings explícitos é o caminho comum — não pode explodir.
+      // NÃO exige que {} seja *válido*: provider sem fallback pode ter campo obrigatório
+      // (Dev.to exige o título do artigo), e aí o agendamento recusa com post.invalid_settings
+      // nomeando o campo. O contrato aqui é só "parsear não lança" — safeParse nunca lança.
       expect(() => provider.settingsSchema.safeParse({})).not.toThrow();
     });
 

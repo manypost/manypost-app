@@ -158,77 +158,59 @@
       "modeCloudLabel": "Na nuvem",
       "fallback": {
         "oauth": "Você é levado à rede para autorizar — sem digitar sua senha aqui.",
-        "fields": "A conexão usa credenciais que você cola na hora, guardadas cifradas.",
-        "selfHosted": "Configure as chaves do app no arquivo .env desta instalação. O passo a passo está em docs/principal/INTEGRATIONS_SETUP.md.",
-        "cloud": "As credenciais do app já estão prontas — é só conectar e autorizar."
+        "fields": "A conexão usa credenciais que você cola na hora, guardadas cifradas."
       },
       "mastodon": {
-        "what": "Publica no seu perfil do Mastodon, em qualquer instância.",
-        "selfHosted": "Não precisa de chave: o manypost registra o app sozinho na instância. Opcional: defina a instância padrão no .env.",
-        "cloud": "Informe a sua instância (ex.: mastodon.social) e autorize."
+        "what": "Publica no seu perfil do Mastodon, em qualquer instância."
       },
       "bluesky": {
-        "what": "Publica no seu perfil do Bluesky.",
-        "selfHosted": "Nada no .env: a conexão pede seu handle e uma senha de aplicativo (Settings → App Passwords, no Bluesky).",
-        "cloud": "Informe seu handle e uma senha de aplicativo — crie em Settings → App Passwords no Bluesky. Nunca use a senha principal."
+        "what": "Publica no seu perfil do Bluesky."
       },
       "telegram": {
-        "what": "Publica em um canal ou grupo do Telegram onde o bot seja administrador.",
-        "selfHosted": "Crie um bot no @BotFather e ponha o TELEGRAM_BOT_TOKEN no .env. Depois adicione o bot como admin do canal.",
-        "cloud": "Adicione o bot da plataforma como administrador do seu canal ou grupo e informe o @ ou o id dele aqui."
+        "what": "Publica em um canal ou grupo do Telegram onde o bot seja administrador."
       },
       "discord": {
-        "what": "Publica em canais de texto de um servidor do Discord.",
-        "selfHosted": "Crie um app no Discord Developer Portal e ponha CLIENT_ID, CLIENT_SECRET e BOT_TOKEN no .env.",
-        "cloud": "Autorize o bot no seu servidor e escolha os canais de texto."
+        "what": "Publica em canais de texto de um servidor do Discord."
       },
       "discord-webhook": {
-        "what": "Publica em um único canal do Discord, por webhook.",
-        "selfHosted": "Não precisa criar app: cole a URL do webhook do canal (engrenagem do canal → Integrações → Webhooks).",
-        "cloud": "Cole a URL do webhook do canal (engrenagem do canal → Integrações → Webhooks)."
+        "what": "Publica em um único canal do Discord, por webhook."
       },
       "linkedin": {
-        "what": "Publica no seu perfil pessoal do LinkedIn.",
-        "selfHosted": "Crie um app em linkedin.com/developers, peça os produtos de login e de compartilhamento, e ponha CLIENT_ID/CLIENT_SECRET no .env."
+        "what": "Publica no seu perfil pessoal do LinkedIn."
       },
       "x": {
-        "what": "Publica no seu perfil do X (Twitter).",
-        "selfHosted": "Crie um app OAuth 2.0 no developer.x.com e ponha X_CLIENT_ID/X_CLIENT_SECRET no .env. Fique de olho no custo da API acima do limite grátis.",
-        "cloud": "É só conectar e autorizar. Disponível nos planos pagos."
+        "what": "Publica no seu perfil do X (Twitter)."
       },
       "tiktok": {
-        "what": "Publica vídeos ou fotos no seu TikTok — a rede não aceita post só de texto.",
-        "selfHosted": "Crie um app em developers.tiktok.com e ponha TIKTOK_CLIENT_KEY/CLIENT_SECRET no .env. Post público exige a auditoria da TikTok aprovada."
+        "what": "Publica vídeos ou fotos no seu TikTok — a rede não aceita post só de texto."
       },
       "threads": {
-        "what": "Publica no seu perfil do Threads: texto, foto, carrossel e thread.",
-        "selfHosted": "Crie o caso de uso Threads API no painel da Meta e ponha THREADS_APP_ID/APP_SECRET no .env. Foto e vídeo pedem armazenamento acessível por HTTPS."
+        "what": "Publica no seu perfil do Threads: texto, foto, carrossel e thread."
       },
       "instagram-standalone": {
-        "what": "Publica no seu Instagram profissional (comercial ou de criador): foto, reel, carrossel e story. Toda publicação leva mídia — não há post só de texto.",
-        "selfHosted": "Crie um app com o produto \"Instagram\" (Instagram Login) no painel da Meta e ponha INSTAGRAM_APP_ID/INSTAGRAM_APP_SECRET no .env. A conta precisa ser comercial ou de criador, e a mídia tem que ficar acessível por HTTPS (a Meta baixa o arquivo pela URL).",
-        "cloud": "Conecte a sua conta profissional do Instagram (comercial ou de criador) e autorize a publicação."
+        "what": "Publica no seu Instagram profissional (comercial ou de criador): foto, reel, carrossel e story. Toda publicação leva mídia — não há post só de texto."
       },
       "facebook": {
-        "what": "Publica em uma Página do Facebook que você administra: texto, foto, álbum, vídeo (reel) e story. A Página é escolhida em cada post, nas Configurações.",
-        "selfHosted": "Crie um app com o produto \"Facebook Login\" no painel da Meta e ponha FACEBOOK_APP_ID/FACEBOOK_APP_SECRET no .env. Você precisa ser administrador da Página, e a mídia tem que ficar acessível por HTTPS (a Meta baixa o arquivo pela URL).",
-        "cloud": "Conecte a sua conta do Facebook, autorize e escolha em cada post a Página onde publicar."
+        "what": "Publica em uma Página do Facebook que você administra: texto, foto, álbum, vídeo (reel) e story. A Página é escolhida em cada post, nas Configurações."
       },
       "instagram": {
-        "what": "Publica no Instagram profissional que está vinculado a uma Página do Facebook: foto, reel, carrossel e story. Você conecta pelo Facebook e escolhe a conta em cada post, nas Configurações. Se a sua conta não é ligada a nenhuma Página, use o \"Instagram\" da lista, que conecta direto.",
-        "selfHosted": "Usa a MESMA app do Facebook — se você já configurou FACEBOOK_APP_ID/FACEBOOK_APP_SECRET no .env, esta rede já está pronta. A conta do Instagram precisa ser comercial ou de criador e estar vinculada a uma Página que você administra, e a mídia tem que ficar acessível por HTTPS (a Meta baixa o arquivo pela URL).",
-        "cloud": "Conecte a sua conta do Facebook, autorize e escolha em cada post a conta do Instagram onde publicar."
+        "what": "Publica no Instagram profissional que está vinculado a uma Página do Facebook: foto, reel, carrossel e story. Você conecta pelo Facebook e escolhe a conta em cada post, nas Configurações. Se a sua conta não é ligada a nenhuma Página, use o \"Instagram\" da lista, que conecta direto."
       },
       "twitch": {
-        "what": "Envia uma mensagem no chat da sua live — não é um feed. Com o canal offline, a sala fica vazia.",
-        "selfHosted": "Crie um app em dev.twitch.tv e ponha TWITCH_CLIENT_ID/CLIENT_SECRET no .env."
+        "what": "Envia uma mensagem no chat da sua live — não é um feed. Com o canal offline, a sala fica vazia."
       },
       "kick": {
-        "what": "Envia uma mensagem no chat da sua live na Kick — não é um feed de posts.",
-        "selfHosted": "Crie um app em kick.com (Settings → Developer) e ponha KICK_CLIENT_ID/CLIENT_SECRET no .env."
+        "what": "Envia uma mensagem no chat da sua live na Kick — não é um feed de posts."
+      },
+      "devto": {
+        "what": "Publica um artigo no seu Dev.to. Cada post vira um texto longo com título próprio, escrito em Markdown — o título você preenche nas Configurações do canal, na hora de agendar."
       }
     },
     "fields": {
+      "devto": {
+        "apiKey": "Chave de API",
+        "apiKeyPlaceholder": "cole a chave gerada no Dev.to"
+      },
       "mastodon": {
         "instance": "URL da instância (opcional)",
         "instancePlaceholder": "https://mastodon.social"
@@ -330,6 +312,10 @@
         "like": "Curtir",
         "comment": "Comentar",
         "share": "Compartilhar"
+      },
+      "devto": {
+        "titlePlaceholder": "Sem título ainda",
+        "readTime": "{minutes} min de leitura"
       }
     },
     "channelSettings": {
@@ -353,11 +339,22 @@
           "loading": "Buscando suas contas do Instagram...",
           "select": "Selecione a conta do Instagram...",
           "unset": "-- Selecione uma conta --"
+        },
+        "devto": {
+          "loading": "Buscando suas organizações...",
+          "select": "Publicar pelo meu perfil",
+          "unset": "Meu perfil pessoal"
         }
       },
       "fields": {
         "mastodon": {
           "visibility": "Quem pode ver"
+        },
+        "devto": {
+          "title": "Título do artigo",
+          "tags": "Tags",
+          "canonicalUrl": "Endereço original do texto",
+          "organizationId": "Publicar como"
         },
         "telegram": {
           "disableLinkPreview": "Não mostrar prévia dos links",
@@ -422,6 +419,12 @@
       "hints": {
         "mastodon": {
           "visibility": "Escolhe quem alcança esta publicação na sua instância do Mastodon."
+        },
+        "devto": {
+          "title": "Aparece como o título do artigo no Dev.to e na lista de quem te segue. É obrigatório: sem ele o artigo não pode ser publicado.",
+          "tags": "Até 4 assuntos que ajudam o Dev.to a mostrar seu artigo para quem se interessa por eles. Separe por vírgula e escreva sem o \"#\" — ex.: bun, typescript.",
+          "canonicalUrl": "Se este texto já saiu no seu blog ou em outro site, cole aqui o endereço original. O Dev.to avisa aos buscadores qual é a versão principal, e assim uma não atrapalha a outra.",
+          "organizationId": "Sai pelo seu perfil ou pela organização que você escolher. A lista traz só as organizações pelas quais você já publicou algum artigo."
         },
         "telegram": {
           "disableLinkPreview": "Quando o texto tem um link, o Telegram costuma abrir um cartão com a imagem e o resumo da página. Ative para publicar só o texto.",
