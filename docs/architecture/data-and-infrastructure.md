@@ -38,13 +38,15 @@ O diagrama mostra relações principais, não todas as tabelas auxiliares.
 | `users` | conta global, perfil, timezone/locale | email único normalizado |
 | `organizations` | tenant e customer Stripe opcional | slug/customer únicos |
 | `memberships` | usuário ↔ organização e role | único por org+user |
-| `auth_identities` | vínculo Google/GitHub | provider+external user único |
-| `sessions` | família de refresh token | hash atual único, hash anterior, revogação |
+| `auth_identities` | vínculo do subject Clerk ao usuário Manypost | provider+external user único |
+| `sessions` | armazenamento legado, sem consumidor no runtime Clerk-only | preservado para rollback por release/migração futura |
 | `api_keys` | credencial de máquina escopada | hash único, org, scopes, soft revoke |
 
-JWT carrega `sub`, `org` e `role`. Refresh token e API key em claro não são
-persistidos. O sistema hoje escolhe o primeiro membership ao emitir/renovar
-sessão; multi-organização interativa ainda não está implementada.
+O subject autenticado vem do token Clerk. Organização e role são resolvidos no
+PostgreSQL a cada requisição; claims de tenant do cliente não participam da
+autorização. O sistema hoje escolhe o primeiro membership persistido;
+multi-organização interativa ainda não está implementada. API key em claro não
+é persistida.
 
 ### Canais
 
@@ -96,7 +98,8 @@ post groups, publications, media, tags, sets, signatures, approval links,
 webhooks, notifications, audit, AI credits, OAuth apps/grants, idempotency e
 subscriptions.
 
-Tabelas filhas sem `org_id`: auth identities/sessions (escopo por user),
+Tabelas filhas sem `org_id`: auth identities (escopo por user), sessions
+(legado sem consumidor no runtime),
 publication items/events (por publication), group tags (por group/tag),
 channel metrics (por channel) e webhook deliveries (por webhook).
 
@@ -251,11 +254,21 @@ com `PUBLIC_URL`.
 
 | Nome | Obrigatório/default | Formato e finalidade |
 | --- | --- | --- |
-| `JWT_SECRET` | obrigatório | string com pelo menos 32 caracteres |
-| `ENCRYPTION_KEY` | obrigatório | 64 caracteres hex/32 bytes, diferente do JWT secret |
+| `ENCRYPTION_KEY` | obrigatório | 64 caracteres hex/32 bytes |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | obrigatório em API/web/all | chave pública da instância Clerk |
+| `CLERK_SECRET_KEY` | obrigatório em API/web/all | segredo server-only da mesma instância Clerk |
+| `CLERK_JWT_KEY` | opcional | chave pública PEM para validação de sessão Clerk |
 | `WEBHOOKS_ALLOW_PRIVATE` | default falso | boolean string; somente dev/E2E controlado |
 | `MEDIA_ALLOW_PRIVATE_URLS` | default falso | boolean string; somente dev/E2E controlado |
 | `METRICS_TOKEN` | opcional | bearer; ausente deixa `/metrics` público |
+
+As duas chaves principais do Clerk são obrigatórias nos runtimes que atendem
+humanos. O worker dedicado (`MODE=worker`) não autentica requisições e não
+recebe essas chaves. A API limita tokens Clerk à origem de `PUBLIC_URL` por
+`authorizedParties`, resolve o usuário no backend e aceita apenas o email
+primário verificado de uma sessão ativa, sem tarefa obrigatória pendente.
+Indisponibilidade do provider falha com 503 sem autorizar a operação. O browser
+nunca recebe `CLERK_SECRET_KEY`.
 
 ### Billing
 
@@ -268,14 +281,14 @@ com `PUBLIC_URL`.
 Billing só monta quando `IS_SELF_HOSTED=false`, `HIDE_BILLING=false` e
 `STRIPE_SECRET_KEY` existe.
 
-### Login social
+### Autenticação humana
 
-| Provider | Nomes | Formato/finalidade |
-| --- | --- | --- |
-| Google | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | strings OAuth; ambos opcionais |
-| GitHub | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | strings OAuth; ambos opcionais |
-
-Ausência remove o provider de login do catálogo.
+Clerk é o único autenticador humano. O web conclui senha, verificação de email
+ou Google no Clerk e envia o token Clerk em toda chamada `/v1`. A API resolve a
+identidade, mas organização, membership e role continuam vindo exclusivamente
+do PostgreSQL Manypost. Claims de tenant enviados pelo browser não são aceitos.
+Não existem login social direto, JWT, refresh token ou cookie de sessão humana
+emitidos pelo Manypost.
 
 ### Redes sociais
 

@@ -4,7 +4,6 @@ export * from './application/ports/job-scheduler';
 export * from './application/ports/crypto';
 export * from './application/ports/channel-provider-registry';
 export * from './application/ports/ai-provider';
-export * from './application/ports/auth';
 export * from './application/ports/repositories';
 export * from './application/ports/events';
 export * from './application/ports/media';

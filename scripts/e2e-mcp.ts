@@ -1,4 +1,4 @@
-export {}; // módulo (top-level await)
+import { createE2EHuman } from './e2e-clerk';
 
 /**
  * E2E do servidor MCP (SPEC_API_MCP §5/§7.3): fala o protocolo Streamable HTTP de verdade
@@ -22,25 +22,36 @@ function check(cond: unknown, msg: string) {
   }
 }
 
-// ---- setup: conta (OWNER) + canal fake + API key com escopo mcp ----
-const email = `mcp-${Date.now()}@test.dev`;
-const reg = await fetch(`${BASE}/v1/auth/register`, {
-  method: 'POST',
-  headers: { 'content-type': 'application/json' },
-  body: JSON.stringify({ email, password: 'senha-e2e-super-forte-123', name: 'MCP' }),
-});
-const { accessToken } = (await reg.json()) as any;
-const jwt = { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' };
+// ---- setup: identidade Clerk OWNER + canal fake + API key com escopo mcp ----
+const { auth: clerkAuth } = await createE2EHuman('mcp');
 
-const connect = await fetch(`${BASE}/v1/channels/connect`, { method: 'POST', headers: jwt, body: JSON.stringify({ provider: 'fake' }) });
+const connect = await fetch(`${BASE}/v1/channels/connect`, { method: 'POST', headers: clerkAuth, body: JSON.stringify({ provider: 'fake' }) });
 const stateCookie = connect.headers.get('set-cookie')?.split(';')[0] ?? '';
 const cbq = new URL(((await connect.json()) as any).url).searchParams;
-await fetch(`${BASE}/v1/channels/callback/fake?code=${cbq.get('code')}&state=${cbq.get('state')}`, { headers: { ...jwt, cookie: stateCookie } });
-const channel = ((await (await fetch(`${BASE}/v1/channels`, { headers: jwt })).json()) as any[])[0];
+await fetch(`${BASE}/v1/channels/callback/fake?code=${cbq.get('code')}&state=${cbq.get('state')}`, { headers: { ...clerkAuth, cookie: stateCookie } });
+const channel = ((await (await fetch(`${BASE}/v1/channels`, { headers: clerkAuth })).json()) as any[])[0];
 check(channel?.provider === 'fake', 'setup: canal fake conectado');
 
+const clerkBearerOnMcp = await fetch(MCP, { method: 'POST', headers: clerkAuth, body: '{}' });
+check(
+  clerkBearerOnMcp.status === 401,
+  `bearer Clerk no MCP → 401 (veio ${clerkBearerOnMcp.status})`,
+);
+const clerkCookieOnMcp = await fetch(MCP, {
+  method: 'POST',
+  headers: {
+    'content-type': 'application/json',
+    cookie: `__session=${clerkAuth.authorization.slice('Bearer '.length)}`,
+  },
+  body: '{}',
+});
+check(
+  clerkCookieOnMcp.status === 401,
+  `cookie Clerk no MCP → 401 (veio ${clerkCookieOnMcp.status})`,
+);
+
 async function createKey(name: string, scopes: string[]) {
-  const res = await fetch(`${BASE}/v1/api-keys`, { method: 'POST', headers: jwt, body: JSON.stringify({ name, scopes }) });
+  const res = await fetch(`${BASE}/v1/api-keys`, { method: 'POST', headers: clerkAuth, body: JSON.stringify({ name, scopes }) });
   return ((await res.json()) as any).apiKey as string;
 }
 const mcpKey = await createKey('e2e-mcp', ['mcp']);
@@ -118,8 +129,8 @@ check(sched.status === 200 && !sched.isError, 'schedule_post não retornou erro'
 const groupId = sched.data?.id;
 check(sched.data?.state === 'SCHEDULED', `grupo SCHEDULED (veio ${sched.data?.state})`);
 
-// origem MCP visível no feed (via JWT) + get_post via MCP
-const feed = (await (await fetch(`${BASE}/v1/publications`, { headers: jwt })).json()) as any;
+// origem MCP visível no feed (via sessão Clerk) + get_post via MCP
+const feed = (await (await fetch(`${BASE}/v1/publications`, { headers: clerkAuth })).json()) as any;
 const feedItem = feed.items?.find((it: any) => it.groupId === groupId);
 check(feedItem?.group.origin === 'MCP', `origin = MCP no feed (veio ${feedItem?.group.origin})`);
 

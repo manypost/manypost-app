@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, or } from 'drizzle-orm';
+import { and, desc, eq, isNull, or, sql } from 'drizzle-orm';
 import type {
   ApiKeyRepository,
   AuthIdentityRepository,
@@ -57,8 +57,80 @@ export function makeAuthIdentityRepository(db: Db): AuthIdentityRepository {
         .limit(1);
       return row ?? null;
     },
-    async link(data) {
-      await db.insert(authIdentities).values(data).onConflictDoNothing();
+    async resolveOrProvision(data) {
+      return db.transaction(async (tx) => {
+        await tx.execute(
+          sql`select pg_advisory_xact_lock(hashtext(${data.provider}), hashtext(${data.providerUserId}))`,
+        );
+
+        const [linked] = await tx
+          .select({ userId: authIdentities.userId })
+          .from(authIdentities)
+          .where(
+            and(
+              eq(authIdentities.provider, data.provider),
+              eq(authIdentities.providerUserId, data.providerUserId),
+            ),
+          )
+          .limit(1);
+        if (linked) return { userId: linked.userId, isNewUser: false };
+
+        const [existingUser] = await tx
+          .select({ id: users.id })
+          .from(users)
+          .where(eq(users.email, data.email))
+          .limit(1);
+        if (existingUser) {
+          await tx.insert(authIdentities).values({
+            userId: existingUser.id,
+            provider: data.provider,
+            providerUserId: data.providerUserId,
+            email: data.email,
+          });
+          return { userId: existingUser.id, isNewUser: false };
+        }
+
+        const [insertedUser] = await tx
+          .insert(users)
+          .values({
+            email: data.email,
+            passwordHash: null,
+            name: data.name,
+            avatarUrl: data.avatarUrl,
+          })
+          .onConflictDoNothing({ target: users.email })
+          .returning({ id: users.id });
+        if (!insertedUser) {
+          const [concurrentUser] = await tx
+            .select({ id: users.id })
+            .from(users)
+            .where(eq(users.email, data.email))
+            .limit(1);
+          await tx.insert(authIdentities).values({
+            userId: concurrentUser!.id,
+            provider: data.provider,
+            providerUserId: data.providerUserId,
+            email: data.email,
+          });
+          return { userId: concurrentUser!.id, isNewUser: false };
+        }
+        const [org] = await tx
+          .insert(organizations)
+          .values({ name: data.orgName, slug: data.orgSlug })
+          .returning({ id: organizations.id });
+        await tx.insert(memberships).values({
+          orgId: org!.id,
+          userId: insertedUser.id,
+          role: 'OWNER',
+        });
+        await tx.insert(authIdentities).values({
+          userId: insertedUser.id,
+          provider: data.provider,
+          providerUserId: data.providerUserId,
+          email: data.email,
+        });
+        return { userId: insertedUser.id, isNewUser: true };
+      });
     },
   };
 }

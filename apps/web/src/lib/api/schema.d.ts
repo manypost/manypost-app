@@ -39,364 +39,6 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/v1/auth/social": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Catálogo de provedores de login social configurados */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description provedores (vazio se nenhum env) */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["SocialProviders"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/auth/social/{provider}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Redireciona ao provedor OAuth (Google/GitHub) */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    provider: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description redirect para o provedor de identidade */
-                302: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description não encontrado */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["Error"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/auth/social/{provider}/callback": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Callback OAuth do login social (define cookies e redireciona) */
-        get: {
-            parameters: {
-                query: {
-                    code: string;
-                    state: string;
-                };
-                header?: never;
-                path: {
-                    provider: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description autenticado — redireciona ao app com cookies de sessão */
-                302: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description não autenticado */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["Error"];
-                    };
-                };
-                /** @description não encontrado */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["Error"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/auth/register": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Cria conta + organização (papel OWNER) e já autentica */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        /** Format: email */
-                        email: string;
-                        password: string;
-                        name: string;
-                        orgName?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description conta criada (cookies httpOnly também são definidos) */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["AuthResult"];
-                    };
-                };
-                /** @description requisição fora do contrato (problem+json) */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["Error"];
-                    };
-                };
-                /** @description conflito */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["Error"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/auth/login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Autentica por e-mail e senha */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        /** Format: email */
-                        email: string;
-                        password: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description autenticado */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["AuthResult"];
-                    };
-                };
-                /** @description requisição fora do contrato (problem+json) */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["Error"];
-                    };
-                };
-                /** @description não autenticado */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["Error"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/auth/refresh": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Renova a sessão com rotação do refresh token
-         * @description Token via cookie httpOnly (web) ou body JSON (clientes de API). O reuso de um token já rotacionado revoga a família inteira.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        refreshToken?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description nova dupla de tokens (cookies também são atualizados) */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["TokenPair"];
-                    };
-                };
-                /** @description não autenticado */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["Error"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/auth/logout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Encerra a sessão e limpa os cookies */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        refreshToken?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description sessão encerrada */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/auth/me": {
         parameters: {
             query?: never;
@@ -404,7 +46,7 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** Identidade do principal autenticado (usuário ou API key) */
+        /** Identidade Clerk com autorização Manypost */
         get: {
             parameters: {
                 query?: never;
@@ -414,7 +56,7 @@ export type paths = {
             };
             requestBody?: never;
             responses: {
-                /** @description usuário (com papel) ou API key (com escopos) */
+                /** @description usuário Clerk com papel Manypost */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -425,6 +67,24 @@ export type paths = {
                 };
                 /** @description não autenticado */
                 401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description papel insuficiente (requer ADMIN/OWNER) */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description provedor externo temporariamente indisponível */
+                503: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -4263,11 +3923,17 @@ export type paths = {
 export type webhooks = Record<string, never>;
 export type components = {
     schemas: {
-        SocialProviders: {
-            providers: {
+        Me: {
+            /** @enum {string} */
+            kind: "user";
+            orgId: string;
+            role: string;
+            user: {
                 id: string;
-                name: string;
-            }[];
+                email: string;
+                name: string | null;
+                avatarUrl: string | null;
+            } | null;
         };
         Error: {
             /** @example about:blank */
@@ -4283,38 +3949,6 @@ export type components = {
             detail?: string;
             /** @description campos extras (ex.: issues de validação) */
             extra?: unknown;
-        };
-        AuthResult: {
-            user: {
-                id: string;
-                email: string;
-                name: string | null;
-                avatarUrl: string | null;
-            };
-            org: {
-                id: string;
-                name: string;
-                role: string;
-            };
-            accessToken: string;
-            refreshToken: string;
-        };
-        TokenPair: {
-            accessToken: string;
-            refreshToken: string;
-        };
-        Me: {
-            /** @enum {string} */
-            kind: "user" | "api_key";
-            orgId: string;
-            role?: string;
-            scopes?: string[];
-            user?: {
-                id: string;
-                email: string;
-                name: string | null;
-                avatarUrl: string | null;
-            } | null;
         };
         ApiKey: {
             id: string;

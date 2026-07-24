@@ -1,4 +1,4 @@
-export {}; // módulo (top-level await)
+import { createE2EHuman } from './e2e-clerk';
 
 /**
  * E2E dos limites de plano no serviço gerenciado (PLANS.md §3 / SPEC_BACKEND §5).
@@ -21,14 +21,7 @@ function check(cond: unknown, msg: string) {
   }
 }
 
-const email = `billing-${Date.now()}@test.dev`;
-const reg = await fetch(`${BASE}/v1/auth/register`, {
-  method: 'POST',
-  headers: { 'content-type': 'application/json' },
-  body: JSON.stringify({ email, password: 'senha-e2e-super-forte-123', name: 'Billing E2E' }),
-});
-const { accessToken } = (await reg.json()) as any;
-const auth = { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' };
+const { auth } = await createE2EHuman('billing');
 const future = () => new Date(Date.now() + 3_600_000).toISOString();
 
 /** conecta um canal fake novo (externalId distinto por chamada) */
@@ -166,16 +159,7 @@ check(caps2.plan.usage.postsThisMonth >= 15, 'uso de posts do mês >= 15');
 const SELF_HOSTED = process.env.SELF_HOSTED_BASE_URL;
 if (SELF_HOSTED) {
   console.log('\n== self-hosted: nada é cobrado nem barrado ==');
-  const email2 = `selfhost-${Date.now()}@test.dev`;
-  const reg2 = await fetch(`${SELF_HOSTED}/v1/auth/register`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email: email2, password: 'senha-e2e-super-forte-123', name: 'Community' }),
-  });
-  const auth2 = {
-    authorization: `Bearer ${((await reg2.json()) as any).accessToken}`,
-    'content-type': 'application/json',
-  };
+  const { auth: auth2 } = await createE2EHuman('self-hosted', SELF_HOSTED);
 
   const caps3 = (await (await fetch(`${SELF_HOSTED}/v1/capabilities`, { headers: auth2 })).json()) as any;
   check(caps3.billingEnabled === false, 'billingEnabled = false');

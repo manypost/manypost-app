@@ -24,6 +24,11 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
   nunca é gravado em configurações, que são armazenadas sem cifra. Mudança OpenSpec:
   `add-instagram-facebook-business-provider`.
 
+- Autenticação humana obrigatória pelo Clerk, com UI Manypost customizada para
+  senha, verificação de email, Google e tarefas de sessão.
+- Fluxos de callback e conclusão Clerk, matcher de proxy e configuração
+  operacional para Google OAuth e Railway.
+- Continuação segura para tarefas Clerk de organização, reset de senha e MFA.
 - OpenSpec `1.6.0` como dependência local exata, com configuração, scripts,
   guia de criação/validação/implementação/archive e a mudança real
   `establish-maintenance-baseline`.
@@ -61,6 +66,12 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
   deduplicada) passou a ter fonte única em `packages/providers/src/shared/meta-graph.ts`,
   compartilhada pelos canais Facebook e Instagram (Facebook Business), sem mudança de
   comportamento do Facebook.
+- Clerk autentica toda requisição humana; a API Manypost continua responsável
+  por usuário, organização, membership, role e autorização. Não existe sessão
+  humana interna nem fallback de senha/social. API keys, MCP e OAuth de canais
+  não mudaram.
+- O CI cria sessões Clerk de teste com chave RSA efêmera e identidades em
+  PostgreSQL descartável; os E2E não dependem mais do JWT humano removido.
 - Bun fixado em `1.3.14`; CI e imagem usam instalação congelada pelo `bun.lock`.
 - GitHub Actions passa a executar typecheck web, brand, build Next, build da
   imagem Docker e validação OpenSpec além das verificações anteriores.
@@ -75,10 +86,13 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 - Conexões SSE agora têm timeout Bun de 30 segundos, acima do ping de 25
   segundos, evitando a desconexão observada no Railway.
-- O web client permite que `/v1/auth/me` use a tentativa única de refresh e só abre
-  `/v1/events` após confirmar a sessão; um 401 final chama logout para expirar
-  também os cookies HttpOnly, remove `mp_session`, vai ao login e não inicia retry
-  do EventSource.
+- O web client anexa o token Clerk a toda chamada `/v1`; o EventSource usa o
+  cookie Clerk `__session`. Um 401 encerra o Clerk, vai ao login e não inicia
+  retry do stream.
+- API REST pública e MCP aceitam somente API key `mp_live_` por bearer; bearer
+  ou cookie Clerk não pode mais contornar os escopos de máquina.
+- Respostas 401, 403, 429 e 5xx da Backend API Clerk são tratadas como
+  indisponibilidade; somente usuário inexistente é uma identidade inválida.
 - A conclusão do popup OAuth exige o `origin` do app e a janela popup
   efetivamente aberta.
 - AES-256-GCM fixa explicitamente a tag de autenticação existente em 16 bytes
@@ -88,6 +102,10 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Security
 
+- Autenticação humana e autenticação de máquina usam middlewares separados, com
+  testes negativos HTTP para bearer e cookie Clerk nas superfícies REST/MCP.
+- Corridas de provisionamento por subject/e-mail e rollback intermediário são
+  exercitados contra PostgreSQL real no CI.
 - O audit caiu de 17 para 7 advisories transitivos. Permanecem 4 altos e 3
   moderados nas cadeias de Sharp/PostCSS, AJV/fast-uri, Redocly/js-yaml,
   Drizzle Kit/esbuild e MCP SDK/Hono; cadeia e exposição estão no
@@ -99,6 +117,9 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Known Issues
 
+- O CLI Clerk está autenticado, vinculado e aprovado pelo `clerk doctor`; o
+  domínio Clerk de produção ainda aguarda DNS/SSL, e a URI Google exata e o
+  teste browser autenticado dependem dessa ativação e do primeiro usuário.
 - Continuações concorrentes de thread e resultados externos indeterminados
   exigem fencing durável antes de qualquer mudança no publish.
 - Media/webhook egress exige address pinning para fechar DNS rebinding.
@@ -110,14 +131,21 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Breaking Changes
 
-- Nenhuma. Não houve mudança de API pública/MCP, banco, migration, cookies,
-  prefixos, valores persistidos ou identificadores de provider.
+- Clerk é obrigatório e invalida as sessões humanas anteriores. Usuários
+  existentes precisam criar/recuperar a identidade no Clerk com o mesmo email.
+  Login, cadastro, OAuth social, exchange, refresh e logout internos foram
+  removidos. Não houve migration destrutiva nem mudança na API pública/MCP ou
+  no OAuth de canais.
 
 ### Operational Notes
 
+- Produção exige chaves de uma instância Clerk de produção e credenciais Google
+  customizadas. A URL de callback deve ser copiada da conexão Google no Clerk;
+  as origens web canônicas são `https://app.manypost.com.br` e
+  `http://localhost:3000` somente em desenvolvimento.
 - A imagem agora falha cedo se o lockfile ou build Next estiver inválido; isso
   pode transformar deploy antes “verde” em falha de build, por segurança.
 - O daemon Docker local não estava disponível durante a validação inicial da
   branch; o build efetivo deve ser comprovado pela CI/Railway antes do merge.
-- Rollback não requer mudança de dados: reverta os commits de runtime/CI ou
-  redeploye o último commit Railway bem-sucedido.
+- Rollback não requer mudança de dados: redeploye o último release verificado.
+  O release novo não contém fallback runtime.

@@ -1,268 +1,268 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 import type { MemberRole } from '@manypost/contracts';
-import type {
-  ApiKeyRecord,
-  OrgRecord,
-  SessionRecord,
-  UserRecord,
-} from '../ports/repositories';
+import type { ApiKeyRecord, OrgRecord, UserRecord } from '../ports/repositories';
 import {
   makeCreateApiKey,
   makeListApiKeys,
-  makeLogin,
-  makeLoginWithIdentity,
-  makeLogout,
-  makeRefreshSession,
-  makeRegister,
+  makeResolveIdentityPrincipal,
   makeRevokeApiKey,
   makeVerifyApiKey,
   type SocialProfile,
 } from './auth';
 
-// ---------- fakes em memória ----------
-
 function makeFakes() {
-  const users: (UserRecord & { _n: number })[] = [];
+  const users: UserRecord[] = [];
   const orgs: (OrgRecord & { members: { userId: string; role: MemberRole }[] })[] = [];
-  const sessions: (SessionRecord & { refreshTokenHash: string; prevTokenHash: string | null })[] = [];
   const keys: (ApiKeyRecord & { keyHash: string })[] = [];
-  const identities: { userId: string; provider: string; providerUserId: string; email: string | null }[] = [];
-  let seq = 0;
-  const id = () => `id-${++seq}`;
+  const identities: {
+    userId: string;
+    provider: string;
+    providerUserId: string;
+    email: string | null;
+  }[] = [];
+  let sequence = 0;
+  const id = () => `id-${++sequence}`;
 
   const deps = {
     users: {
-      findByEmail: async (email: string) => users.find((u) => u.email === email) ?? null,
-      findById: async (uid: string) => users.find((u) => u.id === uid) ?? null,
-      create: async (d: any) => {
-        const u = { id: id(), timezone: 'UTC', locale: 'pt-BR', name: null, avatarUrl: null, ...d, _n: seq };
-        users.push(u);
-        return u;
+      findByEmail: async (email: string) => users.find((user) => user.email === email) ?? null,
+      findById: async (userId: string) => users.find((user) => user.id === userId) ?? null,
+      create: async (data: Omit<UserRecord, 'id' | 'timezone' | 'locale'>) => {
+        const user = { id: id(), timezone: 'UTC', locale: 'pt-BR', ...data };
+        users.push(user);
+        return user;
       },
-      updateAvatarIfEmpty: async (uid: string, url: string) => {
-        const u = users.find((x) => x.id === uid);
-        if (u && !u.avatarUrl) u.avatarUrl = url;
+      updateAvatarIfEmpty: async (userId: string, avatarUrl: string) => {
+        const user = users.find((candidate) => candidate.id === userId);
+        if (user && !user.avatarUrl) user.avatarUrl = avatarUrl;
       },
     },
     identities: {
       find: async (provider: string, providerUserId: string) =>
-        identities.find((i) => i.provider === provider && i.providerUserId === providerUserId) ?? null,
-      link: async (d: any) => {
-        identities.push(d);
+        identities.find(
+          (identity) =>
+            identity.provider === provider && identity.providerUserId === providerUserId,
+        ) ?? null,
+      resolveOrProvision: async (data: {
+        provider: string;
+        providerUserId: string;
+        email: string;
+        name: string | null;
+        avatarUrl: string | null;
+        orgName: string;
+        orgSlug: string;
+      }) => {
+        const linked = identities.find(
+          (identity) =>
+            identity.provider === data.provider &&
+            identity.providerUserId === data.providerUserId,
+        );
+        if (linked) return { userId: linked.userId, isNewUser: false };
+
+        let user = users.find((candidate) => candidate.email === data.email);
+        const isNewUser = !user;
+        if (!user) {
+          user = {
+            id: id(),
+            email: data.email,
+            passwordHash: null,
+            name: data.name,
+            avatarUrl: data.avatarUrl,
+            timezone: 'UTC',
+            locale: 'pt-BR',
+          };
+          users.push(user);
+          orgs.push({
+            id: id(),
+            name: data.orgName,
+            slug: data.orgSlug,
+            members: [{ userId: user.id, role: 'OWNER' }],
+          });
+        }
+        identities.push({
+          userId: user.id,
+          provider: data.provider,
+          providerUserId: data.providerUserId,
+          email: data.email,
+        });
+        return { userId: user.id, isNewUser };
       },
     },
     orgs: {
-      createWithOwner: async (d: any) => {
-        const o = { id: id(), name: d.name, slug: d.slug, members: [{ userId: d.ownerId, role: 'OWNER' as MemberRole }] };
-        orgs.push(o);
-        return o;
+      createWithOwner: async () => {
+        throw new Error('não usado');
       },
-      findMembership: async (orgId: string, userId: string) =>
-        orgs.find((o) => o.id === orgId)?.members.find((m) => m.userId === userId) ?? null,
+      findMembership: async () => null,
       listForUser: async (userId: string) =>
         orgs
-          .filter((o) => o.members.some((m) => m.userId === userId))
-          .map((o) => ({ id: o.id, name: o.name, slug: o.slug, role: o.members.find((m) => m.userId === userId)!.role })),
-    },
-    sessions: {
-      create: async (d: any) => {
-        const s = { id: id(), revokedAt: null, prevTokenHash: null, ...d };
-        sessions.push(s);
-        return s;
-      },
-      findByTokenHash: async (hash: string) => {
-        const cur = sessions.find((s) => s.refreshTokenHash === hash);
-        if (cur) return { session: cur, matched: 'current' as const };
-        const prev = sessions.find((s) => s.prevTokenHash === hash);
-        return prev ? { session: prev, matched: 'previous' as const } : null;
-      },
-      rotate: async (sid: string, newHash: string) => {
-        const s = sessions.find((x) => x.id === sid)!;
-        s.prevTokenHash = s.refreshTokenHash;
-        s.refreshTokenHash = newHash;
-      },
-      revoke: async (sid: string) => {
-        const s = sessions.find((x) => x.id === sid)!;
-        s.revokedAt = new Date();
-      },
+          .filter((org) => org.members.some((member) => member.userId === userId))
+          .map((org) => ({
+            id: org.id,
+            name: org.name,
+            slug: org.slug,
+            role: org.members.find((member) => member.userId === userId)!.role,
+          })),
     },
     apiKeys: {
-      create: async (d: any) => {
-        const k = { id: id(), lastUsedAt: null, revokedAt: null, createdAt: new Date(), ...d };
-        keys.push(k);
-        return k;
+      create: async (data: Omit<ApiKeyRecord, 'id' | 'lastUsedAt' | 'revokedAt' | 'createdAt'> & {
+        keyHash: string;
+      }) => {
+        const key = {
+          id: id(),
+          lastUsedAt: null,
+          revokedAt: null,
+          createdAt: new Date(),
+          ...data,
+        };
+        keys.push(key);
+        return key;
       },
-      findActiveByHash: async (h: string) => keys.find((k) => k.keyHash === h && !k.revokedAt) ?? null,
-      list: async (orgId: string) => keys.filter((k) => k.orgId === orgId),
-      revoke: async (orgId: string, kid: string) => {
-        const k = keys.find((x) => x.orgId === orgId && x.id === kid && !x.revokedAt);
-        if (!k) return false;
-        k.revokedAt = new Date();
+      findActiveByHash: async (hash: string) =>
+        keys.find((key) => key.keyHash === hash && !key.revokedAt) ?? null,
+      list: async (orgId: string) => keys.filter((key) => key.orgId === orgId),
+      revoke: async (orgId: string, keyId: string) => {
+        const key = keys.find(
+          (candidate) =>
+            candidate.orgId === orgId && candidate.id === keyId && !candidate.revokedAt,
+        );
+        if (!key) return false;
+        key.revokedAt = new Date();
         return true;
       },
-      touchLastUsed: async (kid: string) => {
-        const k = keys.find((x) => x.id === kid);
-        if (k) k.lastUsedAt = new Date();
+      touchLastUsed: async (keyId: string) => {
+        const key = keys.find((candidate) => candidate.id === keyId);
+        if (key) key.lastUsedAt = new Date();
       },
     },
-    hasher: {
-      hash: async (p: string) => `h(${p})`,
-      verify: async (p: string, h: string) => h === `h(${p})`,
-    },
-    signer: {
-      sign: async (claims: any) => `jwt(${claims.sub}:${claims.org}:${claims.role})`,
-      verify: async () => null,
-    },
-    _state: { users, orgs, sessions, keys, identities },
+    _state: { users, orgs, keys, identities },
   };
   return deps;
 }
 
-let f: ReturnType<typeof makeFakes>;
+const profile = (overrides: Partial<SocialProfile> = {}): SocialProfile => ({
+  provider: 'clerk',
+  providerUserId: 'user_clerk_1',
+  email: 'ana@example.test',
+  emailVerified: true,
+  name: 'Ana',
+  avatarUrl: 'https://example.test/ana.png',
+  ...overrides,
+});
+
+let fakes: ReturnType<typeof makeFakes>;
 beforeEach(() => {
-  f = makeFakes();
+  fakes = makeFakes();
 });
 
-describe('register/login', () => {
-  test('registro cria user + org OWNER e emite tokens', async () => {
-    const out = await makeRegister(f as any)({ email: ' Ana@X.com ', password: 's3nh4-forte', name: 'Ana' });
-    expect(out.user.email).toBe('ana@x.com');
-    expect(out.org.role).toBe('OWNER');
-    expect(out.accessToken).toContain('OWNER');
-    expect(out.refreshToken.length).toBeGreaterThan(30);
-  });
-
-  test('e-mail duplicado → auth.email_taken', async () => {
-    await makeRegister(f as any)({ email: 'a@a.com', password: 'x'.repeat(12), name: 'A' });
-    await expect(
-      makeRegister(f as any)({ email: 'A@A.com', password: 'y'.repeat(12), name: 'B' }),
-    ).rejects.toMatchObject({ code: 'auth.email_taken' });
-  });
-
-  test('senha errada e usuário inexistente dão o MESMO erro', async () => {
-    await makeRegister(f as any)({ email: 'a@a.com', password: 'senha-certa1', name: 'A' });
-    const e1 = await makeLogin(f as any)({ email: 'a@a.com', password: 'errada' }).catch((e) => e);
-    const e2 = await makeLogin(f as any)({ email: 'nao@existe.com', password: 'errada' }).catch((e) => e);
-    expect(e1.code).toBe('auth.invalid_credentials');
-    expect(e2.code).toBe('auth.invalid_credentials');
-    expect(e1.message).toBe(e2.message);
-  });
-});
-
-describe('refresh com rotação e detecção de reuso', () => {
-  test('rotação: token antigo deixa de valer, novo vale', async () => {
-    const { refreshToken } = await makeRegister(f as any)({ email: 'a@a.com', password: 'x'.repeat(12), name: 'A' });
-    const r1 = await makeRefreshSession(f as any)({ refreshToken });
-    expect(r1.refreshToken).not.toBe(refreshToken);
-    const r2 = await makeRefreshSession(f as any)({ refreshToken: r1.refreshToken });
-    expect(r2.accessToken).toContain('jwt(');
-  });
-
-  test('REUSO do token rotacionado revoga a sessão inteira', async () => {
-    const { refreshToken } = await makeRegister(f as any)({ email: 'a@a.com', password: 'x'.repeat(12), name: 'A' });
-    const r1 = await makeRefreshSession(f as any)({ refreshToken }); // rotaciona
-    // atacante (ou vítima) reapresenta o token ANTIGO:
-    await expect(makeRefreshSession(f as any)({ refreshToken })).rejects.toMatchObject({
-      code: 'auth.session_invalid',
+describe('identidade Clerk e autorização Manypost', () => {
+  test('provisiona usuário, organização OWNER e identidade sem sessão interna', async () => {
+    const out = await makeResolveIdentityPrincipal(fakes as never)({
+      providerUserId: 'user_clerk_1',
+      loadProfile: async () => profile(),
     });
-    // a família morreu: nem o token NOVO funciona mais
-    await expect(makeRefreshSession(f as any)({ refreshToken: r1.refreshToken })).rejects.toMatchObject({
-      code: 'auth.session_invalid',
-    });
-  });
 
-  test('sessão expirada é rejeitada', async () => {
-    const { refreshToken } = await makeRegister(f as any)({ email: 'a@a.com', password: 'x'.repeat(12), name: 'A' });
-    f._state.sessions[0]!.expiresAt = new Date(Date.now() - 1000);
-    await expect(makeRefreshSession(f as any)({ refreshToken })).rejects.toMatchObject({
-      code: 'auth.session_invalid',
-    });
-  });
-
-  test('logout revoga a sessão', async () => {
-    const { refreshToken } = await makeRegister(f as any)({ email: 'a@a.com', password: 'x'.repeat(12), name: 'A' });
-    await makeLogout(f as any)({ refreshToken });
-    await expect(makeRefreshSession(f as any)({ refreshToken })).rejects.toMatchObject({
-      code: 'auth.session_invalid',
-    });
-  });
-});
-
-describe('login social (Google/GitHub)', () => {
-  const profile = (over: Partial<SocialProfile> = {}): SocialProfile => ({
-    provider: 'google',
-    providerUserId: 'g-123',
-    email: 'ana@gmail.com',
-    emailVerified: true,
-    name: 'Ana Social',
-    avatarUrl: 'https://foto/ana.png',
-    ...over,
-  });
-
-  test('primeiro login cria user com FOTO do social + org OWNER + identidade', async () => {
-    const out = await makeLoginWithIdentity(f as any)({ profile: profile() });
     expect(out.isNewUser).toBe(true);
-    expect(out.user.avatarUrl).toBe('https://foto/ana.png');
     expect(out.org.role).toBe('OWNER');
-    expect(f._state.identities).toHaveLength(1);
+    expect(out.user.avatarUrl).toBe('https://example.test/ana.png');
+    expect(fakes._state.identities).toHaveLength(1);
+    expect(fakes._state).not.toHaveProperty('sessions');
   });
 
-  test('segundo login NÃO duplica conta nem org', async () => {
-    await makeLoginWithIdentity(f as any)({ profile: profile() });
-    const out = await makeLoginWithIdentity(f as any)({ profile: profile() });
+  test('requisições repetidas não duplicam identidade nem tenant', async () => {
+    const resolve = makeResolveIdentityPrincipal(fakes as never);
+    const [first, second] = await Promise.all([
+      resolve({ providerUserId: 'user_clerk_1', loadProfile: async () => profile() }),
+      resolve({ providerUserId: 'user_clerk_1', loadProfile: async () => profile() }),
+    ]);
+
+    expect([first.isNewUser, second.isNewUser].filter(Boolean)).toHaveLength(1);
+    expect(fakes._state.users).toHaveLength(1);
+    expect(fakes._state.orgs).toHaveLength(1);
+    expect(fakes._state.identities).toHaveLength(1);
+  });
+
+  test('vincula por e-mail verificado e preserva avatar escolhido', async () => {
+    fakes._state.users.push({
+      id: 'existing-user',
+      email: 'ana@example.test',
+      passwordHash: 'historical-hash',
+      name: 'Ana existente',
+      avatarUrl: 'https://example.test/chosen.png',
+      timezone: 'UTC',
+      locale: 'pt-BR',
+    });
+    fakes._state.orgs.push({
+      id: 'existing-org',
+      name: 'Existente',
+      slug: 'existente',
+      members: [{ userId: 'existing-user', role: 'ADMIN' }],
+    });
+
+    const out = await makeResolveIdentityPrincipal(fakes as never)({
+      providerUserId: 'user_clerk_1',
+      loadProfile: async () => profile(),
+    });
+
     expect(out.isNewUser).toBe(false);
-    expect(f._state.users).toHaveLength(1);
-    expect(f._state.orgs).toHaveLength(1);
+    expect(out.org.role).toBe('ADMIN');
+    expect(out.user.avatarUrl).toBe('https://example.test/chosen.png');
   });
 
-  test('vincula a conta existente pelo e-mail VERIFICADO (senha continua valendo)', async () => {
-    await makeRegister(f as any)({ email: 'ana@gmail.com', password: 'senha-forte-12', name: 'Ana' });
-    const out = await makeLoginWithIdentity(f as any)({ profile: profile() });
-    expect(out.isNewUser).toBe(false);
-    expect(f._state.users).toHaveLength(1);
-    expect(f._state.identities).toHaveLength(1);
-    // login por senha segue funcionando
-    const pw = await makeLogin(f as any)({ email: 'ana@gmail.com', password: 'senha-forte-12' });
-    expect(pw.user.email).toBe('ana@gmail.com');
-  });
-
-  test('e-mail NÃO verificado no provedor é recusado', async () => {
+  test('não provisiona por e-mail não verificado', async () => {
     await expect(
-      makeLoginWithIdentity(f as any)({ profile: profile({ emailVerified: false }) }),
+      makeResolveIdentityPrincipal(fakes as never)({
+        providerUserId: 'user_clerk_1',
+        loadProfile: async () => profile({ emailVerified: false }),
+      }),
     ).rejects.toMatchObject({ code: 'auth.social_email_unverified' });
+    expect(fakes._state.users).toHaveLength(0);
   });
 
-  test('foto do social só preenche avatar VAZIO — nunca sobrescreve', async () => {
-    await makeRegister(f as any)({ email: 'ana@gmail.com', password: 'senha-forte-12', name: 'Ana' });
-    f._state.users[0]!.avatarUrl = 'https://minha-foto-escolhida.png';
-    const out = await makeLoginWithIdentity(f as any)({ profile: profile() });
-    expect(out.user.avatarUrl).toBe('https://minha-foto-escolhida.png');
+  test('identidade já vinculada não consulta novamente o perfil remoto', async () => {
+    const resolve = makeResolveIdentityPrincipal(fakes as never);
+    await resolve({
+      providerUserId: 'user_clerk_1',
+      loadProfile: async () => profile(),
+    });
+
+    const existing = await resolve({
+      providerUserId: 'user_clerk_1',
+      loadProfile: async () => {
+        throw new Error('Clerk Backend API não deveria ser consultada');
+      },
+    });
+
+    expect(existing.user.email).toBe('ana@example.test');
+    expect(existing.org.role).toBe('OWNER');
   });
 });
 
 describe('API keys', () => {
-  test('cria com prefixo mp_live_, verifica e revoga', async () => {
-    const { apiKey, record } = await makeCreateApiKey(f as any)({ orgId: 'org-1', name: 'ci', scopes: ['posts:write'] });
-    expect(apiKey.startsWith('mp_live_')).toBe(true);
-
-    const principal = await makeVerifyApiKey(f as any)(apiKey);
-    expect(principal).toMatchObject({ orgId: 'org-1', scopes: ['posts:write'] });
-
-    await makeRevokeApiKey(f as any)({ orgId: 'org-1', id: record.id });
-    expect(await makeVerifyApiKey(f as any)(apiKey)).toBeNull();
-  });
-
-  test('lista não expõe hash; chave com formato errado → null', async () => {
-    await makeCreateApiKey(f as any)({ orgId: 'org-1', name: 'ci', scopes: [] });
-    const list = await makeListApiKeys(f as any)('org-1');
-    expect(list).toHaveLength(1);
-    expect(await makeVerifyApiKey(f as any)('outra-coisa')).toBeNull();
-  });
-
-  test('revogar key de OUTRA org falha (filtro multi-tenant)', async () => {
-    const { record } = await makeCreateApiKey(f as any)({ orgId: 'org-1', name: 'ci', scopes: [] });
-    await expect(makeRevokeApiKey(f as any)({ orgId: 'org-2', id: record.id })).rejects.toMatchObject({
-      code: 'common.not_found',
+  test('cria, verifica, lista e revoga sem expor hash', async () => {
+    const { apiKey, record } = await makeCreateApiKey(fakes as never)({
+      orgId: 'org-1',
+      name: 'ci',
+      scopes: ['posts:write'],
     });
+    expect(apiKey.startsWith('mp_live_')).toBe(true);
+    expect(await makeVerifyApiKey(fakes as never)(apiKey)).toMatchObject({
+      orgId: 'org-1',
+      scopes: ['posts:write'],
+    });
+    expect(await makeListApiKeys(fakes as never)('org-1')).toHaveLength(1);
+
+    await makeRevokeApiKey(fakes as never)({ orgId: 'org-1', id: record.id });
+    expect(await makeVerifyApiKey(fakes as never)(apiKey)).toBeNull();
+  });
+
+  test('não revoga chave de outra organização', async () => {
+    const { record } = await makeCreateApiKey(fakes as never)({
+      orgId: 'org-1',
+      name: 'ci',
+      scopes: [],
+    });
+    await expect(
+      makeRevokeApiKey(fakes as never)({ orgId: 'org-2', id: record.id }),
+    ).rejects.toMatchObject({ code: 'common.not_found' });
   });
 });

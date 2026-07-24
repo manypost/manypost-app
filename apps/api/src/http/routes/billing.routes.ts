@@ -100,7 +100,9 @@ export function billingRoutes(ctn: Container) {
   if (!billing) return app; // defesa: nunca montada sem billing
 
   // catálogo é público para quem está logado (a tela de planos precisa dele)
-  app.use('*', requireAuth({ signer: ctn.signer, verifyApiKey: ctn.auth.verifyApiKey }));
+  app.use('*', requireAuth({
+    authenticateHuman: ctn.auth.authenticateHuman,
+  }));
 
   app.openapi(
     createRoute({

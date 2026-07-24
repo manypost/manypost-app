@@ -21,86 +21,72 @@ Erros de domínio usam códigos estáveis de
 Erros externos são normalizados pelo provider. Logs não devem incluir tokens ou
 segredos.
 
-## Registro e login por senha
+## Registro e login humano
 
-**Entrada:** rotas de register/login em
-`apps/api/src/http/routes/auth.routes.ts`, chamadas por
-`apps/web/src/features/auth/`.
+**Entrada:** UI Manypost em `apps/web/src/features/auth/` e Clerk no browser.
 
 **Validação e autorização**
 
-- email/senha são validados pelo schema da route;
-- password hasher usa implementação em
-  `apps/api/src/infra/auth/password.hasher.ts`;
-- login compara o hash sem revelar se detalhes internos existem;
-- register cria o primeiro contexto de organização/membership conforme o
-  repository de identidade.
+- Clerk conduz senha, verificação de email, fatores adicionais e Google;
+- o cliente anexa o token Clerk a cada chamada humana `/v1`;
+- a API valida assinatura, tempo, origem autorizada e status da sessão;
+- sessão Clerk com tarefa obrigatória pendente não acessa o app;
+- organização, membership e role são calculados somente pela API/repository;
+- dados de tenant enviados pelo browser são ignorados.
 
 **Regra e persistência**
 
-1. `makeRegister` ou `makeLogin` em
-   `packages/core/src/application/use-cases/auth.ts` valida a operação.
-2. `packages/db/src/repositories/identity.repo.ts` lê/cria usuário,
-   organização, membership e sessão.
-3. O access JWT expira em 15 minutos.
-4. O refresh token aleatório expira em 30 dias; somente seu hash é persistido.
+1. O browser finaliza a tentativa Clerk e obtém um token de sessão.
+2. `clerk.identity.ts` valida o subject; a Backend Users API só é consultada
+   quando esse subject ainda não possui vínculo interno.
+3. `makeResolveIdentityPrincipal` localiza ou cria `provider = "clerk"`,
+   usuário, organização e membership.
+4. O middleware monta o principal com `userId`, `orgId` e role persistidos.
+5. A route autoriza e executa no escopo dessa organização.
 
 **Resultado**
 
-- a API grava `mp_at` e `mp_rt` como cookies HttpOnly e `mp_session=1` como
-  marcador não sensível;
-- o web segue para onboarding ou shell conforme `/v1/auth/me`;
-- credenciais inválidas viram problem+json sem criar sessão.
+- o web segue para onboarding ou shell;
+- token inválido ou email não verificado vira problem+json sem autorizar;
+- o Manypost não emite JWT, refresh token ou cookie humano;
+- ausência das chaves Clerk interrompe o startup, sem fallback legado.
 
-**Assíncrono/integração:** não há fila nem serviço externo no login por senha.
-
-**Pontos de cuidado:** cookies/path/sameSite, enumeration, rate limit de login,
-sessões por organização e segredo JWT.
+**Pontos de cuidado:** `authorizedParties`, separação entre chave pública e
+segredo, linking somente por email verificado e isolamento por membership.
 
 ## Refresh, expiração e logout
 
-**Entrada:** `POST /v1/auth/refresh`, `POST /v1/auth/logout` e
-`GET /v1/auth/me` em `auth.routes.ts`; o wrapper
-`apps/web/src/lib/api/client.ts` chama refresh uma vez após 401.
+**Entrada:** sessão Clerk no browser e `GET /v1/auth/me` em `auth.routes.ts`.
 
 **Sequência**
 
-1. O cliente deduplica refresh concorrente no processo browser.
-2. `makeRefreshSession` calcula o hash e busca sessão por token atual/anterior.
-3. Token anterior indica reuso e revoga a família.
-4. Token atual válido gera um novo par e rotaciona hashes na sessão.
-5. A route substitui cookies; logout revoga a sessão e apaga cookies.
+1. `ClerkSessionBridge` disponibiliza `getToken` ao wrapper HTTP.
+2. `fetchWithClerk` anexa o bearer às chamadas `/v1`.
+3. Um 401 não dispara exchange, refresh interno ou retry de credencial.
+4. Logout encerra o Clerk, limpa queries privadas e volta ao login.
+5. EventSource, que não aceita header customizado, usa o cookie Clerk
+   same-origin `__session`.
 
 **Resultado/erro**
 
-- refresh bem-sucedido repete a requisição original;
-- refresh inválido mantém o 401 como falha real;
 - o hook realtime deve abrir EventSource somente após `/auth/me` bem-sucedido;
-- logout é seguro mesmo quando o token já não é utilizável.
+- um 401 encerra a sessão visível e não reconecta o stream;
+- indisponibilidade do Clerk falha fechada para requisições humanas.
 
-**Risco conhecido:** a leitura e a rotação do hash não são compare-and-swap em
-uma transação; duas requisições reais simultâneas podem competir. O cliente
-reduz concorrência por aba, mas não elimina múltiplos dispositivos/processos.
+## Login social humano
 
-## Login social Google/GitHub
-
-**Entrada:** `GET /v1/auth/social`, `/:provider` e
-`/:provider/callback` em `social-auth.routes.ts`.
+**Entrada primária:** botão Google da UI Manypost usando o fluxo SSO do Clerk.
 
 **Sequência**
 
-1. O registry de identidade em `apps/api/src/infra/identity/` seleciona Google
-   ou GitHub configurado.
-2. A route cria state/cookie de curta duração e redireciona ao consentimento.
-3. O callback valida state e troca code por identidade externa.
-4. `makeLoginWithIdentity` localiza/cria vínculo, usuário e sessão.
-5. Cookies são gravados e o browser retorna ao app.
-
-**Erros:** provider ausente não é anunciado; state/callback inválido falha sem
-sessão; conflito de identidade exige tratamento explícito do caso de uso.
+1. Clerk redireciona ao Google e recebe o callback na URL autorizada exibida no
+   Dashboard do Clerk.
+2. O browser retorna a `/sso-callback` e finaliza a sessão Clerk.
+3. `/auth/complete` valida tarefas pendentes e segue ao onboarding ou shell.
+4. A primeira chamada `/v1` provisiona ou resolve o principal Manypost.
 
 **Persistência:** `auth_identities`, `users`, `organizations`, `memberships`,
-`sessions`.
+sem nova sessão Manypost. Isso não altera o OAuth de conexão de canais.
 
 ## API keys
 
@@ -114,7 +100,9 @@ sessão; conflito de identidade exige tratamento explícito do caso de uso.
 4. Listagem nunca devolve o segredo; delete revoga no escopo da organização.
 
 Na API pública, middleware em `public-api.ts` aplica scope, rate limit e
-idempotência. No MCP, exige scope `mcp`.
+idempotência. No MCP, exige scope `mcp`. As duas superfícies usam middleware
+exclusivo de máquina: aceitam apenas bearer `mp_live_` e rejeitam bearer ou
+cookie Clerk antes da verificação de escopos.
 
 ## Conexão de canal por OAuth
 

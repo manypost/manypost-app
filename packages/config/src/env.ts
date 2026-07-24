@@ -63,16 +63,16 @@ const EnvSchema = z
       .default('false')
       .transform((v) => v === 'true'),
 
-    JWT_SECRET: z.string().min(32, 'JWT_SECRET precisa de >= 32 chars'),
     ENCRYPTION_KEY: z
       .string()
       .length(64, 'ENCRYPTION_KEY: 32 bytes em hex (64 chars) — gere com: openssl rand -hex 32'),
 
-    // Login social (opcional — sem env, o botão não aparece)
-    GOOGLE_CLIENT_ID: z.string().optional(),
-    GOOGLE_CLIENT_SECRET: z.string().optional(),
-    GITHUB_CLIENT_ID: z.string().optional(),
-    GITHUB_CLIENT_SECRET: z.string().optional(),
+    // Clerk é o único autenticador humano. API/web/all exigem as duas chaves; o worker
+    // dedicado não autentica humanos e não recebe o secret.
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1).optional(),
+    CLERK_SECRET_KEY: z.string().min(1).optional(),
+    /** chave pública PEM opcional: quando presente, a validação do JWT não consulta JWKS */
+    CLERK_JWT_KEY: z.string().min(1).optional(),
 
     // Credenciais de providers de rede (opcionais — sem env, o provider some do catálogo;
     // guia leigo em docs/principal/INTEGRATIONS_SETUP.md). Bluesky/Mastodon não precisam de env.
@@ -126,9 +126,6 @@ const EnvSchema = z
     // (self-hosted em rede privada — a exposição não contém segredos, só contadores)
     METRICS_TOKEN: z.string().optional(),
   })
-  .refine((env) => env.ENCRYPTION_KEY !== env.JWT_SECRET, {
-    message: 'ENCRYPTION_KEY e JWT_SECRET devem ser segredos DISTINTOS (SPEC_DATA §5)',
-  })
   .refine((env) => hostOf(env.API_PUBLIC_URL) !== hostOf(env.PUBLIC_URL), {
     message:
       'API_PUBLIC_URL precisa de um host DIFERENTE de PUBLIC_URL (ex.: api.dominio) — mesmo host esconderia a interface web',
@@ -138,9 +135,33 @@ const EnvSchema = z
     message:
       'MCP_PUBLIC_URL precisa de um host DIFERENTE de PUBLIC_URL (ex.: mcp.dominio) — mesmo host esconderia a interface web',
     path: ['MCP_PUBLIC_URL'],
+  })
+  .superRefine((env, ctx) => {
+    if (env.MODE === 'worker') return;
+    if (!env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY'],
+        message: 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY é obrigatória fora do worker dedicado',
+      });
+    }
+    if (!env.CLERK_SECRET_KEY) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['CLERK_SECRET_KEY'],
+        message: 'CLERK_SECRET_KEY é obrigatória fora do worker dedicado',
+      });
+    }
   });
 
 export type Env = z.infer<typeof EnvSchema>;
+
+export type ClerkConfig = {
+  publishableKey: string;
+  secretKey: string;
+  jwtKey: string | undefined;
+  authorizedParties: string[];
+};
 
 /** `host:porta` normalizado de uma URL (undefined se a URL não veio ou é inválida). */
 function hostOf(url: string | undefined): string | undefined {
@@ -150,6 +171,19 @@ function hostOf(url: string | undefined): string | undefined {
   } catch {
     return undefined; // URL inválida já é reprovada pelo z.string().url()
   }
+}
+
+/** Configuração Clerk sem valores implícitos vindos do browser. */
+export function clerkConfig(env: Env): ClerkConfig {
+  if (!env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || !env.CLERK_SECRET_KEY) {
+    throw new Error('configuração Clerk ausente no runtime humano');
+  }
+  return {
+    publishableKey: env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+    secretKey: env.CLERK_SECRET_KEY,
+    jwtKey: env.CLERK_JWT_KEY,
+    authorizedParties: [new URL(env.PUBLIC_URL).origin],
+  };
 }
 
 /**

@@ -1,4 +1,4 @@
-export {}; // módulo (top-level await)
+import { createE2EHuman } from './e2e-clerk';
 
 /**
  * E2E do coração do produto: conectar canal (fake) → agendar → worker publica.
@@ -20,15 +20,8 @@ function check(cond: unknown, msg: string) {
 }
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-// ---- setup: conta + canal fake conectado ----
-const email = `pub-${Date.now()}@test.dev`;
-const reg = await fetch(`${BASE}/v1/auth/register`, {
-  method: 'POST',
-  headers: { 'content-type': 'application/json' },
-  body: JSON.stringify({ email, password: 'senha-e2e-super-forte-123', name: 'Publisher' }),
-});
-const { accessToken } = (await reg.json()) as any;
-const auth = { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' };
+// ---- setup: identidade Clerk + canal fake conectado ----
+const { auth } = await createE2EHuman('publish');
 
 const connect = await fetch(`${BASE}/v1/channels/connect`, {
   method: 'POST',

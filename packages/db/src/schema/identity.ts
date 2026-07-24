@@ -62,7 +62,7 @@ export const memberships = pgTable(
   ],
 );
 
-/** Logins sociais vinculados (Google, GitHub…) — 1 usuário pode ter vários. */
+/** Identidades externas; no runtime humano atual, vincula o subject Clerk ao usuário. */
 export const authIdentities = pgTable(
   'auth_identities',
   {
@@ -81,11 +81,7 @@ export const authIdentities = pgTable(
   ],
 );
 
-/**
- * Refresh tokens com rotação e detecção de reuso (SPEC_API_MCP §2).
- * 1 linha = 1 família de sessão: o hash rotaciona in-place e o hash anterior fica em
- * prev_token_hash — token apresentado que casa com o anterior = reuso (roubo) → revoga.
- */
+/** Sessões humanas legadas, preservadas sem consumidor no runtime Clerk-only. */
 export const sessions = pgTable(
   'sessions',
   {

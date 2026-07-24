@@ -40,7 +40,9 @@ const serialize = (r: {
 
 export function apiKeyRoutes(ctn: Container) {
   const app = createApp();
-  app.use('*', requireAuth({ signer: ctn.signer, verifyApiKey: ctn.auth.verifyApiKey }));
+  app.use('*', requireAuth({
+    authenticateHuman: ctn.auth.authenticateHuman,
+  }));
   app.use('*', requireAdmin());
 
   app.openapi(

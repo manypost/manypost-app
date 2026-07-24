@@ -32,7 +32,9 @@ const WebhookCreated = z
 
 export function webhookRoutes(ctn: Container) {
   const app = createApp();
-  app.use('*', requireAuth({ signer: ctn.signer, verifyApiKey: ctn.auth.verifyApiKey }));
+  app.use('*', requireAuth({
+    authenticateHuman: ctn.auth.authenticateHuman,
+  }));
   app.use('*', requireAdmin());
 
   app.openAPIRegistry.registerPath({

@@ -116,7 +116,9 @@ export function channelRoutes(ctn: Container) {
     return provider;
   };
 
-  app.use('*', requireAuth({ signer: ctn.signer, verifyApiKey: ctn.auth.verifyApiKey }));
+  app.use('*', requireAuth({
+    authenticateHuman: ctn.auth.authenticateHuman,
+  }));
 
   app.openAPIRegistry.registerPath({
     method: 'get',

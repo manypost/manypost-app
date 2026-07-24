@@ -27,12 +27,15 @@ export interface UserRepository {
 
 export interface AuthIdentityRepository {
   find(provider: string, providerUserId: string): Promise<{ userId: string } | null>;
-  link(data: {
-    userId: string;
+  resolveOrProvision(data: {
     provider: string;
     providerUserId: string;
-    email: string | null;
-  }): Promise<void>;
+    email: string;
+    name: string | null;
+    avatarUrl: string | null;
+    orgName: string;
+    orgSlug: string;
+  }): Promise<{ userId: string; isNewUser: boolean }>;
 }
 
 export interface OrgRecord {

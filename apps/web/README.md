@@ -12,7 +12,10 @@ PORT=3100 PUBLIC_URL=http://localhost:3000 MODE=api ... bun run dev
 API_URL=http://localhost:3100 bun run dev:web   # → http://localhost:3000
 ```
 
-**Modelo de origem única:** o Next serve a UI e proxeia `/v1` e `/uploads` para a API (`next.config.ts`), preservando os caminhos — os cookies httpOnly (`mp_at`, `mp_rt` com `Path=/v1/auth`, marcador `mp_session`) ficam first-party. Em produção, o `PUBLIC_URL` da API deve ser a origem do web.
+**Modelo de origem única:** o Next serve a UI e proxeia `/v1` e `/uploads` para
+a API (`next.config.ts`). O cliente anexa a sessão Clerk às chamadas `/v1`; o
+EventSource usa o cookie Clerk first-party `__session`. Em produção,
+`PUBLIC_URL` deve ser a origem do web.
 
 ## Cliente da API
 
@@ -22,7 +25,8 @@ Gerado de `/openapi.json` (`openapi-typescript` + `openapi-fetch`), snapshot ver
 API_URL=http://localhost:3100 bun run --cwd apps/web generate:api
 ```
 
-Nenhum `fetch` manual fora de `src/lib/api/client.ts` (que também faz refresh-em-401 deduplicado). 1 recurso = 1 hook (`src/features/*/hooks.ts`).
+Chamadas protegidas fora do cliente gerado usam `fetchWithClerk`; não existe
+refresh ou exchange interno. 1 recurso = 1 hook (`src/features/*/hooks.ts`).
 
 ## Regras de conformidade (CI: `bun run check:brand`)
 
