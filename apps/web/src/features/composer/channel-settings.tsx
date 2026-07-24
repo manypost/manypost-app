@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { fetchWithClerk } from '@/lib/api/clerk-fetch';
 import { ChevronDown, Settings2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId, useState } from 'react';
@@ -141,7 +142,9 @@ function SubAccountsField({
     queryKey: ['sub-accounts', channelId],
     queryFn: async () => {
       if (!channelId) return [];
-      const res = await fetch(`/v1/channels/${channelId}/sub-accounts`, { credentials: 'include' });
+      const res = await fetchWithClerk(`/v1/channels/${channelId}/sub-accounts`, {
+        credentials: 'include',
+      });
       if (!res.ok) return [];
       return (await res.json()) as Array<{ externalId: string; name: string }>;
     },

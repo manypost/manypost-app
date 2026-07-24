@@ -19,77 +19,11 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { useApiErrorMessage } from '@/lib/api/errors';
 import { sessionTaskPath, signInAction } from './auth-flow';
-import { useLogin } from './hooks';
 import { PasswordInput } from './password-input';
 
-const clerkEnabled = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
-
 export function LoginForm(props: { nextPath?: string }) {
-  return clerkEnabled ? <ClerkLoginForm {...props} /> : <LegacyLoginForm {...props} />;
-}
-
-function LegacyLoginForm({ nextPath }: { nextPath?: string }) {
-  const t = useTranslations('auth');
-  const tv = useTranslations('validation');
-  const errorMessage = useApiErrorMessage();
-  const login = useLogin(nextPath);
-
-  const schema = z.object({
-    email: z.string().email(tv('email')),
-    password: z.string().min(12, tv('passwordMin')),
-  });
-  const form = useForm<z.infer<typeof schema>>({
-    resolver: zodResolver(schema),
-    defaultValues: { email: '', password: '' },
-  });
-
-  return (
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit((values) => login.mutate(values))}
-        className="flex flex-col gap-4"
-        noValidate
-      >
-        {login.isError ? (
-          <Alert variant="destructive">
-            <CircleAlert aria-hidden />
-            <AlertDescription>{errorMessage(login.error)}</AlertDescription>
-          </Alert>
-        ) : null}
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('email')}</FormLabel>
-              <FormControl>
-                <Input type="email" autoComplete="email" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('password')}</FormLabel>
-              <FormControl>
-                <PasswordInput autoComplete="current-password" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button type="submit" size="lg" className="mt-2 w-full" isLoading={login.isPending}>
-          {t('loginCta')}
-        </Button>
-      </form>
-    </Form>
-  );
+  return <ClerkLoginForm {...props} />;
 }
 
 function ClerkLoginForm({ nextPath }: { nextPath?: string }) {

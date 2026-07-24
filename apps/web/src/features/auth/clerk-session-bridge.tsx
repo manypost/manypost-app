@@ -1,12 +1,12 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import { useEffect } from 'react';
-import { setClerkTokenProvider } from '@/lib/api/clerk-session-recovery';
+import { useLayoutEffect } from 'react';
+import { setClerkTokenProvider } from '@/lib/api/clerk-fetch';
 
 export function ClerkSessionBridge() {
   const { getToken } = useAuth();
-  useEffect(() => {
+  useLayoutEffect(() => {
     setClerkTokenProvider(getToken);
     return () => setClerkTokenProvider(null);
   }, [getToken]);
