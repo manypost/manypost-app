@@ -4,31 +4,26 @@
  *
  * Pré-requisitos: API no ar (MODE=all) com TELEGRAM_BOT_TOKEN no .env, e o bot
  * como admin do chat. Rode:
- *   TG_CHAT=@meucanal BASE_URL=http://localhost:3988 bun run scripts/live-telegram.ts
+ *   TG_CHAT=@meucanal CLERK_SESSION_TOKEN=... BASE_URL=http://localhost:3988 \
+ *     bun run scripts/live-telegram.ts
  *
- * Ele registra uma conta, conecta o canal, agenda um post p/ +3s e confere que publicou.
+ * Ele usa um usuário Clerk existente, conecta o canal, agenda um post p/ +3s e confere
+ * que publicou.
  */
 export {};
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:3988';
 const chat = process.env.TG_CHAT;
-if (!chat) {
-  console.error('defina TG_CHAT=@seucanal (o bot precisa ser admin com permissão de publicar)');
+const token = process.env.CLERK_SESSION_TOKEN;
+if (!chat || !token) {
+  console.error(
+    'defina TG_CHAT=@seucanal e CLERK_SESSION_TOKEN (o bot precisa poder publicar)',
+  );
   process.exit(2);
 }
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-const reg = await fetch(`${BASE}/v1/auth/register`, {
-  method: 'POST',
-  headers: { 'content-type': 'application/json' },
-  body: JSON.stringify({
-    email: `tg-${Date.now()}@test.dev`,
-    password: 'senha-live-super-forte-123',
-    name: 'TG Live',
-  }),
-});
-const { accessToken } = (await reg.json()) as any;
-const auth = { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' };
+const auth = { authorization: `Bearer ${token}`, 'content-type': 'application/json' };
 
 console.log(`conectando ${chat}...`);
 const connect = await fetch(`${BASE}/v1/channels/connect`, {
