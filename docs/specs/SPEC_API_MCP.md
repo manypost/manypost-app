@@ -36,8 +36,11 @@ Uma única pilha de autorização: qualquer credencial resolve para um **Princip
 
 ### MCP / apps de terceiros — OAuth 2.1 (*direção do Postiz*)
 - manypost como **authorization server** no issuer `PUBLIC_URL` (Next reescreve `/.well-known/oauth-authorization-server` e `/oauth/*` para a API): PRM no host MCP (`/.well-known/oauth-protected-resource`, RFC 9728); authorization code + **PKCE S256** obrigatório; scopes `mcp:read`, `mcp:write`; tokens `mpo_*` opacos com hash no banco, expiração curta + refresh com rotação e detecção de reuso.
-- Clientes: estático público `manypost-mcp` (Cursor), CIMD (`client_id` = URL HTTPS do metadata) e DCR mínimo em `/oauth/register` (cliente público, sem secret).
-- Tela de consentimento em `{PUBLIC_URL}/oauth/consent` (Clerk): lista escopos e organização; approve/deny devolvem o redirect com `code`/`error`.
+- Endpoints de máquina do AS (`/oauth/authorize`, `/oauth/register`, `/oauth/token`) são **anônimos** no front door Clerk (DCR/token não redirecionam para HTML de login). Consentimento continua autenticado.
+- Redirect URIs em loopback (`127.0.0.1` / `localhost` / `::1`) seguem **RFC 8252 §7.3** (porta ignorada; path/query exatos) para static, DCR e CIMD.
+- Clientes: estático público `manypost-mcp` (Cursor + OpenCode loopback); CIMD (ex.: Claude Code); DCR em `/oauth/register` (Codex, VS Code, Inspector, Cursor paste-URL). Preferência: colar só a URL MCP.
+- Fallback universal: `Authorization: Bearer mp_live_…` com escopo `mcp`.
+- Tela de consentimento em `{PUBLIC_URL}/oauth/consent` (Clerk): lista escopos, organização e hostname do `redirect_uri` (aviso em loopback); approve/deny devolvem o redirect com `code`/`error`.
 - Dual-auth nas superfícies de máquina: `mp_live_` (API key) **ou** `mpo_` (OAuth); Clerk continua rejeitado no MCP/REST de máquina.
 
 ### Tokens OAuth das redes sociais

@@ -9,10 +9,12 @@ export const OAUTH_ACCESS_PREFIX = 'mpo_';
 export const STATIC_MCP_CLIENT_ID = 'manypost-mcp';
 export const STATIC_MCP_CLIENT_NAME = 'manypost MCP';
 
-/** Redirects conhecidos do Cursor (static client / docs). */
+/** Redirects conhecidos: Cursor + OpenCode loopback (porta via RFC 8252). */
 export const STATIC_MCP_REDIRECT_URIS = [
   'cursor://anysphere.cursor-mcp/oauth/callback',
   'https://cursor.com/api/mcp/auth/callback',
+  'http://127.0.0.1/mcp/oauth/callback',
+  'http://localhost/mcp/oauth/callback',
 ] as const;
 
 const CODE_TTL_MS = 5 * 60_000;
@@ -23,8 +25,57 @@ export function pkceChallengeS256(verifier: string): string {
   return createHash('sha256').update(verifier, 'ascii').digest('base64url');
 }
 
+function isLoopbackHostname(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  return host === '127.0.0.1' || host === 'localhost' || host === '::1' || host === '[::1]';
+}
+
+/** True when URI is http(s) loopback suitable for RFC 8252 port-agnostic match. */
+export function isLoopbackHttpRedirect(uri: string): boolean {
+  try {
+    const parsed = new URL(uri);
+    return parsed.protocol === 'http:' && isLoopbackHostname(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * RFC 8252 §7.3: for loopback http redirects, ignore port; match scheme/host/path/query.
+ * All other URIs require exact string equality.
+ */
+export function redirectUriAllowed(registeredUris: string[], redirectUri: string): boolean {
+  if (registeredUris.includes(redirectUri)) return true;
+  let requested: URL;
+  try {
+    requested = new URL(redirectUri);
+  } catch {
+    return false;
+  }
+  if (requested.protocol !== 'http:' || !isLoopbackHostname(requested.hostname)) {
+    return false;
+  }
+  for (const registered of registeredUris) {
+    let allowed: URL;
+    try {
+      allowed = new URL(registered);
+    } catch {
+      continue;
+    }
+    if (allowed.protocol !== 'http:' || !isLoopbackHostname(allowed.hostname)) continue;
+    if (
+      allowed.hostname.toLowerCase() === requested.hostname.toLowerCase() &&
+      allowed.pathname === requested.pathname &&
+      allowed.search === requested.search
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function assertRedirectAllowed(redirectUris: string[], redirectUri: string): void {
-  if (!redirectUris.includes(redirectUri)) {
+  if (!redirectUriAllowed(redirectUris, redirectUri)) {
     throw new DomainError(ErrorCodes.Forbidden, 'redirect_uri não registrado');
   }
 }
@@ -47,17 +98,26 @@ export interface OAuthAsDeps {
 
 export const makeEnsureStaticMcpClient = (deps: Pick<OAuthAsDeps, 'apps'>) =>
   async () => {
+    const canonical = [...STATIC_MCP_REDIRECT_URIS];
     const existing = await deps.apps.findByClientId(STATIC_MCP_CLIENT_ID);
-    if (existing) return existing;
-    return deps.apps.create({
-      orgId: null,
-      name: STATIC_MCP_CLIENT_NAME,
-      clientId: STATIC_MCP_CLIENT_ID,
-      clientSecretHash: null,
-      redirectUris: [...STATIC_MCP_REDIRECT_URIS],
-      scopes: ['mcp:read', 'mcp:write'],
-      tokenEndpointAuthMethod: 'none',
-    });
+    if (!existing) {
+      return deps.apps.create({
+        orgId: null,
+        name: STATIC_MCP_CLIENT_NAME,
+        clientId: STATIC_MCP_CLIENT_ID,
+        clientSecretHash: null,
+        redirectUris: canonical,
+        scopes: ['mcp:read', 'mcp:write'],
+        tokenEndpointAuthMethod: 'none',
+      });
+    }
+    const merged = [...existing.redirectUris];
+    for (const uri of canonical) {
+      if (!merged.includes(uri)) merged.push(uri);
+    }
+    if (merged.length === existing.redirectUris.length) return existing;
+    const updated = await deps.apps.updateRedirectUris(existing.id, merged);
+    return updated ?? { ...existing, redirectUris: merged };
   };
 
 /** Resolve client estático/DCR ou CIMD (HTTPS URL client_id). */

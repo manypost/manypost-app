@@ -13,7 +13,18 @@ interface ConsentContext {
   clientId: string;
   scopes: string[];
   resource: string | null;
+  redirectUri: string;
+  redirectIsLoopback: boolean;
   organizations: Array<{ id: string; name: string; role: string }>;
+}
+
+/** Extrai hostname do redirect para o aviso de consent (testável). */
+export function consentRedirectHostname(redirectUri: string): string | null {
+  try {
+    return new URL(redirectUri).hostname || null;
+  } catch {
+    return null;
+  }
 }
 
 async function readJson<T>(res: Response): Promise<T> {
@@ -95,6 +106,7 @@ export function OAuthConsentView() {
   const data = ctx.data;
   const noOrgs = data.organizations.length === 0;
   const busy = approve.isPending || deny.isPending;
+  const redirectHost = consentRedirectHostname(data.redirectUri);
 
   return (
     <div className="w-full max-w-md rounded-lg border border-line bg-surface p-6">
@@ -102,6 +114,17 @@ export function OAuthConsentView() {
       <p className="mt-2 text-[13px] leading-relaxed text-graphite">
         {t('subtitle', { clientId: data.clientId })}
       </p>
+
+      {redirectHost ? (
+        <div className="mt-4 rounded-md border border-line bg-canvas px-3 py-2 text-[13px] text-graphite">
+          <p>
+            {t('redirectHost', { hostname: redirectHost })}
+          </p>
+          {data.redirectIsLoopback ? (
+            <p className="mt-1 text-ink">{t('redirectLoopbackWarning')}</p>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="mt-5 space-y-2">
         <p className="text-[13px] font-semibold text-ink">{t('scopesTitle')}</p>

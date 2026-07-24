@@ -2,7 +2,12 @@ import { createHmac } from 'node:crypto';
 import { getCookie, setCookie } from 'hono/cookie';
 import { machineEndpoints } from '@manypost/config';
 import { ErrorCodes } from '@manypost/contracts';
-import { DomainError, STATIC_MCP_CLIENT_ID } from '@manypost/core';
+import {
+  DomainError,
+  STATIC_MCP_CLIENT_ID,
+  isLoopbackHttpRedirect,
+  redirectUriAllowed,
+} from '@manypost/core';
 import type { Container } from '../../container';
 import { requireAuth } from '../middleware/auth';
 import { createApp } from '../openapi';
@@ -152,7 +157,7 @@ export function oauthAsRoutes(ctn: Container) {
     try {
       const client = await ctn.oauth.resolveClient(clientId);
       if (!client) throw new DomainError(ErrorCodes.NotFound, 'client_id desconhecido');
-      if (!client.redirectUris.includes(redirectUri)) {
+      if (!redirectUriAllowed(client.redirectUris, redirectUri)) {
         throw new DomainError(ErrorCodes.Forbidden, 'redirect_uri não registrado');
       }
     } catch (err) {
@@ -197,6 +202,8 @@ export function oauthAsRoutes(ctn: Container) {
         clientId: pending.clientId,
         scopes: pending.scopes,
         resource: pending.resource,
+        redirectUri: pending.redirectUri,
+        redirectIsLoopback: isLoopbackHttpRedirect(pending.redirectUri),
         staticClientId: STATIC_MCP_CLIENT_ID,
         organizations: orgs.map((o) => ({ id: o.id, name: o.name, role: o.role })),
       });

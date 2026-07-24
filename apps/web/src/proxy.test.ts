@@ -14,6 +14,18 @@ describe('proxy Clerk + manypost', () => {
     }
   });
 
+  it('libera endpoints de máquina do AS OAuth sem sessão Clerk', () => {
+    for (const path of ['/oauth/authorize', '/oauth/register', '/oauth/token']) {
+      expect(authRouteAction(path, false)).toBe('allow');
+      expect(authRouteAction(path, true)).toBe('allow');
+    }
+  });
+
+  it('exige login na página de consent OAuth', () => {
+    expect(authRouteAction('/oauth/consent', false)).toBe('login');
+    expect(authRouteAction('/oauth/consent', true)).toBe('allow');
+  });
+
   it('manda visitante para login e usuário autenticado para o app', () => {
     expect(authRouteAction('/calendario', false)).toBe('login');
     expect(authRouteAction('/login', true)).toBe('app');

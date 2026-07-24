@@ -65,6 +65,14 @@ export function makeOAuthAppRepository(db: Db): OAuthAppRepository {
         .returning();
       return mapApp(row!);
     },
+    async updateRedirectUris(id, redirectUris) {
+      const [row] = await db
+        .update(oauthApps)
+        .set({ redirectUris })
+        .where(and(eq(oauthApps.id, id), isNull(oauthApps.deletedAt)))
+        .returning();
+      return row ? mapApp(row) : null;
+    },
     async softDelete(id) {
       await db
         .update(oauthApps)

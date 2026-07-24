@@ -10,6 +10,12 @@ const PUBLIC_PREFIXES = [
   '/session-tasks/',
   '/__clerk/',
 ];
+/** AS MCP machine endpoints (issuer → API): always allow, signed-in or not. */
+const OAUTH_MACHINE_PATHS = new Set([
+  '/oauth/authorize',
+  '/oauth/register',
+  '/oauth/token',
+]);
 
 export type AuthRouteAction = 'allow' | 'login' | 'app';
 
@@ -18,6 +24,7 @@ export function authRouteAction(
   signedIn: boolean,
 ): AuthRouteAction {
   if (
+    OAUTH_MACHINE_PATHS.has(pathname) ||
     PUBLIC_PREFIXES.some(
       (prefix) => pathname === prefix.replace(/\/$/, '') || pathname.startsWith(prefix),
     ) ||

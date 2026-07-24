@@ -14,7 +14,7 @@
 
 | | |
 |---|---|
-| **Última entrega** | Onda 23 (2026-07-24) — **YouTube** (vídeo e Short, com o formato medido no arquivo); onda 22 — **OAuth 2.1 no MCP**: dual-auth (`mp_live_` + `mpo_`), AS em `PUBLIC_URL`, consent Clerk, DCR/CIMD/static `manypost-mcp`; API key com escopo `mcp` permanece |
+| **Última entrega** | Onda 23 (2026-07-24) — **YouTube**; follow-up **MCP OAuth interop** (`fix-mcp-oauth-client-interop`): DCR público no issuer, RFC 8252 loopback, static OpenCode, docs multi-cliente; onda 22 — OAuth 2.1 dual-auth MCP |
 | **Fase** | Fase 1 (MVP): backend completo e verificado, web com toda a superfície da API, billing do Cloud entregue |
 | **Provas** | `bun run check` + CI verdes. E2E reais: `e2e-auth`, `e2e-publish`, `e2e-public`, `e2e-mcp`, `e2e-mcp-oauth`, `e2e-billing` (bootstrap humano = sessão Clerk assinada localmente + identidade em Postgres descartável) |
 | **Redes prontas** | Mastodon, Bluesky, **Dev.to**, Telegram, Discord (OAuth2+Bot **e** webhook), LinkedIn, X, TikTok (sandbox — auditoria em revisão), **a família Meta inteira**: Threads, Instagram standalone, Facebook Pages e **Instagram via Facebook Business** (Development Mode), Twitch e Kick (chat ao vivo), **YouTube** (vídeo e Short; público depende da auditoria do Google) + `fake` para testes |
