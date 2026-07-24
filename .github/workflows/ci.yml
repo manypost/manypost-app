@@ -88,6 +88,7 @@ jobs:
           BASE_URL=http://localhost:3988 bun run scripts/e2e-publish.ts
           BASE_URL=http://localhost:3988 API_BASE_URL=http://127.0.0.1:3988/v1 bun run scripts/e2e-public.ts
           BASE_URL=http://localhost:3988 MCP_URL=http://127.0.0.2:3988 bun run scripts/e2e-mcp.ts
+          BASE_URL=http://localhost:3988 MCP_URL=http://127.0.0.2:3988 bun run scripts/e2e-mcp-oauth.ts
 
       # Limites de plano: exige a API em modo GERENCIADO (IS_SELF_HOSTED=false + Stripe).
       # Nenhuma chamada sai para a Stripe — o enforcement é local; a chave só liga o modo.
