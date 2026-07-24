@@ -24,6 +24,13 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
   nunca é gravado em configurações, que são armazenadas sem cifra. Mudança OpenSpec:
   `add-instagram-facebook-business-provider`.
 
+- Autenticação humana opcional pelo Clerk, com UI Manypost customizada para
+  senha, verificação de email e Google, troca server-side por sessão interna e
+  validação de origem autorizada/email verificado/status da sessão.
+- Fluxos de callback e conclusão Clerk, matcher de proxy e configuração
+  operacional para Google OAuth e Railway.
+- Continuação segura para tarefas Clerk de organização, reset de senha e MFA,
+  além de recuperação deduplicada da sessão interna após refresh expirado.
 - OpenSpec `1.6.0` como dependência local exata, com configuração, scripts,
   guia de criação/validação/implementação/archive e a mudança real
   `establish-maintenance-baseline`.
@@ -61,6 +68,12 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
   deduplicada) passou a ter fonte única em `packages/providers/src/shared/meta-graph.ts`,
   compartilhada pelos canais Facebook e Instagram (Facebook Business), sem mudança de
   comportamento do Facebook.
+- Quando as chaves Clerk estão configuradas, Clerk autentica a identidade
+  humana; a API Manypost continua responsável por usuário, organização,
+  membership, role, cookies e autorização. API keys, MCP e OAuth de canais não
+  mudaram.
+- Login por senha/social legado é bloqueado no backend quando Clerk está
+  habilitado e volta a existir somente no rollback sem as duas chaves.
 - Bun fixado em `1.3.14`; CI e imagem usam instalação congelada pelo `bun.lock`.
 - GitHub Actions passa a executar typecheck web, brand, build Next, build da
   imagem Docker e validação OpenSpec além das verificações anteriores.
@@ -99,6 +112,9 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Known Issues
 
+- O CLI Clerk está autenticado, vinculado e aprovado pelo `clerk doctor`; o
+  domínio Clerk de produção ainda aguarda DNS/SSL, e a URI Google exata e o
+  teste browser autenticado dependem dessa ativação e do primeiro usuário.
 - Continuações concorrentes de thread e resultados externos indeterminados
   exigem fencing durável antes de qualquer mudança no publish.
 - Media/webhook egress exige address pinning para fechar DNS rebinding.
@@ -110,11 +126,17 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Breaking Changes
 
-- Nenhuma. Não houve mudança de API pública/MCP, banco, migration, cookies,
-  prefixos, valores persistidos ou identificadores de provider.
+- Ao habilitar Clerk, a UI deixa de validar as senhas legadas; usuários
+  existentes precisam criar/recuperar a identidade no Clerk com o mesmo email.
+  Sem as chaves Clerk, o fluxo legado permanece disponível para rollback. Não
+  houve migration nem mudança na API pública/MCP ou no OAuth de canais.
 
 ### Operational Notes
 
+- Produção exige chaves de uma instância Clerk de produção e credenciais Google
+  customizadas. A URL de callback deve ser copiada da conexão Google no Clerk;
+  as origens web canônicas são `https://app.manypost.com.br` e
+  `http://localhost:3000` somente em desenvolvimento.
 - A imagem agora falha cedo se o lockfile ou build Next estiver inválido; isso
   pode transformar deploy antes “verde” em falha de build, por segurança.
 - O daemon Docker local não estava disponível durante a validação inicial da

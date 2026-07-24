@@ -51,6 +51,53 @@ O catálogo de nomes/formatos fica em
 [dados e infraestrutura](../architecture/data-and-infrastructure.md#catálogo-de-ambiente).
 `packages/config/src/env.ts` é a fonte executável.
 
+### Clerk
+
+O app esperado é `app_3GuqzZa65tX3maBXqZCIAW8Izxs`. Autentique o CLI na conta
+que possui esse app antes de vinculá-lo:
+
+```bash
+clerk auth login
+clerk link --app app_3GuqzZa65tX3maBXqZCIAW8Izxs
+clerk doctor
+```
+
+O monorepo não é detectado automaticamente por `clerk init`; a integração usa
+`@clerk/nextjs` em `apps/web` e `@clerk/backend` em `apps/api`. Não registre
+saída de comandos que contenha chaves. Configure localmente
+`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` e `CLERK_SECRET_KEY` da mesma instância;
+`CLERK_JWT_KEY` é opcional. Como o Next executa em `apps/web`, mantenha os nomes
+necessários também em `apps/web/.env.local`; o `clerk env pull` usa
+`CLERK_PUBLISHABLE_KEY`, que pode coexistir com o nome `NEXT_PUBLIC_` exigido
+pelo bundle web.
+
+No Railway, adicione os mesmos nomes ao serviço `manypost-app` e faça redeploy
+somente depois de configurar a instância Clerk de produção. A origem autorizada
+pela API é derivada de `PUBLIC_URL`.
+
+Para as credenciais Google da instância de produção:
+
+1. No Clerk Dashboard, abra **SSO connections > Google**, habilite sign-up e
+   sign-in e marque credenciais customizadas.
+2. Copie a **Authorized Redirect URI** exibida pelo Clerk.
+3. No cliente OAuth Web do Google, use como origens JavaScript:
+   `https://app.manypost.com.br` e, apenas no cliente de desenvolvimento,
+   `http://localhost:3000`.
+4. Em URLs de redirecionamento, cole exatamente a URI copiada do Clerk. Não use
+   `/sso-callback`, `api.manypost.com.br` ou `mcp.manypost.com.br`.
+5. Cole Client ID e Client Secret no Dashboard do Clerk, não no código ou em
+   variável client-side. Para público externo, configure a tela de consentimento
+   e publique o app OAuth do Google.
+
+O domínio Railway gerado pode ser incluído como origem apenas se usuários
+realmente acessarem o web por ele. O domínio canônico é
+`https://app.manypost.com.br`.
+
+Rollout: configure primeiro Clerk/Google, depois as variáveis Railway, redeploye
+e valide registro, login, Google, refresh e logout. Rollback: remova as duas
+variáveis Clerk juntas e redeploye o commit anterior; não há migration ou
+conversão de senha para desfazer.
+
 ## Subir dependências e aplicação completa
 
 ```bash
