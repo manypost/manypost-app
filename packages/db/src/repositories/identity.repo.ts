@@ -90,7 +90,7 @@ export function makeAuthIdentityRepository(db: Db): AuthIdentityRepository {
           return { userId: existingUser.id, isNewUser: false };
         }
 
-        const [user] = await tx
+        const [insertedUser] = await tx
           .insert(users)
           .values({
             email: data.email,
@@ -98,23 +98,38 @@ export function makeAuthIdentityRepository(db: Db): AuthIdentityRepository {
             name: data.name,
             avatarUrl: data.avatarUrl,
           })
+          .onConflictDoNothing({ target: users.email })
           .returning({ id: users.id });
+        if (!insertedUser) {
+          const [concurrentUser] = await tx
+            .select({ id: users.id })
+            .from(users)
+            .where(eq(users.email, data.email))
+            .limit(1);
+          await tx.insert(authIdentities).values({
+            userId: concurrentUser!.id,
+            provider: data.provider,
+            providerUserId: data.providerUserId,
+            email: data.email,
+          });
+          return { userId: concurrentUser!.id, isNewUser: false };
+        }
         const [org] = await tx
           .insert(organizations)
           .values({ name: data.orgName, slug: data.orgSlug })
           .returning({ id: organizations.id });
         await tx.insert(memberships).values({
           orgId: org!.id,
-          userId: user!.id,
+          userId: insertedUser.id,
           role: 'OWNER',
         });
         await tx.insert(authIdentities).values({
-          userId: user!.id,
+          userId: insertedUser.id,
           provider: data.provider,
           providerUserId: data.providerUserId,
           email: data.email,
         });
-        return { userId: user!.id, isNewUser: true };
+        return { userId: insertedUser.id, isNewUser: true };
       });
     },
   };
