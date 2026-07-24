@@ -32,7 +32,11 @@ export function socialAuthRoutes(ctn: Container) {
   });
   // catálogo p/ o frontend decidir quais botões mostrar
   app.get('/', (c) =>
-    c.json({ providers: [...providers.values()].map((p) => ({ id: p.id, name: p.name })) }),
+    c.json({
+      providers: ctn.clerkIdentity
+        ? []
+        : [...providers.values()].map((p) => ({ id: p.id, name: p.name })),
+    }),
   );
 
   app.openAPIRegistry.registerPath({
@@ -47,6 +51,9 @@ export function socialAuthRoutes(ctn: Container) {
     },
   });
   app.get('/:provider', (c) => {
+    if (ctn.clerkIdentity) {
+      throw new DomainError(ErrorCodes.CapabilityDisabled, 'login social legado desabilitado');
+    }
     const p = providers.get(c.req.param('provider'));
     if (!p) throw new DomainError(ErrorCodes.CapabilityDisabled, 'login social não configurado');
     const state = randomToken(16);
@@ -75,6 +82,9 @@ export function socialAuthRoutes(ctn: Container) {
     },
   });
   app.get('/:provider/callback', async (c) => {
+    if (ctn.clerkIdentity) {
+      throw new DomainError(ErrorCodes.CapabilityDisabled, 'login social legado desabilitado');
+    }
     const p = providers.get(c.req.param('provider'));
     if (!p) throw new DomainError(ErrorCodes.CapabilityDisabled, 'login social não configurado');
 

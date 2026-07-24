@@ -43,6 +43,7 @@ const ERROR_DESC: Record<number, string> = {
   404: 'não encontrado',
   409: 'conflito',
   429: 'rate limit — aguarde e tente de novo',
+  503: 'provedor externo temporariamente indisponível',
 };
 
 /** Respostas de erro comuns, todas referenciando o schema Error (application/problem+json). */

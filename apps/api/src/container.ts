@@ -1,4 +1,4 @@
-import { isBillingEnabled, providerSecretsFromEnv, type Env } from '@manypost/config';
+import { clerkConfig, isBillingEnabled, providerSecretsFromEnv, type Env } from '@manypost/config';
 import {
   createDb,
   makeApiKeyRepository,
@@ -66,6 +66,7 @@ import { createPublishingRuntime } from '@manypost/queue';
 import { bunPasswordHasher } from './infra/auth/password.hasher';
 import { makeJwtSigner } from './infra/auth/token.signer';
 import { makeStripeGateway, type StripeGateway } from './infra/billing/stripe.gateway';
+import { makeClerkIdentityVerifier } from './infra/identity/clerk.identity';
 import { createPrometheusMetrics } from './infra/metrics/prometheus';
 import { makeLocalMediaStorage } from './infra/storage/local.storage';
 
@@ -131,6 +132,14 @@ export async function buildContainer(env: Env) {
   const signer = makeJwtSigner(env.JWT_SECRET);
   const crypto = AesGcmCryptoService.fromHex(env.ENCRYPTION_KEY);
   const authDeps = { ...repos, hasher: bunPasswordHasher, signer };
+  const clerk = clerkConfig(env);
+  const clerkIdentity = clerk.enabled
+    ? makeClerkIdentityVerifier({
+        secretKey: clerk.secretKey,
+        jwtKey: clerk.jwtKey,
+        authorizedParties: clerk.authorizedParties,
+      })
+    : null;
 
   // secrets de app por provider (SPEC_INTEGRATIONS §2): env → ctx.secrets;
   // provider indisponível quando faltam os requiredSecrets dele
@@ -190,6 +199,7 @@ export async function buildContainer(env: Env) {
     db,
     repos,
     signer,
+    clerkIdentity,
     crypto,
     storage,
     registry: providerRegistry,

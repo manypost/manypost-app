@@ -31,6 +31,9 @@ const AuthOut = z
     refreshToken: z.string(),
   })
   .openapi('AuthResult');
+const ClerkAuthOut = AuthOut.extend({
+  isNewUser: z.boolean(),
+}).openapi('ClerkAuthResult');
 const TokenPair = z
   .object({ accessToken: z.string(), refreshToken: z.string() })
   .openapi('TokenPair');
@@ -56,9 +59,59 @@ const clientMeta = (c: Context) => ({
 export function authRoutes(ctn: Container) {
   const app = createApp();
   const secure = ctn.env.PUBLIC_URL.startsWith('https');
+  const requireLegacyAuth = () => {
+    if (ctn.clerkIdentity) {
+      throw new DomainError(
+        ErrorCodes.CapabilityDisabled,
+        'autenticação legada desabilitada',
+      );
+    }
+  };
 
   const applyCookies = (c: Context, accessToken: string, refreshToken: string) =>
     setAuthCookies(c, secure, accessToken, refreshToken);
+
+  app.openAPIRegistry.registerPath({
+    method: 'post',
+    path: '/clerk/exchange',
+    tags: ['auth'],
+    summary: 'Troca uma sessão Clerk verificada por uma sessão interna do Manypost',
+    description:
+      'Aceita somente o bearer token Clerk. Organização, papel e usuário são derivados da persistência interna.',
+    security: [{ bearerAuth: [] }],
+    responses: {
+      200: jsonResponse(
+        'sessão interna criada (cookies httpOnly também são definidos)',
+        ClerkAuthOut,
+      ),
+      ...errorResponses(401, 404, 503),
+    },
+  });
+  app.post('/clerk/exchange', async (c) => {
+    if (!ctn.clerkIdentity) {
+      throw new DomainError(ErrorCodes.CapabilityDisabled, 'Clerk não configurado');
+    }
+    const header = c.req.header('authorization');
+    const token = header?.startsWith('Bearer ') ? header.slice(7).trim() : '';
+    if (!token) throw new DomainError(ErrorCodes.AuthUnauthorized, 'sessão Clerk ausente');
+
+    const profile = await ctn.clerkIdentity(token);
+    const out = await ctn.auth.loginWithIdentity({
+      profile,
+      ...clientMeta(c),
+    });
+    applyCookies(c, out.accessToken, out.refreshToken);
+    return c.json(
+      {
+        user: out.user,
+        org: { id: out.org.id, name: out.org.name, role: out.org.role },
+        accessToken: out.accessToken,
+        refreshToken: out.refreshToken,
+        isNewUser: out.isNewUser,
+      },
+      200,
+    );
+  });
 
   app.openapi(
     createRoute({
@@ -72,10 +125,11 @@ export function authRoutes(ctn: Container) {
           description: 'conta criada (cookies httpOnly também são definidos)',
           content: { 'application/json': { schema: AuthOut } },
         },
-        ...errorResponses(400, 409),
+        ...errorResponses(400, 404, 409),
       },
     }),
     async (c) => {
+      requireLegacyAuth();
       const body = c.req.valid('json');
       const out = await ctn.auth.register({ ...body, ...clientMeta(c) });
       applyCookies(c, out.accessToken, out.refreshToken);
@@ -100,10 +154,11 @@ export function authRoutes(ctn: Container) {
       request: { body: { content: { 'application/json': { schema: Credentials } } } },
       responses: {
         200: { description: 'autenticado', content: { 'application/json': { schema: AuthOut } } },
-        ...errorResponses(400, 401),
+        ...errorResponses(400, 401, 404),
       },
     }),
     async (c) => {
+      requireLegacyAuth();
       const body = c.req.valid('json');
       const out = await ctn.auth.login({ ...body, ...clientMeta(c) });
       applyCookies(c, out.accessToken, out.refreshToken);
