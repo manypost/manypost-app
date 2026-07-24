@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import {
+  clerkConfig,
   loadEnv,
   machineEndpoints,
   machineHosts,
@@ -61,6 +62,42 @@ describe('superfícies de máquina (SPEC_API_MCP §3/§5)', () => {
     expect(() => loadEnv({ ...base, MCP_PUBLIC_URL: 'https://manypost.com.br/mcp' })).toThrow(
       /MCP_PUBLIC_URL/,
     );
+  });
+});
+
+describe('Clerk para autenticação humana', () => {
+  it('exige publishable key e secret key como um par sem expor valores', () => {
+    expect(() =>
+      loadEnv({ ...base, NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: 'pk_test_example' }),
+    ).toThrow(/CLERK_SECRET_KEY/);
+    expect(() => loadEnv({ ...base, CLERK_SECRET_KEY: 'sk_test_example' })).toThrow(
+      /NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY/,
+    );
+  });
+
+  it('autoriza somente a origem humana do PUBLIC_URL', () => {
+    const config = clerkConfig(
+      loadEnv({
+        ...base,
+        PUBLIC_URL: 'https://app.manypost.com.br/',
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: 'pk_test_example',
+        CLERK_SECRET_KEY: 'sk_test_example',
+      }),
+    );
+    expect(config).toEqual({
+      enabled: true,
+      publishableKey: 'pk_test_example',
+      secretKey: 'sk_test_example',
+      jwtKey: undefined,
+      authorizedParties: ['https://app.manypost.com.br'],
+    });
+  });
+
+  it('permanece desabilitado quando nenhuma chave foi configurada', () => {
+    expect(clerkConfig(loadEnv(base))).toEqual({
+      enabled: false,
+      authorizedParties: ['https://manypost.com.br'],
+    });
   });
 });
 

@@ -68,7 +68,14 @@ const EnvSchema = z
       .string()
       .length(64, 'ENCRYPTION_KEY: 32 bytes em hex (64 chars) — gere com: openssl rand -hex 32'),
 
-    // Login social (opcional — sem env, o botão não aparece)
+    // Clerk autentica humanos; o par é opcional para preservar instalações self-hosted
+    // ainda não migradas. A secret key nunca atravessa a fronteira do servidor.
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1).optional(),
+    CLERK_SECRET_KEY: z.string().min(1).optional(),
+    /** chave pública PEM opcional: quando presente, a validação do JWT não consulta JWKS */
+    CLERK_JWT_KEY: z.string().min(1).optional(),
+
+    // Login social legado (opcional — removido da UI quando Clerk está habilitado)
     GOOGLE_CLIENT_ID: z.string().optional(),
     GOOGLE_CLIENT_SECRET: z.string().optional(),
     GITHUB_CLIENT_ID: z.string().optional(),
@@ -138,9 +145,35 @@ const EnvSchema = z
     message:
       'MCP_PUBLIC_URL precisa de um host DIFERENTE de PUBLIC_URL (ex.: mcp.dominio) — mesmo host esconderia a interface web',
     path: ['MCP_PUBLIC_URL'],
+  })
+  .superRefine((env, ctx) => {
+    if (env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && !env.CLERK_SECRET_KEY) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'CLERK_SECRET_KEY é obrigatória quando Clerk está habilitado',
+        path: ['CLERK_SECRET_KEY'],
+      });
+    }
+    if (env.CLERK_SECRET_KEY && !env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY é obrigatória quando Clerk está habilitado',
+        path: ['NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY'],
+      });
+    }
   });
 
 export type Env = z.infer<typeof EnvSchema>;
+
+export type ClerkConfig =
+  | { enabled: false; authorizedParties: string[] }
+  | {
+      enabled: true;
+      publishableKey: string;
+      secretKey: string;
+      jwtKey: string | undefined;
+      authorizedParties: string[];
+    };
 
 /** `host:porta` normalizado de uma URL (undefined se a URL não veio ou é inválida). */
 function hostOf(url: string | undefined): string | undefined {
@@ -150,6 +183,21 @@ function hostOf(url: string | undefined): string | undefined {
   } catch {
     return undefined; // URL inválida já é reprovada pelo z.string().url()
   }
+}
+
+/** Configuração Clerk sem valores implícitos vindos do browser. */
+export function clerkConfig(env: Env): ClerkConfig {
+  const authorizedParties = [new URL(env.PUBLIC_URL).origin];
+  if (!env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || !env.CLERK_SECRET_KEY) {
+    return { enabled: false, authorizedParties };
+  }
+  return {
+    enabled: true,
+    publishableKey: env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+    secretKey: env.CLERK_SECRET_KEY,
+    jwtKey: env.CLERK_JWT_KEY,
+    authorizedParties,
+  };
 }
 
 /**
