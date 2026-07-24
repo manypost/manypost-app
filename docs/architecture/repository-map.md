@@ -60,7 +60,7 @@ recursos da API.
 | cliente API | `src/lib/api/client.ts`, `schema.d.ts` | openapi-fetch | todas as features |
 | i18n | `src/messages/pt-BR.json`, `src/i18n/` | next-intl | toda a UI |
 | design system | `src/components/ui/`, `brand/`, `globals.css` | Tailwind/tokens | features |
-| proxy | `next.config.ts`, `src/proxy.ts` | API URL/cookies | browser |
+| proxy | `next.config.ts`, `src/proxy.ts` | API URL/sessão Clerk | browser |
 
 **Gerados:** `openapi.json` e `src/lib/api/schema.d.ts` por
 `API_URL=http://localhost:3100 bun run --cwd apps/web generate:api`.
@@ -68,8 +68,8 @@ recursos da API.
 incidental do build sem revisar.
 
 **Riscos:** componentes grandes concentram regras visuais; EventSource não usa o
-cliente OpenAPI; middleware depende do marcador `mp_session`; rewrites
-preservam paths de cookie.
+cliente OpenAPI e depende do cookie Clerk `__session`; o restante de `/v1` usa
+bearer Clerk pelo wrapper tipado.
 
 **Alteração:** leia `docs/brand/BRAND_SYSTEM.md`; mantenha feature por domínio,
 use o cliente tipado, atualize mensagens e execute `bun run check`,
@@ -189,7 +189,8 @@ compartilhada que não depende de adapters.
 - Qualidade: `check-ai-providers.ts`, `check-brand.ts`.
 - Desenvolvimento: `dev-all.ts`, `demo.ts`.
 - E2E: `e2e-auth.ts`, `e2e-publish.ts`, `e2e-public.ts`, `e2e-mcp.ts`,
-  `e2e-billing.ts`.
+  `e2e-billing.ts`; `e2e-clerk.ts` cria identidade e token Clerk somente no
+  PostgreSQL/RSA efêmeros da suíte.
 - Operação externa: `stripe-sync.ts`, `stripe-webhook.ts`,
   `connect-and-post.ts`, `live-telegram.ts`.
 

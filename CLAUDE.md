@@ -35,7 +35,7 @@ Plataforma de agendamento/publicação multicanal. **O wordmark é sempre `manyp
 2. **Fronteiras:** `packages/core` não importa de `apps/*` nem de `packages/{db,providers}` (CI: dependency-cruiser). `packages/contracts` está sob AGPL-3.0 junto com o monorepo e contém só tipos/schemas/constantes — zero lógica.
 3. **Multi-tenant:** todo repositório/query filtra por `org_id`.
 4. **IA agnóstica:** nenhum provedor nominal (openai/anthropic/etc.) fora de `infra/ai/*` (CI: `bun run check:ai-providers`). Toda operação de IA passa pelo BudgetGuard.
-5. **Segurança:** tokens de canal cifrados (AES-256-GCM, `ENCRYPTION_KEY` ≠ `JWT_SECRET`); nunca logar tokens; nunca repostar em incerteza (`NEEDS_REVIEW`).
+5. **Segurança:** tokens de canal cifrados (AES-256-GCM com `ENCRYPTION_KEY` dedicada); nunca logar tokens; nunca repostar em incerteza (`NEEDS_REVIEW`).
 6. **Derivação:** trecho portado de forma reconhecível do Postiz leva `// Derived from Postiz (AGPL-3.0): <arquivo>`.
 
 ## Regras visuais (resumo — a fonte é docs/brand/)
