@@ -37,7 +37,7 @@ function machineUnauthorized(
   resourceMetadataUrl: string,
 ): DomainError {
   return new DomainError(ErrorCodes.AuthUnauthorized, message, {
-    wwwAuthenticate: `Bearer resource_metadata="${resourceMetadataUrl}", scope="mcp:read mcp:write"`,
+    wwwAuthenticate: `Bearer resource_metadata="${resourceMetadataUrl}"`,
   });
 }
 
