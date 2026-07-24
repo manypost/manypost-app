@@ -20,13 +20,22 @@ export interface OAuthPendingRequest {
   exp: number;
 }
 
-function issuerBase(publicUrl: string): string {
-  return publicUrl.replace(/\/+$/, '');
+function pendingKey(secretHex: string): Buffer {
+  return createHmac('sha256', Buffer.from(secretHex, 'hex'))
+    .update('oauth_pending:v1')
+    .digest();
+}
+
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
 }
 
 function signPending(payload: OAuthPendingRequest, secretHex: string): string {
   const body = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
-  const sig = createHmac('sha256', Buffer.from(secretHex, 'hex')).update(body).digest('base64url');
+  const sig = createHmac('sha256', pendingKey(secretHex)).update(body).digest('base64url');
   return `${body}.${sig}`;
 }
 
@@ -34,10 +43,8 @@ function readPending(raw: string | undefined, secretHex: string): OAuthPendingRe
   if (!raw) return null;
   const [body, sig] = raw.split('.');
   if (!body || !sig) return null;
-  const expected = createHmac('sha256', Buffer.from(secretHex, 'hex'))
-    .update(body)
-    .digest('base64url');
-  if (expected !== sig) return null;
+  const expected = createHmac('sha256', pendingKey(secretHex)).update(body).digest('base64url');
+  if (!safeEqual(expected, sig)) return null;
   try {
     const parsed = JSON.parse(Buffer.from(body, 'base64url').toString('utf8')) as OAuthPendingRequest;
     if (!parsed.exp || parsed.exp < Date.now()) return null;
