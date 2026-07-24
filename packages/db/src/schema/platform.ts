@@ -117,14 +117,16 @@ export const oauthApps = pgTable(
   'oauth_apps',
   {
     id: pk(),
-    orgId: uuid('org_id')
-      .notNull()
-      .references(() => organizations.id),
+    /** null = app de plataforma (static/DCR/CIMD), não amarrado a uma org */
+    orgId: uuid('org_id').references(() => organizations.id),
     name: text('name').notNull(),
     clientId: text('client_id').notNull(),
-    clientSecretHash: text('client_secret_hash').notNull(),
+    /** null = cliente público (PKCE); confidential clients guardam hash */
+    clientSecretHash: text('client_secret_hash'),
     redirectUris: text('redirect_uris').array().notNull().default([]),
     scopes: text('scopes').array().notNull().default([]),
+    tokenEndpointAuthMethod: text('token_endpoint_auth_method'),
+    clientUri: text('client_uri'),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
     ...timestamps,
   },
@@ -150,6 +152,10 @@ export const oauthGrants = pgTable(
     accessTokenHash: text('access_token_hash'),
     accessTokenExpiresAt: timestamp('access_token_expires_at', { withTimezone: true }),
     refreshTokenHash: text('refresh_token_hash'),
+    /** refresh anterior — reuso ⇒ revoga a família (paridade com sessions) */
+    prevRefreshTokenHash: text('prev_refresh_token_hash'),
+    /** RFC 8707 resource / audience do MCP */
+    resource: text('resource'),
     scopes: text('scopes').array().notNull().default([]),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
     ...timestamps,
@@ -157,6 +163,7 @@ export const oauthGrants = pgTable(
   (t) => [
     index('oauth_grants_access_ix').on(t.accessTokenHash),
     index('oauth_grants_code_ix').on(t.codeHash),
+    index('oauth_grants_refresh_ix').on(t.refreshTokenHash),
     index('oauth_grants_app_user_ix').on(t.oauthAppId, t.userId),
   ],
 );

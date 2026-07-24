@@ -170,9 +170,29 @@ function ConnectAgent({ mcpUrl, restBaseUrl }: { mcpUrl: string; restBaseUrl: st
   const config = `{
   "mcpServers": {
     "manypost": {
+      "url": "${mcpUrl}"
+    }
+  }
+}`;
+
+  const configWithKey = `{
+  "mcpServers": {
+    "manypost": {
       "type": "http",
       "url": "${mcpUrl}",
       "headers": { "Authorization": "Bearer SUA_CHAVE_MP_LIVE" }
+    }
+  }
+}`;
+
+  const configCursorStatic = `{
+  "mcpServers": {
+    "manypost": {
+      "url": "${mcpUrl}",
+      "auth": {
+        "CLIENT_ID": "manypost-mcp",
+        "scopes": ["mcp:read", "mcp:write"]
+      }
     }
   }
 }`;
@@ -214,6 +234,12 @@ function ConnectAgent({ mcpUrl, restBaseUrl }: { mcpUrl: string; restBaseUrl: st
             <p className="text-xs text-graphite">{t('agentManualHint')}</p>
             <pre className="overflow-x-auto rounded-md border border-line bg-surface-2 p-3 text-xs leading-relaxed text-ink">
               {config}
+            </pre>
+            <pre className="overflow-x-auto rounded-md border border-line bg-surface-2 p-3 text-xs leading-relaxed text-ink">
+              {configCursorStatic}
+            </pre>
+            <pre className="overflow-x-auto rounded-md border border-line bg-surface-2 p-3 text-xs leading-relaxed text-ink">
+              {configWithKey}
             </pre>
           </div>
         </div>

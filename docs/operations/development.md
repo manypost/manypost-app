@@ -200,6 +200,7 @@ Scripts:
 - `scripts/e2e-publish.ts`;
 - `scripts/e2e-public.ts`;
 - `scripts/e2e-mcp.ts`;
+- `scripts/e2e-mcp-oauth.ts`;
 - `scripts/e2e-billing.ts`.
 
 Eles criam/mutam dados. Use PostgreSQL/Redis descartáveis e portas exclusivas.

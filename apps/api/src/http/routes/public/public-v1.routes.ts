@@ -1,5 +1,6 @@
 import { z } from '@hono/zod-openapi';
 import type { RouteConfig } from '@hono/zod-openapi';
+import { machineEndpoints } from '@manypost/config';
 import {
   ErrorCodes,
   PublicationStates,
@@ -13,6 +14,7 @@ import { machineCors } from '../../middleware/machine-cors';
 import { idempotency, rateLimitByCredential, requirePlanFeature } from '../../middleware/public-api';
 import { createApp, errorResponses, jsonBody, jsonResponse } from '../../openapi';
 import { isProviderAvailable, providerCatalogEntry } from '../shared/provider-catalog';
+import { protectedResourceMetadataUrl } from '../oauth.routes';
 
 /**
  * API pública `/public/v1` (SPEC_API_MCP §3): mesma pilha de use-cases da API interna, mas
@@ -278,6 +280,8 @@ export function publicV1Routes(ctn: Container) {
   app.use('*', machineCors()); // antes do auth: preflight OPTIONS não carrega credencial
   app.use('*', requireMachineAuth({
     verifyApiKey: ctn.auth.verifyApiKey,
+    verifyOAuthAccessToken: ctn.oauth.verifyAccessToken,
+    resourceMetadataUrl: protectedResourceMetadataUrl(machineEndpoints(ctn.env).mcpUrl),
   }));
   app.use('*', requirePlanFeature(ctn.plan, 'public_api'));
   app.use('*', rateLimitByCredential(ctn.runtime.rateLimiter, { limit: 60, windowSec: 60 }));

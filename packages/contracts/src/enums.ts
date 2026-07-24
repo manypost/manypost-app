@@ -48,8 +48,14 @@ export const ApiScopes = [
   'analytics:read',
   'webhooks:manage',
   'mcp',
+  'mcp:read',
+  'mcp:write',
 ] as const;
 export type ApiScope = (typeof ApiScopes)[number];
+
+/** Escopos OAuth emitidos para MCP (o legado `mcp` fica só em API keys). */
+export const McpOAuthScopes = ['mcp:read', 'mcp:write'] as const;
+export type McpOAuthScope = (typeof McpOAuthScopes)[number];
 
 export const ApprovalStatuses = [
   'PENDING',

@@ -10,7 +10,8 @@ function isProtectedHumanRequest(input: RequestInfo | URL): boolean {
   const rawUrl =
     typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
   try {
-    return new URL(rawUrl, 'http://manypost.local').pathname.startsWith('/v1/');
+    const path = new URL(rawUrl, 'http://manypost.local').pathname;
+    return path.startsWith('/v1/') || path.startsWith('/oauth/');
   } catch {
     return false;
   }

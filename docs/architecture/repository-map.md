@@ -189,6 +189,7 @@ compartilhada que não depende de adapters.
 - Qualidade: `check-ai-providers.ts`, `check-brand.ts`.
 - Desenvolvimento: `dev-all.ts`, `demo.ts`.
 - E2E: `e2e-auth.ts`, `e2e-publish.ts`, `e2e-public.ts`, `e2e-mcp.ts`,
+  `e2e-mcp-oauth.ts`,
   `e2e-billing.ts`; `e2e-clerk.ts` cria identidade e token Clerk somente no
   PostgreSQL/RSA efêmeros da suíte.
 - Operação externa: `stripe-sync.ts`, `stripe-webhook.ts`,

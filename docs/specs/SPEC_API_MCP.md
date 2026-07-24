@@ -35,8 +35,10 @@ Uma única pilha de autorização: qualquer credencial resolve para um **Princip
 - Escopos: `posts:read`, `posts:write`, `channels:read`, `channels:write`, `media:write`, `analytics:read`, `webhooks:manage`, `mcp` — múltiplas keys por org, revogação individual, `last_used_at`.
 
 ### MCP / apps de terceiros — OAuth 2.1 (*direção do Postiz*)
-- manypost como **authorization server**: `/.well-known/oauth-protected-resource` (RFC 9728) + `/.well-known/oauth-authorization-server`; authorization code + **PKCE S256** obrigatório; scopes `mcp:read`, `mcp:write`; tokens `mpo_*` opacos com hash no banco, expiração 1h + refresh.
-- Tela de consentimento no web app listando escopos e organização.
+- manypost como **authorization server** no issuer `PUBLIC_URL` (Next reescreve `/.well-known/oauth-authorization-server` e `/oauth/*` para a API): PRM no host MCP (`/.well-known/oauth-protected-resource`, RFC 9728); authorization code + **PKCE S256** obrigatório; scopes `mcp:read`, `mcp:write`; tokens `mpo_*` opacos com hash no banco, expiração curta + refresh com rotação e detecção de reuso.
+- Clientes: estático público `manypost-mcp` (Cursor), CIMD (`client_id` = URL HTTPS do metadata) e DCR mínimo em `/oauth/register` (cliente público, sem secret).
+- Tela de consentimento em `{PUBLIC_URL}/oauth/consent` (Clerk): lista escopos e organização; approve/deny devolvem o redirect com `code`/`error`.
+- Dual-auth nas superfícies de máquina: `mp_live_` (API key) **ou** `mpo_` (OAuth); Clerk continua rejeitado no MCP/REST de máquina.
 
 ### Tokens OAuth das redes sociais
 Cifrados at-rest (AES-256-GCM, SPEC_DATA §5); nunca expostos por nenhuma superfície; decrypt só no worker no momento do uso.
@@ -91,7 +93,7 @@ Eventos: `post.published`, `post.failed`, `post.scheduled`, `channel.refresh_req
 ## 5. Servidor MCP
 
 - **SDK oficial `@modelcontextprotocol/sdk`**, transporte **Streamable HTTP** no mesmo processo da api (desvio do Postiz: sem dependência de framework de agente; o MCP expõe use-cases direto). **Endereço canônico = raiz do host `mcp.dominio`** (`MCP_PUBLIC_URL`) — é a URL que o usuário cola no cliente; `/mcp` responde como alias, e no self-host de um domínio só ele fica em `{PUBLIC_URL}/mcp`. Navegação humana no host (GET com `accept: text/html`) recebe uma página explicando como conectar, não um 401 cru.
-- Auth: API key com escopo `mcp` **ou** OAuth §2; discovery documents servidos pela api.
+- Auth: API key com escopo `mcp` (legado) **ou** OAuth §2 (`mpo_` + `mcp:read`/`mcp:write`); 401 sem credencial inclui `WWW-Authenticate` com `resource_metadata`; discovery PRM no host MCP e AS em `PUBLIC_URL`.
 - **Tools** (paridade com o Postiz + política):
 
 | Tool | Use-case | Escopo exigido |

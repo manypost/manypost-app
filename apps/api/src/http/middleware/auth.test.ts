@@ -127,6 +127,16 @@ describe('requireMachineAuth para API REST pública e MCP', () => {
         token === 'mp_live_valid'
           ? { orgId: 'org-machine', scopes: ['mcp'], apiKeyId: 'key-1' }
           : null,
+      verifyOAuthAccessToken: async (token) =>
+        token === 'mpo_valid'
+          ? {
+              orgId: 'org-oauth',
+              userId: 'user-o',
+              scopes: ['mcp:read', 'mcp:write'],
+              grantId: 'grant-1',
+            }
+          : null,
+      resourceMetadataUrl: 'https://mcp.example/.well-known/oauth-protected-resource',
     }),
   );
   machineApp.get('/machine', (c) => c.json(c.get('principal')));
@@ -143,6 +153,24 @@ describe('requireMachineAuth para API REST pública e MCP', () => {
       scopes: ['mcp'],
       apiKeyId: 'key-1',
     });
+  });
+
+  it('aceita access token OAuth mpo_ e anuncia resource_metadata no 401', async () => {
+    const ok = await machineApp.request('/machine', {
+      headers: { authorization: 'Bearer mpo_valid' },
+    });
+    expect(ok.status).toBe(200);
+    expect(await ok.json()).toEqual({
+      kind: 'oauth',
+      orgId: 'org-oauth',
+      userId: 'user-o',
+      scopes: ['mcp:read', 'mcp:write'],
+      grantId: 'grant-1',
+    });
+
+    const missing = await machineApp.request('/machine');
+    expect(missing.status).toBe(401);
+    expect(missing.headers.get('WWW-Authenticate')).toContain('resource_metadata=');
   });
 
   it('recusa bearer e cookie Clerk sem consultar autenticação humana', async () => {

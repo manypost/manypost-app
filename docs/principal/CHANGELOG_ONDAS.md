@@ -14,6 +14,7 @@
 
 | Onda | Data | Entrega |
 |---|---|---|
+| 22 | 2026-07-24 | OAuth 2.1 no MCP — dual-auth `mpo_`/`mp_live_`, AS + consent + DCR/CIMD/static |
 | 21 | 2026-07-24 | Superfície de auth redesenhada — placeholders, palco de altura fixa, controles unificados e a arte provando a manchete |
 | 20 | 2026-07-24 | Clerk-only — autenticação humana no Clerk; Manypost autoriza org/papel; sem JWT/exchange legado |
 | 19 | 2026-07-23 | Dev.to — primeiro destino de **artigo** e primeira rede sem gate externo (chave pessoal, sem env) |
@@ -39,6 +40,21 @@
 > As ondas 1 e 2 do frontend e as fatias de backend anteriores (fundação, banco, auth, publicação,
 > retry, webhooks, mídia, threads, aprovação por link, listagens/SSE, providers da onda 1) estão
 > registradas em [STATUS.md §2](STATUS.md#2-o-que-já-está-pronto-e-verificado), com spec e código de cada uma.
+
+---
+
+## Onda 22 — OAuth 2.1 no MCP (dual-auth)
+
+**2026-07-24.** O servidor MCP aceita **API key** (`mp_live_` + escopo `mcp`) **e**
+**access token OAuth** (`mpo_*` + `mcp:read`/`mcp:write`). O authorization server fica no
+issuer `PUBLIC_URL` (Next rewrite → API): discovery, authorize, token, DCR; o host MCP
+serve o PRM e devolve `WWW-Authenticate` com `resource_metadata` no 401. Consentimento
+Clerk em `/oauth/consent` escolhe org e escopos. Clientes: estático `manypost-mcp`, CIMD e
+DCR público. Refresh com rotação e detecção de reuso. OpenSpec: `add-mcp-oauth`.
+
+**Provas:** testes de core/API/web do AS; `scripts/e2e-mcp-oauth.ts` (discovery → DCR →
+PKCE → `schedule_post`); `e2e-mcp.ts` (API key) permanece verde; `bun run check` /
+`db:check` / `build:web` / `spec:validate`.
 
 ---
 

@@ -401,17 +401,25 @@ autorização por organização e scope não depende do Redis.
 **Entrada:** host MCP na raiz/`/mcp`, route em `mcp.routes.ts`, servidor em
 `apps/api/src/mcp/mcp-server.ts`.
 
-1. API key com scope `mcp` autentica toda requisição.
-2. `initialize` cria transporte stateful e `mcp-session-id` em memória com TTL.
-3. Requests seguintes precisam da mesma sessão e organização.
-4. Tools validam input e chamam os mesmos casos de uso de canais/posts/mídia.
-5. Mutações usam origin/actor MCP, audit log e limite anti-loop de
-   agendamentos.
-6. Erro de domínio vira resultado de tool controlado; auth/sessão inválida vira
+1. Credencial de máquina autentica toda requisição: API key `mp_live_` com
+   scope `mcp` (legado, implica read+write) **ou** access token OAuth `mpo_`
+   com `mcp:read` / `mcp:write`.
+2. Sem Bearer, a resposta é 401 com `WWW-Authenticate` apontando o PRM
+   (`/.well-known/oauth-protected-resource`); o AS fica em `PUBLIC_URL`
+   (`/.well-known/oauth-authorization-server`, `/oauth/*`).
+3. Fluxo OAuth: discovery → registro (DCR/CIMD/static `manypost-mcp`) →
+   authorize + consent Clerk → token com PKCE S256 → Bearer no MCP.
+4. `initialize` cria transporte stateful e `mcp-session-id` em memória com TTL.
+5. Requests seguintes precisam da mesma sessão e organização.
+6. Tools validam input, escopo fino por tool e chamam os mesmos casos de uso
+   de canais/posts/mídia.
+7. Mutações usam origin/actor MCP, audit log (com grant id quando OAuth) e
+   limite anti-loop de agendamentos.
+8. Erro de domínio vira resultado de tool controlado; auth/sessão inválida vira
    erro HTTP.
 
 Sessões MCP não são compartilhadas entre réplicas; escala horizontal exige
-store externo ou afinidade. OAuth 2.1 para MCP não está implementado.
+store externo ou afinidade. Clerk Bearer/cookie continua rejeitado no MCP.
 
 ## Billing e Stripe
 
