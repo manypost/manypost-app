@@ -9,6 +9,7 @@ import {
   makeRegisterPublicClient,
   makeVerifyOAuthAccessToken,
   pkceChallengeS256,
+  redirectUriAllowed,
 } from './oauth';
 import type { OAuthAppRecord, OAuthGrantRecord } from '../ports/oauth';
 import { randomToken, sha256Hex } from '../tokens';
@@ -51,6 +52,12 @@ function makeOAuthFakes() {
     softDelete: async (appId: string) => {
       const row = apps.find((a) => a.id === appId);
       if (row) row.deletedAt = new Date();
+    },
+    updateRedirectUris: async (appId: string, redirectUris: string[]) => {
+      const row = apps.find((a) => a.id === appId && !a.deletedAt);
+      if (!row) return null;
+      row.redirectUris = redirectUris;
+      return row;
     },
   };
 
@@ -335,5 +342,96 @@ describe('pkceChallengeS256', () => {
     const verifier = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk';
     const expected = createHash('sha256').update(verifier, 'ascii').digest('base64url');
     expect(pkceChallengeS256(verifier)).toBe(expected);
+  });
+});
+
+describe('RFC 8252 loopback redirect matching', () => {
+  test('accepts portless loopback registration with ephemeral port', () => {
+    expect(
+      redirectUriAllowed(['http://127.0.0.1/callback'], 'http://127.0.0.1:53092/callback'),
+    ).toBe(true);
+    expect(
+      redirectUriAllowed(['http://localhost/callback'], 'http://localhost:3118/callback'),
+    ).toBe(true);
+  });
+
+  test('accepts OpenCode path with ephemeral port on static allowlist', () => {
+    expect(
+      redirectUriAllowed(
+        ['http://127.0.0.1/mcp/oauth/callback'],
+        'http://127.0.0.1:19876/mcp/oauth/callback',
+      ),
+    ).toBe(true);
+  });
+
+  test('rejects different loopback path', () => {
+    expect(
+      redirectUriAllowed(['http://127.0.0.1/callback'], 'http://127.0.0.1:19876/mcp/oauth/callback'),
+    ).toBe(false);
+  });
+
+  test('keeps exact match for non-loopback URIs', () => {
+    expect(
+      redirectUriAllowed(
+        ['https://cursor.com/api/mcp/auth/callback'],
+        'https://cursor.com/api/mcp/auth/callback',
+      ),
+    ).toBe(true);
+    expect(
+      redirectUriAllowed(
+        ['https://cursor.com/api/mcp/auth/callback'],
+        'https://cursor.com/api/mcp/auth/other',
+      ),
+    ).toBe(false);
+    expect(
+      redirectUriAllowed(
+        ['cursor://anysphere.cursor-mcp/oauth/callback'],
+        'cursor://anysphere.cursor-mcp/oauth/callback',
+      ),
+    ).toBe(true);
+  });
+
+  test('DCR client can authorize with a different loopback port than registered', async () => {
+    const local = makeOAuthFakes();
+    const register = makeRegisterPublicClient({ apps: local.apps });
+    const registered = await register({
+      redirectUris: ['http://127.0.0.1:33418/'],
+      clientName: 'vscode-like',
+    });
+    const verifier = randomToken(32);
+    const approve = makeApproveAuthorization({ apps: local.apps, grants: local.grants });
+    const { code } = await approve({
+      clientId: registered.clientId,
+      redirectUri: 'http://127.0.0.1:59656/',
+      codeChallenge: pkceChallengeS256(verifier),
+      userId: 'user-1',
+      orgId: 'org-1',
+      scopes: ['mcp:read'],
+      resource: null,
+    });
+    expect(code.length).toBeGreaterThan(10);
+  });
+});
+
+describe('static MCP client seed upsert', () => {
+  test('merges missing OpenCode redirects into an existing row', async () => {
+    const local = makeOAuthFakes();
+    await local.apps.create({
+      orgId: null,
+      name: 'manypost MCP',
+      clientId: 'manypost-mcp',
+      clientSecretHash: null,
+      redirectUris: [
+        'cursor://anysphere.cursor-mcp/oauth/callback',
+        'https://cursor.com/api/mcp/auth/callback',
+      ],
+      scopes: ['mcp:read', 'mcp:write'],
+      tokenEndpointAuthMethod: 'none',
+    });
+    const ensure = makeEnsureStaticMcpClient({ apps: local.apps });
+    const app = await ensure();
+    expect(app.redirectUris).toContain('http://127.0.0.1/mcp/oauth/callback');
+    expect(app.redirectUris).toContain('http://localhost/mcp/oauth/callback');
+    expect(app.redirectUris).toContain('cursor://anysphere.cursor-mcp/oauth/callback');
   });
 });

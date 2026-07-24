@@ -735,6 +735,8 @@
   "oauthConsent": {
     "title": "Autorizar acesso MCP",
     "subtitle": "O cliente {clientId} pediu permissão para usar o servidor MCP desta organização.",
+    "redirectHost": "O código de autorização será enviado para {hostname}.",
+    "redirectLoopbackWarning": "Esse endereço é loopback (máquina local). Confirme que o pedido veio do cliente MCP que você iniciou neste computador.",
     "scopesTitle": "Permissões",
     "scopeRead": "Ler canais e posts (mcp:read)",
     "scopeWrite": "Agendar, editar e cancelar posts (mcp:write)",
@@ -743,7 +745,7 @@
     "approve": "Autorizar",
     "deny": "Recusar",
     "expiredTitle": "Pedido expirado",
-    "expiredBody": "Reinicie a conexão pelo cliente MCP (Cursor, Claude, Inspector)."
+    "expiredBody": "Reinicie a conexão pelo cliente MCP (Cursor, Claude, Codex, OpenCode, VS Code ou Inspector)."
   },
   "settings": {
     "profileTitle": "Perfil",
@@ -752,15 +754,15 @@
     "endpointRest": "Endereço da API",
     "endpointRestHint": "Base das chamadas REST. Autentique com Authorization: Bearer mp_live_…",
     "endpointMcp": "Servidor MCP",
-    "endpointMcpHint": "Cole no seu cliente (Claude, Cursor). Prefira OAuth; API key com escopo mcp continua válida.",
+    "endpointMcpHint": "Cole no seu cliente (Claude, Cursor, Codex, OpenCode, VS Code). Prefira OAuth; API key com escopo mcp continua válida.",
     "agentTitle": "Conectar seu agente (MCP)",
-    "agentIntro": "Clientes modernos (Cursor, Claude) autenticam por OAuth ao colar só a URL do MCP. Como alternativa headless, crie uma API key com escopo mcp — a chave completa aparece uma única vez.",
+    "agentIntro": "Cole só a URL do MCP: Cursor, Claude Code, Codex, OpenCode, VS Code e Inspector usam OAuth (DCR ou CIMD) sozinhos. Client ID estático manypost-mcp serve Cursor/OpenCode sem DCR. Alternativa headless: API key mp_live_ com escopo mcp (Authorization: Bearer …) — a chave completa aparece uma única vez.",
     "agentPromptTitle": "Prompt pronto",
     "agentPromptHint": "Cole no seu agente. Com OAuth ele abre o login; se usar chave, troque SUA_CHAVE.",
     "agentCopyPrompt": "Copiar prompt",
-    "agentPromptTemplate": "Configure o servidor MCP do manypost no meu cliente e confirme que funcionou.\n\n- URL do servidor: {mcpUrl}\n- Transporte: HTTP (Streamable HTTP)\n- Autenticação preferida: OAuth 2.1 (discovery em /.well-known/oauth-protected-resource). Alternativa: Authorization: Bearer SUA_CHAVE (mp_live_ com escopo mcp)\n- Client ID estático (Cursor sem DCR): manypost-mcp\n- API REST equivalente, se precisar: {restBaseUrl}\n\nDepois de configurar, liste as ferramentas e mostre meus canais com list_channels.",
+    "agentPromptTemplate": "Configure o servidor MCP do manypost no meu cliente e confirme que funcionou.\n\n- URL do servidor: {mcpUrl}\n- Transporte: HTTP (Streamable HTTP)\n- Autenticação preferida: OAuth 2.1 (discovery em /.well-known/oauth-protected-resource). O cliente deve registrar-se sozinho (DCR/CIMD). Alternativa: Authorization: Bearer SUA_CHAVE (mp_live_ com escopo mcp)\n- Client ID estático opcional (Cursor/OpenCode sem DCR): manypost-mcp\n- API REST equivalente, se precisar: {restBaseUrl}\n\nDepois de configurar, liste as ferramentas e mostre meus canais com list_channels.",
     "agentManualTitle": "Configuração manual",
-    "agentManualHint": "OAuth: só a URL. Com API key, use o JSON abaixo (troque SUA_CHAVE_MP_LIVE). Cursor sem DCR pode usar auth.CLIENT_ID manypost-mcp.",
+    "agentManualHint": "OAuth: só a URL (DCR/CIMD). Cursor/OpenCode sem DCR: auth.CLIENT_ID manypost-mcp. Headless: JSON abaixo com Authorization Bearer mp_live_… (troque SUA_CHAVE_MP_LIVE).",
     "agentCopyConfig": "Copiar JSON",
     "newKey": "Nova chave",
     "newKeyHint": "Escolha um nome e os escopos — dá para revogar a qualquer momento.",

@@ -44,6 +44,8 @@ export interface OAuthAppRepository {
     tokenEndpointAuthMethod?: string | null;
     clientUri?: string | null;
   }): Promise<OAuthAppRecord>;
+  /** Substitui redirect_uris do app (seed upsert do client estático). */
+  updateRedirectUris(id: string, redirectUris: string[]): Promise<OAuthAppRecord | null>;
   softDelete(id: string): Promise<void>;
 }
 

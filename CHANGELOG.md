@@ -6,6 +6,17 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ## [Unreleased]
 
+### Fixed
+
+- **OAuth MCP multi-cliente (issuer + loopback).** DCR/token/authorize no
+  `PUBLIC_URL` deixavam de ser públicos por causa do Clerk (302 `/login` HTML),
+  quebrando OpenCode, Codex, VS Code e Cursor paste-URL. O proxy agora libera
+  esses três paths; consent continua autenticado. Redirects `http` em loopback
+  passam a seguir RFC 8252 §7.3 (porta efêmera). O client estático
+  `manypost-mcp` ganhou callbacks OpenCode e upsert no seed. Consent mostra o
+  hostname do redirect com aviso de loopback. Settings/SPEC documentam a matriz
+  de clientes + API key `mp_live_`. OpenSpec: `fix-mcp-oauth-client-interop`.
+
 ### Changed
 
 - **Telas de entrar/criar conta redesenhadas.** Todo campo agora mostra um exemplo do que
@@ -21,8 +32,6 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
   As colunas do dia e do funil respondem ao ponteiro com borda de acento, sempre por
   cor/brilho e sem deslocar nada. A animação fica sob `prefers-reduced-motion`.
   Mudança OpenSpec: `redesign-auth-surface`.
-
-### Fixed
 
 - **Guia de credenciais da Meta (Facebook/Instagram/Threads) reescrito** — a seção §5.2 de
   `docs/principal/INTEGRATIONS_SETUP.md` descrevia o painel antigo da Meta ("Create App → tipo

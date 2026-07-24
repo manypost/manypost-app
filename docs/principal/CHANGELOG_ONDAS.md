@@ -14,6 +14,7 @@
 
 | Onda | Data | Entrega |
 |---|---|---|
+| 23.1 | 2026-07-24 | MCP OAuth interop — DCR público no issuer + RFC 8252 loopback (OpenCode/Codex/Claude/VS Code) |
 | 23 | 2026-07-24 | YouTube — primeiro destino de **vídeo** puro: upload resumível em streaming e Short medido no arquivo |
 | 22 | 2026-07-24 | OAuth 2.1 no MCP — dual-auth `mpo_`/`mp_live_`, AS + consent + DCR/CIMD/static |
 | 21 | 2026-07-24 | Superfície de auth redesenhada — placeholders, palco de altura fixa, controles unificados e a arte provando a manchete |
@@ -41,6 +42,21 @@
 > As ondas 1 e 2 do frontend e as fatias de backend anteriores (fundação, banco, auth, publicação,
 > retry, webhooks, mídia, threads, aprovação por link, listagens/SSE, providers da onda 1) estão
 > registradas em [STATUS.md §2](STATUS.md#2-o-que-já-está-pronto-e-verificado), com spec e código de cada uma.
+
+---
+
+## Onda 23.1 — MCP OAuth interop multi-cliente (2026-07-24)
+
+**O que mudou.** O AS da onda 22 anunciava DCR público no issuer, mas o Clerk no Next
+redirecionava `/oauth/register|token|authorize` para `/login` (HTML). Clientes com porta
+efêmera de loopback também falhavam no match exato de `redirect_uri`. Agora: proxy libera
+os três paths de máquina; matching RFC 8252; static `manypost-mcp` + OpenCode; consent com
+hostname/aviso loopback; docs da matriz Cursor/OpenCode/Claude/Codex/VS Code + API key.
+
+**OpenSpec:** `fix-mcp-oauth-client-interop`.
+
+**Provas:** testes de proxy, core (RFC 8252 + seed upsert), consent hostname; `bun run check`
++ `bun run spec:validate`.
 
 ---
 
