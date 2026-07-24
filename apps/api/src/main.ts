@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { createRoute, z } from '@hono/zod-openapi';
-import { loadEnv, machineEndpoints, machineHosts, apiProcessOwnsQueueWorker } from '@manypost/config';
+import { loadEnv, machineEndpoints, machineHosts } from '@manypost/config';
 import { runMigrations } from '@manypost/db';
 import { providerRegistry } from '@manypost/providers';
 import { buildContainer } from './container';
@@ -36,10 +36,8 @@ if (env.DB_MIGRATE === 'auto') {
 }
 
 const ctn = await buildContainer(env);
-if (apiProcessOwnsQueueWorker(env.MODE)) {
-  // MODE=all|worker: consome a fila neste processo.
-  // standalone/full: o shell sobe apps/worker dedicado — não embutir de novo.
-  await ctn.runtime.startWorker();
+if (env.MODE !== 'api') {
+  await ctn.runtime.startWorker(); // MODE=all|worker: consome a fila no mesmo processo
 }
 const app = createApp();
 
