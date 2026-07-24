@@ -19,7 +19,7 @@ export default async function RegistroPage() {
         </h1>
         <p className="mt-1 text-sm leading-relaxed text-graphite">{t('registerSubtitle')}</p>
       </header>
-      <SocialButtons />
+      <SocialButtons mode="sign-up" />
       <RegisterForm />
       <p className="text-center text-[13px] text-graphite">
         {t('hasAccount')}{' '}
