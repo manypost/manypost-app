@@ -126,6 +126,13 @@ export const makeRegisterPublicClient = (deps: Pick<OAuthAsDeps, 'apps'>) =>
       if (!['http:', 'https:', 'cursor:'].includes(parsed.protocol)) {
         throw new DomainError(ErrorCodes.Forbidden, 'redirect_uri com scheme não suportado');
       }
+      if (
+        parsed.protocol === 'http:' &&
+        parsed.hostname !== '127.0.0.1' &&
+        parsed.hostname !== 'localhost'
+      ) {
+        throw new DomainError(ErrorCodes.Forbidden, 'redirect_uri http só é permitido para loopback');
+      }
     }
     const clientId = `dcr_${randomToken(16)}`;
     const app = await deps.apps.create({
