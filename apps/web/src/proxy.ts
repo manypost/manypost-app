@@ -55,7 +55,9 @@ function route(req: NextRequest, signedIn: boolean, hasInternalSession: boolean)
   return NextResponse.next();
 }
 
-const clerkEnabled = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
+const clerkEnabled = Boolean(
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY,
+);
 const withClerk = clerkMiddleware(async (auth, req) => {
   const session = await auth();
   return route(
