@@ -47,8 +47,45 @@ function makeFakes() {
     identities: {
       find: async (provider: string, providerUserId: string) =>
         identities.find((i) => i.provider === provider && i.providerUserId === providerUserId) ?? null,
-      link: async (d: any) => {
-        identities.push(d);
+      resolveOrProvision: async (d: any) => {
+        const linked = identities.find(
+          (i) => i.provider === d.provider && i.providerUserId === d.providerUserId,
+        );
+        if (linked) return { userId: linked.userId, isNewUser: false };
+        const existingUser = users.find((u) => u.email === d.email);
+        if (existingUser) {
+          identities.push({
+            userId: existingUser.id,
+            provider: d.provider,
+            providerUserId: d.providerUserId,
+            email: d.email,
+          });
+          return { userId: existingUser.id, isNewUser: false };
+        }
+        const user = {
+          id: id(),
+          email: d.email,
+          passwordHash: null,
+          name: d.name,
+          avatarUrl: d.avatarUrl,
+          timezone: 'UTC',
+          locale: 'pt-BR',
+          _n: seq,
+        };
+        users.push(user);
+        orgs.push({
+          id: id(),
+          name: d.orgName,
+          slug: d.orgSlug,
+          members: [{ userId: user.id, role: 'OWNER' as MemberRole }],
+        });
+        identities.push({
+          userId: user.id,
+          provider: d.provider,
+          providerUserId: d.providerUserId,
+          email: d.email,
+        });
+        return { userId: user.id, isNewUser: true };
       },
     },
     orgs: {
@@ -213,6 +250,22 @@ describe('login social (Google/GitHub)', () => {
     expect(out.isNewUser).toBe(false);
     expect(f._state.users).toHaveLength(1);
     expect(f._state.orgs).toHaveLength(1);
+  });
+
+  test('primeiros logins concorrentes criam uma identidade e um tenant', async () => {
+    const clerkProfile = profile({
+      provider: 'clerk',
+      providerUserId: 'user_clerk_1',
+    });
+    const [first, second] = await Promise.all([
+      makeLoginWithIdentity(f as any)({ profile: clerkProfile }),
+      makeLoginWithIdentity(f as any)({ profile: clerkProfile }),
+    ]);
+
+    expect([first.isNewUser, second.isNewUser].filter(Boolean)).toHaveLength(1);
+    expect(f._state.users).toHaveLength(1);
+    expect(f._state.orgs).toHaveLength(1);
+    expect(f._state.identities).toHaveLength(1);
   });
 
   test('vincula a conta existente pelo e-mail VERIFICADO (senha continua valendo)', async () => {
