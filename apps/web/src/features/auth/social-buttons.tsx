@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { clerkSsoRequest } from './auth-flow';
+import { startGoogleSso } from './auth-flow';
 import { SOCIAL_ICONS } from './social-icons';
 
 export function SocialButtons({ mode }: { mode: 'sign-in' | 'sign-up' }) {
@@ -17,8 +17,12 @@ function ClerkSocialButtons({ mode }: { mode: 'sign-in' | 'sign-up' }) {
   const { signIn, fetchStatus: signInStatus } = useSignIn();
   const { signUp, fetchStatus: signUpStatus } = useSignUp();
   const [error, setError] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
   const Google = SOCIAL_ICONS.google;
-  const loading = signInStatus === 'fetching' || signUpStatus === 'fetching';
+  const resource = mode === 'sign-in' ? signIn : signUp;
+  const fetching = signInStatus === 'fetching' || signUpStatus === 'fetching';
+  const ready = Boolean(resource);
+  const loading = fetching || starting;
 
   return (
     <div className="flex flex-col gap-4">
@@ -27,12 +31,16 @@ function ClerkSocialButtons({ mode }: { mode: 'sign-in' | 'sign-up' }) {
         variant="outline"
         className="w-full"
         isLoading={loading}
+        disabled={!ready || loading}
         onClick={async () => {
           setError(null);
-          const resource = mode === 'sign-in' ? signIn : signUp;
-          const { mode: _mode, ...request } = clerkSsoRequest(mode);
-          const { error: clerkError } = await resource.sso(request);
-          if (clerkError) setError(t('googleUnavailable'));
+          setStarting(true);
+          try {
+            const result = await startGoogleSso({ resource, mode });
+            if (result === 'unavailable') setError(t('googleUnavailable'));
+          } finally {
+            setStarting(false);
+          }
         }}
       >
         {Google ? <Google /> : null}

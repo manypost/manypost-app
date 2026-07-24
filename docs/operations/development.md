@@ -84,7 +84,8 @@ Para as credenciais Google da instância de produção:
 
 1. No Clerk Dashboard, abra **SSO connections > Google**, habilite sign-up e
    sign-in e marque credenciais customizadas.
-2. Copie a **Authorized Redirect URI** exibida pelo Clerk.
+2. Copie a **Authorized Redirect URI** exibida pelo Clerk (em geral
+   `https://clerk.manypost.com.br/v1/oauth_callback`).
 3. No cliente OAuth Web do Google, use como origens JavaScript:
    `https://app.manypost.com.br` e, apenas no cliente de desenvolvimento,
    `http://localhost:3000`.
@@ -93,6 +94,19 @@ Para as credenciais Google da instância de produção:
 5. Cole Client ID e Client Secret no Dashboard do Clerk, não no código ou em
    variável client-side. Para público externo, configure a tela de consentimento
    e publique o app OAuth do Google.
+
+Domínio de produção do Clerk (`clerk.manypost.com.br` /
+`accounts.manypost.com.br`):
+
+1. CNAMEs exatamente como em `clerk deploy status` (DNS complete).
+2. No Cloudflare, os registros `clerk` e `accounts` devem ficar **DNS only**
+   (nuvem cinza). Proxy laranja causa Error 1000 (`dns_loop`) porque o Clerk
+   também usa Cloudflare.
+3. Se o DNS estiver certo e o SSL do Clerk continuar `pending`, confira
+   **Zone Hold** na zona `manypost.com.br` e libere se estiver ativo — o hold
+   impede o Cloudflare for SaaS do Clerk de provisionar o hostname/SSL.
+4. Confirme com `clerk deploy status` até `domainStatus.ssl` = `complete` e
+   `https://clerk.manypost.com.br/v1/environment` responder JSON (não HTML 403).
 
 O domínio Railway gerado pode ser incluído como origem apenas se usuários
 realmente acessarem o web por ele. O domínio canônico é

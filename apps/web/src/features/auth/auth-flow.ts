@@ -19,6 +19,27 @@ export function clerkSsoRequest(mode: 'sign-in' | 'sign-up') {
   };
 }
 
+export type ClerkSsoResource = {
+  sso: (
+    request: Omit<ReturnType<typeof clerkSsoRequest>, 'mode'>,
+  ) => Promise<{ error?: unknown }>;
+};
+
+/** Starts Google SSO; never throws — returns `unavailable` when Clerk is not ready or SSO fails. */
+export async function startGoogleSso(input: {
+  resource: ClerkSsoResource | null | undefined;
+  mode: 'sign-in' | 'sign-up';
+}): Promise<'ok' | 'unavailable'> {
+  if (!input.resource) return 'unavailable';
+  try {
+    const { mode: _mode, ...request } = clerkSsoRequest(input.mode);
+    const { error } = await input.resource.sso(request);
+    return error ? 'unavailable' : 'ok';
+  } catch {
+    return 'unavailable';
+  }
+}
+
 export async function logoutClerkSession(input: {
   logoutClerk: () => Promise<void>;
 }) {

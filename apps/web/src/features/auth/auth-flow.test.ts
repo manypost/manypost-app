@@ -13,6 +13,10 @@ type AuthFlowModule = {
     redirectUrl: string;
     redirectCallbackUrl: string;
   };
+  startGoogleSso?: (input: {
+    resource: { sso: (request: unknown) => Promise<{ error?: unknown }> } | null | undefined;
+    mode: 'sign-in' | 'sign-up';
+  }) => Promise<'ok' | 'unavailable'>;
   logoutClerkSession?: (input: {
     logoutClerk: () => Promise<void>;
   }) => Promise<void>;
@@ -63,6 +67,48 @@ describe('Google OAuth e logout', () => {
       redirectCallbackUrl: '/sso-callback',
     });
     expect(flow.clerkSsoRequest?.('sign-in').redirectUrl).toBe('/auth/complete');
+  });
+
+  it('não chama sso sem resource e engole falhas do Clerk', async () => {
+    expect(flow.startGoogleSso).toBeFunction();
+    expect(await flow.startGoogleSso?.({ resource: null, mode: 'sign-in' })).toBe(
+      'unavailable',
+    );
+    expect(await flow.startGoogleSso?.({ resource: undefined, mode: 'sign-up' })).toBe(
+      'unavailable',
+    );
+
+    let calls = 0;
+    expect(
+      await flow.startGoogleSso?.({
+        resource: {
+          sso: async () => {
+            calls += 1;
+            throw new Error('clerk not loaded');
+          },
+        },
+        mode: 'sign-in',
+      }),
+    ).toBe('unavailable');
+    expect(calls).toBe(1);
+
+    expect(
+      await flow.startGoogleSso?.({
+        resource: {
+          sso: async () => ({ error: { code: 'oauth_provider_not_enabled' } }),
+        },
+        mode: 'sign-in',
+      }),
+    ).toBe('unavailable');
+
+    expect(
+      await flow.startGoogleSso?.({
+        resource: {
+          sso: async () => ({}),
+        },
+        mode: 'sign-in',
+      }),
+    ).toBe('ok');
   });
 
   it('encerra somente a sessão Clerk', async () => {

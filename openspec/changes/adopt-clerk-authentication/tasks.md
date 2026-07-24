@@ -25,7 +25,7 @@
 ## 4. Operations and documentation
 
 - [ ] 4.1 Run `clerk doctor` and record only non-secret findings; derive the linked Clerk Google callback rather than guessing it.
-  - `clerk doctor` passes the functional checks. The production domain is still pending DNS/SSL and Google has no custom credentials, so the exact callback must still be copied from the production SSO connection in Clerk Dashboard. Deferred to post-PR ops (DNS/Google), not blocking this closeout.
+  - `clerk doctor` passes the functional checks. Production (`clerk deploy status`): DNS+mail complete, Google OAuth `configured`, SSL still `pending` — `clerk.manypost.com.br` returns Cloudflare Error 1000 until SSL/Zone Hold is cleared (nuvem cinza + Zone Hold off). Callback canônico: `https://clerk.manypost.com.br/v1/oauth_callback`. Ver `docs/operations/development.md`.
 - [x] 4.2 Document Clerk/Google/Railway variable names, JavaScript origins, redirect URIs, rollout and rollback in the canonical architecture/operations docs.
 - [x] 4.3 Update `CHANGELOG.md` and any affected repository/auth flow maps without changing protected historical or attribution references.
 
