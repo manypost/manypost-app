@@ -14,6 +14,7 @@
 
 | Onda | Data | Entrega |
 |---|---|---|
+| 20 | 2026-07-24 | Clerk-only — autenticação humana no Clerk; Manypost autoriza org/papel; sem JWT/exchange legado |
 | 19 | 2026-07-23 | Dev.to — primeiro destino de **artigo** e primeira rede sem gate externo (chave pessoal, sem env) |
 | 18 | 2026-07-23 | Linguagem de quem usa — settings do composer 100% em pt-BR e humanizadas; nota do catálogo no tooltip padrão |
 | 17 | 2026-07-23 | Instagram via Facebook Business — **família Meta completa** (conta IG resolvida pela Página escolhida no post) |
@@ -37,6 +38,27 @@
 > As ondas 1 e 2 do frontend e as fatias de backend anteriores (fundação, banco, auth, publicação,
 > retry, webhooks, mídia, threads, aprovação por link, listagens/SSE, providers da onda 1) estão
 > registradas em [STATUS.md §2](STATUS.md#2-o-que-já-está-pronto-e-verificado), com spec e código de cada uma.
+
+---
+
+## Onda 20 — Clerk-only: autenticação humana fora do Manypost
+
+**2026-07-24.** A autenticação humana deixa de ser JWT/Argon2/social próprio da API e passa a
+ser **só Clerk**. A UI de login/cadastro/Google permanece Manypost (custom flows); o token Clerk
+vai em toda request `/v1` (Bearer) e no SSE via cookie `__session`. A API verifica o token e
+resolve usuário, organização e papel no Postgres — **Manypost autoriza**. API keys, MCP e OAuth
+de canais não mudam. Rollback = reverter o release (não há fallback legado embutido).
+
+Mudança OpenSpec: [`adopt-clerk-authentication`](../../openspec/changes/adopt-clerk-authentication/)
+(PR [#39](https://github.com/manypost/manypost-app/pull/39)).
+
+**Provas:** `bun run check`, `db:check`, `build:web`, `spec:validate`; integração PostgreSQL de
+provisionamento concorrente; E2E `e2e-auth` / `e2e-publish` / `e2e-public` / `e2e-mcp` com sessão
+Clerk assinada localmente. Smoke browser signed-in, DNS Clerk de produção, Google OAuth e vars
+Railway ficam como checklist operacional pós-merge.
+
+**Onde:** `apps/api` (middleware/identity), `apps/web` (ClerkProvider + `clerk-fetch`),
+`packages/config` (fail-closed), docs de arquitetura/ops, CHANGELOG raiz.
 
 ---
 
