@@ -2117,6 +2117,24 @@
           "disabledAt",
           "createdAt"
         ]
+      },
+      "ClerkAuthResult": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/AuthResult"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "isNewUser": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "isNewUser"
+            ]
+          }
+        ]
       }
     },
     "parameters": {}
@@ -2334,6 +2352,16 @@
               }
             }
           },
+          "404": {
+            "description": "não encontrado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "409": {
             "description": "conflito",
             "content": {
@@ -2400,6 +2428,16 @@
           },
           "401": {
             "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "não encontrado",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7036,6 +7074,62 @@
           },
           "429": {
             "description": "rate limit — aguarde e tente de novo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/clerk/exchange": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Troca uma sessão Clerk verificada por uma sessão interna do Manypost",
+        "description": "Aceita somente o bearer token Clerk. Organização, papel e usuário são derivados da persistência interna.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "sessão interna criada (cookies httpOnly também são definidos)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClerkAuthResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "não encontrado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "provedor externo temporariamente indisponível",
             "content": {
               "application/problem+json": {
                 "schema": {
