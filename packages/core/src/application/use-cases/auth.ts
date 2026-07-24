@@ -1,18 +1,14 @@
 import { ErrorCodes } from '@manypost/contracts';
 import { DomainError } from '../../domain/shared/result';
-import type { PasswordHasher, TokenSigner } from '../ports/auth';
 import type { PlanPolicy } from '../ports/plan-policy';
 import type {
   ApiKeyRepository,
   AuthIdentityRepository,
   OrganizationRepository,
-  SessionRepository,
   UserRepository,
 } from '../ports/repositories';
 import { randomToken, sha256Hex } from '../tokens';
 
-export const ACCESS_TTL_SEC = 15 * 60;
-export const REFRESH_TTL_SEC = 30 * 24 * 60 * 60;
 export const API_KEY_PREFIX = 'mp_live_';
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
@@ -26,125 +22,9 @@ const slugify = (name: string) =>
     .replace(/^-+|-+$/g, '')
     .slice(0, 40) || 'org';
 
-export interface AuthDeps {
-  users: UserRepository;
-  orgs: OrganizationRepository;
-  sessions: SessionRepository;
-  hasher: PasswordHasher;
-  signer: TokenSigner;
-  now?: () => Date;
-}
-
-async function issueTokens(
-  deps: AuthDeps,
-  userId: string,
-  meta: { userAgent?: string | undefined; ip?: string | undefined },
-) {
-  const memberships = await deps.orgs.listForUser(userId);
-  const active = memberships[0];
-  if (!active) throw new DomainError(ErrorCodes.AuthSessionInvalid, 'usuário sem organização');
-
-  const refreshToken = randomToken();
-  const now = (deps.now ?? (() => new Date()))();
-  await deps.sessions.create({
-    userId,
-    refreshTokenHash: sha256Hex(refreshToken),
-    expiresAt: new Date(now.getTime() + REFRESH_TTL_SEC * 1000),
-    userAgent: meta.userAgent,
-    ip: meta.ip,
-  });
-  const accessToken = await deps.signer.sign(
-    { sub: userId, org: active.id, role: active.role },
-    ACCESS_TTL_SEC,
-  );
-  return { accessToken, refreshToken, org: active };
-}
-
-export const makeRegister = (deps: AuthDeps) =>
-  async (input: {
-    email: string;
-    password: string;
-    name: string;
-    orgName?: string | undefined;
-    userAgent?: string | undefined;
-    ip?: string | undefined;
-  }) => {
-    const email = normalizeEmail(input.email);
-    if (await deps.users.findByEmail(email)) {
-      throw new DomainError(ErrorCodes.AuthEmailTaken, 'e-mail já cadastrado');
-    }
-    const user = await deps.users.create({
-      email,
-      passwordHash: await deps.hasher.hash(input.password),
-      name: input.name,
-    });
-    const orgName = input.orgName?.trim() || input.name;
-    await deps.orgs.createWithOwner({
-      name: orgName,
-      slug: `${slugify(orgName)}-${randomToken(4).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6)}`,
-      ownerId: user.id,
-    });
-    const tokens = await issueTokens(deps, user.id, input);
-    return {
-      user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl },
-      ...tokens,
-    };
-  };
-
-export const makeLogin = (deps: AuthDeps) =>
-  async (input: {
-    email: string;
-    password: string;
-    userAgent?: string | undefined;
-    ip?: string | undefined;
-  }) => {
-    const user = await deps.users.findByEmail(normalizeEmail(input.email));
-    // mesma mensagem para usuário inexistente e senha errada (não vazar existência)
-    const ok = user?.passwordHash
-      ? await deps.hasher.verify(input.password, user.passwordHash)
-      : false;
-    if (!user || !ok) {
-      throw new DomainError(ErrorCodes.AuthInvalidCredentials, 'credenciais inválidas');
-    }
-    const tokens = await issueTokens(deps, user.id, input);
-    return {
-      user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl },
-      ...tokens,
-    };
-  };
-
-export const makeRefreshSession = (deps: AuthDeps) =>
-  async (input: { refreshToken: string }) => {
-    const now = (deps.now ?? (() => new Date()))();
-    const found = await deps.sessions.findByTokenHash(sha256Hex(input.refreshToken));
-    if (!found) throw new DomainError(ErrorCodes.AuthSessionInvalid, 'sessão inválida');
-
-    const { session, matched } = found;
-    if (session.revokedAt || session.expiresAt <= now) {
-      throw new DomainError(ErrorCodes.AuthSessionInvalid, 'sessão inválida');
-    }
-    if (matched === 'previous') {
-      // token antigo reapresentado = provável roubo → mata a sessão inteira
-      await deps.sessions.revoke(session.id);
-      throw new DomainError(ErrorCodes.AuthSessionInvalid, 'sessão inválida');
-    }
-
-    const newRefresh = randomToken();
-    await deps.sessions.rotate(session.id, sha256Hex(newRefresh));
-
-    const memberships = await deps.orgs.listForUser(session.userId);
-    const active = memberships[0];
-    if (!active) throw new DomainError(ErrorCodes.AuthSessionInvalid, 'sessão inválida');
-    const accessToken = await deps.signer.sign(
-      { sub: session.userId, org: active.id, role: active.role },
-      ACCESS_TTL_SEC,
-    );
-    return { accessToken, refreshToken: newRefresh };
-  };
-
-/** Perfil resolvido pelo adapter do provedor de identidade (Google/GitHub…). */
+/** Identidade humana autenticada e resolvida pelo adapter Clerk. */
 export interface SocialProfile {
-  provider: string;
+  provider: 'clerk';
   providerUserId: string;
   email: string;
   emailVerified: boolean;
@@ -152,25 +32,34 @@ export interface SocialProfile {
   avatarUrl: string | null;
 }
 
-export const makeLoginWithIdentity = (deps: AuthDeps & { identities: AuthIdentityRepository }) =>
+interface IdentityPrincipalDeps {
+  users: UserRepository;
+  orgs: OrganizationRepository;
+  identities: AuthIdentityRepository;
+}
+
+export const makeResolveIdentityPrincipal = (deps: IdentityPrincipalDeps) =>
   async (input: {
-    profile: SocialProfile;
-    userAgent?: string | undefined;
-    ip?: string | undefined;
+    providerUserId: string;
+    loadProfile: () => Promise<SocialProfile>;
   }) => {
-    const { profile } = input;
-    const existing = await deps.identities.find(profile.provider, profile.providerUserId);
+    const existing = await deps.identities.find('clerk', input.providerUserId);
     let userId: string;
     let isNewUser = false;
+    let loadedProfile: SocialProfile | null = null;
 
     if (existing) {
       userId = existing.userId;
     } else {
-      // vincular/criar conta por e-mail exige e-mail VERIFICADO no provedor
+      const profile = await input.loadProfile();
+      loadedProfile = profile;
+      if (profile.provider !== 'clerk' || profile.providerUserId !== input.providerUserId) {
+        throw new DomainError(ErrorCodes.AuthUnauthorized, 'identidade Clerk inconsistente');
+      }
       if (!profile.email || !profile.emailVerified) {
         throw new DomainError(
           ErrorCodes.AuthSocialEmailUnverified,
-          'o e-mail da conta social não é verificado — use e-mail e senha',
+          'a conta Clerk não possui e-mail primário verificado',
         );
       }
       const email = normalizeEmail(profile.email);
@@ -188,27 +77,30 @@ export const makeLoginWithIdentity = (deps: AuthDeps & { identities: AuthIdentit
       isNewUser = resolved.isNewUser;
     }
 
-    // foto do social só preenche quando o usuário ainda não tem foto própria
-    if (profile.avatarUrl) {
-      await deps.users.updateAvatarIfEmpty(userId, profile.avatarUrl);
+    if (loadedProfile?.avatarUrl) {
+      await deps.users.updateAvatarIfEmpty(userId, loadedProfile.avatarUrl);
     }
 
-    const tokens = await issueTokens(deps, userId, input);
-    const user = (await deps.users.findById(userId))!;
+    const memberships = await deps.orgs.listForUser(userId);
+    const org = memberships[0];
+    if (!org) {
+      throw new DomainError(ErrorCodes.Forbidden, 'usuário sem organização Manypost');
+    }
+    const user = await deps.users.findById(userId);
+    if (!user) {
+      throw new DomainError(ErrorCodes.AuthUnauthorized, 'identidade interna não encontrada');
+    }
     return {
-      user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        avatarUrl: user.avatarUrl,
+      },
+      org,
       isNewUser,
-      ...tokens,
     };
   };
-
-export const makeLogout = (deps: Pick<AuthDeps, 'sessions'>) =>
-  async (input: { refreshToken: string }) => {
-    const found = await deps.sessions.findByTokenHash(sha256Hex(input.refreshToken));
-    if (found) await deps.sessions.revoke(found.session.id);
-  };
-
-// ---------- API keys ----------
 
 export interface ApiKeyDeps {
   apiKeys: ApiKeyRepository;
@@ -218,7 +110,6 @@ export interface ApiKeyDeps {
 
 export const makeCreateApiKey = (deps: ApiKeyDeps) =>
   async (input: { orgId: string; name: string; scopes: string[] }) => {
-    // "API REST e servidor MCP" é linha do Pro na landing
     await deps.plan?.assert(input.orgId, { kind: 'apiKey', scopes: input.scopes });
     const secret = randomToken(32);
     const plainKey = `${API_KEY_PREFIX}${secret}`;
@@ -229,7 +120,6 @@ export const makeCreateApiKey = (deps: ApiKeyDeps) =>
       prefix: secret.slice(0, 8),
       scopes: input.scopes,
     });
-    // a chave em claro só existe nesta resposta
     return { apiKey: plainKey, record };
   };
 
@@ -239,7 +129,11 @@ export const makeVerifyApiKey = (deps: ApiKeyDeps) =>
     const record = await deps.apiKeys.findActiveByHash(sha256Hex(presented));
     if (!record) return null;
     void deps.apiKeys.touchLastUsed(record.id).catch(() => {});
-    return { orgId: record.orgId, scopes: record.scopes, apiKeyId: record.id };
+    return {
+      orgId: record.orgId,
+      scopes: record.scopes,
+      apiKeyId: record.id,
+    };
   };
 
 export const makeListApiKeys = (deps: ApiKeyDeps) =>
@@ -248,5 +142,7 @@ export const makeListApiKeys = (deps: ApiKeyDeps) =>
 export const makeRevokeApiKey = (deps: ApiKeyDeps) =>
   async (input: { orgId: string; id: string }) => {
     const done = await deps.apiKeys.revoke(input.orgId, input.id);
-    if (!done) throw new DomainError(ErrorCodes.NotFound, 'API key não encontrada');
+    if (!done) {
+      throw new DomainError(ErrorCodes.NotFound, 'API key não encontrada');
+    }
   };
