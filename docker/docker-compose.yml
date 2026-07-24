@@ -5,14 +5,17 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+      args:
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:?defina NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
     environment:
       MODE: all # api + worker no mesmo processo (split em escala: 2 serviços, MODE=api / MODE=worker)
       PORT: 3000
       PUBLIC_URL: http://localhost:3000
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:?defina NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:?defina CLERK_SECRET_KEY}
       DATABASE_URL: postgresql://manypost:manypost@postgres:5432/manypost
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: change-me-random-string-with-at-least-32-chars
-      ENCRYPTION_KEY: 0000000000000000000000000000000000000000000000000000000000000000 # openssl rand -hex 32
+      ENCRYPTION_KEY: '0000000000000000000000000000000000000000000000000000000000000000' # openssl rand -hex 32
       AI_PROVIDER: none
     ports:
       - '3000:3000'

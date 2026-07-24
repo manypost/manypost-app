@@ -8,7 +8,9 @@ WORKDIR /app
 COPY . .
 RUN bun install --frozen-lockfile
 # Pré-compila o frontend (Next.js) caso o container seja executado com MODE=web
+ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+RUN test -n "$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY"
 RUN cd apps/web && bun run build
 EXPOSE 3000
 CMD ["sh", "-c", "if [ \"$MODE\" = \"web\" ]; then cd apps/web && bun run start --port ${PORT:-3000}; elif [ \"$MODE\" = \"standalone\" ] || [ \"$MODE\" = \"full\" ]; then bun run apps/worker/src/main.ts & PORT=3100 bun run apps/api/src/main.ts & PORT=${PORT:-3000} API_URL=http://localhost:3100 cd apps/web && bun run start; elif [ \"$MODE\" = \"worker\" ]; then bun run apps/worker/src/main.ts; elif [ \"$MODE\" = \"api\" ]; then bun run apps/api/src/main.ts; else bun run apps/worker/src/main.ts & bun run apps/api/src/main.ts; fi"]
-

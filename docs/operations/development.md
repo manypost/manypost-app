@@ -44,8 +44,9 @@ clone limpo em um worktree com mudanças.
 cp .env.example .env
 ```
 
-Preencha localmente os valores obrigatórios. Gere segredos distintos para JWT e
-AES-GCM; nunca cole o resultado em issue, commit, log ou documentação.
+Preencha localmente os valores obrigatórios. Gere uma `ENCRYPTION_KEY` dedicada;
+nunca cole o resultado ou a `CLERK_SECRET_KEY` em issue, commit, log ou
+documentação.
 
 O catálogo de nomes/formatos fica em
 [dados e infraestrutura](../architecture/data-and-infrastructure.md#catálogo-de-ambiente).
@@ -71,9 +72,13 @@ necessários também em `apps/web/.env.local`; o `clerk env pull` usa
 `CLERK_PUBLISHABLE_KEY`, que pode coexistir com o nome `NEXT_PUBLIC_` exigido
 pelo bundle web.
 
-No Railway, adicione os mesmos nomes ao serviço `manypost-app` e faça redeploy
-somente depois de configurar a instância Clerk de produção. A origem autorizada
-pela API é derivada de `PUBLIC_URL`.
+No Railway, adicione os mesmos nomes aos serviços que executam API/web/all e
+faça redeploy somente depois de configurar a instância Clerk de produção. O
+worker dedicado não precisa dessas chaves. A origem autorizada pela API é
+derivada de `PUBLIC_URL`. O Railpack disponibiliza a publishable key ao
+`next build`; builds manuais do Dockerfile devem passá-la como
+`--build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=...`. O secret Clerk não é build
+arg e permanece somente no ambiente server-side de runtime.
 
 Para as credenciais Google da instância de produção:
 
@@ -94,9 +99,10 @@ realmente acessarem o web por ele. O domínio canônico é
 `https://app.manypost.com.br`.
 
 Rollout: configure primeiro Clerk/Google, depois as variáveis Railway, redeploye
-e valide registro, login, Google, refresh e logout. Rollback: remova as duas
-variáveis Clerk juntas e redeploye o commit anterior; não há migration ou
-conversão de senha para desfazer.
+e valide registro, login, Google, autorização por papel e logout. A aplicação
+falha no startup sem as duas chaves Clerk. Rollback significa redeployar o
+release anterior com sua configuração correspondente; o release atual não
+ativa autenticação legada quando o Clerk está ausente.
 
 ## Subir dependências e aplicação completa
 
@@ -130,7 +136,8 @@ docker compose up --build
 ```
 
 Abre a API/worker em `http://localhost:3000` e o Scalar em `/docs`. Não sobe
-Next.js. As credenciais no compose são públicas e exclusivas para teste local.
+Next.js. Antes de executar, exporte `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` e
+`CLERK_SECRET_KEY`; o Compose exige ambas e não mantém valores padrão.
 
 ## Comandos canônicos
 
@@ -183,8 +190,14 @@ Scripts:
 
 Eles criam/mutam dados. Use PostgreSQL/Redis descartáveis e portas exclusivas.
 O workflow `.github/workflows/ci.yml` é a receita executável mais completa:
-aplica migrations no boot, espera `/health` e roda os scripts com hosts de
-loopback distintos para provar roteamento app/API/MCP.
+aplica migrations no boot, gera uma chave RSA efêmera, assina sessões Clerk
+somente para o E2E, vincula as identidades no PostgreSQL descartável, espera
+`/health` e roda os scripts com hosts de loopback distintos para provar
+roteamento app/API/MCP. Nenhum bypass de autenticação é habilitado no runtime.
+
+Os smokes manuais `demo.ts`, `connect-and-post.ts` e `live-telegram.ts` exigem
+`CLERK_SESSION_TOKEN` de um usuário Clerk de teste; o valor nunca deve ser
+versionado ou registrado em logs.
 
 Não use banco de desenvolvimento do proprietário nem Railway production.
 

@@ -5,7 +5,7 @@
 #
 # É uma configuração de TESTE LOCAL: segredos abaixo são fixos e públicos de propósito
 # (facilitam o clone-e-testa). NÃO use estes valores em produção — gere os seus com
-# `openssl rand -hex 32` (ENCRYPTION_KEY) e um segredo forte (JWT_SECRET).
+# `openssl rand -hex 32` (ENCRYPTION_KEY).
 #
 # Passo a passo para leigos: veja TESTING.md.
 services:
@@ -13,14 +13,17 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
+      args:
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:?defina NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
     environment:
       MODE: all # api + worker no mesmo processo
       PORT: 3000
       PUBLIC_URL: http://localhost:3000
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:?defina NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:?defina CLERK_SECRET_KEY}
       DATABASE_URL: postgresql://manypost:manypost@postgres:5432/manypost
       REDIS_URL: redis://redis:6379
-      # Segredos DISTINTOS e fixos SÓ PARA TESTE (o boot falha se forem iguais).
-      JWT_SECRET: manypost-teste-local-troque-em-producao-1234567890
+      # Chave fixa SÓ PARA TESTE.
       ENCRYPTION_KEY: 4d616e79706f7374207465737465206c6f63616c206e6f742073656372657421 # 64 hex
       AI_PROVIDER: none
       # Publica rápido no teste (backoff base curto) — em produção o default é 30s.
