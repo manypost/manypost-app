@@ -19,6 +19,7 @@ describe('política de refresh em resposta 401', () => {
       '/v1/auth/refresh',
       '/v1/auth/logout',
       '/v1/auth/social/google',
+      '/v1/auth/clerk/exchange',
     ]) {
       expect(policyModule.shouldAttemptSessionRefresh?.(path)).toBe(false);
     }

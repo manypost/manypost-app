@@ -1,5 +1,6 @@
 import createClient from 'openapi-fetch';
 import type { paths } from './schema';
+import { recoverInternalSession } from './clerk-session-recovery';
 import { shouldAttemptSessionRefresh } from './session-refresh';
 
 /**
@@ -36,7 +37,8 @@ const fetchWithRefresh: typeof fetch = async (input, init) => {
     typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
   if (!shouldAttemptSessionRefresh(url)) return res;
 
-  if (!(await refreshSession())) return res;
+  const refreshed = await refreshSession();
+  if (!refreshed && !(await recoverInternalSession())) return res;
   return fetch(retryable ?? input, init);
 };
 
