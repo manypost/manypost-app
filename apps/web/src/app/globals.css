@@ -247,29 +247,6 @@
     color-mix(in srgb, var(--line), #000 24%) var(--line);
 }
 
-/*
- * Superfície de auth — entrada orquestrada (uma vez, no mount) e palco escuro.
- * A animação só existe fora de prefers-reduced-motion; sob redução tudo já
- * nasce visível (sem estado inicial opaco). Só translate/opacity de entrada —
- * a regra de "sem translate no hover" (BRAND §2.3) continua valendo p/ hover.
- */
-@media (prefers-reduced-motion: no-preference) {
-  .auth-rise {
-    animation: auth-rise 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-
-  @keyframes auth-rise {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: none;
-    }
-  }
-}
-
 /* Grade sutil do palco escuro — evoca o calendário/agenda do produto (tokens
    via color-mix; hairlines de --paper sobre --night). */
 .auth-grid {
@@ -279,11 +256,74 @@
   background-size: 44px 44px;
 }
 
-/* Linhas do "leque" (um post → várias redes) — traço uniforme em qualquer escala */
-.auth-fan-line {
-  stroke: color-mix(in srgb, var(--accent-on-dark) 55%, transparent);
-  stroke-width: 1;
-  vector-effect: non-scaling-stroke;
+/*
+ * Superfície de auth — movimento.
+ *
+ * Tudo aqui é decorativo e vive inteiramente sob
+ * `prefers-reduced-motion: no-preference`: sob redução todo conteúdo nasce no
+ * estado final (nada de estado inicial opaco), o autoplay não roda e o palco
+ * segue operável pelos controles. Nada disto é estado de hover, então a regra
+ * "sem translate/scale no hover" (BRAND §2.3) continua valendo — e continua
+ * sendo o que o `scripts/check-brand.ts` verifica.
+ */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Entrada escalonada do slide: kicker → linhas do título → subtítulo → arte. */
+  .auth-enter {
+    animation: auth-enter 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: calc(var(--i, 0) * 60ms);
+  }
+
+  @keyframes auth-enter {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /*
+   * O movimento do palco vive nos cards: a entrada escalonada acima e a onda de
+   * blocos do hub (`HubBlocks`, em JS, também sob movimento reduzido). As
+   * linhas e os colchetes do diagrama são estáticos por decisão do owner —
+   * a estrutura não pisca, só o núcleo trabalha.
+   */
+
+  /* ponto de estado do funil respira enquanto a coluna está sob o ponteiro */
+  .auth-cell:hover .auth-cell-dot {
+    animation: auth-cell-dot 1.4s ease-in-out infinite;
+  }
+
+  @keyframes auth-cell-dot {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
+  }
+}
+
+/* Progresso do autoplay na pastilha ativa. Só é renderizado quando o autoplay
+   está de fato correndo — a duração vem do componente, via animation-duration. */
+.auth-dot-progress {
+  transform-origin: left center;
+  animation-name: auth-dot-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@keyframes auth-dot-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 
 /* células passadas do calendário: hachura sutil com tokens */

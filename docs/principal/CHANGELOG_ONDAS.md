@@ -14,6 +14,7 @@
 
 | Onda | Data | Entrega |
 |---|---|---|
+| 21 | 2026-07-24 | Superfície de auth redesenhada — placeholders, palco de altura fixa, controles unificados e a arte provando a manchete |
 | 20 | 2026-07-24 | Clerk-only — autenticação humana no Clerk; Manypost autoriza org/papel; sem JWT/exchange legado |
 | 19 | 2026-07-23 | Dev.to — primeiro destino de **artigo** e primeira rede sem gate externo (chave pessoal, sem env) |
 | 18 | 2026-07-23 | Linguagem de quem usa — settings do composer 100% em pt-BR e humanizadas; nota do catálogo no tooltip padrão |
@@ -38,6 +39,74 @@
 > As ondas 1 e 2 do frontend e as fatias de backend anteriores (fundação, banco, auth, publicação,
 > retry, webhooks, mídia, threads, aprovação por link, listagens/SSE, providers da onda 1) estão
 > registradas em [STATUS.md §2](STATUS.md#2-o-que-já-está-pronto-e-verificado), com spec e código de cada uma.
+
+---
+
+## Onda 21 — Superfície de auth: a arte passa a provar a manchete
+
+**2026-07-24.** Redesenho de apresentação das telas públicas de autenticação. Nada de
+comportamento de auth mudou — nenhuma chamada Clerk, rota, redirect ou guarda de
+open-redirect foi tocada.
+
+O que estava errado, medido no app rodando (viewport 1707px, painel de 1110px):
+
+- **nenhum campo tinha `placeholder`** — e-mail, senha e código abriam vazios, sem pista;
+- o botão de mostrar/ocultar senha tinha `tabIndex={-1}`, **inalcançável pelo teclado**;
+- cada slide tinha altura própria dentro de um `min-h-[440px]`, então o painel **pulava** na
+  troca e sobrava um vão morto acima dos controles nos slides curtos;
+- paginação e setas ficavam em **pontas opostas** do painel, sem relação entre si;
+- o autoplay de 6s avançava **sem nenhum aviso**;
+- o slide 1 prometia *"Vários posts. Várias redes. Um clique."* e ilustrava isso com um
+  **editor de código falso de 830px** — cópia e imagem discutindo entre si.
+
+A correção que orienta tudo: **a arte de cada slide é a prova da própria manchete**. O slide 1
+passou a ser o **diagrama de conexão MCP + API**, no mesmo padrão do diagrama da landing —
+pontos de entrada agrupados → colchete → linha → hub central → linha → colchete → redes
+suportadas. Isso também resolveu a pergunta em aberto sobre o público dev: a história de
+MCP/API volta ao palco na linguagem visual que o produto já usa. Os três slides passam por
+uma moldura única de altura fixa, e paginação + setas viraram um agrupamento só, com a
+pastilha ativa mostrando o progresso do autoplay. As colunas do dia (slide 2) e do funil
+(slide 3) respondem ao ponteiro com borda de acento — sempre por cor/brilho, nunca
+deslocando o elemento (BRAND §2.3).
+
+**Armadilha de SVG que fica registrada:** o diagrama da landing desenha os colchetes com
+`pathLength="100"` + `stroke-dasharray: 100` **junto de** `vector-effect: non-scaling-stroke`.
+Nessa combinação o dash passa a ser resolvido em **pixels de tela** e deixa de acompanhar o
+caminho. Na landing não aparece porque o traço é curto; aqui o mesmo padrão produziu linha
+picotada de 1px. Por isso os colchetes deste palco são **borda CSS com radius** (mesmo
+desenho, nítido em qualquer largura, sem esse modo de falha). Registrado também que a folga
+entre colchete e cards **não** pode existir do lado da espinha: com padding nos dois lados a
+linha para no ar e o diagrama lê como desconectado.
+
+O palco saiu de um componente de 373 linhas para um shell enxuto + uma moldura + um arquivo
+por slide, com a lógica de índice/autoplay extraída para um módulo puro e testado.
+
+Mudança OpenSpec: [`redesign-auth-surface`](../../openspec/changes/redesign-auth-surface/).
+
+**Provas:** `bun install --frozen-lockfile`, `bun run check` (513 pass / 0 fail, boundaries,
+ai-providers e brand ok). Verificação em navegador no app rodando: topo dos controles e do
+rodapé **idênticos (683px / 755px) nos três slides**; **1** slide no DOM por vez e **5**
+focáveis no carrossel (3 pastilhas + 2 setas), nenhum conteúdo de slide fora de tela no tab
+order; palco corretamente oculto em 1023.
+
+**Defeito achado por medição e corrigido:** com o diagrama no lugar, 1024–1040 estouravam a
+página em **66px** — o piso `minmax(26rem, …)` da coluna do formulário somado às larguras
+mínimas do diagrama passava do viewport. Corrigido baixando o piso para `22rem` e o padding
+do palco abaixo de `xl` para `px-8`. Depois disso: overflow **0px** em 1024, 1040, 1280 e
+1600, a arte nunca estoura a própria caixa e nenhum rótulo trunca.
+
+**Onde:** `apps/web/src/app/(auth)/layout.tsx`, `apps/web/src/features/auth/`
+(`brand-stage.tsx`, `stage/`, `password-input.tsx`, `login-form.tsx`, `register-form.tsx`),
+`apps/web/src/messages/pt-BR.json` e as regras de auth em `globals.css`.
+
+**Em aberto:** tirar o editor de código também tirou a única prova voltada a desenvolvedor do
+palco, enquanto BRAND §1.A afirma foco duplo (agências **e** desenvolvedores). Um slide
+dedicado a API/MCP ficou como decisão de produto — é puramente aditivo (um arquivo de slide,
+uma entrada na lista, um bloco de tradução).
+
+**Não verificado:** `bun run build:web` compila (`✓ Compiled successfully`) mas falha ao
+prerenderizar `/calendario` por `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` ausente no ambiente do
+build — **falha idêntica na árvore limpa**, portanto pré-existente e não introduzida aqui.
 
 ---
 

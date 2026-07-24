@@ -14,7 +14,7 @@
 
 | | |
 |---|---|
-| **Última entrega** | Onda 20 (2026-07-24) — **Clerk-only**: autenticação humana só pelo Clerk (UI Manypost); Manypost autoriza org/papel; sem JWT/refresh/exchange legado. Pendências ops: DNS Clerk, Google OAuth prod, Railway, smoke signed-in |
+| **Última entrega** | Onda 21 (2026-07-24) — **superfície de auth redesenhada**: placeholder em todo campo, palco de altura constante, controles num agrupamento só com progresso do autoplay, e o slide de abertura passou a ser o **diagrama de conexão MCP + API** no mesmo padrão do da landing, no lugar do editor de código falso. Zero mudança de comportamento de auth |
 | **Fase** | Fase 1 (MVP): backend completo e verificado, web com toda a superfície da API, billing do Cloud entregue |
 | **Provas** | `bun run check` + CI verdes. E2E reais: `e2e-auth`, `e2e-publish`, `e2e-public`, `e2e-mcp`, `e2e-billing` (bootstrap humano = sessão Clerk assinada localmente + identidade em Postgres descartável) |
 | **Redes prontas** | Mastodon, Bluesky, **Dev.to**, Telegram, Discord (OAuth2+Bot **e** webhook), LinkedIn, X, TikTok (sandbox — auditoria em revisão), **a família Meta inteira**: Threads, Instagram standalone, Facebook Pages e **Instagram via Facebook Business** (Development Mode), Twitch e Kick (chat ao vivo) + `fake` para testes |
@@ -211,7 +211,7 @@ O detalhe de cada onda (1 a 5) está no [changelog](CHANGELOG_ONDAS.md#frontend-
 
 | Tela | Estado |
 |---|---|
-| Login / registro / Google (Clerk) | ✅ UI Manypost + hooks Clerk; erros problem+json por código estável no `/me` e demais rotas |
+| Login / registro / Google (Clerk) | ✅ UI Manypost + hooks Clerk; erros problem+json por código estável no `/me` e demais rotas. Redesenhada na onda 21: placeholder em todo campo, alternância de senha alcançável pelo teclado, palco de altura constante e slide de abertura com o diagrama MCP + API no padrão da landing |
 | Onboarding `/boas-vindas` e `/planos` | ✅ somem quando `billingEnabled=false` (self-hosted) |
 | **Conexões** | ✅ OAuth em popup, formulário de credenciais gerado do JSON Schema do provider, reconectar/desconectar. Três blocos: **disponíveis**, **"Precisa de credencial"** (rede pronta sem env — self-hosted vê a variável que falta) e **"Em breve"** (roteiro + redes ainda não habilitadas no gerenciado). Cada cartão tem um **ícone "?"** em accent com relevo que mostra, no **tooltip padrão do app**, só o que a rede publica (onda 13, revista na onda 18); o que **este modo** exige (`.env` no self-host, nada na nuvem) ficou só no diálogo de conexão, onde vira ação |
 | **Calendário** (dia/semana/mês/lista) | ✅ a casa do app: painel de canais, drag para reagendar, "+" por slot vazio |
