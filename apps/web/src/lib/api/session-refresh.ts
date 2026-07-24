@@ -4,6 +4,7 @@ const CREDENTIAL_ENDPOINTS = [
   '/v1/auth/refresh',
   '/v1/auth/logout',
   '/v1/auth/social',
+  '/v1/auth/clerk/exchange',
 ] as const;
 
 export function shouldAttemptSessionRefresh(rawUrl: string): boolean {

@@ -1,10 +1,13 @@
 'use client';
 
+import { useClerk } from '@clerk/nextjs';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api/client';
+import { logoutBothSessions } from './auth-flow';
 
 // 1 recurso = 1 hook = 1 query key (SPEC_FRONTEND §4)
+const clerkEnabled = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
 
 export function useMe() {
   return useQuery({
@@ -71,13 +74,32 @@ export function useRegister() {
 }
 
 export function useLogout() {
+  return clerkEnabled ? useClerkLogout() : useLegacyLogout();
+}
+
+function useClerkLogout() {
+  const clerk = useClerk();
+  return useSessionLogout(() => clerk.signOut());
+}
+
+function useLegacyLogout() {
+  return useSessionLogout(async () => undefined);
+}
+
+function useSessionLogout(logoutClerk: () => Promise<unknown>) {
   const router = useRouter();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async () => {
-      const { error } = await api.POST('/v1/auth/logout', {});
-      if (error) throw error;
-    },
+    mutationFn: () =>
+      logoutBothSessions({
+        logoutInternal: async () => {
+          const { error } = await api.POST('/v1/auth/logout', {});
+          if (error) throw error;
+        },
+        logoutClerk: async () => {
+          await logoutClerk();
+        },
+      }),
     onSettled: () => {
       queryClient.clear();
       router.replace('/login');
