@@ -24,6 +24,18 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Fixed
 
+- **Guia de credenciais da Meta (Facebook/Instagram/Threads) reescrito** — a seção §5.2 de
+  `docs/principal/INTEGRATIONS_SETUP.md` descrevia o painel antigo da Meta ("Create App → tipo
+  Business", "Add Product", escopos em *App Review → Permissions and Features*) e era impossível
+  de seguir hoje, onde tudo é organizado por **casos de uso** e o escopo se habilita em
+  *caso de uso → Permissions → Add*. Agora há uma tabela que mapeia canal → caso de uso →
+  variáveis → redirect URI, e um passo a passo por canal. Corrigidos três erros que travavam a
+  configuração: o redirect do Instagram de login direto é `/callback/instagram-standalone` (não
+  `/callback/instagram`, que é o da variante via Facebook Business) e nunca havia sido
+  documentado; `INSTAGRAM_APP_ID/SECRET` faltava na tabela de variáveis do §6; e as credenciais
+  do Instagram/Threads ficam no painel do caso de uso, não em *App settings → Basic*. Os escopos
+  listados passaram a ser exatamente os que os providers pedem. Comentários do `.env.example`
+  sincronizados (inclusive uma referência errada a "docs §5.4" no Threads).
 - O botão de mostrar/ocultar senha estava fora da ordem de tabulação (`tabIndex={-1}`) e não
   podia ser alcançado pelo teclado.
 - Apenas o slide atual do palco de auth vai ao DOM. Antes os três ficavam montados, então os
@@ -37,6 +49,23 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
   `/oauth/authorize`, `/oauth/token`, DCR); o host MCP anuncia o PRM e exige Bearer.
   Consentimento no web (Clerk) escolhe organização e escopos `mcp:read`/`mcp:write`.
   Clientes: estático `manypost-mcp`, CIMD e DCR público. Mudança OpenSpec: `add-mcp-oauth`.
+
+- Canal **YouTube**: publica **vídeo** e **Short** no seu canal, com título próprio, descrição
+  (o texto do post), categoria, tags, miniatura personalizada e liberação programada. Toda
+  publicação leva um vídeo — o YouTube não aceita post só de texto. **O YouTube não tem parâmetro
+  de Short**: ele decide pelo arquivo (vertical ou quadrado **e** até 3 minutos). Como um botão de
+  Short seria decorativo, o manypost **mede o vídeo antes de enviar** — proporção, duração e a
+  rotação que o celular grava no arquivo — e o campo **Formato** recusa no agendamento, dizendo a
+  medida encontrada, quando o arquivo não vai virar o que você pediu. O envio usa upload resumível
+  com o corpo em streaming, então o arquivo nunca fica inteiro na memória. São pedidos **dois**
+  escopos sensíveis (`youtube.upload` e `youtube.readonly`) e mais nenhum, porque cada um é
+  revisado separadamente pelo Google; métricas existem mas ficam atrás de
+  `YOUTUBE_ENABLE_ANALYTICS`, que acrescenta um terceiro escopo sensível. O canal de destino é
+  escolhido no consentimento do Google, não a cada post — conectar outro canal da mesma conta vira
+  outro canal no manypost. **Enquanto o projeto no Google não passar pela auditoria de
+  conformidade, o vídeo sai privado mesmo pedindo público**; isso é tratado como publicação bem
+  sucedida, com aviso no log, e nunca como falha a retentar. Mudança OpenSpec:
+  `add-youtube-provider`.
 
 - Canal **Dev.to**: publica **artigos** em Markdown, com título próprio, tags (até 4), endereço
   original (canonical) e a opção de publicar por uma organização, escolhida a cada post. A primeira
