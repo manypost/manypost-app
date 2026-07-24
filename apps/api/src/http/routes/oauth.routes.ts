@@ -20,6 +20,11 @@ export interface OAuthPendingRequest {
   exp: number;
 }
 
+/** Issuer AS = PUBLIC_URL sem barra final (mesma regra de machineEndpoints). */
+function issuerBase(publicUrl: string): string {
+  return publicUrl.replace(/\/+$/, '');
+}
+
 function pendingKey(secretHex: string): Buffer {
   return createHmac('sha256', Buffer.from(secretHex, 'hex'))
     .update('oauth_pending:v1')
