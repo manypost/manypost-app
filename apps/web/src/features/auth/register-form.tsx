@@ -87,6 +87,8 @@ function ClerkRegisterForm() {
             onChange={(event) => setVerificationCode(event.target.value)}
             inputMode="numeric"
             autoComplete="one-time-code"
+            placeholder={t('codePlaceholder')}
+            maxLength={6}
             required
           />
           <p className="text-xs leading-relaxed text-graphite">{t('verificationHint')}</p>
@@ -159,7 +161,12 @@ function ClerkRegisterForm() {
             <FormItem>
               <FormLabel>{t('email')}</FormLabel>
               <FormControl>
-                <Input type="email" autoComplete="email" {...field} />
+                <Input
+                  type="email"
+                  autoComplete="email"
+                  placeholder={t('emailPlaceholder')}
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -172,7 +179,11 @@ function ClerkRegisterForm() {
             <FormItem>
               <FormLabel>{t('password')}</FormLabel>
               <FormControl>
-                <PasswordInput autoComplete="new-password" {...field} />
+                <PasswordInput
+                  autoComplete="new-password"
+                  placeholder={t('newPasswordPlaceholder')}
+                  {...field}
+                />
               </FormControl>
               <PasswordStrength value={passwordValue} />
               <FormDescription>{t('passwordHint')}</FormDescription>

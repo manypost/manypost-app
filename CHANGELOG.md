@@ -6,6 +6,29 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ## [Unreleased]
 
+### Changed
+
+- **Telas de entrar/criar conta redesenhadas.** Todo campo agora mostra um exemplo do que
+  espera (e-mail, senha, senha nova e código de verificação), em vez de um campo vazio sem
+  pista nenhuma. O painel escuro à direita passou a ter **altura fixa**: antes cada slide
+  tinha uma altura diferente, então o bloco inteiro pulava na troca e sobrava um vão morto
+  acima dos controles nos slides curtos. A paginação e as setas — que ficavam em pontas
+  opostas de um painel de ~1100px — viraram um único agrupamento, e a pastilha ativa mostra
+  quanto falta para o avanço automático, que antes acontecia sem aviso. O primeiro slide
+  trocou o editor de código falso de 830px pelo **diagrama de conexão MCP + API**, no mesmo
+  padrão do diagrama da landing (pontos de entrada → hub → redes suportadas): a arte agora
+  prova a própria manchete em vez de ilustrar a API de um jeito que a manchete não prometia.
+  As colunas do dia e do funil respondem ao ponteiro com borda de acento, sempre por
+  cor/brilho e sem deslocar nada. A animação fica sob `prefers-reduced-motion`.
+  Mudança OpenSpec: `redesign-auth-surface`.
+
+### Fixed
+
+- O botão de mostrar/ocultar senha estava fora da ordem de tabulação (`tabIndex={-1}`) e não
+  podia ser alcançado pelo teclado.
+- Apenas o slide atual do palco de auth vai ao DOM. Antes os três ficavam montados, então os
+  slides fora de tela permaneciam na árvore de acessibilidade e no tab order.
+
 ### Added
 
 - Canal **Dev.to**: publica **artigos** em Markdown, com título próprio, tags (até 4), endereço

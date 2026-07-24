@@ -104,6 +104,8 @@ function ClerkLoginForm({ nextPath }: { nextPath?: string }) {
             onChange={(event) => setMfaCode(event.target.value)}
             inputMode="numeric"
             autoComplete="one-time-code"
+            placeholder={t('codePlaceholder')}
+            maxLength={6}
             required
           />
         </div>
@@ -150,7 +152,12 @@ function ClerkLoginForm({ nextPath }: { nextPath?: string }) {
             <FormItem>
               <FormLabel>{t('email')}</FormLabel>
               <FormControl>
-                <Input type="email" autoComplete="email" {...field} />
+                <Input
+                  type="email"
+                  autoComplete="email"
+                  placeholder={t('emailPlaceholder')}
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -163,7 +170,11 @@ function ClerkLoginForm({ nextPath }: { nextPath?: string }) {
             <FormItem>
               <FormLabel>{t('password')}</FormLabel>
               <FormControl>
-                <PasswordInput autoComplete="current-password" {...field} />
+                <PasswordInput
+                  autoComplete="current-password"
+                  placeholder={t('passwordPlaceholder')}
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
