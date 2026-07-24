@@ -107,6 +107,10 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Fixed
 
+- Botão “Continuar com Google” não engole mais falha silenciosa quando o Clerk
+  ainda não carregou: espera o resource, captura erro e mostra
+  `auth.googleUnavailable`. Docs de ops cobrem DNS only / Zone Hold / SSL do
+  domínio `clerk.manypost.com.br`.
 - Conexões SSE agora têm timeout Bun de 30 segundos, acima do ping de 25
   segundos, evitando a desconexão observada no Railway.
 - O web client anexa o token Clerk a toda chamada `/v1`; o EventSource usa o
