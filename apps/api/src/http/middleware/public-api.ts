@@ -8,6 +8,7 @@ import {
   sha256Hex,
 } from '@manypost/core';
 import type { AppEnv } from './context';
+import { credentialKey } from './context';
 
 /**
  * "API REST e servidor MCP" é linha do Pro (PLANS.md §1). A criação de API key já é barrada,
@@ -25,7 +26,7 @@ export const requirePlanFeature = (
 
 /**
  * Rate-limit por credencial da API pública (SPEC_API_MCP §3): token bucket Redis por
- * credencial (API key ou usuário), com headers `RateLimit-*` (draft IETF) e 429 + `Retry-After`.
+ * credencial (API key, OAuth grant ou usuário), com headers `RateLimit-*` (draft IETF) e 429 + `Retry-After`.
  * Sem Redis o limiter é indefinido → falha aberta (Redis é descartável, SPEC_INFRA §1).
  */
 export const rateLimitByCredential = (
@@ -35,7 +36,7 @@ export const rateLimitByCredential = (
   async (c, next) => {
     if (!limiter) return next();
     const p = c.get('principal');
-    const cred = p.kind === 'api_key' ? `k:${p.apiKeyId}` : `u:${p.userId}`;
+    const cred = credentialKey(p);
     const verdict = await limiter.acquire([
       { key: `pub:cred:${cred}`, limit: opts.limit, windowSec: opts.windowSec },
     ]);
@@ -75,7 +76,7 @@ export const idempotency = (
     const fingerprint = sha256Hex(`${c.req.method}:${c.req.path}:${bodyText}`);
     // namespaced por CREDENCIAL (não por org): idempotência é por credencial — evita replay
     // cruzado entre chaves distintas da mesma org e o bypass do escopo da rota no replay
-    const cred = p.kind === 'api_key' ? p.apiKeyId : p.userId;
+    const cred = credentialKey(p);
     const key = `idem:${cred}:${sha256Hex(idemKey)}`;
 
     const claim = await store.claim(key, fingerprint, ttl);

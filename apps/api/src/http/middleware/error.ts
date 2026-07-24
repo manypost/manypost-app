@@ -44,13 +44,22 @@ export function errorHandler(err: unknown, c: Context) {
   }
   if (err instanceof DomainError) {
     const status = STATUS[err.code] ?? 400;
+    if (typeof err.detail?.wwwAuthenticate === 'string') {
+      c.header('WWW-Authenticate', err.detail.wwwAuthenticate);
+    }
     return c.json(
       {
         type: 'about:blank',
         title: err.code,
         status,
         detail: err.message,
-        ...(err.detail ? { extra: err.detail } : {}),
+        ...(err.detail
+          ? {
+              extra: Object.fromEntries(
+                Object.entries(err.detail).filter(([k]) => k !== 'wwwAuthenticate'),
+              ),
+            }
+          : {}),
       },
       status,
       { 'content-type': 'application/problem+json' },

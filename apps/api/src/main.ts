@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { createRoute, z } from '@hono/zod-openapi';
-import { loadEnv, machineEndpoints, machineHosts } from '@manypost/config';
+import { loadEnv, machineEndpoints, machineHosts, apiProcessOwnsQueueWorker } from '@manypost/config';
 import { runMigrations } from '@manypost/db';
 import { providerRegistry } from '@manypost/providers';
 import { buildContainer } from './container';
@@ -16,6 +16,7 @@ import { capabilityRoutes } from './http/routes/capabilities.routes';
 import { channelRoutes } from './http/routes/channels.routes';
 import { eventRoutes } from './http/routes/events.routes';
 import { mcpRoutes } from './http/routes/mcp.routes';
+import { oauthAsRoutes } from './http/routes/oauth.routes';
 import { mediaRoutes, publicUploadRoutes } from './http/routes/media.routes';
 import { notificationRoutes } from './http/routes/notifications.routes';
 import { postRoutes } from './http/routes/posts.routes';
@@ -35,8 +36,10 @@ if (env.DB_MIGRATE === 'auto') {
 }
 
 const ctn = await buildContainer(env);
-if (env.MODE !== 'api') {
-  await ctn.runtime.startWorker(); // MODE=all|worker: consome a fila no mesmo processo
+if (apiProcessOwnsQueueWorker(env.MODE)) {
+  // MODE=all|worker: consome a fila neste processo.
+  // standalone/full: o shell sobe apps/worker dedicado — não embutir de novo.
+  await ctn.runtime.startWorker();
 }
 const app = createApp();
 
@@ -112,6 +115,9 @@ if (ctn.billing) {
 }
 app.route('/uploads', publicUploadRoutes(ctn)); // arquivos públicos (chaves UUID, não enumeráveis)
 app.route('/public/approval', approvalPublicRoutes(ctn)); // aprovação por token, sem login (§12)
+
+// Authorization Server OAuth (MCP) — issuer = PUBLIC_URL (Next faz rewrite)
+app.route('/', oauthAsRoutes(ctn));
 
 // Superfícies de MÁQUINA — instâncias únicas: as mesmas são montadas nos hosts dedicados
 // (`api.`/`mcp.`) pelo roteador de superfícies. Aqui elas seguem nos caminhos históricos, que

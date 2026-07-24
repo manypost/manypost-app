@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
 import { ErrorCodes } from '@manypost/contracts';
 import { DomainError } from '../../domain/shared/result';
-import type { OAuthAppRepository, OAuthGrantRepository } from '../ports/oauth';
+import type { OAuthAppRecord, OAuthAppRepository, OAuthGrantRepository } from '../ports/oauth';
 import { randomToken, sha256Hex } from '../tokens';
+import { assertPublicUrl } from './webhooks';
 
 export const OAUTH_ACCESS_PREFIX = 'mpo_';
 export const STATIC_MCP_CLIENT_ID = 'manypost-mcp';
@@ -16,6 +17,7 @@ export const STATIC_MCP_REDIRECT_URIS = [
 
 const CODE_TTL_MS = 5 * 60_000;
 const DEFAULT_ACCESS_TTL_SEC = 3600;
+const CIMD_MAX_BYTES = 64_000;
 
 export function pkceChallengeS256(verifier: string): string {
   return createHash('sha256').update(verifier, 'ascii').digest('base64url');
@@ -40,6 +42,7 @@ export interface OAuthAsDeps {
   apps: OAuthAppRepository;
   grants: OAuthGrantRepository;
   accessTokenTtlSeconds?: number;
+  fetchImpl?: typeof fetch;
 }
 
 export const makeEnsureStaticMcpClient = (deps: Pick<OAuthAsDeps, 'apps'>) =>
@@ -54,6 +57,57 @@ export const makeEnsureStaticMcpClient = (deps: Pick<OAuthAsDeps, 'apps'>) =>
       redirectUris: [...STATIC_MCP_REDIRECT_URIS],
       scopes: ['mcp:read', 'mcp:write'],
       tokenEndpointAuthMethod: 'none',
+    });
+  };
+
+/** Resolve client estático/DCR ou CIMD (HTTPS URL client_id). */
+export const makeResolveOAuthClient = (deps: Pick<OAuthAsDeps, 'apps' | 'fetchImpl'>) =>
+  async (clientId: string): Promise<OAuthAppRecord | null> => {
+    const existing = await deps.apps.findByClientId(clientId);
+    if (existing) return existing;
+    if (!clientId.startsWith('https://')) return null;
+
+    await assertPublicUrl(clientId, false, 'oauth_cimd');
+    const fetchFn = deps.fetchImpl ?? fetch;
+    const res = await fetchFn(clientId, {
+      redirect: 'error',
+      signal: AbortSignal.timeout(10_000),
+      headers: { accept: 'application/json' },
+    });
+    if (!res.ok) {
+      throw new DomainError(ErrorCodes.Forbidden, 'CIMD inacessível');
+    }
+    const buf = new Uint8Array(await res.arrayBuffer());
+    if (buf.byteLength > CIMD_MAX_BYTES) {
+      throw new DomainError(ErrorCodes.Forbidden, 'CIMD grande demais');
+    }
+    let doc: {
+      client_id?: string;
+      client_name?: string;
+      redirect_uris?: string[];
+      client_uri?: string;
+      token_endpoint_auth_method?: string;
+    };
+    try {
+      doc = JSON.parse(new TextDecoder().decode(buf)) as typeof doc;
+    } catch {
+      throw new DomainError(ErrorCodes.Forbidden, 'CIMD inválido');
+    }
+    if (doc.client_id !== clientId) {
+      throw new DomainError(ErrorCodes.Forbidden, 'CIMD client_id divergente');
+    }
+    if (!Array.isArray(doc.redirect_uris) || doc.redirect_uris.length === 0) {
+      throw new DomainError(ErrorCodes.Forbidden, 'CIMD sem redirect_uris');
+    }
+    return deps.apps.create({
+      orgId: null,
+      name: doc.client_name?.trim() || 'CIMD client',
+      clientId,
+      clientSecretHash: null,
+      redirectUris: doc.redirect_uris,
+      scopes: ['mcp:read', 'mcp:write'],
+      tokenEndpointAuthMethod: doc.token_endpoint_auth_method ?? 'none',
+      clientUri: doc.client_uri ?? clientId,
     });
   };
 
@@ -94,8 +148,11 @@ export const makeRegisterPublicClient = (deps: Pick<OAuthAsDeps, 'apps'>) =>
     };
   };
 
-export const makeApproveAuthorization = (deps: Pick<OAuthAsDeps, 'apps' | 'grants'>) =>
-  async (input: {
+export const makeApproveAuthorization = (
+  deps: Pick<OAuthAsDeps, 'apps' | 'grants' | 'fetchImpl'>,
+) => {
+  const resolve = makeResolveOAuthClient(deps);
+  return async (input: {
     clientId: string;
     redirectUri: string;
     codeChallenge: string;
@@ -104,7 +161,7 @@ export const makeApproveAuthorization = (deps: Pick<OAuthAsDeps, 'apps' | 'grant
     scopes: string[];
     resource: string | null;
   }) => {
-    const app = await deps.apps.findByClientId(input.clientId);
+    const app = await resolve(input.clientId);
     if (!app) throw new DomainError(ErrorCodes.NotFound, 'client_id desconhecido');
     assertRedirectAllowed(app.redirectUris, input.redirectUri);
     if (!input.codeChallenge.trim()) {
@@ -124,6 +181,7 @@ export const makeApproveAuthorization = (deps: Pick<OAuthAsDeps, 'apps' | 'grant
     });
     return { code, grantId: grant.id, scopes };
   };
+};
 
 export const makeExchangeAuthorizationCode = (deps: OAuthAsDeps) =>
   async (input: {
@@ -132,7 +190,8 @@ export const makeExchangeAuthorizationCode = (deps: OAuthAsDeps) =>
     redirectUri: string;
     codeVerifier: string;
   }) => {
-    const app = await deps.apps.findByClientId(input.clientId);
+    const resolve = makeResolveOAuthClient(deps);
+    const app = await resolve(input.clientId);
     if (!app) throw new DomainError(ErrorCodes.AuthUnauthorized, 'client_id inválido');
     assertRedirectAllowed(app.redirectUris, input.redirectUri);
 
@@ -172,9 +231,9 @@ export const makeExchangeAuthorizationCode = (deps: OAuthAsDeps) =>
     };
   };
 
-export const makeRefreshOAuthToken = (deps: Pick<OAuthAsDeps, 'grants'> & {
-  accessTokenTtlSeconds?: number;
-}) =>
+export const makeRefreshOAuthToken = (
+  deps: Pick<OAuthAsDeps, 'grants'> & { accessTokenTtlSeconds?: number },
+) =>
   async (input: { refreshToken: string }) => {
     const found = await deps.grants.findByRefreshTokenHash(sha256Hex(input.refreshToken));
     if (!found) {
@@ -222,6 +281,3 @@ export const makeVerifyOAuthAccessToken = (deps: Pick<OAuthAsDeps, 'grants'>) =>
       grantId: grant.id,
     };
   };
-
-export const makeResolveOAuthClient = (deps: Pick<OAuthAsDeps, 'apps'>) =>
-  async (clientId: string) => deps.apps.findByClientId(clientId);

@@ -1,20 +1,18 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { DomainError } from '@manypost/core';
+import { DomainError, hasMcpReadScope, hasMcpWriteScope } from '@manypost/core';
 import type { Container } from '../container';
 
 /**
  * Servidor MCP do manypost (SPEC_API_MCP §5): expõe os MESMOS use-cases da API como tools —
- * nunca duplica regra. Uma instância é criada por requisição (transporte stateless), amarrada
- * ao `orgId`/`apiKeyId` da credencial autenticada (API key com escopo `mcp`). Toda tool que muta
- * grava `audit_log` com `actor_type=MCP`.
- *
- * Tools fora deste corte (features ainda inexistentes — §4): `get_channel_analytics`,
- * `generate_content`, `find_free_slot`.
+ * nunca duplica regra. Amarrado ao `orgId`/`credentialId` da credencial (API key ou OAuth).
+ * Toda tool que muta grava `audit_log` com `actor_type=MCP`.
  */
 export interface McpPrincipal {
   orgId: string;
-  apiKeyId: string;
+  /** apiKeyId ou grantId — rate-limit e auditoria */
+  credentialId: string;
+  scopes: string[];
 }
 
 const ok = (data: unknown) => ({
@@ -28,6 +26,17 @@ const fail = (err: unknown) => {
     content: [{ type: 'text' as const, text: JSON.stringify({ error: code, message }) }],
   };
 };
+
+function denyScope(kind: 'read' | 'write') {
+  return fail(
+    new DomainError(
+      'common.forbidden',
+      kind === 'read'
+        ? 'escopo insuficiente: mcp:read (ou mcp legado) exigido'
+        : 'escopo insuficiente: mcp:write (ou mcp legado) exigido',
+    ),
+  );
+}
 
 type Group = NonNullable<Awaited<ReturnType<Container['posts']['getGroup']>>>;
 const serializeGroup = (g: Group) => ({
@@ -48,7 +57,7 @@ const serializeGroup = (g: Group) => ({
 });
 
 export function buildMcpServer(ctn: Container, principal: McpPrincipal): McpServer {
-  const { orgId, apiKeyId } = principal;
+  const { orgId, credentialId, scopes } = principal;
   const server = new McpServer(
     { name: 'manypost', version: '0.0.1' },
     {
@@ -62,13 +71,16 @@ export function buildMcpServer(ctn: Container, principal: McpPrincipal): McpServ
       .append({
         orgId,
         actorType: 'MCP',
-        actorId: apiKeyId,
+        actorId: credentialId,
         action,
         targetType: 'post',
         ...(targetId ? { targetId } : {}),
         detail,
       })
-      .catch(() => {}); // auditoria é best-effort — nunca derruba a tool
+      .catch(() => {});
+
+  const requireRead = () => hasMcpReadScope(scopes);
+  const requireWrite = () => hasMcpWriteScope(scopes);
 
   // ---- leitura (mcp:read) ----
   server.registerTool(
@@ -79,15 +91,16 @@ export function buildMcpServer(ctn: Container, principal: McpPrincipal): McpServ
       inputSchema: {},
     },
     async () => {
+      if (!requireRead()) return denyScope('read');
       try {
         const channels = await ctn.channels.list(orgId);
         return ok(
-          channels.map((c) => ({
-            id: c.id,
-            provider: c.provider,
-            name: c.name,
-            username: c.username,
-            status: c.status,
+          channels.map((ch) => ({
+            id: ch.id,
+            provider: ch.provider,
+            name: ch.name,
+            username: ch.username,
+            status: ch.status,
           })),
         );
       } catch (err) {
@@ -110,6 +123,7 @@ export function buildMcpServer(ctn: Container, principal: McpPrincipal): McpServ
       },
     },
     async ({ state, from, to, limit }) => {
+      if (!requireRead()) return denyScope('read');
       try {
         const rows = await ctn.posts.feed(orgId, {
           ...(from ? { from: new Date(from) } : {}),
@@ -143,6 +157,7 @@ export function buildMcpServer(ctn: Container, principal: McpPrincipal): McpServ
       inputSchema: { groupId: z.string().uuid() },
     },
     async ({ groupId }) => {
+      if (!requireRead()) return denyScope('read');
       try {
         const group = await ctn.posts.getGroup(orgId, groupId);
         if (!group) throw new DomainError('common.not_found', 'post não encontrado');
@@ -170,12 +185,13 @@ export function buildMcpServer(ctn: Container, principal: McpPrincipal): McpServ
       },
     },
     async ({ text, channelIds, publishAt, timezone, mediaIds, requireApproval }) => {
+      if (!requireWrite()) return denyScope('write');
       try {
         // política anti-loop de agente (§5): teto de 30 agendamentos/h por credencial
         const limiter = ctn.runtime.rateLimiter;
         if (limiter) {
           const verdict = await limiter.acquire([
-            { key: `mcp:sched:${apiKeyId}`, limit: 30, windowSec: 3600 },
+            { key: `mcp:sched:${credentialId}`, limit: 30, windowSec: 3600 },
           ]);
           if (!verdict.ok) {
             throw new DomainError(
@@ -215,6 +231,7 @@ export function buildMcpServer(ctn: Container, principal: McpPrincipal): McpServ
       },
     },
     async ({ groupId, text, publishAt }) => {
+      if (!requireWrite()) return denyScope('write');
       try {
         if (text === undefined && publishAt === undefined) {
           throw new DomainError('validation.invalid_request', 'informe text e/ou publishAt');
@@ -241,6 +258,7 @@ export function buildMcpServer(ctn: Container, principal: McpPrincipal): McpServ
       inputSchema: { groupId: z.string().uuid() },
     },
     async ({ groupId }) => {
+      if (!requireWrite()) return denyScope('write');
       try {
         const group = await ctn.posts.cancel(orgId, groupId);
         await audit('mcp.cancel_post', {}, groupId);
@@ -262,6 +280,7 @@ export function buildMcpServer(ctn: Container, principal: McpPrincipal): McpServ
       },
     },
     async ({ url, alt }) => {
+      if (!requireWrite()) return denyScope('write');
       try {
         const record = await ctn.media.fromUrl({ orgId, url, ...(alt ? { alt } : {}) });
         await audit('mcp.upload_media_from_url', { url }, record.id);
