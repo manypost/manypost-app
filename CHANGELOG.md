@@ -8,6 +8,13 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Added
 
+- Canal **Dev.to**: publica **artigos** em Markdown, com título próprio, tags (até 4), endereço
+  original (canonical) e a opção de publicar por uma organização, escolhida a cada post. A primeira
+  imagem anexada vira a capa. **Não exige configuração nenhuma**: a conexão pede uma chave de API
+  que o próprio usuário gera na conta dele, então a rede fica disponível em toda instalação —
+  self-hosted ou gerenciada — assim que o código sobe. O título é obrigatório e é recusado **ao
+  agendar**, não no horário marcado. Mudança OpenSpec: `add-devto-provider`.
+
 - Canal **Instagram (Facebook Business)**: publica em conta profissional do Instagram
   vinculada a uma Página do Facebook, com a conta escolhida a cada post. Publica foto,
   reel, carrossel de 2 a 10 (misturando foto e vídeo) e story de mídia única; réplicas de
@@ -32,6 +39,10 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
   checks próprios, Drizzle, build web e OpenSpec.
 
 ### Changed
+
+- O erro de configuração inválida agora **diz qual campo** está errado. Antes o detalhe do
+  erro trazia só a mensagem do validador (`Required`), sem o nome do campo, o que era
+  inútil assim que um provider passou a ter campo obrigatório. Vale para agendar e editar.
 
 - As configurações por canal do composer passaram a ter rótulo, explicação e opções em
   pt-BR para **todos** os campos de **todos** os providers. Antes, campo sem tradução caía

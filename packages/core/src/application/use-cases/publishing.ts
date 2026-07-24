@@ -21,6 +21,14 @@ const ERROR_MAX_LEN = 4000;
 /** teto do delay entre itens de thread — mantém a publicação abaixo do watchdog de zumbis (15 min) */
 export const THREAD_MAX_DELAY_SEC = 600;
 
+/**
+ * Issues do Zod prefixadas pelo campo. Sem o path, um campo obrigatório ausente vira só
+ * "Required" e o operador não sabe o que preencher (visível desde o primeiro provider com
+ * settings obrigatório — Dev.to exige o título do artigo).
+ */
+const settingsIssues = (error: { issues: Array<{ path: PropertyKey[]; message: string }> }) =>
+  error.issues.map((i) => (i.path.length > 0 ? `${i.path.join('.')}: ${i.message}` : i.message));
+
 const makeCtx = (
   log?: ProviderContext['log'],
   secrets?: Record<string, string>,
@@ -149,7 +157,7 @@ export const makeSchedulePost = (deps: SchedulePostDeps) =>
       if (!parsed.success) {
         throw new DomainError(ErrorCodes.PostInvalidSettings, 'settings inválidos para o canal', {
           channelId: ch.id,
-          issues: parsed.error.issues.map((i) => i.message),
+          issues: settingsIssues(parsed.error),
         });
       }
       // override do texto do post principal (item 0) por canal; réplicas da thread são globais
@@ -681,7 +689,7 @@ export const makeReschedulePost = (deps: MutatePostDeps) =>
         if (!parsed.success) {
           throw new DomainError(ErrorCodes.PostInvalidSettings, 'settings inválidos para o canal', {
             channelId,
-            issues: parsed.error.issues.map((i) => i.message),
+            issues: settingsIssues(parsed.error),
           });
         }
         validatedSettings[channelId] = parsed.data;

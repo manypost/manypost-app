@@ -50,6 +50,7 @@ Todas as chaves vão no arquivo `.env` (ou nas variáveis de ambiente do seu ser
 |---|---|---|---|---|
 | Mastodon | nenhuma | grátis | não | imediato |
 | Bluesky | muito fácil | grátis | não | 2 minutos |
+| Dev.to | muito fácil | grátis | não | 2 minutos |
 | Telegram | muito fácil | grátis | não | 5 minutos |
 | Discord | muito fácil | grátis | não | 2 minutos |
 | Reddit | fácil | grátis | não | 10 minutos |
@@ -60,7 +61,7 @@ Todas as chaves vão no arquivo `.env` (ou nas variáveis de ambiente do seu ser
 | Meta (Facebook/Instagram/Threads) | **difícil** | grátis | **App Review + verificação de negócio** | **semanas** |
 | TikTok | **difícil** | grátis | **auditoria obrigatória p/ post público** | **semanas** |
 
-**Estratégia recomendada:** conecte hoje as fáceis (Mastodon, Bluesky, Telegram, Discord, Reddit, LinkedIn) e **inicie hoje mesmo** os processos da Meta e do TikTok — eles são a fila mais lenta.
+**Estratégia recomendada:** conecte hoje as fáceis (Mastodon, Bluesky, Dev.to, Telegram, Discord, Reddit, LinkedIn) e **inicie hoje mesmo** os processos da Meta e do TikTok — eles são a fila mais lenta.
 
 ---
 
@@ -109,7 +110,26 @@ Não há portal de desenvolvedor. Você cria uma "senha de aplicativo" na sua pr
 
 ⚠️ Nunca use sua senha principal do Bluesky no manypost — sempre a App Password (dá para revogar sem trocar sua senha).
 
-### 2.3 Telegram — bot pelo BotFather e auto-descoberta `/connect` (5 minutos) ⚠️
+### 2.3 Dev.to — chave da sua própria conta (2 minutos) ✅
+
+O Dev.to não tem cadastro de aplicativo: você gera uma chave na sua conta e cola no manypost.
+
+1. Entre no [dev.to](https://dev.to) → clique na sua foto → **Settings** (Configurações).
+2. No menu lateral, abra **Extensions**.
+3. Desça até **DEV Community API Keys**, dê um nome à chave (ex.: `manypost`) e clique em
+   **Generate API Key**.
+4. **Copie a chave agora** — ela não é mostrada de novo. Se perder, gere outra e reconecte.
+5. No manypost, ao conectar o Dev.to, cole a chave. Nada vai no `.env`.
+
+O que muda na hora de escrever: o Dev.to publica **artigos**, não posts curtos. Por isso, ao
+agendar, abra **Configurações** do canal e preencha o **título** — ele é obrigatório, e sem ele o
+manypost recusa o agendamento na hora (em vez de falhar no horário marcado). O texto do post é o
+corpo do artigo e aceita **Markdown**. A primeira imagem anexada vira a **capa**.
+
+⚠️ A chave dá acesso de publicação à sua conta inteira. Ela é guardada cifrada, mas se vazar,
+revogue na mesma tela em que foi criada. Se você revogar, o canal passa a pedir reconexão.
+
+### 2.4 Telegram — bot pelo BotFather e auto-descoberta `/connect` (5 minutos) ⚠️
 
 No Telegram, quem publica é um **bot global da sua instalação** (ou o seu bot customizado):
 
@@ -424,7 +444,8 @@ O acesso à API do Google Business Profile depende de um **formulário de solici
 |---|---|---|
 | Mastodon | `MASTODON_DEFAULT_INSTANCE` (opcional) | — |
 | Bluesky | *(nenhuma — handle + app password na conexão)* | §2.2 |
-| Telegram | `TELEGRAM_BOT_TOKEN` | §2.3 |
+| Dev.to | *(nenhuma — chave de API da sua conta na conexão)* | §2.3 |
+| Telegram | `TELEGRAM_BOT_TOKEN` | §2.4 |
 | Discord | *(nenhuma — URL do webhook do canal na conexão)* | §3.1 |
 | Reddit | `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` | §3.2 |
 | LinkedIn | `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET` | §3.3 |

@@ -554,6 +554,7 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
             <PostPreview
               channels={selected}
               textFor={textFor}
+              settingsFor={(id) => store.channelSettings[id] ?? {}}
               mediaIds={store.mediaIds}
               thread={store.thread.map((item) => ({ text: item.text, mediaIds: item.mediaIds }))}
               publishAt={publishAt}

@@ -35,11 +35,8 @@ export function useProviderNote(): (provider: NoteProvider) => ProviderNote {
 
     const what = pick('what', `fallback.${provider.connectType}`);
     if (selfHosted === undefined) return { what };
-    const mode = selfHosted ? 'selfHosted' : 'cloud';
     return {
       what,
-      modeLabel: t(selfHosted ? 'modeSelfHostedLabel' : 'modeCloudLabel'),
-      setup: pick(mode, `fallback.${mode}`),
     };
   };
 }

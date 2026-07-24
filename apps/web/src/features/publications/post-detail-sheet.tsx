@@ -160,6 +160,8 @@ export function PostDetailSheet({
   const previewList = publications.length
     ? publications.map((pub) => ({
         ...resolveChannel(pub.channelId),
+        // settings em edição (não as salvas): o preview acompanha o que está na tela
+        settings: editSettings[pub.channelId] ?? {},
         entries: [
           { text: pub.text, media: toRefs(pub.media ?? []) },
           ...(pub.thread ?? []).map((ti) => ({ text: ti.text, media: toRefs(ti.media ?? []) })),
@@ -167,6 +169,7 @@ export function PostDetailSheet({
       }))
     : items.map((item) => ({
         ...resolveChannel(item.channelId),
+        settings: editSettings[item.channelId] ?? {},
         entries: [{ text: item.text, media: [] }],
       }));
 
@@ -546,6 +549,7 @@ export function PostDetailSheet({
                       username={c.username}
                       avatarUrl={c.avatarUrl}
                       entries={c.entries}
+                      settings={c.settings}
                       publishAt={publishAtDate}
                     />
                   ))}

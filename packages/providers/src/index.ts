@@ -1,5 +1,6 @@
 import type { ChannelProvider } from '@manypost/contracts';
 import { blueskyProvider } from './bluesky/bluesky.provider';
+import { devtoProvider } from './devto/devto.provider';
 import { discordProvider } from './discord/discord.provider';
 import { discordWebhookProvider } from './discord/discord-webhook.provider';
 import { facebookProvider } from './facebook/facebook.provider';
@@ -25,6 +26,8 @@ import { xProvider } from './x/x.provider';
  * facebook (Página; Página escolhida por post via sub-contas, token da Página derivado no publish) e
  * instagram (via Facebook Business — junta os dois moldes: OAuth/sub-contas do facebook + o fluxo
  * container→poll→publish; a conta IG é resolvida pela Página escolhida no post).
+ * Onda 3: devto — primeiro destino de ARTIGO (markdown, título obrigatório em settings, capa vinda
+ * da mídia anexada) e a primeira rede sem nenhum gate externo: conecta por chave pessoal, sem env.
  */
 export const providers: ChannelProvider[] = [
   mastodonProvider,
@@ -41,6 +44,7 @@ export const providers: ChannelProvider[] = [
   instagramProvider,
   twitchProvider,
   kickProvider,
+  devtoProvider,
   fakeProvider,
 ];
 
@@ -51,6 +55,7 @@ export const providerRegistry = {
 
 export {
   blueskyProvider,
+  devtoProvider,
   discordProvider,
   discordWebhookProvider,
   facebookProvider,

@@ -14,6 +14,7 @@
 
 | Onda | Data | Entrega |
 |---|---|---|
+| 19 | 2026-07-23 | Dev.to — primeiro destino de **artigo** e primeira rede sem gate externo (chave pessoal, sem env) |
 | 18 | 2026-07-23 | Linguagem de quem usa — settings do composer 100% em pt-BR e humanizadas; nota do catálogo no tooltip padrão |
 | 17 | 2026-07-23 | Instagram via Facebook Business — **família Meta completa** (conta IG resolvida pela Página escolhida no post) |
 | 16 | 2026-07-23 | Facebook Pages — 3º provider da família Meta (Página escolhida por post, token de Página derivado no publish) |
@@ -36,6 +37,73 @@
 > As ondas 1 e 2 do frontend e as fatias de backend anteriores (fundação, banco, auth, publicação,
 > retry, webhooks, mídia, threads, aprovação por link, listagens/SSE, providers da onda 1) estão
 > registradas em [STATUS.md §2](STATUS.md#2-o-que-já-está-pronto-e-verificado), com spec e código de cada uma.
+
+---
+
+## Onda 19 — Dev.to: o primeiro artigo, e a primeira rede sem gate
+
+**2026-07-23.** Todas as redes entregues até aqui publicam **post curto**, e as quatro últimas (a
+família Meta) estão travadas por um processo de aprovação externo que não depende do código. O
+Dev.to é o oposto: a chave é gerada pelo próprio usuário na conta dele, **sem app, sem OAuth, sem
+revisão e sem variável de ambiente** — a rede aparece disponível em toda instalação assim que o
+código sobe, self-hosted ou nuvem. É também o primeiro **destino de artigo**, o que obrigou a
+responder como um texto longo cabe num pipeline desenhado para post curto.
+
+Mudança OpenSpec: [`add-devto-provider`](../../openspec/changes/add-devto-provider/) — proposta,
+design e 7 requisitos escritos e validados **antes** do código.
+
+**1. Título obrigatório, recusado no composer e não no horário marcado.** Um artigo sem título não
+existe, e o título não sai do corpo do texto. `title` entrou como campo **`required`** do
+`settingsSchema` — o primeiro do app. Assim o agendamento recusa com `post.invalid_settings`
+enquanto o autor ainda está na tela, em vez de virar uma publicação `FAILED` de madrugada. Isso não
+re-litiga a decisão 17 do STATUS (o `channelId` do Discord ficou opcional **de propósito**): lá
+existe fallback — o provider auto-descobre um canal postável —, então obrigatório recusaria post que
+seria entregue. Aqui não há fallback. A regra registrada é *"obrigatório quando não há fallback"*.
+
+Encaixou sem mecanismo novo: o test-kit não impedia (`safeParse` nunca lança — o comentário lá
+ganhou a nota para não ser lido como proibição) e o composer **já validava `required` do JSON Schema
+no cliente**, então o campo ganhou asterisco e mensagem com o rótulo pt-BR de graça.
+
+**2. Bug real que o Dev.to expôs: o erro não dizia qual campo.** `post.invalid_settings` devolvia
+`issues: ["Required"]`, porque o `path` do Zod era descartado. Enquanto todo settings era opcional
+isso quase nunca disparava; com um campo obrigatório, "settings inválidos: Required" é inútil. As
+issues agora vêm prefixadas pelo campo (`title: Required`), nos **dois** pontos — agendar e editar.
+
+**3. A capa vem da mídia anexada, não de um campo de settings.** O Postiz modela `main_image` como
+mídia dentro do DTO; aqui já existe biblioteca de mídia, dropzone e validação por item, e um segundo
+caminho de imagem vivendo só nas settings de um provider seria um paralelo com validação própria. O
+provider usa a primeira imagem do item como capa e declara `images.maxCount: 1`,
+`videos.maxCount: 0` — o `checkMediaRules` compartilhado recusa o excesso **no agendamento**, sem
+uma linha de validação específica. Custo aceito e registrado: a capa é baixada pelo Dev.to pela URL,
+então depende de mídia acessível publicamente; o corpo do artigo, não.
+
+**4. Organizações reusam sub-contas, com a limitação escrita na spec.** Publicar por uma organização
+é a mesma forma de escolher canal do Discord ou Página do Facebook: `listSubAccounts` +
+`SUB_ACCOUNT_FIELDS`, sem alargar o contrato. Só que a API do Forem **não lista as organizações do
+autor** — o caminho possível (e o que o Postiz faz) é derivá-las dos artigos já publicados. Autor
+que nunca publicou por uma vê lista vazia; como o campo é opcional e o padrão é o perfil pessoal,
+isso degrada para o caso comum em vez de um formulário quebrado. Falha ao listar devolve `[]`, para
+não derrubar o composer inteiro por uma lista de conveniência.
+
+**5. Uma requisição, e nada depois dela.** A resposta do create já traz id e URL do artigo — então,
+diferente da família Meta, não existe chamada pós-publicação que possa lançar e provocar repost. Sem
+renovação de credencial: a chave não expira, e 401/403 leva a `REFRESH_REQUIRED` (colar chave nova),
+o mesmo caminho do `discord-webhook` e do LinkedIn.
+
+**6. Preview de artigo.** O cartão da listagem do Dev.to (capa, título, autor, tags, tempo de
+leitura). Para isso o `NetworkPreview` passou a receber **settings** — o título não está no texto —,
+ligado no composer e no detalhe do post. A tela pública de aprovação **não** recebe: `/public/approval`
+não expõe settings de propósito, e mudar isso é mudança de API com OpenSpec próprio. Fica registrado
+como pendência, não como esquecimento.
+
+**Provas:** `bun run check` verde — **473 testes** (eram 431: +37 do provider, +5 no core) +
+typecheck api/web + fronteiras + grep de IA + brand; `bun run build:web` limpo. O `e2e-auth` ganhou
+quatro asserções: a rede está disponível **sem configuração**, conecta por campos, expõe
+`connectionFieldsSchema.apiKey` e declara `title` como `required` no catálogo.
+
+**Código:** `packages/providers/src/devto/`, registro em `packages/providers/src/index.ts`,
+`settingsIssues` em `packages/core/src/application/use-cases/publishing.ts`, `SUB_ACCOUNT_FIELDS` e
+`DevtoPreview` no `apps/web`, guia da chave em [INTEGRATIONS_SETUP §2.3](INTEGRATIONS_SETUP.md).
 
 ---
 

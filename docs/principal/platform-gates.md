@@ -21,7 +21,7 @@
 | Reddit | acesso aprovado por formulário + **uso comercial exige acordo pago** | ☐ pendente — ⚠️ **decisão de negócio, não só técnica** | ☐ | ☐ | ☐ | onda 2; free = 100 QPM por client OAuth e **só uso não-comercial**. SaaS pago sobre a chave grátis viola os termos ⇒ **Cloud precisa de commercial agreement (relatos de ~US$ 12k/ano)**; **self-hosted resolve com BYO-key** (chave do próprio usuário, uso pessoal) — mesmo desenho do X |
 | Google Business Profile | formulário de acesso à API (GBP API contact form) | ☐ pendente | ☐ | ☐ | ☐ | onda 3; **resposta em até 14 dias**, quota padrão 300 QPM por API quando aprovado (teto rígido de 10 edições/min por ficha). Público diferente do resto (negócio local, não criador) |
 | Slack | **nenhum p/ funcionar**; review só p/ listar no Marketplace | ☐ pendente | ☐ | ☐ | ☐ | **o gate mais barato da lista**: "Public Distribution" (instalar em workspaces de terceiros) é auto-serviço — exige OAuth2, HTTPS e checklist, **sem revisão da Slack**. Review só se quisermos aparecer no Slack Marketplace (algumas empresas só instalam app listado) |
-| Dev.to (Forem) | nenhum | ✅ livre | — | — | — | API key pessoal nas configurações do usuário (`api-key` no header) — **sem app, sem OAuth, sem review**. Provider mais barato de todos |
+| Dev.to (Forem) | nenhum | ✅ **entregue (onda 19)** | — | — | — | API key pessoal nas configurações do usuário (`api-key` no header) — **sem app, sem OAuth, sem review**. Foi o provider mais barato de todos, e o único que já nasce publicando em produção |
 | Medium | ⛔ **API fechada para novas integrações** | ⛔ **inviável hoje** | — | — | — | A Medium **parou de emitir integration tokens** e arquivou o repositório da API ("no longer supported"). Só quem já tem token antigo publica. Implementar = provider que quase ninguém consegue conectar — **decidir se entra assim mesmo (paridade Postiz) ou fica fora** |
 | Dribbble | registro auto-serviço; **uso comercial exige aprovação prévia** | ☐ pendente | ☐ | ☐ | ☐ | app em `dribbble.com/account/applications/new`, escopo `upload` p/ criar shot. Limites: 60 req/min e 1.440/dia por usuário; **48 shots/mês e 5/dia por conta**, e a conta precisa poder subir shot (`can_upload_shot`). Nicho (design), volume baixo |
 | Twitch | nenhum — app auto-serviço no dev console | ✅ livre — **provider pronto (onda 12)** | ☐ | ☐ | 2026-07-22 | **não é feed**: manda **mensagem no chat** (`/helix/chat/messages`) ou **anúncio do canal** (`/helix/chat/announcements`), escopos `user:write:chat` + `moderator:manage:announcements`. Toda chamada leva `Client-Id` junto do bearer. A Twitch pede que a app declare só os escopos que usa, sob pena de suspensão |
@@ -52,16 +52,17 @@ LinkedIn · X · TikTok · Threads · **Instagram standalone** · **Instagram vi
 **Facebook Pages** · **Twitch** · **Kick** (as duas últimas fora do conjunto original de ícones —
 ver a seção adiante). **A família Meta está completa** desde a onda 17.
 
-**Faltam 7** — em ordem de custo/benefício (esforço de código × gate × valor p/ o usuário BR):
+**Faltam 6** — em ordem de custo/benefício (esforço de código × gate × valor p/ o usuário BR).
+O **Dev.to** era o #1 e foi entregue na onda 19: confirmou a previsão (zero gate, esforço baixo) e
+entrou publicando em produção no mesmo dia, sem depender de nenhum processo externo:
 
 | # | Rede | Gate | Esforço | Por que nesta posição |
 |---|---|---|---|---|
-| 1 | **Dev.to** | nenhum | baixo (~190 l.) | Zero gate, API key pessoal. Entrega rápida que amplia a matriz enquanto os reviews da Meta correm |
-| 2 | **Slack** | nenhum p/ funcionar | médio (~290 l.) | Distribuição pública é auto-serviço. Canal de *equipe* (não de criador) — bom p/ o plano Pro/times |
-| 3 | **YouTube** | verificação OAuth + quota | alto (~640 l.) | Vídeo é caro (resumable upload) e a quota de ~6 uploads/dia limita o Cloud; BYO-key resolve no self-hosted |
-| 4 | **Pinterest** | trial → standard (vídeo) | médio (~530 l.) | Já em revisão. **Sem standard access o Pin nasce invisível**, então implementar antes da aprovação só serve p/ gravar o vídeo da submissão |
-| 5 | **Reddit** | acordo comercial p/ SaaS | médio (~510 l.) | ⚠️ Trava de **negócio**: no Cloud, cobrar por cima da chave grátis viola os termos. Só faz sentido como **BYO-key self-hosted** até existir decisão sobre o acordo pago |
-| 6 | **Dribbble** | aprovação p/ uso comercial | baixo (~225 l.) | Nicho de design, teto de 5 shots/dia. Barato de escrever, público pequeno |
+| 1 | **Slack** | nenhum p/ funcionar | médio (~290 l.) | Distribuição pública é auto-serviço. Canal de *equipe* (não de criador) — bom p/ o plano Pro/times |
+| 2 | **YouTube** | verificação OAuth + quota | alto (~640 l.) | Vídeo é caro (resumable upload) e a quota de ~6 uploads/dia limita o Cloud; BYO-key resolve no self-hosted |
+| 3 | **Pinterest** | trial → standard (vídeo) | médio (~530 l.) | Já em revisão. **Sem standard access o Pin nasce invisível**, então implementar antes da aprovação só serve p/ gravar o vídeo da submissão |
+| 4 | **Reddit** | acordo comercial p/ SaaS | médio (~510 l.) | ⚠️ Trava de **negócio**: no Cloud, cobrar por cima da chave grátis viola os termos. Só faz sentido como **BYO-key self-hosted** até existir decisão sobre o acordo pago |
+| 5 | **Dribbble** | aprovação p/ uso comercial | baixo (~225 l.) | Nicho de design, teto de 5 shots/dia. Barato de escrever, público pequeno |
 | 7 | **Medium** | ⛔ API fechada | baixo (~145 l.) | **Decidir antes de codar**: a Medium não emite mais token novo. Provider entregue hoje só funciona p/ quem tem token antigo |
 | — | **Google Business Profile** | formulário de acesso | alto (~630 l.) | Fora da onda: público de negócio local, não de criador. Fica na fase 3 como já estava |
 
