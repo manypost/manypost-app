@@ -1,5 +1,6 @@
 'use client';
 
+import { useClerk } from '@clerk/nextjs';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef } from 'react';
@@ -10,13 +11,13 @@ import { expireBrowserSession, realtimeSessionAction } from './realtime-session'
 /**
  * SSE da UI (SPEC_FRONTEND §4): `GET /v1/events` só "cutuca" — todo evento
  * vira invalidação de query (o polling continua como fallback; perder evento
- * não perde dado — STATUS §3.13). EventSource não passa pelo openapi-fetch
- * (stream, não JSON), mas é same-origin com os mesmos cookies httpOnly.
+ * não perde dado — STATUS §3.13). EventSource não aceita header customizado,
+ * então a API verifica o cookie Clerk `__session` nessa conexão same-origin.
  *
- * `mp_at` dura 15min e o EventSource não renova sozinho: antes de (re)abrir o
- * stream fazemos um GET autenticado pelo cliente gerado (que refresca em 401).
+ * Antes de (re)abrir o stream fazemos um GET autenticado pelo cliente gerado.
  */
 export function useRealtime() {
+  const clerk = useClerk();
   const queryClient = useQueryClient();
   const t = useTranslations('realtime');
   // handler estável p/ o efeito não religar o stream a cada render
@@ -56,8 +57,7 @@ export function useRealtime() {
       if (sessionAction === 'expire') {
         closed = true;
         await expireBrowserSession({
-          logout: () => api.POST('/v1/auth/logout', {}),
-          target: document,
+          logout: () => clerk.signOut(),
           navigate: (path) => window.location.replace(path),
         });
         return;
@@ -98,5 +98,5 @@ export function useRealtime() {
       if (retry) clearTimeout(retry);
       source?.close();
     };
-  }, []);
+  }, [clerk]);
 }

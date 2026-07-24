@@ -20,29 +20,25 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = await getLocale();
   const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-  const content = (
-    <NextIntlClientProvider>
-      <Providers>{children}</Providers>
-    </NextIntlClientProvider>
-  );
+  if (!publishableKey) {
+    throw new Error('NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY não configurada');
+  }
   return (
     <html lang={locale} className={`${inter.variable} ${jakarta.variable}`}>
       <body>
-        {publishableKey ? (
-          <ClerkProvider
-            publishableKey={publishableKey}
-            taskUrls={{
-              'choose-organization': '/session-tasks/choose-organization',
-              'reset-password': '/session-tasks/reset-password',
-              'setup-mfa': '/session-tasks/setup-mfa',
-            }}
-          >
-            <ClerkSessionBridge />
-            {content}
-          </ClerkProvider>
-        ) : (
-          content
-        )}
+        <ClerkProvider
+          publishableKey={publishableKey}
+          taskUrls={{
+            'choose-organization': '/session-tasks/choose-organization',
+            'reset-password': '/session-tasks/reset-password',
+            'setup-mfa': '/session-tasks/setup-mfa',
+          }}
+        >
+          <ClerkSessionBridge />
+          <NextIntlClientProvider>
+            <Providers>{children}</Providers>
+          </NextIntlClientProvider>
+        </ClerkProvider>
       </body>
     </html>
   );

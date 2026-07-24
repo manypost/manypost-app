@@ -1,13 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { clerkMiddleware } from '@clerk/nextjs/server';
 
-/**
- * Guarda de presença de sessão (SPEC_FRONTEND §1: o middleware só verifica
- * presença; autorização é 100% do backend). `mp_at` expira em 15min, então a
- * presença de sessão viva é sinalizada pelo marcador `mp_session` (mesma vida
- * do refresh token) — o refresh de verdade acontece no cliente da API (401 →
- * POST /v1/auth/refresh → retry).
- */
+/** Guarda de sessão Clerk; autorização continua 100% no backend manypost. */
 const PUBLIC_PATHS = new Set(['/login', '/registro']);
 const PUBLIC_PREFIXES = [
   '/approve/',
@@ -17,12 +11,11 @@ const PUBLIC_PREFIXES = [
   '/__clerk/',
 ];
 
-export type AuthRouteAction = 'allow' | 'login' | 'complete' | 'app';
+export type AuthRouteAction = 'allow' | 'login' | 'app';
 
 export function authRouteAction(
   pathname: string,
   signedIn: boolean,
-  hasInternalSession = signedIn,
 ): AuthRouteAction {
   if (
     PUBLIC_PREFIXES.some(
@@ -34,19 +27,13 @@ export function authRouteAction(
     return 'allow';
   }
   if (!signedIn) return PUBLIC_PATHS.has(pathname) ? 'allow' : 'login';
-  if (!hasInternalSession) return 'complete';
   return PUBLIC_PATHS.has(pathname) ? 'app' : 'allow';
 }
 
-function route(req: NextRequest, signedIn: boolean, hasInternalSession: boolean) {
+function route(req: NextRequest, signedIn: boolean) {
   const { pathname } = req.nextUrl;
-  const action = authRouteAction(pathname, signedIn, hasInternalSession);
+  const action = authRouteAction(pathname, signedIn);
   if (action === 'app') return NextResponse.redirect(new URL('/calendario', req.url));
-  if (action === 'complete') {
-    const url = new URL('/auth/complete', req.url);
-    if (!PUBLIC_PATHS.has(pathname) && pathname !== '/') url.searchParams.set('de', pathname);
-    return NextResponse.redirect(url);
-  }
   if (action === 'login') {
     const url = new URL('/login', req.url);
     if (pathname !== '/') url.searchParams.set('de', pathname);
@@ -55,24 +42,12 @@ function route(req: NextRequest, signedIn: boolean, hasInternalSession: boolean)
   return NextResponse.next();
 }
 
-const clerkEnabled = Boolean(
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY,
-);
 const withClerk = clerkMiddleware(async (auth, req) => {
   const session = await auth();
-  return route(
-    req,
-    Boolean(session.userId),
-    req.cookies.has('mp_at') || req.cookies.has('mp_session'),
-  );
+  return route(req, Boolean(session.userId));
 });
 
-export const proxy = clerkEnabled
-  ? withClerk
-  : (req: NextRequest) => {
-      const hasInternalSession = req.cookies.has('mp_at') || req.cookies.has('mp_session');
-      return route(req, hasInternalSession, hasInternalSession);
-    };
+export const proxy = withClerk;
 
 export default proxy;
 

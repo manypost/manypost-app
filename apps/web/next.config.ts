@@ -5,9 +5,8 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 /**
  * Modelo de origem única: o Next serve a UI e faz proxy de /v1 e /uploads para a
- * API. Os cookies httpOnly do backend ficam first-party e os `Path=` deles
- * (`/` do access, `/v1/auth` do refresh, `/v1/channels` do state de conexão)
- * continuam válidos porque os caminhos não são reescritos.
+ * API. A sessão Clerk e o cookie temporário do OAuth de canais permanecem
+ * first-party porque os caminhos públicos não são reescritos no navegador.
  */
 const API_URL = process.env.API_URL ?? 'http://localhost:3100';
 

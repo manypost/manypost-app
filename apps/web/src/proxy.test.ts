@@ -20,9 +20,9 @@ describe('proxy Clerk + manypost', () => {
     expect(authRouteAction('/registro', false)).toBe('allow');
   });
 
-  it('recupera a sessão interna quando Clerk está autenticado mas os cookies internos faltam', () => {
-    expect(authRouteAction('/calendario', true, false)).toBe('complete');
-    expect(authRouteAction('/login', true, false)).toBe('complete');
+  it('não depende de cookies internos quando a sessão Clerk está autenticada', () => {
+    expect(authRouteAction('/calendario', true)).toBe('allow');
+    expect(authRouteAction('/login', true)).toBe('app');
   });
 
   it('mantém o matcher Clerk uma vez e depois do matcher API/TRPC', () => {
