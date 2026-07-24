@@ -11,7 +11,9 @@ export type ApiKeyScope =
   | 'media:write'
   | 'analytics:read'
   | 'webhooks:manage'
-  | 'mcp';
+  | 'mcp'
+  | 'mcp:read'
+  | 'mcp:write';
 
 export type WebhookEvent =
   | 'post.scheduled'
