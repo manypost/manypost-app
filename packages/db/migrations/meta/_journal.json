@@ -29,6 +29,13 @@
       "when": 1784667581130,
       "tag": "0003_billing",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1784913773079,
+      "tag": "0004_mcp-oauth-as",
+      "breakpoints": true
     }
   ]
 }

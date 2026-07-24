@@ -11,6 +11,7 @@ export * from './repositories/billing.repo';
 export * from './repositories/channels.repo';
 export * from './repositories/media.repo';
 export * from './repositories/platform.repo';
+export * from './repositories/oauth.repo';
 export * from './repositories/publishing.repo';
 export * from './repositories/webhooks.repo';
 
