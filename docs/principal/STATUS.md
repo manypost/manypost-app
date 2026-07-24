@@ -14,9 +14,9 @@
 
 | | |
 |---|---|
-| **Última entrega** | Onda 21 (2026-07-24) — **superfície de auth redesenhada**: placeholder em todo campo, palco de altura constante, controles num agrupamento só com progresso do autoplay, e o slide de abertura passou a ser o **diagrama de conexão MCP + API** no mesmo padrão do da landing, no lugar do editor de código falso. Zero mudança de comportamento de auth |
+| **Última entrega** | Onda 22 (2026-07-24) — **OAuth 2.1 no MCP**: dual-auth (`mp_live_` + `mpo_`), AS em `PUBLIC_URL`, consent Clerk, DCR/CIMD/static `manypost-mcp`; API key com escopo `mcp` permanece |
 | **Fase** | Fase 1 (MVP): backend completo e verificado, web com toda a superfície da API, billing do Cloud entregue |
-| **Provas** | `bun run check` + CI verdes. E2E reais: `e2e-auth`, `e2e-publish`, `e2e-public`, `e2e-mcp`, `e2e-billing` (bootstrap humano = sessão Clerk assinada localmente + identidade em Postgres descartável) |
+| **Provas** | `bun run check` + CI verdes. E2E reais: `e2e-auth`, `e2e-publish`, `e2e-public`, `e2e-mcp`, `e2e-mcp-oauth`, `e2e-billing` (bootstrap humano = sessão Clerk assinada localmente + identidade em Postgres descartável) |
 | **Redes prontas** | Mastodon, Bluesky, **Dev.to**, Telegram, Discord (OAuth2+Bot **e** webhook), LinkedIn, X, TikTok (sandbox — auditoria em revisão), **a família Meta inteira**: Threads, Instagram standalone, Facebook Pages e **Instagram via Facebook Business** (Development Mode), Twitch e Kick (chat ao vivo) + `fake` para testes |
 | **Próxima onda** | A definir — a fila de redes segue em Slack → YouTube → Pinterest → Reddit → Dribbble (§4); pendências transversais da Meta: **refresh proativo** dos tokens de 60 dias, analytics e o **driver S3/R2** (a Meta faz *pull* da mídia) |
 | **Bloqueios externos** | Gates de plataforma — [platform-gates.md](platform-gates.md). Nenhum deles bloqueia o desenvolvimento, só a publicação em produção |
@@ -187,7 +187,8 @@ entrega está no [changelog](CHANGELOG_ONDAS.md)):
 | Listagens + SSE + retry manual | 2026-07-12 | filtro por tags no feed (tabela existe, falta endpoint), `channel.disconnected` como evento, "próximo slot livre"/`posting_times` |
 | Providers onda 1 | 2026-07-15 | **LinkedIn** vídeo e página de empresa (exige parceria Community Management API); **Discord** threads (hoje `threads:false` nos dois modos); **X** upload >4MB nunca exercitado contra a API real; smoke real de LinkedIn/X pendente de credenciais ([INTEGRATIONS_SETUP §3.3/§4.1](INTEGRATIONS_SETUP.md) — X usa o par **OAuth 2.0 Client ID/Secret**, não as Consumer Keys) |
 | Semáforo `maxConcurrent` + `/metrics` | 2026-07-18 | tracing OTel (a env já existe, faltam os spans), dashboards Grafana de referência, métrica de créditos de IA, `/metrics` no worker dedicado (`MODE=worker` não sobe HTTP) |
-| API pública + servidor MCP | 2026-07-19 | analytics (rota + tool `get_channel_analytics`), **OAuth 2.1 do MCP** (discovery + PKCE + consentimento — hoje só API key com escopo `mcp`), store de sessão MCP externo para escala horizontal, `webhooks/{id}/test` |
+| API pública + servidor MCP | 2026-07-19 | analytics (rota + tool `get_channel_analytics`), store de sessão MCP externo para escala horizontal, `webhooks/{id}/test` |
+| OAuth 2.1 do MCP | 2026-07-24 | store de sessão MCP externo; smoke manual Cursor/Claude além do E2E; analytics MCP |
 | Hosts de máquina (`api.`/`mcp.`) | 2026-07-21 | apontar os DNS e setar as duas envs em produção; `MODE=standalone` não publica os subdomínios (separar `web` e `api` em dois serviços); `/uploads` ainda sai por `PUBLIC_URL` — mover mídia para host próprio exige `MEDIA_PUBLIC_URL` |
 | Billing Stripe + `PlanPolicy` | 2026-07-21 | rodar `bun run stripe:sync` com a chave real e criar o webhook (`whsec_`); sub-limite de X da política de uso justo ([PLANS](PLANS.md) PL1) |
 | Threads (família Meta) | 2026-07-22 | analytics (`threads_insights`), **refresh proativo** do token de 60 dias, citar post (`quote_post_id`), `topic_tag`, submissão do App Review; smoke real de publicação exige túnel HTTPS (a Meta faz *pull* da mídia) |
@@ -285,6 +286,7 @@ BASE_URL=http://localhost:3987 bun run scripts/e2e-auth.ts
 BASE_URL=http://localhost:3987 bun run scripts/e2e-publish.ts
 BASE_URL=http://localhost:3987 bun run scripts/e2e-public.ts   # API pública: escopos, rate-limit, idempotência
 BASE_URL=http://localhost:3987 bun run scripts/e2e-mcp.ts      # servidor MCP: initialize→tools/call (precisa Redis)
+BASE_URL=http://localhost:3987 bun run scripts/e2e-mcp-oauth.ts  # OAuth MCP: discovery→DCR→PKCE→schedule_post
 docker rm -f mp-pg-iso mp-redis-iso                            # e derrube ao terminar
 ```
 

@@ -31,6 +31,13 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Added
 
+- **OAuth 2.1 no servidor MCP (dual-auth).** Clientes modernos autenticam com tokens
+  `mpo_*` obtidos via authorization code + PKCE S256; a API key `mp_live_` com escopo
+  `mcp` continua válida. O authorization server vive em `PUBLIC_URL` (discovery,
+  `/oauth/authorize`, `/oauth/token`, DCR); o host MCP anuncia o PRM e exige Bearer.
+  Consentimento no web (Clerk) escolhe organização e escopos `mcp:read`/`mcp:write`.
+  Clientes: estático `manypost-mcp`, CIMD e DCR público. Mudança OpenSpec: `add-mcp-oauth`.
+
 - Canal **Dev.to**: publica **artigos** em Markdown, com título próprio, tags (até 4), endereço
   original (canonical) e a opção de publicar por uma organização, escolhida a cada post. A primeira
   imagem anexada vira a capa. **Não exige configuração nenhuma**: a conexão pede uma chave de API
