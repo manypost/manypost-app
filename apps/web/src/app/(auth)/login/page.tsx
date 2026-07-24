@@ -25,7 +25,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
         </h1>
         <p className="mt-1 text-sm leading-relaxed text-graphite">{t('loginSubtitle')}</p>
       </header>
-      <SocialButtons />
+      <SocialButtons mode="sign-in" />
       <LoginForm nextPath={de} />
       <p className="text-center text-[13px] text-graphite">
         {t('noAccount')}{' '}
