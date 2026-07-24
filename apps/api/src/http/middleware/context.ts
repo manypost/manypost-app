@@ -27,9 +27,8 @@ export const correlationId = (): MiddlewareHandler<AppEnv> => async (c, next) =>
   await next();
 };
 
-/** Chave estável para rate-limit / idempotência por credencial. */
 export function credentialKey(p: Principal): string {
-  if (p.kind === 'api_key') return `k:${p.apiKeyId}`;
-  if (p.kind === 'oauth') return `g:${p.grantId}`;
-  return `u:${p.userId}`;
+  if (p.kind === 'api_key') return `k:${p.apiKeyId ?? p.userId ?? 'unknown'}`;
+  if (p.kind === 'oauth') return `g:${p.grantId ?? p.userId ?? 'unknown'}`;
+  return `u:${p.userId ?? 'unknown'}`;
 }
