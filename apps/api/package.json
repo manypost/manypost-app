@@ -9,6 +9,7 @@
     "start": "bun run src/main.ts"
   },
   "dependencies": {
+    "@clerk/backend": "^3.13.0",
     "@hono/zod-openapi": "^0.19.0",
     "@manypost/config": "workspace:*",
     "@manypost/contracts": "workspace:*",
