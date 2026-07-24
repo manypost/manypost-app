@@ -3,7 +3,7 @@
   "info": {
     "title": "manypost API",
     "version": "0.0.1",
-    "description": "API do manypost — agendamento/publicação multicanal. Autentique com `Authorization: Bearer <jwt|mp_live_…>` ou cookie de sessão httpOnly. Erros seguem problem+json (RFC 9457): o campo `title` carrega o código estável do erro."
+    "description": "API do manypost — agendamento/publicação multicanal. Humanos usam sessão Clerk; máquinas usam `Authorization: Bearer mp_live_…`. Erros seguem problem+json (RFC 9457): o campo `title` carrega o código estável do erro."
   },
   "servers": [
     {
@@ -14,7 +14,7 @@
   "tags": [
     {
       "name": "auth",
-      "description": "contas, sessões e login social"
+      "description": "identidade Clerk e autorização Manypost"
     },
     {
       "name": "api-keys",
@@ -83,163 +83,25 @@
   ],
   "components": {
     "securitySchemes": {
-      "bearerAuth": {
+      "clerkAuth": {
         "type": "http",
         "scheme": "bearer",
-        "description": "JWT de acesso OU API key mp_live_ — enviado como Authorization: Bearer <token>"
+        "description": "sessão Clerk humana — Authorization: Bearer <token>"
       },
-      "cookieAuth": {
-        "type": "apiKey",
-        "in": "cookie",
-        "name": "mp_at",
-        "description": "cookie de sessão httpOnly (fluxo web)"
+      "apiKeyAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API key mp_live_ para superfícies de máquina — Authorization: Bearer <chave>"
       }
     },
     "schemas": {
-      "SocialProviders": {
-        "type": "object",
-        "properties": {
-          "providers": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "id",
-                "name"
-              ]
-            }
-          }
-        },
-        "required": [
-          "providers"
-        ]
-      },
-      "Error": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "example": "about:blank"
-          },
-          "title": {
-            "type": "string",
-            "description": "código estável do erro",
-            "example": "common.not_found"
-          },
-          "status": {
-            "type": "integer",
-            "example": 404
-          },
-          "detail": {
-            "type": "string",
-            "example": "post não encontrado"
-          },
-          "extra": {
-            "description": "campos extras (ex.: issues de validação)"
-          }
-        },
-        "required": [
-          "type",
-          "title",
-          "status"
-        ]
-      },
-      "AuthResult": {
-        "type": "object",
-        "properties": {
-          "user": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "email": {
-                "type": "string"
-              },
-              "name": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "avatarUrl": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              }
-            },
-            "required": [
-              "id",
-              "email",
-              "name",
-              "avatarUrl"
-            ]
-          },
-          "org": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              },
-              "role": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "id",
-              "name",
-              "role"
-            ]
-          },
-          "accessToken": {
-            "type": "string"
-          },
-          "refreshToken": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "user",
-          "org",
-          "accessToken",
-          "refreshToken"
-        ]
-      },
-      "TokenPair": {
-        "type": "object",
-        "properties": {
-          "accessToken": {
-            "type": "string"
-          },
-          "refreshToken": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "accessToken",
-          "refreshToken"
-        ]
-      },
       "Me": {
         "type": "object",
         "properties": {
           "kind": {
             "type": "string",
             "enum": [
-              "user",
-              "api_key"
+              "user"
             ]
           },
           "orgId": {
@@ -247,12 +109,6 @@
           },
           "role": {
             "type": "string"
-          },
-          "scopes": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
           },
           "user": {
             "type": [
@@ -289,7 +145,39 @@
         },
         "required": [
           "kind",
-          "orgId"
+          "orgId",
+          "role",
+          "user"
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "about:blank"
+          },
+          "title": {
+            "type": "string",
+            "description": "código estável do erro",
+            "example": "common.not_found"
+          },
+          "status": {
+            "type": "integer",
+            "example": 404
+          },
+          "detail": {
+            "type": "string",
+            "example": "post não encontrado"
+          },
+          "extra": {
+            "description": "campos extras (ex.: issues de validação)"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status"
         ]
       },
       "ApiKey": {
@@ -2117,24 +2005,6 @@
           "disabledAt",
           "createdAt"
         ]
-      },
-      "ClerkAuthResult": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/AuthResult"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "isNewUser": {
-                "type": "boolean"
-              }
-            },
-            "required": [
-              "isNewUser"
-            ]
-          }
-        ]
       }
     },
     "parameters": {}
@@ -2178,351 +2048,6 @@
         }
       }
     },
-    "/v1/auth/social": {
-      "get": {
-        "tags": [
-          "auth"
-        ],
-        "summary": "Catálogo de provedores de login social configurados",
-        "responses": {
-          "200": {
-            "description": "provedores (vazio se nenhum env)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SocialProviders"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/auth/social/{provider}": {
-      "get": {
-        "tags": [
-          "auth"
-        ],
-        "summary": "Redireciona ao provedor OAuth (Google/GitHub)",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "provider",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "302": {
-            "description": "redirect para o provedor de identidade"
-          },
-          "404": {
-            "description": "não encontrado",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/auth/social/{provider}/callback": {
-      "get": {
-        "tags": [
-          "auth"
-        ],
-        "summary": "Callback OAuth do login social (define cookies e redireciona)",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "provider",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "code",
-            "in": "query"
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "state",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "302": {
-            "description": "autenticado — redireciona ao app com cookies de sessão"
-          },
-          "401": {
-            "description": "não autenticado",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "não encontrado",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/auth/register": {
-      "post": {
-        "tags": [
-          "auth"
-        ],
-        "summary": "Cria conta + organização (papel OWNER) e já autentica",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "format": "email"
-                  },
-                  "password": {
-                    "type": "string",
-                    "minLength": 12,
-                    "maxLength": 128
-                  },
-                  "name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 80
-                  },
-                  "orgName": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 80
-                  }
-                },
-                "required": [
-                  "email",
-                  "password",
-                  "name"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "conta criada (cookies httpOnly também são definidos)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "requisição fora do contrato (problem+json)",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "não encontrado",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "conflito",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/auth/login": {
-      "post": {
-        "tags": [
-          "auth"
-        ],
-        "summary": "Autentica por e-mail e senha",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "email": {
-                    "type": "string",
-                    "format": "email"
-                  },
-                  "password": {
-                    "type": "string",
-                    "minLength": 12,
-                    "maxLength": 128
-                  }
-                },
-                "required": [
-                  "email",
-                  "password"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "autenticado",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "requisição fora do contrato (problem+json)",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "não autenticado",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "não encontrado",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/auth/refresh": {
-      "post": {
-        "tags": [
-          "auth"
-        ],
-        "summary": "Renova a sessão com rotação do refresh token",
-        "description": "Token via cookie httpOnly (web) ou body JSON (clientes de API). O reuso de um token já rotacionado revoga a família inteira.",
-        "requestBody": {
-          "required": false,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "refreshToken": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "nova dupla de tokens (cookies também são atualizados)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TokenPair"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "não autenticado",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/auth/logout": {
-      "post": {
-        "tags": [
-          "auth"
-        ],
-        "summary": "Encerra a sessão e limpa os cookies",
-        "requestBody": {
-          "required": false,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "refreshToken": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": "sessão encerrada"
-          }
-        }
-      }
-    },
     "/v1/auth/me": {
       "get": {
         "tags": [
@@ -2530,16 +2055,13 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
-        "summary": "Identidade do principal autenticado (usuário ou API key)",
+        "summary": "Identidade Clerk com autorização Manypost",
         "responses": {
           "200": {
-            "description": "usuário (com papel) ou API key (com escopos)",
+            "description": "usuário Clerk com papel Manypost",
             "content": {
               "application/json": {
                 "schema": {
@@ -2550,6 +2072,26 @@
           },
           "401": {
             "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "papel insuficiente (requer ADMIN/OWNER)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "provedor externo temporariamente indisponível",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -2568,10 +2110,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Lista as API keys da organização",
@@ -2617,10 +2156,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Cria uma API key (mp_live_…) com escopos",
@@ -2724,10 +2260,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Revoga uma API key",
@@ -2776,10 +2309,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Lista os canais conectados (tokens nunca são expostos)",
@@ -2817,10 +2347,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Catálogo de providers desta instalação",
@@ -2859,10 +2386,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Inicia a conexão de um canal",
@@ -2966,10 +2490,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Callback OAuth — troca o code pelo token e conecta o canal",
@@ -3051,10 +2572,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Desconecta um canal (soft delete)",
@@ -3113,10 +2631,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Lista sub-contas ou canais (ex: canais de texto do servidor Discord)",
@@ -3203,10 +2718,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Agenda um post (1 grupo → 1 publicação por canal)",
@@ -3354,10 +2866,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Detalhe de um grupo de post",
@@ -3412,10 +2921,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Edita texto, horário e/ou settings por canal (re-agenda com nova versão de job)",
@@ -3507,10 +3013,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Cancela um grupo agendado (job antigo morre por versão)",
@@ -3566,10 +3069,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Tenta publicar de novo (FAILED/NEEDS_REVIEW → SCHEDULED)",
@@ -3653,10 +3153,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Cria o link público de aprovação de um rascunho",
@@ -3739,10 +3236,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Status do link de aprovação mais recente (ou null)",
@@ -3787,10 +3281,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Revoga o link de aprovação pendente",
@@ -3844,10 +3335,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Feed flat de publicações (calendário/kanban)",
@@ -3953,10 +3441,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Stream SSE de eventos em tempo real",
@@ -3992,10 +3477,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Envia mídia (multipart) — MIME real por magic bytes",
@@ -4063,10 +3545,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Importa mídia por URL (anti-SSRF, re-valida a cada redirect)",
@@ -4134,10 +3613,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Lista a biblioteca de mídia",
@@ -4186,10 +3662,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Atualiza o texto alternativo (alt) de uma mídia",
@@ -4258,10 +3731,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Remove uma mídia (soft — arquivo fica p/ posts já agendados)",
@@ -4300,10 +3770,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Lista os webhooks de saída",
@@ -4349,10 +3816,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Cria um webhook (entrega assinada HMAC)",
@@ -4456,10 +3920,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Remove um webhook",
@@ -4518,10 +3979,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Lista as notificações da organização",
@@ -4559,10 +4017,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Marca todas as notificações como lidas",
@@ -4605,10 +4060,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Marca uma notificação como lida (idempotente)",
@@ -4675,10 +4127,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Plano, features liberadas, limites e uso da organização",
@@ -4713,10 +4162,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Catálogo de planos, preços (centavos) e limites",
@@ -4751,10 +4197,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Plano efetivo, uso do período e assinatura da marca",
@@ -4789,10 +4232,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Assina um plano (Checkout) ou troca o plano de quem já assina (proration)",
@@ -4893,10 +4333,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Quanto sai agora ao trocar de plano (proration, em centavos)",
@@ -4988,10 +4425,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Link do portal da Stripe (cartão, faturas, dados fiscais)",
@@ -5044,10 +4478,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Cancela ao fim do período (chamar de novo reativa)",
@@ -5133,10 +4564,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Faturas pagas da marca (link e PDF hospedados pela Stripe)",
@@ -5212,10 +4640,7 @@
         ],
         "security": [
           {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
+            "clerkAuth": []
           }
         ],
         "summary": "Reconcilia a assinatura com a Stripe (volta do checkout, sem esperar o webhook)",
@@ -5581,7 +5006,7 @@
         "description": "Idempotente com o header `Idempotency-Key`. `requireApproval` nasce DRAFT aguardando link de aprovação; `thread` cria réplicas encadeadas.",
         "security": [
           {
-            "bearerAuth": []
+            "apiKeyAuth": []
           }
         ],
         "requestBody": {
@@ -5738,7 +5163,7 @@
         "summary": "Detalhe de um grupo (escopo posts:read)",
         "security": [
           {
-            "bearerAuth": []
+            "apiKeyAuth": []
           }
         ],
         "parameters": [
@@ -5812,7 +5237,7 @@
         "summary": "Edita texto/horário/settings e re-agenda (escopo posts:write)",
         "security": [
           {
-            "bearerAuth": []
+            "apiKeyAuth": []
           }
         ],
         "parameters": [
@@ -5921,7 +5346,7 @@
         "summary": "Cancela um grupo agendado (escopo posts:write)",
         "security": [
           {
-            "bearerAuth": []
+            "apiKeyAuth": []
           }
         ],
         "parameters": [
@@ -5998,7 +5423,7 @@
         "description": "FAILED/NEEDS_REVIEW → SCHEDULED. Com `channelId` no corpo, retenta só o canal.",
         "security": [
           {
-            "bearerAuth": []
+            "apiKeyAuth": []
           }
         ],
         "parameters": [
@@ -6100,7 +5525,7 @@
         "summary": "Cria o link público de aprovação de um rascunho (escopo posts:write)",
         "security": [
           {
-            "bearerAuth": []
+            "apiKeyAuth": []
           }
         ],
         "parameters": [
@@ -6218,7 +5643,7 @@
         "summary": "Revoga o link de aprovação pendente (escopo posts:write)",
         "security": [
           {
-            "bearerAuth": []
+            "apiKeyAuth": []
           }
         ],
         "parameters": [
@@ -6293,7 +5718,7 @@
         "description": "Uma linha por publicação; paginação keyset por (publishAt, id).",
         "security": [
           {
-            "bearerAuth": []
+            "apiKeyAuth": []
           }
         ],
         "parameters": [
@@ -6412,7 +5837,7 @@
         "summary": "Lista os canais conectados (escopo channels:read)",
         "security": [
           {
-            "bearerAuth": []
+            "apiKeyAuth": []
           }
         ],
         "responses": {
@@ -6470,7 +5895,7 @@
         "summary": "Catálogo de providers disponíveis + capacidades (escopo channels:read)",
         "security": [
           {
-            "bearerAuth": []
+            "apiKeyAuth": []
           }
         ],
         "responses": {
@@ -6529,7 +5954,7 @@
         "summary": "Desconecta um canal (escopo channels:write)",
         "security": [
           {
-            "bearerAuth": []
+            "apiKeyAuth": []
           }
         ],
         "parameters": [
@@ -6598,7 +6023,7 @@
         "summary": "Envia mídia multipart — MIME real por magic bytes (escopo media:write)",
         "security": [
           {
-            "bearerAuth": []
+            "apiKeyAuth": []
           }
         ],
         "requestBody": {
@@ -6685,7 +6110,7 @@
         "summary": "Importa mídia por URL (anti-SSRF) (escopo media:write)",
         "security": [
           {
-            "bearerAuth": []
+            "apiKeyAuth": []
           }
         ],
         "requestBody": {
@@ -6773,7 +6198,7 @@
         "summary": "Lista a biblioteca de mídia (escopo media:write)",
         "security": [
           {
-            "bearerAuth": []
+            "apiKeyAuth": []
           }
         ],
         "parameters": [
@@ -6842,7 +6267,7 @@
         "summary": "Lista os webhooks de saída (escopo webhooks:manage)",
         "security": [
           {
-            "bearerAuth": []
+            "apiKeyAuth": []
           }
         ],
         "responses": {
@@ -6899,7 +6324,7 @@
         "description": "O secret whsec_ é retornado só aqui.",
         "security": [
           {
-            "bearerAuth": []
+            "apiKeyAuth": []
           }
         ],
         "requestBody": {
@@ -7024,7 +6449,7 @@
         "summary": "Remove um webhook (escopo webhooks:manage)",
         "security": [
           {
-            "bearerAuth": []
+            "apiKeyAuth": []
           }
         ],
         "parameters": [
@@ -7074,62 +6499,6 @@
           },
           "429": {
             "description": "rate limit — aguarde e tente de novo",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/auth/clerk/exchange": {
-      "post": {
-        "tags": [
-          "auth"
-        ],
-        "summary": "Troca uma sessão Clerk verificada por uma sessão interna do Manypost",
-        "description": "Aceita somente o bearer token Clerk. Organização, papel e usuário são derivados da persistência interna.",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "sessão interna criada (cookies httpOnly também são definidos)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ClerkAuthResult"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "não autenticado",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "não encontrado",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "provedor externo temporariamente indisponível",
             "content": {
               "application/problem+json": {
                 "schema": {
