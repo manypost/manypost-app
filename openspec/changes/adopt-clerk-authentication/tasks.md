@@ -56,4 +56,5 @@
 - [x] 8.2 Run focused tests, `bun install --frozen-lockfile`, `bun run check`, `bun run db:check`, `bun run build:web`, `bun run spec:validate`, `clerk doctor` and `git diff --check`.
 - [x] 8.3 Review the final diff for tenant authorization, fail-closed behavior, secrets, obsolete runtime fallback and generated-file provenance.
   - Confirmed: human auth is Clerk bearer/`__session` only; machine surfaces reject Clerk; fail-closed outside worker; exchange/cookies/token signer/session-refresh removed; no secrets in diff; OpenAPI uses `clerkAuth`/`apiKeyAuth`; schema `sessions`/`password_hash` preserved without runtime consumer.
-- [ ] 8.4 Create focused Conventional Commits, update PR #39 and verify the remote commit graph without merging before required review.
+- [x] 8.4 Create focused Conventional Commits, update PR #39 and verify the remote commit graph without merging before required review.
+  - Eight Conventional Commits pushed to `feat/clerk-auth`; PR #39 body rewritten for Clerk-only; merge deferred (Create a merge commit when approved).
