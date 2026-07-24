@@ -13,8 +13,9 @@ const base = {
   PUBLIC_URL: 'https://manypost.com.br',
   DATABASE_URL: 'postgresql://mp:mp@localhost:5432/mp',
   REDIS_URL: 'redis://localhost:6379',
-  JWT_SECRET: 'segredo-de-teste-com-pelo-menos-32-chars',
   ENCRYPTION_KEY: 'a'.repeat(64),
+  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: 'pk_test_example',
+  CLERK_SECRET_KEY: 'sk_test_example',
 };
 
 describe('superfícies de máquina (SPEC_API_MCP §3/§5)', () => {
@@ -67,10 +68,15 @@ describe('superfícies de máquina (SPEC_API_MCP §3/§5)', () => {
 
 describe('Clerk para autenticação humana', () => {
   it('exige publishable key e secret key como um par sem expor valores', () => {
+    const { CLERK_SECRET_KEY: _secretKey, ...withoutSecret } = base;
     expect(() =>
-      loadEnv({ ...base, NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: 'pk_test_example' }),
+      loadEnv({ ...withoutSecret, NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: 'pk_test_example' }),
     ).toThrow(/CLERK_SECRET_KEY/);
-    expect(() => loadEnv({ ...base, CLERK_SECRET_KEY: 'sk_test_example' })).toThrow(
+    const {
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: _publishableKey,
+      ...withoutPublishable
+    } = base;
+    expect(() => loadEnv({ ...withoutPublishable, CLERK_SECRET_KEY: 'sk_test_example' })).toThrow(
       /NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY/,
     );
   });
@@ -85,7 +91,6 @@ describe('Clerk para autenticação humana', () => {
       }),
     );
     expect(config).toEqual({
-      enabled: true,
       publishableKey: 'pk_test_example',
       secretKey: 'sk_test_example',
       jwtKey: undefined,
@@ -93,11 +98,29 @@ describe('Clerk para autenticação humana', () => {
     });
   });
 
-  it('permanece desabilitado quando nenhuma chave foi configurada', () => {
-    expect(clerkConfig(loadEnv(base))).toEqual({
-      enabled: false,
-      authorizedParties: ['https://manypost.com.br'],
-    });
+  it('falha fechado quando as chaves Clerk não foram configuradas', () => {
+    const {
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: _publishableKey,
+      CLERK_SECRET_KEY: _secretKey,
+      ...withoutClerk
+    } = base;
+    expect(() => loadEnv(withoutClerk)).toThrow(/NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY/);
+    expect(() =>
+      loadEnv({ ...withoutClerk, NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: 'pk_test_example' }),
+    ).toThrow(/CLERK_SECRET_KEY/);
+  });
+
+  it('não distribui configuração Clerk ao worker dedicado', () => {
+    const {
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: _publishableKey,
+      CLERK_SECRET_KEY: _secretKey,
+      ...withoutClerk
+    } = base;
+
+    const config = loadEnv({ ...withoutClerk, MODE: 'worker' });
+    expect(config.MODE).toBe('worker');
+    expect(config).not.toHaveProperty('NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY');
+    expect(config).not.toHaveProperty('CLERK_SECRET_KEY');
   });
 });
 
