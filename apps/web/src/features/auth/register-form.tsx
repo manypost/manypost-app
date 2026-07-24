@@ -22,6 +22,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useApiErrorMessage } from '@/lib/api/errors';
 import { sessionTaskPath, signUpAction } from './auth-flow';
+import { ClerkCaptcha } from './clerk-captcha';
 import { useRegister } from './hooks';
 import { PasswordInput } from './password-input';
 import { PasswordStrength } from './password-strength';
@@ -284,6 +285,7 @@ function ClerkRegisterForm() {
             </FormItem>
           )}
         />
+        <ClerkCaptcha />
         <Button
           type="submit"
           size="lg"
