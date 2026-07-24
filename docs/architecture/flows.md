@@ -21,41 +21,45 @@ Erros de domínio usam códigos estáveis de
 Erros externos são normalizados pelo provider. Logs não devem incluir tokens ou
 segredos.
 
-## Registro e login por senha
+## Registro e login humano
 
-**Entrada:** rotas de register/login em
-`apps/api/src/http/routes/auth.routes.ts`, chamadas por
-`apps/web/src/features/auth/`.
+**Entrada:** UI Manypost em `apps/web/src/features/auth/`, Clerk no browser e
+`POST /v1/auth/clerk/exchange` na API.
 
 **Validação e autorização**
 
-- email/senha são validados pelo schema da route;
-- password hasher usa implementação em
-  `apps/api/src/infra/auth/password.hasher.ts`;
-- login compara o hash sem revelar se detalhes internos existem;
-- register cria o primeiro contexto de organização/membership conforme o
-  repository de identidade.
+- Clerk conduz senha, verificação de email, fatores adicionais e Google;
+- a API valida o token Clerk, sua origem autorizada e o email primário
+  verificado;
+- sessão Clerk com status `pending` conclui sua tarefa obrigatória antes da
+  troca interna;
+- organização, membership e role são calculados somente pela API/repository;
+- dados de tenant enviados pelo browser são ignorados.
 
 **Regra e persistência**
 
-1. `makeRegister` ou `makeLogin` em
-   `packages/core/src/application/use-cases/auth.ts` valida a operação.
-2. `packages/db/src/repositories/identity.repo.ts` lê/cria usuário,
+1. O browser finaliza a tentativa Clerk e obtém um token de sessão.
+2. `clerk.identity.ts` resolve a identidade no backend.
+3. `makeLoginWithIdentity` localiza/cria `provider = "clerk"`, usuário,
    organização, membership e sessão.
-3. O access JWT expira em 15 minutos.
-4. O refresh token aleatório expira em 30 dias; somente seu hash é persistido.
+4. O access JWT expira em 15 minutos.
+5. O refresh token aleatório expira em 30 dias; somente seu hash é persistido.
 
 **Resultado**
 
 - a API grava `mp_at` e `mp_rt` como cookies HttpOnly e `mp_session=1` como
   marcador não sensível;
 - o web segue para onboarding ou shell conforme `/v1/auth/me`;
-- credenciais inválidas viram problem+json sem criar sessão.
+- token inválido ou email não verificado vira problem+json sem criar sessão.
 
-**Assíncrono/integração:** não há fila nem serviço externo no login por senha.
+Sem as duas chaves Clerk, o layout e as rotas de senha/social existentes
+continuam como fallback de rollback. Quando Clerk está habilitado, essas rotas
+legadas ficam bloqueadas também para chamadas diretas à API. Senhas existentes
+não são copiadas para o Clerk.
 
 **Pontos de cuidado:** cookies/path/sameSite, enumeration, rate limit de login,
-sessões por organização e segredo JWT.
+sessões por organização, `authorizedParties` e separação entre chaves públicas e
+segredos.
 
 ## Refresh, expiração e logout
 
@@ -69,12 +73,15 @@ sessões por organização e segredo JWT.
 2. `makeRefreshSession` calcula o hash e busca sessão por token atual/anterior.
 3. Token anterior indica reuso e revoga a família.
 4. Token atual válido gera um novo par e rotaciona hashes na sessão.
-5. A route substitui cookies; logout revoga a sessão e apaga cookies.
+5. A route substitui cookies; logout revoga a sessão Manypost, apaga cookies e
+   encerra também a sessão Clerk quando habilitada.
 
 **Resultado/erro**
 
 - refresh bem-sucedido repete a requisição original;
 - refresh inválido mantém o 401 como falha real;
+- com Clerk habilitado, uma falha final de refresh tenta uma única troca
+  deduplicada antes de exigir login interativo;
 - o hook realtime deve abrir EventSource somente após `/auth/me` bem-sucedido;
 - logout é seguro mesmo quando o token já não é utilizável.
 
@@ -82,22 +89,21 @@ sessões por organização e segredo JWT.
 uma transação; duas requisições reais simultâneas podem competir. O cliente
 reduz concorrência por aba, mas não elimina múltiplos dispositivos/processos.
 
-## Login social Google/GitHub
+## Login social humano
 
-**Entrada:** `GET /v1/auth/social`, `/:provider` e
-`/:provider/callback` em `social-auth.routes.ts`.
+**Entrada primária:** botão Google da UI Manypost usando o fluxo SSO do Clerk.
 
 **Sequência**
 
-1. O registry de identidade em `apps/api/src/infra/identity/` seleciona Google
-   ou GitHub configurado.
-2. A route cria state/cookie de curta duração e redireciona ao consentimento.
-3. O callback valida state e troca code por identidade externa.
-4. `makeLoginWithIdentity` localiza/cria vínculo, usuário e sessão.
-5. Cookies são gravados e o browser retorna ao app.
+1. Clerk redireciona ao Google e recebe o callback na URL autorizada exibida no
+   Dashboard do Clerk.
+2. O browser retorna a `/sso-callback` e finaliza a sessão Clerk.
+3. `/auth/complete` troca o token pela sessão interna.
+4. Cookies Manypost são gravados e o browser segue ao onboarding ou shell.
 
-**Erros:** provider ausente não é anunciado; state/callback inválido falha sem
-sessão; conflito de identidade exige tratamento explícito do caso de uso.
+Quando Clerk está desabilitado, `GET /v1/auth/social`, `/:provider` e
+`/:provider/callback` preservam Google/GitHub legados. Isso não altera o OAuth
+de conexão de canais.
 
 **Persistência:** `auth_identities`, `users`, `organizations`, `memberships`,
 `sessions`.

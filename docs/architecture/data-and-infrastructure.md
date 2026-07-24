@@ -253,9 +253,18 @@ com `PUBLIC_URL`.
 | --- | --- | --- |
 | `JWT_SECRET` | obrigatório | string com pelo menos 32 caracteres |
 | `ENCRYPTION_KEY` | obrigatório | 64 caracteres hex/32 bytes, diferente do JWT secret |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | opcional em conjunto | chave pública da instância Clerk; habilita a UI Clerk |
+| `CLERK_SECRET_KEY` | opcional em conjunto | segredo server-only da mesma instância Clerk |
+| `CLERK_JWT_KEY` | opcional | chave pública PEM para validação de sessão Clerk |
 | `WEBHOOKS_ALLOW_PRIVATE` | default falso | boolean string; somente dev/E2E controlado |
 | `MEDIA_ALLOW_PRIVATE_URLS` | default falso | boolean string; somente dev/E2E controlado |
 | `METRICS_TOKEN` | opcional | bearer; ausente deixa `/metrics` público |
+
+As duas chaves principais do Clerk devem existir juntas. A API limita tokens
+Clerk à origem de `PUBLIC_URL` por `authorizedParties`, resolve o usuário no
+backend e aceita apenas o email primário verificado de uma sessão ativa, sem
+tarefa obrigatória pendente. Indisponibilidade do provider falha com 503 sem
+criar sessão. O browser nunca recebe `CLERK_SECRET_KEY`.
 
 ### Billing
 
@@ -268,14 +277,22 @@ com `PUBLIC_URL`.
 Billing só monta quando `IS_SELF_HOSTED=false`, `HIDE_BILLING=false` e
 `STRIPE_SECRET_KEY` existe.
 
-### Login social
+### Autenticação humana
 
-| Provider | Nomes | Formato/finalidade |
+Clerk é o provedor primário quando configurado. O web conclui senha, verificação
+de email ou Google no Clerk e troca o token em `POST /v1/auth/clerk/exchange`.
+A API continua sendo a fonte de organização, membership, role e sessão
+Manypost; claims de tenant enviados pelo browser não são aceitos.
+
+As credenciais abaixo mantêm o login social legado somente quando Clerk está
+desabilitado:
+
+| Provider legado | Nomes | Formato/finalidade |
 | --- | --- | --- |
 | Google | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | strings OAuth; ambos opcionais |
 | GitHub | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | strings OAuth; ambos opcionais |
 
-Ausência remove o provider de login do catálogo.
+Essas credenciais são independentes das credenciais de conexão de canais.
 
 ### Redes sociais
 
