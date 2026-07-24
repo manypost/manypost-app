@@ -12,6 +12,8 @@
  *   BASE_URL   (default http://localhost:3000 — precisa bater com o PUBLIC_URL da API)
  *   TEXT       (texto do post de teste)
  *   WHEN_SEC   (daqui a quantos segundos publicar; default 5)
+ * Variável obrigatória:
+ *   CLERK_SESSION_TOKEN (sessão de um usuário já criado no Clerk)
  */
 export {};
 
@@ -31,21 +33,12 @@ async function main() {
     process.exit(1);
   }
 
-  // conta de teste (nova a cada run; a org é isolada)
-  const email = `teste-${Date.now()}@manypost.local`;
-  const password = 'senha-de-teste-bem-forte-123';
-  const reg = await fetch(`${BASE}/v1/auth/register`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email, password, name: 'Conta de Teste' }),
-  });
-  if (!reg.ok) {
-    console.error('✗ falha ao criar a conta de teste:', reg.status, await reg.text());
+  const token = process.env.CLERK_SESSION_TOKEN;
+  if (!token) {
+    console.error('✗ defina CLERK_SESSION_TOKEN para um usuário Clerk de teste.');
     process.exit(1);
   }
-  const { accessToken } = (await reg.json()) as { accessToken: string };
-  const auth = { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' };
-  console.log(`\n✓ conta de teste criada: ${email}`);
+  const auth = { authorization: `Bearer ${token}`, 'content-type': 'application/json' };
 
   const providers = (await (
     await fetch(`${BASE}/v1/channels/providers`, { headers: auth })
@@ -195,11 +188,19 @@ async function connectByOAuth(providerId: string, auth: Record<string, string>) 
     `${BASE}/v1/channels/callback/${providerId}?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`,
     { headers: { ...auth, cookie: stateCookie } },
   );
-  if (cb.status !== 201) {
-    console.error('\n✗ a troca do code falhou:', cb.status, ((await cb.json()) as any).detail ?? '');
+  if (cb.status !== 200) {
+    console.error('\n✗ a troca do code falhou:', cb.status, await cb.text());
     process.exit(1);
   }
-  return (await cb.json()) as { id: string; name: string };
+  const channels = (await (
+    await fetch(`${BASE}/v1/channels`, { headers: auth })
+  ).json()) as Array<{ id: string; name: string; provider: string }>;
+  const channel = channels.find((item) => item.provider === providerId);
+  if (!channel) {
+    console.error('\n✗ callback concluído, mas o canal não apareceu na listagem');
+    process.exit(1);
+  }
+  return channel;
 }
 
 await main().finally(() => rl.close());

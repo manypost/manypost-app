@@ -1,4 +1,4 @@
-export {}; // módulo (top-level await)
+import { createE2EHuman } from './e2e-clerk';
 
 /**
  * E2E da API pública para máquinas (SPEC_API_MCP §3/§7): escopos por API key, rate-limit por
@@ -23,15 +23,8 @@ function check(cond: unknown, msg: string) {
   }
 }
 
-// ---- setup: conta (OWNER) + canal fake conectado ----
-const email = `public-${Date.now()}@test.dev`;
-const reg = await fetch(`${BASE}/v1/auth/register`, {
-  method: 'POST',
-  headers: { 'content-type': 'application/json' },
-  body: JSON.stringify({ email, password: 'senha-e2e-super-forte-123', name: 'Public API' }),
-});
-const { accessToken } = (await reg.json()) as any;
-const auth = { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' };
+// ---- setup: identidade Clerk OWNER + canal fake conectado ----
+const { auth } = await createE2EHuman('public');
 
 const connect = await fetch(`${BASE}/v1/channels/connect`, {
   method: 'POST',
@@ -47,6 +40,20 @@ await fetch(`${BASE}/v1/channels/callback/fake?code=${cbq.get('code')}&state=${c
 const channels0 = (await (await fetch(`${BASE}/v1/channels`, { headers: auth })).json()) as any[];
 const channel = channels0[0];
 check(channel?.provider === 'fake', 'setup: canal fake conectado');
+
+const clerkBearerOnMachine = await fetch(`${API}/channels`, { headers: auth });
+check(
+  clerkBearerOnMachine.status === 401,
+  `bearer Clerk na API de máquina → 401 (veio ${clerkBearerOnMachine.status})`,
+);
+const clerkToken = auth.authorization.slice('Bearer '.length);
+const clerkCookieOnMachine = await fetch(`${API}/channels`, {
+  headers: { cookie: `__session=${clerkToken}` },
+});
+check(
+  clerkCookieOnMachine.status === 401,
+  `cookie Clerk na API de máquina → 401 (veio ${clerkCookieOnMachine.status})`,
+);
 
 // ---- helpers ----
 async function createKey(name: string, scopes: string[]) {
@@ -169,9 +176,12 @@ check(
   `a recusa aponta a superfície de máquina (veio ${bypassBody.extra?.machineApiUrl})`,
 );
 
-// o humano (JWT) segue entrando normalmente no /v1 interno
-const internalWithJwt = await fetch(`${BASE}/v1/channels`, { headers: auth });
-check(internalWithJwt.status === 200, `GET ${BASE}/v1/channels com JWT → 200 (veio ${internalWithJwt.status})`);
+// o humano Clerk segue entrando normalmente no /v1 interno
+const internalWithClerk = await fetch(`${BASE}/v1/channels`, { headers: auth });
+check(
+  internalWithClerk.status === 200,
+  `GET ${BASE}/v1/channels com Clerk → 200 (veio ${internalWithClerk.status})`,
+);
 
 // ---- 6) CORS: superfície de máquina é bearer/sem cookie → qualquer origem, sem credenciais ----
 const preflight = await fetch(`${API}/posts`, {
@@ -204,7 +214,10 @@ if (DEDICATED_HOST) {
   );
 
   const internalOnMachineHost = await fetch(`${new URL(API).origin}/v1/auth/me`, { headers: auth });
-  check(internalOnMachineHost.status === 404, `superfície interna não existe no host de máquina (veio ${internalOnMachineHost.status})`);
+  check(
+    internalOnMachineHost.status === 401 || internalOnMachineHost.status === 404,
+    `superfície interna não autentica no host de máquina (veio ${internalOnMachineHost.status})`,
+  );
 
   const legacyPath = await fetch(`${BASE}/public/v1/channels`, { headers: H(chKey) });
   check(legacyPath.status === 200, `caminho antigo ${BASE}/public/v1 segue funcionando (veio ${legacyPath.status})`);

@@ -1,7 +1,6 @@
 /**
- * Smoke de 10 segundos, SEM nenhuma credencial: registra uma conta, conecta um canal
- * "fake" (rede simulada, só para ver o pipeline funcionando), agenda um post e espera o
- * worker publicar. Serve para o testador confirmar num comando que a stack está viva.
+ * Smoke de 10 segundos com uma sessão Clerk de teste: conecta um canal "fake", agenda um
+ * post e espera o worker publicar.
  *
  * Com a stack no ar (`docker compose up`), rode em outro terminal:
  *
@@ -14,6 +13,8 @@
  * Variáveis opcionais:
  *   BASE_URL   (default http://localhost:3000 — precisa bater com o PUBLIC_URL da API)
  *   WHEN_SEC   (daqui a quantos segundos publicar; default 3)
+ * Variável obrigatória:
+ *   CLERK_SESSION_TOKEN (sessão de um usuário já criado no Clerk)
  */
 export {};
 
@@ -29,22 +30,14 @@ async function main() {
     process.exit(1);
   }
 
-  // 1) conta de teste isolada (org nova a cada run)
-  const email = `demo-${Date.now()}@manypost.local`;
-  const reg = await fetch(`${BASE}/v1/auth/register`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email, password: 'senha-de-teste-bem-forte-123', name: 'Demo' }),
-  });
-  if (!reg.ok) {
-    console.error('✗ falha ao criar a conta de teste:', reg.status, await reg.text());
+  const token = process.env.CLERK_SESSION_TOKEN;
+  if (!token) {
+    console.error('✗ defina CLERK_SESSION_TOKEN para um usuário Clerk de teste.');
     process.exit(1);
   }
-  const { accessToken } = (await reg.json()) as { accessToken: string };
-  const auth = { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' };
-  console.log(`\n✓ conta criada: ${email}`);
+  const auth = { authorization: `Bearer ${token}`, 'content-type': 'application/json' };
 
-  // 2) conecta o canal fake (OAuth simulado: connect devolve uma url local + cookie de state;
+  // 1) conecta o canal fake (OAuth simulado: connect devolve uma url local + cookie de state;
   //    o "callback" fecha a conexão sem sair da máquina)
   const connect = await fetch(`${BASE}/v1/channels/connect`, {
     method: 'POST',
@@ -62,11 +55,18 @@ async function main() {
     `${BASE}/v1/channels/callback/fake?code=${q.get('code')}&state=${q.get('state')}`,
     { headers: { ...auth, cookie: stateCookie } },
   );
-  if (cb.status !== 201) {
+  if (cb.status !== 200) {
     console.error('✗ falha ao conectar o canal fake:', cb.status, await cb.text());
     process.exit(1);
   }
-  const channel = (await cb.json()) as { id: string; name: string };
+  const channels = (await (
+    await fetch(`${BASE}/v1/channels`, { headers: auth })
+  ).json()) as Array<{ id: string; name: string; provider: string }>;
+  const channel = channels.find((item) => item.provider === 'fake');
+  if (!channel) {
+    console.error('✗ callback concluído, mas o canal fake não apareceu na listagem');
+    process.exit(1);
+  }
   console.log(`✓ canal conectado: ${channel.name} (${channel.id})`);
 
   // 3) agenda um post para daqui a poucos segundos
