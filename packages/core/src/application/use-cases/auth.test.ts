@@ -252,7 +252,7 @@ describe('login social (Google/GitHub)', () => {
     expect(f._state.orgs).toHaveLength(1);
   });
 
-  test('primeiros logins concorrentes criam uma identidade e um tenant', async () => {
+  test('logins repetidos não duplicam identidade nem tenant', async () => {
     const clerkProfile = profile({
       provider: 'clerk',
       providerUserId: 'user_clerk_1',
