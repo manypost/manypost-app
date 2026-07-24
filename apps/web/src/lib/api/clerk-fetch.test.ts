@@ -32,6 +32,27 @@ describe('cliente HTTP autenticado pelo Clerk', () => {
     }
   });
 
+  it('anexa o token Clerk também às rotas /oauth de consentimento', async () => {
+    expect(clerkFetch.setClerkTokenProvider).toBeFunction();
+    expect(clerkFetch.fetchWithClerk).toBeFunction();
+    if (!clerkFetch.setClerkTokenProvider || !clerkFetch.fetchWithClerk) return;
+
+    clerkFetch.setClerkTokenProvider(async () => 'clerk-session');
+    let authorization: string | null = null;
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (_input, init) => {
+      authorization = new Headers(init?.headers).get('authorization');
+      return new Response(null, { status: 204 });
+    };
+
+    try {
+      await clerkFetch.fetchWithClerk('/oauth/consent/context');
+      expect(authorization).toBe('Bearer clerk-session');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it('não consulta token para rota pública nem tenta exchange ou refresh após 401', async () => {
     expect(clerkFetch.setClerkTokenProvider).toBeFunction();
     expect(clerkFetch.fetchWithClerk).toBeFunction();
