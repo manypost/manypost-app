@@ -4,7 +4,7 @@ import type { Context, MiddlewareHandler } from 'hono';
 import type { Container } from '../../container';
 import type { AppEnv } from '../middleware/context';
 import { buildMcpServer } from '../../mcp/mcp-server';
-import { requireAuth, requireScope } from '../middleware/auth';
+import { requireMachineAuth, requireScope } from '../middleware/auth';
 import { machineCors } from '../middleware/machine-cors';
 import { requirePlanFeature } from '../middleware/public-api';
 import { createApp } from '../openapi';
@@ -80,7 +80,9 @@ export function mcpRoutes(ctn: Container) {
   for (const endpoint of ENDPOINTS) {
     app.use(endpoint, machineCors()); // antes do auth: preflight não carrega credencial
     app.use(endpoint, browserLanding); // navegação humana no host mcp. → página, não 401
-    app.use(endpoint, requireAuth({ signer: ctn.signer, verifyApiKey: ctn.auth.verifyApiKey }));
+    app.use(endpoint, requireMachineAuth({
+      verifyApiKey: ctn.auth.verifyApiKey,
+    }));
     app.use(endpoint, requireScope('mcp'));
     app.use(endpoint, requirePlanFeature(ctn.plan, 'public_api')); // "API REST e MCP" = Pro+
   }

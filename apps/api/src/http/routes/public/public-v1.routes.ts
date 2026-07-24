@@ -8,7 +8,7 @@ import {
 } from '@manypost/contracts';
 import { DomainError, type MediaRecord, type PublicationFeedItem } from '@manypost/core';
 import type { Container } from '../../../container';
-import { requireAuth, requireScope } from '../../middleware/auth';
+import { requireMachineAuth, requireScope } from '../../middleware/auth';
 import { machineCors } from '../../middleware/machine-cors';
 import { idempotency, rateLimitByCredential, requirePlanFeature } from '../../middleware/public-api';
 import { createApp, errorResponses, jsonBody, jsonResponse } from '../../openapi';
@@ -16,15 +16,14 @@ import { isProviderAvailable, providerCatalogEntry } from '../shared/provider-ca
 
 /**
  * API pública `/public/v1` (SPEC_API_MCP §3): mesma pilha de use-cases da API interna, mas
- * voltada a máquinas — autenticação por API key com **escopos** (o humano/JWT passa; o papel
- * o governa, §6), **rate-limit por credencial** (headers RateLimit-*) e **Idempotency-Key** nos
- * POST de mutação. Versionada no path (breaking → /public/v2). Erros = problem+json (RFC 9457).
+ * voltada a máquinas — autenticação exclusiva por API key com **escopos**, **rate-limit por
+ * credencial** (headers RateLimit-*) e **Idempotency-Key** nos POST de mutação. Versionada no
+ * path (breaking → /public/v2). Erros = problem+json (RFC 9457).
  *
  * Fora deste corte (features ainda inexistentes): analytics de canal e webhooks/{id}/test.
  */
 
-// bearer = JWT de acesso OU API key mp_live_ (o esperado aqui é a API key)
-const PUBLIC_SECURITY: NonNullable<RouteConfig['security']> = [{ bearerAuth: [] }];
+const PUBLIC_SECURITY: NonNullable<RouteConfig['security']> = [{ apiKeyAuth: [] }];
 
 // ---- schemas de resposta (documentação; a serialização em runtime é a fonte) ----
 const PubMediaRef = z
@@ -277,7 +276,9 @@ export function publicV1Routes(ctn: Container) {
   const app = createApp();
 
   app.use('*', machineCors()); // antes do auth: preflight OPTIONS não carrega credencial
-  app.use('*', requireAuth({ signer: ctn.signer, verifyApiKey: ctn.auth.verifyApiKey }));
+  app.use('*', requireMachineAuth({
+    verifyApiKey: ctn.auth.verifyApiKey,
+  }));
   app.use('*', requirePlanFeature(ctn.plan, 'public_api'));
   app.use('*', rateLimitByCredential(ctn.runtime.rateLimiter, { limit: 60, windowSec: 60 }));
   app.use('*', idempotency(ctn.runtime.idempotency));

@@ -1,50 +1,64 @@
 import type { MiddlewareHandler } from 'hono';
 import { getCookie } from 'hono/cookie';
-import { type ApiScope, ErrorCodes } from '@manypost/contracts';
-import { API_KEY_PREFIX, DomainError, type TokenSigner } from '@manypost/core';
+import { type ApiScope, ErrorCodes, type MemberRole } from '@manypost/contracts';
+import { API_KEY_PREFIX, DomainError } from '@manypost/core';
 import type { AppEnv } from './context';
 
-export const ACCESS_COOKIE = 'mp_at';
-export const REFRESH_COOKIE = 'mp_rt';
+interface HumanAuthMiddlewareDeps {
+  authenticateHuman: (
+    token: string,
+  ) => Promise<{ userId: string; orgId: string; role: MemberRole } | null>;
+}
 
-interface AuthMiddlewareDeps {
-  signer: TokenSigner;
+interface MachineAuthMiddlewareDeps {
   verifyApiKey: (
     key: string,
   ) => Promise<{ orgId: string; scopes: string[]; apiKeyId: string } | null>;
 }
 
-/** Autenticação unificada: JWT (cookie ou Bearer) ou API key (SPEC_API_MCP §1-2). */
-export const requireAuth = (deps: AuthMiddlewareDeps): MiddlewareHandler<AppEnv> =>
+/** Autenticação humana exclusiva por sessão Clerk (bearer ou cookie EventSource). */
+export const requireAuth = (deps: HumanAuthMiddlewareDeps): MiddlewareHandler<AppEnv> =>
   async (c, next) => {
     const header = c.req.header('authorization');
     const bearer = header?.startsWith('Bearer ') ? header.slice(7) : undefined;
-    const token = bearer ?? getCookie(c, ACCESS_COOKIE);
+    const token = bearer?.trim() || getCookie(c, '__session');
 
-    if (token?.startsWith(API_KEY_PREFIX)) {
-      const key = await deps.verifyApiKey(token);
-      if (key) {
-        c.set('principal', {
-          kind: 'api_key',
-          orgId: key.orgId,
-          scopes: key.scopes,
-          apiKeyId: key.apiKeyId,
-        });
-        return next();
-      }
-    } else if (token) {
-      const claims = await deps.signer.verify(token);
-      if (claims) {
+    if (token && !token.startsWith(API_KEY_PREFIX)) {
+      const principal = await deps.authenticateHuman(token);
+      if (principal) {
         c.set('principal', {
           kind: 'user',
-          userId: claims.sub,
-          orgId: claims.org,
-          role: claims.role,
+          userId: principal.userId,
+          orgId: principal.orgId,
+          role: principal.role,
         });
         return next();
       }
     }
     throw new DomainError(ErrorCodes.AuthUnauthorized, 'não autenticado');
+  };
+
+/** Superfícies de máquina aceitam exclusivamente API key por bearer. */
+export const requireMachineAuth = (
+  deps: MachineAuthMiddlewareDeps,
+): MiddlewareHandler<AppEnv> =>
+  async (c, next) => {
+    const header = c.req.header('authorization');
+    const token = header?.startsWith('Bearer ') ? header.slice(7).trim() : '';
+    if (!token.startsWith(API_KEY_PREFIX)) {
+      throw new DomainError(ErrorCodes.AuthUnauthorized, 'API key ausente');
+    }
+    const key = await deps.verifyApiKey(token);
+    if (!key) {
+      throw new DomainError(ErrorCodes.AuthUnauthorized, 'API key inválida');
+    }
+    c.set('principal', {
+      kind: 'api_key',
+      orgId: key.orgId,
+      scopes: key.scopes,
+      apiKeyId: key.apiKeyId,
+    });
+    await next();
   };
 
 /**
@@ -78,9 +92,10 @@ export const requireAdmin = (): MiddlewareHandler<AppEnv> => async (c, next) => 
 
 /**
  * Exige que a credencial tenha TODOS os escopos listados (SPEC_API_MCP §1/§6 — "mesmo
- * middleware de escopos"). Vale só para API keys (máquinas): o humano (JWT/cookie) é regido
- * pelo papel, não por escopos, então passa direto aqui — a autorização fina dele é `requireAdmin`
- * e a matriz papel×endpoint. Escopo faltando → 403 problem+json.
+ * middleware de escopos"). Vale só para API keys (máquinas): a identidade humana Clerk é
+ * regida pelo papel persistido no Manypost, não por escopos, então passa direto aqui — a
+ * autorização fina dela é `requireAdmin` e a matriz papel×endpoint. Escopo faltando → 403
+ * problem+json.
  */
 export const requireScope = (...needed: ApiScope[]): MiddlewareHandler<AppEnv> =>
   async (c, next) => {

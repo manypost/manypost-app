@@ -82,7 +82,7 @@ function buildMachineApp(o: MachineAppOptions): OpenAPIHono<AppEnv> {
     // o sub-app registra os caminhos OpenAPI relativos (/posts, /channels…) — o .route()
     // re-prefixa, então aqui a superfície vira /v1/posts sem tocar em nenhuma rota
     app.route('/v1', o.publicV1);
-    app.openAPIRegistry.registerComponent('securitySchemes', 'bearerAuth', {
+    app.openAPIRegistry.registerComponent('securitySchemes', 'apiKeyAuth', {
       type: 'http',
       scheme: 'bearer',
       description: 'API key `mp_live_…` (escopos por recurso) — Authorization: Bearer <chave>',

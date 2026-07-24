@@ -1,50 +1,29 @@
 import { describe, expect, it } from 'bun:test';
-import { ErrorCodes } from '@manypost/contracts';
-import { DomainError, type SocialProfile } from '@manypost/core';
 import type { Container } from '../../container';
 import { errorHandler } from '../middleware/error';
 import { authRoutes } from './auth.routes';
 
-const profile: SocialProfile = {
-  provider: 'clerk',
-  providerUserId: 'user_clerk_1',
-  email: 'ada@example.test',
-  emailVerified: true,
-  name: 'Ada Lovelace',
-  avatarUrl: null,
-};
-
-function makeApp(input?: {
-  verify?: (token: string) => Promise<SocialProfile>;
-  onLogin?: (value: unknown) => void;
-  onLegacy?: () => void;
-}) {
+function makeApp() {
   const ctn = {
     env: { PUBLIC_URL: 'https://app.manypost.com.br' },
-    clerkIdentity: input?.verify ?? (async () => profile),
     auth: {
-      register: async () => {
-        input?.onLegacy?.();
-        throw new Error('legacy register não deveria ser chamado');
-      },
-      login: async () => {
-        input?.onLegacy?.();
-        throw new Error('legacy login não deveria ser chamado');
-      },
-      loginWithIdentity: async (value: unknown) => {
-        input?.onLogin?.(value);
-        return {
-          user: {
-            id: 'internal-user',
-            email: 'ada@example.test',
-            name: 'Ada Lovelace',
-            avatarUrl: null,
-          },
-          org: { id: 'org-1', name: 'Ada', slug: 'ada', role: 'OWNER' },
-          accessToken: 'internal-access',
-          refreshToken: 'internal-refresh',
-          isNewUser: false,
-        };
+      authenticateHuman: async (token: string) =>
+        token === 'clerk-session'
+          ? { userId: 'user-1', orgId: 'org-1', role: 'OWNER' as const }
+          : null,
+      verifyApiKey: async () => null,
+    },
+    repos: {
+      users: {
+        findById: async (id: string) =>
+          id === 'user-1'
+            ? {
+                id,
+                email: 'ada@example.test',
+                name: 'Ada',
+                avatarUrl: null,
+              }
+            : null,
       },
     },
   } as unknown as Container;
@@ -53,95 +32,45 @@ function makeApp(input?: {
   return app;
 }
 
-describe('POST /clerk/exchange', () => {
-  it('recusa requisição sem bearer token sem chamar o login interno', async () => {
-    let called = false;
-    const res = await makeApp({ onLogin: () => (called = true) }).request('/clerk/exchange', {
-      method: 'POST',
-    });
-
-    expect(res.status).toBe(401);
-    expect(called).toBe(false);
-    expect((await res.json()) as { title: string }).toMatchObject({
-      title: ErrorCodes.AuthUnauthorized,
-    });
-  });
-
-  it('troca identidade verificada e ignora tenant controlado pelo browser', async () => {
-    const calls: unknown[] = [];
-    const app = makeApp({
-      verify: async (token) => {
-        calls.push({ token });
-        return profile;
-      },
-      onLogin: (value) => calls.push(value),
-    });
-    const res = await app.request('/clerk/exchange', {
-      method: 'POST',
-      headers: {
-        authorization: 'Bearer clerk-session',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        orgId: 'attacker-org',
-        role: 'OWNER',
-        userId: 'attacker-user',
-      }),
+describe('rotas humanas autenticadas pelo Clerk', () => {
+  it('expõe somente /me e autoriza com a membership resolvida pelo Manypost', async () => {
+    const res = await makeApp().request('/me', {
+      headers: { authorization: 'Bearer clerk-session' },
     });
 
     expect(res.status).toBe(200);
-    expect((await res.json()) as { isNewUser: boolean }).toMatchObject({ isNewUser: false });
-    expect(calls).toEqual([
-      { token: 'clerk-session' },
-      {
-        profile,
-        userAgent: undefined,
-        ip: undefined,
+    expect(await res.json()).toEqual({
+      kind: 'user',
+      orgId: 'org-1',
+      role: 'OWNER',
+      user: {
+        id: 'user-1',
+        email: 'ada@example.test',
+        name: 'Ada',
+        avatarUrl: null,
       },
-    ]);
-    expect(res.headers.getSetCookie().join('\n')).toContain('mp_at=internal-access');
-    expect(res.headers.getSetCookie().join('\n')).toContain('mp_rt=internal-refresh');
+    });
   });
 
-  it('não cria sessão interna quando a verificação Clerk falha', async () => {
-    let called = false;
-    const res = await makeApp({
-      verify: async () => {
-        throw new DomainError(ErrorCodes.AuthUnauthorized, 'sessão Clerk inválida');
-      },
-      onLogin: () => (called = true),
-    }).request('/clerk/exchange', {
-      method: 'POST',
-      headers: { authorization: 'Bearer invalid' },
+  it('não registra login, cadastro, social, exchange, refresh ou logout internos', async () => {
+    for (const path of [
+      '/login',
+      '/register',
+      '/social',
+      '/clerk/exchange',
+      '/refresh',
+      '/logout',
+    ]) {
+      const res = await makeApp().request(path, { method: 'POST' });
+      expect(res.status).toBe(404);
+    }
+  });
+
+  it('ignora cookies legados em /me', async () => {
+    const res = await makeApp().request('/me', {
+      headers: { cookie: 'mp_at=legacy-access; mp_rt=legacy-refresh' },
     });
 
     expect(res.status).toBe(401);
-    expect(called).toBe(false);
-  });
-});
-
-describe('autenticação legada com Clerk habilitado', () => {
-  it('bloqueia login e registro diretos sem executar os casos de uso legados', async () => {
-    let calls = 0;
-    const app = makeApp({ onLegacy: () => (calls += 1) });
-    const [login, register] = await Promise.all([
-      app.request('/login', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ email: 'ada@example.test', password: 'password-1234' }),
-      }),
-      app.request('/register', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          email: 'ada@example.test',
-          password: 'password-1234',
-          name: 'Ada',
-        }),
-      }),
-    ]);
-
-    expect([login.status, register.status]).toEqual([404, 404]);
-    expect(calls).toBe(0);
   });
 });

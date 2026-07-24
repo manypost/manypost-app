@@ -38,7 +38,12 @@ interface ClerkIdentityDependencies {
   getUser: (userId: string) => Promise<ClerkUser>;
 }
 
-export type ClerkIdentityVerifier = (token: string) => Promise<SocialProfile>;
+export interface VerifiedClerkIdentity {
+  providerUserId: string;
+  loadProfile: () => Promise<SocialProfile>;
+}
+
+export type ClerkIdentityVerifier = (token: string) => Promise<VerifiedClerkIdentity>;
 
 export function makeClerkIdentityVerifier(
   options: ClerkIdentityOptions,
@@ -85,34 +90,41 @@ export function makeClerkIdentityVerifier(
       throw new DomainError(ErrorCodes.AuthUnauthorized, 'sessão Clerk inválida');
     }
 
-    try {
-      const user = await deps.getUser(subject);
-      const email = user.emailAddresses.find((item) => item.id === user.primaryEmailAddressId);
-      if (!email || email.verification?.status !== 'verified') {
-        throw new DomainError(
-          ErrorCodes.AuthSocialEmailUnverified,
-          'a conta Clerk não possui e-mail primário verificado',
-        );
-      }
+    return {
+      providerUserId: subject,
+      loadProfile: async () => {
+        try {
+          const user = await deps.getUser(subject);
+          const email = user.emailAddresses.find(
+            (item) => item.id === user.primaryEmailAddressId,
+          );
+          if (!email || email.verification?.status !== 'verified') {
+            throw new DomainError(
+              ErrorCodes.AuthSocialEmailUnverified,
+              'a conta Clerk não possui e-mail primário verificado',
+            );
+          }
 
-      const name = [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || null;
-      return {
-        provider: 'clerk',
-        providerUserId: user.id,
-        email: email.emailAddress,
-        emailVerified: true,
-        name,
-        avatarUrl: user.imageUrl || null,
-      };
-    } catch (error) {
-      if (error instanceof DomainError) throw error;
-      if (isClerkAPIResponseError(error) && error.status >= 400 && error.status < 500) {
-        throw new DomainError(ErrorCodes.AuthUnauthorized, 'identidade Clerk inválida');
-      }
-      throw new DomainError(
-        ErrorCodes.AuthProviderUnavailable,
-        'Clerk temporariamente indisponível',
-      );
-    }
+          const name = [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || null;
+          return {
+            provider: 'clerk',
+            providerUserId: user.id,
+            email: email.emailAddress,
+            emailVerified: true,
+            name,
+            avatarUrl: user.imageUrl || null,
+          };
+        } catch (error) {
+          if (error instanceof DomainError) throw error;
+          if (isClerkAPIResponseError(error) && error.status === 404) {
+            throw new DomainError(ErrorCodes.AuthUnauthorized, 'identidade Clerk inválida');
+          }
+          throw new DomainError(
+            ErrorCodes.AuthProviderUnavailable,
+            'Clerk temporariamente indisponível',
+          );
+        }
+      },
+    };
   };
 }

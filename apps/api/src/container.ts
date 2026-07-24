@@ -10,7 +10,6 @@ import {
   makeNotificationRepository,
   makeOrganizationRepository,
   makePublishingRepository,
-  makeSessionRepository,
   makeSubscriptionRepository,
   makeUserRepository,
   makeWebhookRepository,
@@ -37,16 +36,12 @@ import {
   makeListMedia,
   makeListSubAccounts,
   makeListWebhooks,
-  makeLogin,
-  makeLoginWithIdentity,
-  makeLogout,
   makeOpenBillingPortal,
   makePlanUsageReader,
   makePreviewPlanChange,
-  makeRefreshSession,
-  makeRegister,
   makeRemoveSubscription,
   makeReschedulePost,
+  makeResolveIdentityPrincipal,
   makeResolveApproval,
   makeRetryPost,
   makeRevokeApiKey,
@@ -63,8 +58,6 @@ import {
 } from '@manypost/core';
 import { providerRegistry } from '@manypost/providers';
 import { createPublishingRuntime } from '@manypost/queue';
-import { bunPasswordHasher } from './infra/auth/password.hasher';
-import { makeJwtSigner } from './infra/auth/token.signer';
 import { makeStripeGateway, type StripeGateway } from './infra/billing/stripe.gateway';
 import { makeClerkIdentityVerifier } from './infra/identity/clerk.identity';
 import { createPrometheusMetrics } from './infra/metrics/prometheus';
@@ -93,7 +86,6 @@ export async function buildContainer(env: Env) {
   const repos = {
     users: makeUserRepository(db),
     orgs: makeOrganizationRepository(db),
-    sessions: makeSessionRepository(db),
     apiKeys: makeApiKeyRepository(db),
     identities: makeAuthIdentityRepository(db),
     channels: makeChannelRepository(db),
@@ -129,17 +121,27 @@ export async function buildContainer(env: Env) {
   };
   const mediaDeps = { media: repos.media, storage, limits: mediaLimits };
 
-  const signer = makeJwtSigner(env.JWT_SECRET);
   const crypto = AesGcmCryptoService.fromHex(env.ENCRYPTION_KEY);
-  const authDeps = { ...repos, hasher: bunPasswordHasher, signer };
   const clerk = clerkConfig(env);
-  const clerkIdentity = clerk.enabled
-    ? makeClerkIdentityVerifier({
-        secretKey: clerk.secretKey,
-        jwtKey: clerk.jwtKey,
-        authorizedParties: clerk.authorizedParties,
-      })
-    : null;
+  const clerkIdentity = makeClerkIdentityVerifier({
+    secretKey: clerk.secretKey,
+    jwtKey: clerk.jwtKey,
+    authorizedParties: clerk.authorizedParties,
+  });
+  const resolveIdentityPrincipal = makeResolveIdentityPrincipal({
+    users: repos.users,
+    orgs: repos.orgs,
+    identities: repos.identities,
+  });
+  const authenticateHuman = async (token: string) => {
+    const verified = await clerkIdentity(token);
+    const resolved = await resolveIdentityPrincipal(verified);
+    return {
+      userId: resolved.user.id,
+      orgId: resolved.org.id,
+      role: resolved.org.role,
+    };
+  };
 
   // secrets de app por provider (SPEC_INTEGRATIONS §2): env → ctx.secrets;
   // provider indisponível quando faltam os requiredSecrets dele
@@ -198,7 +200,6 @@ export async function buildContainer(env: Env) {
     env,
     db,
     repos,
-    signer,
     clerkIdentity,
     crypto,
     storage,
@@ -293,11 +294,7 @@ export async function buildContainer(env: Env) {
       remove: makeDeleteWebhook({ webhooks: repos.webhooks }),
     },
     auth: {
-      register: makeRegister(authDeps),
-      login: makeLogin(authDeps),
-      loginWithIdentity: makeLoginWithIdentity({ ...authDeps, identities: repos.identities }),
-      refresh: makeRefreshSession(authDeps),
-      logout: makeLogout({ sessions: repos.sessions }),
+      authenticateHuman,
       createApiKey: makeCreateApiKey({ apiKeys: repos.apiKeys, plan }),
       listApiKeys: makeListApiKeys({ apiKeys: repos.apiKeys }),
       revokeApiKey: makeRevokeApiKey({ apiKeys: repos.apiKeys }),
