@@ -41,6 +41,7 @@
 - [x] 6.1 Create validated future OpenSpec changes for publication idempotency and outbound-request security
 - [x] 6.2 Publish the prioritized technical backlog with evidence and recommendations
 - [x] 6.3 Run clean install, typechecks, tests, boundaries, brand, DB, build, OpenSpec, audit, Semgrep, identity and secret checks
-- [ ] 6.4 Archive this completed change and revalidate living specs
+- [x] 6.4 Archive this completed change and revalidate living specs
 - [x] 6.5 Review commit authorship/diff, push, open the PR and wait for all required CI checks
-- [ ] 6.6 Merge without bypassing protection and verify the resulting `main` commit and Railway deployment
+- [x] 6.6 Merge without bypassing protection and verify the resulting `main` commit and Railway deployment —
+      merged as `e7d4a2e` (PR #34) on `main`
