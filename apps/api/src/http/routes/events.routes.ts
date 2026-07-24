@@ -13,7 +13,9 @@ import { AUTH_SECURITY, createApp, errorResponses } from '../openapi';
  */
 export function eventRoutes(ctn: Container) {
   const app = createApp();
-  app.use('*', requireAuth({ signer: ctn.signer, verifyApiKey: ctn.auth.verifyApiKey }));
+  app.use('*', requireAuth({
+    authenticateHuman: ctn.auth.authenticateHuman,
+  }));
 
   app.openAPIRegistry.registerPath({
     method: 'get',

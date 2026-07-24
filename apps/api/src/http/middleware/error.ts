@@ -9,6 +9,7 @@ const STATUS: Record<string, ContentfulStatusCode> = {
   'auth.session_invalid': 401,
   'auth.unauthorized': 401,
   'auth.provider_unavailable': 503,
+  'auth.social_email_unverified': 403,
   'auth.email_taken': 409,
   'common.not_found': 404,
   'common.forbidden': 403,

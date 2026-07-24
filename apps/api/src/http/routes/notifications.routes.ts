@@ -20,7 +20,9 @@ const NotificationOut = z
 /** Notificações da org (ex.: cliente aprovou/pediu ajustes). */
 export function notificationRoutes(ctn: Container) {
   const app = createApp();
-  app.use('*', requireAuth({ signer: ctn.signer, verifyApiKey: ctn.auth.verifyApiKey }));
+  app.use('*', requireAuth({
+    authenticateHuman: ctn.auth.authenticateHuman,
+  }));
 
   app.openAPIRegistry.registerPath({
     method: 'get',

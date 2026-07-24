@@ -21,7 +21,6 @@ import { notificationRoutes } from './http/routes/notifications.routes';
 import { postRoutes } from './http/routes/posts.routes';
 import { publicV1Routes } from './http/routes/public/public-v1.routes';
 import { publicationRoutes } from './http/routes/publications.routes';
-import { socialAuthRoutes } from './http/routes/social-auth.routes';
 import { stripeWebhookRoutes } from './http/routes/stripe-webhook.routes';
 import { webhookRoutes } from './http/routes/webhooks.routes';
 
@@ -57,16 +56,15 @@ app.get('/metrics', async (c) => {
 });
 
 // Schemes de autenticação referenciados pelas rotas protegidas (SPEC_API_MCP §1-2).
-app.openAPIRegistry.registerComponent('securitySchemes', 'bearerAuth', {
+app.openAPIRegistry.registerComponent('securitySchemes', 'clerkAuth', {
   type: 'http',
   scheme: 'bearer',
-  description: 'JWT de acesso OU API key mp_live_ — enviado como Authorization: Bearer <token>',
+  description: 'sessão Clerk humana — Authorization: Bearer <token>',
 });
-app.openAPIRegistry.registerComponent('securitySchemes', 'cookieAuth', {
-  type: 'apiKey',
-  in: 'cookie',
-  name: 'mp_at',
-  description: 'cookie de sessão httpOnly (fluxo web)',
+app.openAPIRegistry.registerComponent('securitySchemes', 'apiKeyAuth', {
+  type: 'http',
+  scheme: 'bearer',
+  description: 'API key mp_live_ para superfícies de máquina — Authorization: Bearer <chave>',
 });
 
 app.openapi(
@@ -93,11 +91,10 @@ app.openapi(
     }),
 );
 
-// `/v1` é a superfície da INTERFACE (humano por cookie/JWT, autorização por papel). Máquina
+// `/v1` é a superfície da INTERFACE (humano por Clerk, autorização por papel). Máquina
 // tem porta própria — com escopos, gate de plano e rate-limit por credencial (SPEC_API_MCP §3).
 app.use('/v1/*', humansOnly(machineEndpoints(env).restBaseUrl));
 
-app.route('/v1/auth/social', socialAuthRoutes(ctn));
 app.route('/v1/auth', authRoutes(ctn));
 app.route('/v1/api-keys', apiKeyRoutes(ctn));
 app.route('/v1/channels', channelRoutes(ctn));
@@ -135,11 +132,11 @@ const OPENAPI_DOC = {
     title: 'manypost API',
     version: '0.0.1',
     description:
-      'API do manypost — agendamento/publicação multicanal. Autentique com `Authorization: Bearer <jwt|mp_live_…>` ou cookie de sessão httpOnly. Erros seguem problem+json (RFC 9457): o campo `title` carrega o código estável do erro.',
+      'API do manypost — agendamento/publicação multicanal. Humanos usam sessão Clerk; máquinas usam `Authorization: Bearer mp_live_…`. Erros seguem problem+json (RFC 9457): o campo `title` carrega o código estável do erro.',
   },
   servers: [{ url: env.PUBLIC_URL, description: 'esta instalação' }],
   tags: [
-    { name: 'auth', description: 'contas, sessões e login social' },
+    { name: 'auth', description: 'identidade Clerk e autorização Manypost' },
     { name: 'api-keys', description: 'chaves de API por escopo' },
     { name: 'channels', description: 'conexão de canais de rede social' },
     { name: 'posts', description: 'agendar, editar, cancelar, retry, aprovação por link' },

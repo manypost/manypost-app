@@ -72,11 +72,7 @@ export const jsonResponse = (description: string, schema: z.ZodTypeAny) => ({
   content: { 'application/json': { schema } },
 });
 
-/**
- * Autenticação aceita em rotas protegidas: `Authorization: Bearer <jwt|mp_live_...>`
- * OU cookie de sessão httpOnly `mp_at`. Os schemes são registrados em main.ts.
- */
+/** Rotas humanas internas exigem uma sessão Clerk no bearer. */
 export const AUTH_SECURITY: NonNullable<RouteConfig['security']> = [
-  { bearerAuth: [] },
-  { cookieAuth: [] },
+  { clerkAuth: [] },
 ];

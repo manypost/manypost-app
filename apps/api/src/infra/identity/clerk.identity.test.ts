@@ -38,7 +38,9 @@ describe('Clerk identity verifier', () => {
       },
     );
 
-    await expect(verify('session-token')).resolves.toEqual({
+    const verified = await verify('session-token');
+    expect(verified.providerUserId).toBe('user_clerk_1');
+    await expect(verified.loadProfile()).resolves.toEqual({
       provider: 'clerk',
       providerUserId: 'user_clerk_1',
       email: 'Ada@Example.test',
@@ -96,7 +98,7 @@ describe('Clerk identity verifier', () => {
       },
     );
 
-    await expect(verify('session-token')).rejects.toMatchObject({
+    await expect((await verify('session-token')).loadProfile()).rejects.toMatchObject({
       code: ErrorCodes.AuthSocialEmailUnverified,
     });
   });
@@ -115,7 +117,7 @@ describe('Clerk identity verifier', () => {
       },
     );
 
-    await expect(verify('session-token')).rejects.toMatchObject({
+    await expect((await verify('session-token')).loadProfile()).rejects.toMatchObject({
       code: ErrorCodes.AuthProviderUnavailable,
       message: 'Clerk temporariamente indisponível',
     });
@@ -153,9 +155,31 @@ describe('Clerk identity verifier', () => {
       },
     );
 
-    await expect(verify('session-token')).rejects.toMatchObject({
+    await expect((await verify('session-token')).loadProfile()).rejects.toMatchObject({
       code: ErrorCodes.AuthUnauthorized,
       message: 'identidade Clerk inválida',
     });
   });
+
+  for (const status of [401, 403, 429, 500]) {
+    it(`trata resposta ${status} da Backend API como indisponibilidade`, async () => {
+      const verify = makeClerkIdentityVerifier(
+        {
+          secretKey: 'sk_test_example',
+          authorizedParties: ['https://app.manypost.com.br'],
+        },
+        {
+          verifyToken: async () => ({ sub: 'user_clerk_1' }),
+          getUser: async () => {
+            throw new ClerkAPIResponseError('backend failure', { status, data: [] });
+          },
+        },
+      );
+
+      await expect((await verify('session-token')).loadProfile()).rejects.toMatchObject({
+        code: ErrorCodes.AuthProviderUnavailable,
+        message: 'Clerk temporariamente indisponível',
+      });
+    });
+  }
 });
