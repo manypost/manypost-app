@@ -174,32 +174,18 @@ export const makeLoginWithIdentity = (deps: AuthDeps & { identities: AuthIdentit
         );
       }
       const email = normalizeEmail(profile.email);
-      const byEmail = await deps.users.findByEmail(email);
-      if (byEmail) {
-        // conta já existe (senha ou outro social) → vincula; a senha continua valendo
-        userId = byEmail.id;
-      } else {
-        const orgName = profile.name?.trim() || email.split('@')[0]!;
-        const user = await deps.users.create({
-          email,
-          passwordHash: null,
-          name: profile.name,
-          avatarUrl: profile.avatarUrl,
-        });
-        await deps.orgs.createWithOwner({
-          name: orgName,
-          slug: `${slugify(orgName)}-${randomToken(4).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6)}`,
-          ownerId: user.id,
-        });
-        userId = user.id;
-        isNewUser = true;
-      }
-      await deps.identities.link({
-        userId,
+      const orgName = profile.name?.trim() || email.split('@')[0]!;
+      const resolved = await deps.identities.resolveOrProvision({
         provider: profile.provider,
         providerUserId: profile.providerUserId,
         email,
+        name: profile.name,
+        avatarUrl: profile.avatarUrl,
+        orgName,
+        orgSlug: `${slugify(orgName)}-${randomToken(4).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6)}`,
       });
+      userId = resolved.userId;
+      isNewUser = resolved.isNewUser;
     }
 
     // foto do social só preenche quando o usuário ainda não tem foto própria
