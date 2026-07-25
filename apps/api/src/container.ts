@@ -35,6 +35,7 @@ import {
   makeGetApprovalPreview,
   makeGetBilling,
   makeIngestMediaFromUrl,
+  makeLocalMediaStorage,
   makeListApiKeys,
   makeListChannels,
   makeListInvoices,
@@ -70,7 +71,6 @@ import { createPublishingRuntime } from '@manypost/queue';
 import { makeStripeGateway, type StripeGateway } from './infra/billing/stripe.gateway';
 import { makeClerkIdentityVerifier } from './infra/identity/clerk.identity';
 import { createPrometheusMetrics } from './infra/metrics/prometheus';
-import { makeLocalMediaStorage } from './infra/storage/local.storage';
 
 export type Container = Awaited<ReturnType<typeof buildContainer>>;
 
@@ -172,6 +172,9 @@ export async function buildContainer(env: Env) {
     retryBaseSec: env.PUBLISH_RETRY_BASE_SEC,
     allowPrivateWebhookUrls: env.WEBHOOKS_ALLOW_PRIVATE,
     providerSecrets,
+    // resolução de mediaSettings no publish (ex.: miniatura do YouTube: id → URL pública)
+    media: repos.media,
+    storage,
     metrics: metrics.sink,
   });
 

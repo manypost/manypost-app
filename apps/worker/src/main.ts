@@ -2,11 +2,12 @@ import { loadEnv, providerSecretsFromEnv } from '@manypost/config';
 import {
   createDb,
   makeChannelRepository,
+  makeMediaRepository,
   makePublishingRepository,
   makeWebhookRepository,
   runMigrations,
 } from '@manypost/db';
-import { AesGcmCryptoService } from '@manypost/core';
+import { AesGcmCryptoService, makeLocalMediaStorage } from '@manypost/core';
 import { providerRegistry } from '@manypost/providers';
 import { createPublishingRuntime } from '@manypost/queue';
 import { fileURLToPath } from 'node:url';
@@ -34,6 +35,10 @@ const runtime = await createPublishingRuntime({
   allowPrivateWebhookUrls: env.WEBHOOKS_ALLOW_PRIVATE,
   // sem isso o refresh de token (LinkedIn/X exigem client id/secret) falha no worker dedicado
   providerSecrets: providerSecretsFromEnv(env),
+  // resolução de mediaSettings no publish (miniatura do YouTube: id → URL pública). O mesmo
+  // storage local da API (a URL de PUBLIC_URL/uploads é estável e alcançável pelo worker/redes)
+  media: makeMediaRepository(db),
+  storage: makeLocalMediaStorage({ dir: env.UPLOAD_DIR, publicBaseUrl: env.PUBLIC_URL }),
 });
 await runtime.startWorker();
 console.log(JSON.stringify({ level: 'info', msg: 'manypost worker ativo' }));

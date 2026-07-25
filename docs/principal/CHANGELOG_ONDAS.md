@@ -14,6 +14,7 @@
 
 | Onda | Data | Entrega |
 |---|---|---|
+| 24 | 2026-07-24 | UX das configurações por canal — cada campo com o controle certo (data, mídia, chips, categoria por nome) e mídia em settings resolvida no publish |
 | 23.1 | 2026-07-24 | MCP OAuth interop — DCR público no issuer + RFC 8252 loopback (OpenCode/Codex/Claude/VS Code) |
 | 23 | 2026-07-24 | YouTube — primeiro destino de **vídeo** puro: upload resumível em streaming e Short medido no arquivo |
 | 22 | 2026-07-24 | OAuth 2.1 no MCP — dual-auth `mpo_`/`mp_live_`, AS + consent + DCR/CIMD/static |
@@ -44,6 +45,52 @@
 > registradas em [STATUS.md §2](STATUS.md#2-o-que-já-está-pronto-e-verificado), com spec e código de cada uma.
 
 ---
+
+## Onda 24 — Configurações por canal deixam de ser caixas de texto (2026-07-24)
+
+**O que mudou.** O formulário de configurações do compositor escolhia o controle pelo **tipo cru do
+JSON Schema**: `string` virava caixa de texto, `array` virava texto com vírgulas. Resultado esdrúxulo,
+pior no YouTube: a categoria pedia o número `22`, a miniatura pedia colar uma URL, a data de liberação
+era texto e as tags eram uma linha separada por vírgulas. Agora o controle é escolhido pelo que o
+campo **significa**, e vale para todas as redes:
+
+- **Data/hora** (`format: date-time`) → o seletor de data do brand (o Zod já emitia o `format`; o
+  renderizador só ignorava). Converte ISO ↔ local e trava o passado. Ex.: "liberar automaticamente"
+  do YouTube.
+- **Lista** (`array`) → chips, um a um, no lugar do texto com vírgulas — de uma vez para tags do
+  YouTube e do Dev.to e idiomas do Bluesky. Respeita o máximo do schema e, quando o provider declara
+  orçamento de caracteres, mostra o contador ao vivo (tags do YouTube: 500).
+- **URL** (`format: uri`) → campo com validação inline (Dev.to canonical, link do Threads).
+- **Mídia** → seletor da biblioteca (não mais colar URL). A miniatura do YouTube é o primeiro caso.
+- **Categoria do YouTube** → virou `enum` do conjunto que o YouTube aceita em upload, então cai no
+  select nomeado que já existia (Pessoas e blogs, Jogos, Educação…). Zero widget novo.
+
+**Mídia em settings, resolvida no publish (a parte de backend).** Um provider agora pode declarar
+`mediaSettings` — chaves de settings cujo valor guardado é um **id de mídia da org**. A plataforma
+resolve id → URL pública **transitoriamente, no publish** (o `pub.settings` no banco mantém o id, então
+o post continua editável e reabre com a imagem selecionada). É **org-scoped** (id de outra org não
+resolve) e **best-effort** (sem media/storage, ou id inexistente, o campo some e o post publica — o
+único uso hoje, a miniatura, jamais deve derrubar um post). Para o worker resolver, o storage local
+saiu de `apps/api` para `@manypost/core` (mesmo padrão do `AesGcmCryptoService`), e o `PublishDeps`/
+runtime da fila ganharam `media`/`storage`.
+
+**Mecanismo, sem hardcode espalhado.** Duas camadas: (1) dirigida pelo schema (`format`/`array`),
+que conserta vários campos sem configuração; (2) um registro por provider no web
+(`MEDIA_FIELDS`, `TAG_BUDGET`), no mesmo molde do `SUB_ACCOUNT_FIELDS` que já existia, para o que o
+JSON Schema não expressa. Nada de `x-widget` injetado no contrato do catálogo.
+
+**Ajuste de contraste (feedback do dono).** Os chips de tag nasceram só com o brilho `.bevel-chip`
+(que compõe sobre uma cor de fundo) e **sem** cor de fundo, então sumiam no campo afundado. Ganharam
+`bg-surface` + `border-line` + texto `text-ink`: cada tag agora tem preenchimento, borda por volta e
+início/fim legíveis.
+
+**Provas.** `bun run check` — 587 testes, 0 falhas (3 de resolução de mídia em settings no core, mais
+os do YouTube atualizados); fronteiras limpas com o storage já em `@manypost/core` (core não importa de
+`apps/*`); brand ok. `typecheck`, `typecheck:web` e `build:web` limpos. `spec:validate` 13/13.
+**Falta a prova de campo**: exercitar os controles novos com um post real (seletor de data, escolher a
+miniatura da biblioteca, adicionar tags como chips) — os testes cobrem a lógica, não o render no
+navegador.
+
 
 ## Onda 23.1 — MCP OAuth interop multi-cliente (2026-07-24)
 

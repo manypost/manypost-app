@@ -258,6 +258,9 @@ export interface PublishDeps {
   events?: EventPublisher;
   /** secrets de app por provider (client id/secret via env — SPEC_INTEGRATIONS §2) */
   secrets?: Record<string, Record<string, string>>;
+  /** resolução de `mediaSettings` no publish (id de mídia da org → URL); ausente = campo não resolve */
+  media?: Pick<MediaRepository, 'findMany'>;
+  storage?: Pick<MediaStorage, 'publicUrl'>;
   log?: (level: string, msg: string, data?: object) => void;
 }
 
@@ -429,10 +432,34 @@ const makeRunner = (deps: PublishDeps) =>
 
     // settings do canal (ex.: instância Mastodon, service do Bluesky) + settings da publicação;
     // fora do try: o refresh de token (catch) também precisa deles
-    const settings = {
+    const settings: Record<string, unknown> = {
       ...(channel.settings as Record<string, unknown>),
       ...(pub.settings as Record<string, unknown>),
     };
+
+    // mediaSettings: o valor guardado é um id de mídia da org; o provider recebe a URL pública.
+    // Resolução TRANSITÓRIA (o `pub.settings` no banco segue com o id — o post continua editável),
+    // ORG-SCOPED (findMany por orgId: id de outra org não resolve) e best-effort (o único uso hoje,
+    // a miniatura, jamais deve derrubar um post). Sem media/storage ligados, o id cru não vai ao
+    // provider: some do settings.
+    if (provider.mediaSettings?.length) {
+      const keys = provider.mediaSettings;
+      const ids = keys
+        .map((k) => settings[k])
+        .filter((v): v is string => typeof v === 'string' && v.length > 0);
+      const urlById = new Map<string, string>();
+      if (ids.length && deps.media && deps.storage) {
+        const records = await deps.media.findMany(channel.orgId, ids);
+        for (const m of records) urlById.set(m.id, deps.storage.publicUrl(m.path));
+      }
+      for (const k of keys) {
+        const v = settings[k];
+        if (typeof v !== 'string' || v.length === 0) continue;
+        const url = urlById.get(v);
+        if (url) settings[k] = url;
+        else delete settings[k]; // não resolvida (sem storage, não encontrada ou outra org)
+      }
+    }
 
     try {
       // retomada tardia (crash entre o último item e o PUBLISHED): só finaliza

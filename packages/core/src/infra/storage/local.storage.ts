@@ -1,6 +1,6 @@
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, normalize, resolve, sep } from 'node:path';
-import type { MediaStorage } from '@manypost/core';
+import type { MediaStorage } from '../../application/ports/media';
 
 /** Storage local (self-host, SPEC_INFRA §2): volume de uploads servido em PUBLIC_URL/uploads. */
 export function makeLocalMediaStorage(opts: { dir: string; publicBaseUrl: string }): MediaStorage {

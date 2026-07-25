@@ -173,6 +173,20 @@ describe('youtube: settings e metadados', () => {
     expect(p.settingsSchema.safeParse(settings({ tags: ['jogos', 'ao vivo'] })).success).toBe(true);
   });
 
+  test('categoria é um conjunto fechado (escolhida por nome) — código inválido é recusado', () => {
+    expect(p.settingsSchema.safeParse(settings({ categoryId: '22' })).success).toBe(true);
+    expect(p.settingsSchema.safeParse(settings({ categoryId: '20' })).success).toBe(true);
+    expect(p.settingsSchema.safeParse(settings({ categoryId: '999' })).success).toBe(false);
+    // default é "Pessoas e blogs"
+    expect(p.settingsSchema.parse(settings()).categoryId).toBe('22');
+  });
+
+  test('a miniatura é declarada como settings de mídia (id resolvido para URL no publish)', () => {
+    expect(p.mediaSettings).toEqual(['thumbnail']);
+    // no repouso o campo guarda um id (string qualquer) — a validação de URL fica com a resolução
+    expect(p.settingsSchema.safeParse(settings({ thumbnail: 'media-123' })).success).toBe(true);
+  });
+
   test('corpo do insert: texto do post vira descrição, título vem das settings', () => {
     const cfg = p.settingsSchema.parse(settings({ tags: ['a'] }));
     const body = buildVideoMetadata(cfg, videoItem, new Date('2026-01-01T12:00:00Z')) as any;
@@ -263,13 +277,14 @@ describe('youtube: publicação', () => {
   });
 
   test('miniatura recusada não derruba a publicação', async () => {
-    // o vídeo já está no canal: lançar aqui faria a máquina de estados subir o vídeo de novo
+    // o vídeo já está no canal: lançar aqui faria a máquina de estados subir o vídeo de novo.
+    // cfg.thumbnail chega já resolvido de id de mídia para URL (mediaSettings) antes do publish
     const ctx = publishCtx({ thumbStatus: 400 });
     const [res] = await p.publish(
       ctx,
       token,
       [videoItem],
-      settings({ thumbnailUrl: 'https://cdn.test/thumb.jpg' }),
+      settings({ thumbnail: 'https://cdn.test/thumb.jpg' }),
     );
     expect(res!.externalId).toBe('VID123');
   });

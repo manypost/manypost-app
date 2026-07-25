@@ -407,8 +407,8 @@
           "selfDeclaredMadeForKids": "Conteúdo feito para crianças",
           "tags": "Tags",
           "shortsIntent": "Formato",
-          "thumbnailUrl": "Miniatura personalizada",
-          "publishAt": "Liberar automaticamente em"
+          "publishAt": "Liberar automaticamente em",
+          "thumbnail": "Miniatura personalizada"
         },
         "telegram": {
           "disableLinkPreview": "Não mostrar prévia dos links",
@@ -483,12 +483,12 @@
         "youtube": {
           "title": "É o título que aparece embaixo do vídeo e nas buscas. Obrigatório, até 100 caracteres — o texto do post vira a descrição, não o título.",
           "privacyStatus": "“Público” aparece para todo mundo, “não listado” só para quem tem o link e “privado” só para você. Atenção: enquanto o seu projeto no Google não passar pela auditoria de conformidade, o YouTube publica como privado mesmo que você peça público.",
-          "categoryId": "Ajuda o YouTube a recomendar o vídeo para o público certo. O padrão (22) é “Pessoas e blogs”, que serve para quase tudo.",
+          "categoryId": "Ajuda o YouTube a recomendar o vídeo para o público certo. O padrão é \"Pessoas e blogs\", que serve para quase tudo.",
           "selfDeclaredMadeForKids": "Declaração exigida por lei pelo YouTube. Marque só se o vídeo é mesmo voltado a crianças — isso desliga comentários e notificações no vídeo.",
           "tags": "Palavras que ajudam o YouTube a entender o assunto. Somadas, todas as tags cabem em 500 caracteres (tag com espaço gasta 2 a mais).",
           "shortsIntent": "O YouTube não tem botão de Short: ele decide sozinho pelo arquivo — vídeo vertical (ou quadrado) e de até 3 minutos vira Short. Deixe em “decidir pelo vídeo” para aceitar o que sair, ou trave no formato que você quer e o manypost avisa antes de enviar se o arquivo não for dar nisso.",
-          "thumbnailUrl": "Imagem de capa do vídeo. Só funciona em canal com conta verificada no YouTube; se for recusada, o vídeo é publicado do mesmo jeito, com a capa automática.",
-          "publishAt": "Deixe em branco para o vídeo sair com a visibilidade escolhida assim que subir. Se preencher, ele sobe privado e o próprio YouTube libera no horário marcado."
+          "publishAt": "Deixe em branco para o vídeo sair com a visibilidade escolhida assim que subir. Se preencher, ele sobe privado e o próprio YouTube libera no horário marcado.",
+          "thumbnail": "Imagem de capa do vídeo, escolhida na sua biblioteca de mídia. Só funciona em canal com conta verificada no YouTube; se for recusada, o vídeo é publicado do mesmo jeito, com a capa automática."
         },
         "telegram": {
           "disableLinkPreview": "Quando o texto tem um link, o Telegram costuma abrir um cartão com a imagem e o resumo da página. Ative para publicar só o texto.",
@@ -555,6 +555,22 @@
             "auto": "Decidir pelo vídeo",
             "short": "Short (vertical, até 3 min)",
             "video": "Vídeo comum"
+          },
+          "categoryId": {
+            "1": "Filme e animação",
+            "2": "Automóveis e veículos",
+            "10": "Música",
+            "15": "Animais e bichos",
+            "17": "Esportes",
+            "19": "Viagens e eventos",
+            "20": "Jogos",
+            "22": "Pessoas e blogs",
+            "23": "Comédia",
+            "24": "Entretenimento",
+            "25": "Notícias e política",
+            "26": "Como fazer e estilo",
+            "27": "Educação",
+            "28": "Ciência e tecnologia"
           }
         },
         "mastodon": {
@@ -633,6 +649,12 @@
         "x": {
           "replySettings": "Qualquer pessoa"
         }
+      },
+      "widget": {
+        "clear": "Limpar",
+        "chooseMedia": "Escolher da biblioteca",
+        "changeMedia": "Trocar imagem",
+        "removeMedia": "Remover"
       }
     },
     "issues": {

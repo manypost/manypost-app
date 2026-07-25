@@ -25,10 +25,13 @@ function makeProvider(behavior: {
   noThreads?: boolean;
   /** provider com campo de settings OBRIGATÓRIO (Dev.to: artigo sem título não existe) */
   requiredSetting?: boolean;
+  /** provider com settings de MÍDIA (miniatura do YouTube: id da org → URL no publish) */
+  mediaSetting?: boolean;
 }) {
   let calls = 0;
   let replyCalls = 0;
   let lastItems: any[] = [];
+  let lastSettings: any;
   const replies: Array<{ parent: string; content: string }> = [];
   const provider: ChannelProvider = {
     id: 'fake',
@@ -48,9 +51,15 @@ function makeProvider(behavior: {
     rateDefaults: { maxConcurrent: 2, perChannelWindow: { limit: 10, windowSec: 60 } },
     // getter (como threads): o behavior é ajustado depois que o provider já foi construído
     get settingsSchema() {
+      if (behavior.mediaSetting) {
+        return z.object({ thumbnail: z.string().optional(), tag: z.string().optional() });
+      }
       return behavior.requiredSetting
         ? z.object({ title: z.string().min(2), tag: z.string().optional() })
         : z.object({ tag: z.string().optional() });
+    },
+    get mediaSettings(): readonly string[] {
+      return behavior.mediaSetting ? ['thumbnail'] : [];
     },
     async getAuthUrl() {
       return { url: 'http://fake', state: 's' };
@@ -68,9 +77,10 @@ function makeProvider(behavior: {
       behavior.expireToken = false; // token novo passa a valer
       return { accessToken: 'tok-2', scopes: [] };
     },
-    async publish(_ctx, _token, items) {
+    async publish(_ctx, _token, items, settings) {
       calls++;
       lastItems = items;
+      lastSettings = settings;
       if (behavior.expireToken) throw { status: 401, body: 'expired' };
       if (behavior.reject) throw { status: 422, body: 'rejected' };
       if (behavior.failFirst && calls <= behavior.failFirst) throw { status: 500, body: 'flaky' };
@@ -100,6 +110,7 @@ function makeProvider(behavior: {
     provider,
     callCount: () => calls,
     lastItems: () => lastItems,
+    lastSettings: () => lastSettings,
     replyCount: () => replyCalls,
     replies: () => replies,
   };
@@ -302,6 +313,7 @@ let behavior: {
   failReplyFirst?: number;
   noThreads?: boolean;
   requiredSetting?: boolean;
+  mediaSetting?: boolean;
 };
 let prov: ReturnType<typeof makeProvider>;
 let f: ReturnType<typeof makeFakes>;
@@ -966,5 +978,50 @@ describe('recover scanner', () => {
     const out = await makeRecoverDue(f as any)();
     expect(out.due).toBe(1);
     expect(f._state.jobs[0]!.queue).toBe('publish');
+  });
+});
+
+describe('mediaSettings: id da org resolve para URL no publish, e o valor guardado segue id', () => {
+  test('o provider recebe a URL pública; pub.settings mantém o id (post editável)', async () => {
+    behavior.mediaSetting = true;
+    f._state.mediaRecords.push({ id: 'media-1', orgId: 'org-1', path: 'org-1/thumb.jpg' });
+    const ch = await connect(f, prov.provider);
+    const g = await schedule({ settingsByChannel: { [ch.id]: { thumbnail: 'media-1' } } });
+    const pubId = f._state.pubs.find((p: any) => p.channelId === ch.id)!.id;
+
+    await publish(pubId);
+
+    // o provider vê a URL, nunca o id cru
+    expect(prov.lastSettings().thumbnail).toBe('https://mp.test/uploads/org-1/thumb.jpg');
+    // o que ficou no banco continua sendo o id — reabrir o post mostra a mídia selecionada
+    const stored = f._state.pubs.find((p: any) => p.id === pubId)!;
+    expect((stored.settings as any).thumbnail).toBe('media-1');
+  });
+
+  test('id de OUTRA org não resolve (org-scoped) — o campo some e o post publica', async () => {
+    behavior.mediaSetting = true;
+    f._state.mediaRecords.push({ id: 'media-x', orgId: 'org-OUTRA', path: 'x/y.jpg' });
+    const ch = await connect(f, prov.provider);
+    const g = await schedule({ settingsByChannel: { [ch.id]: { thumbnail: 'media-x' } } });
+    const pubId = f._state.pubs.find((p: any) => p.channelId === ch.id)!.id;
+
+    await publish(pubId);
+
+    expect(prov.lastSettings().thumbnail).toBeUndefined();
+    expect(f._state.pubs.find((p: any) => p.id === pubId)!.state).toBe('PUBLISHED');
+  });
+
+  test('sem media/storage ligados, o id não vaza ao provider — campo ausente, post publica', async () => {
+    behavior.mediaSetting = true;
+    f._state.mediaRecords.push({ id: 'media-1', orgId: 'org-1', path: 'org-1/thumb.jpg' });
+    const ch = await connect(f, prov.provider);
+    await schedule({ settingsByChannel: { [ch.id]: { thumbnail: 'media-1' } } });
+    const pubId = f._state.pubs.find((p: any) => p.channelId === ch.id)!.id;
+
+    // deps de publish SEM media/storage (deploy mínimo)
+    await makePublishPublication({ ...(f as any), media: undefined, storage: undefined, retryBaseSec: 0.001 })(pubId);
+
+    expect(prov.lastSettings().thumbnail).toBeUndefined();
+    expect(f._state.pubs.find((p: any) => p.id === pubId)!.state).toBe('PUBLISHED');
   });
 });
