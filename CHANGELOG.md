@@ -6,6 +6,24 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ## [Unreleased]
 
+### Changed
+
+- **Configurações por canal deixam de ser caixas de texto.** O compositor escolhia o controle de cada
+  campo pelo tipo cru do JSON Schema, então data, URL, categoria e lista viravam todos "caixa de
+  texto" — no YouTube, a categoria pedia o número `22`, a miniatura pedia colar uma URL e a data de
+  liberação era texto. Agora o controle segue o significado do campo, em todas as redes: **data/hora**
+  vira o seletor de calendário; **listas** (tags do YouTube e do Dev.to, idiomas do Bluesky) viram
+  chips adicionados um a um, com contador quando há limite de caracteres; **URLs** (canonical do
+  Dev.to, link do Threads) ganham validação inline; a **miniatura** do YouTube vira um seletor da sua
+  biblioteca de mídia; e a **categoria** do YouTube vira uma lista com nomes ("Pessoas e blogs",
+  "Jogos", "Educação"…) em vez de um código. O cabeçalho do card ganhou a cor de destaque com texto
+  branco e relevo. Mudança OpenSpec: `improve-settings-ux`.
+- Um campo de configuração pode referenciar uma **mídia da biblioteca por id**: o compositor mostra o
+  seletor de mídia e o valor guardado continua sendo o id (o post segue editável, reabrindo com a
+  imagem selecionada); a plataforma resolve o id para a URL pública **na hora de publicar**, sempre
+  dentro da organização. A resolução é best-effort — sem mídia acessível, o campo simplesmente não é
+  enviado e a publicação segue. Primeiro uso: a miniatura do YouTube.
+
 ### Fixed
 
 - **OAuth MCP multi-cliente (issuer + loopback).** DCR/token/authorize no

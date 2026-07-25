@@ -124,6 +124,13 @@ export interface ChannelProvider {
   readonly connectionFieldsSchema?: ZodType;
   /** chaves de ctx.secrets exigidas p/ o provider estar disponível (ex.: botToken via env) */
   readonly requiredSecrets?: string[];
+  /**
+   * Chaves de settings cujo valor guardado é um **id de mídia da org** (não um valor literal). A
+   * plataforma resolve cada uma para a URL pública ANTES de chamar `publish` — o provider recebe a
+   * URL, nunca o id. O valor persistido continua sendo o id (o post segue editável). Resolução
+   * org-scoped: id de outra org não resolve e o campo fica ausente. Ver SPEC_INTEGRATIONS.
+   */
+  readonly mediaSettings?: readonly string[];
 
   /** Conexão direta por credenciais (Bluesky app password, Telegram bot) — sem redirect
    *  OAuth (SPEC_INTEGRATIONS §5). Presente = o connect usa este caminho e ignora getAuthUrl. */

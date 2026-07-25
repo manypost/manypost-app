@@ -1,8 +1,8 @@
 'use client';
 
-import { CircleAlert, Lock, LockOpen, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, CircleAlert, Globe, Lock, LockOpen, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -22,7 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { HoverPopover } from '@/components/ui/hover-popover';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useChannels, useProviders } from '@/features/channels/hooks';
 import { PROVIDER_ICONS } from '@/features/channels/provider-icon';
 import { useMediaList } from '@/features/media/hooks';
@@ -39,6 +39,17 @@ import { MediaPicker, MediaStrip } from './media-picker';
 import { validateMediaForProvider } from './media-validation';
 import { PostPreview } from './post-preview';
 import { useComposerStore } from './store';
+
+/** Rótulo de seção do composer — mesmo estilo de header curto usado no calendário/billing,
+ *  para as regiões (Canais · Conteúdo · Pré-visualização) lerem como blocos distintos. */
+function SectionHeader({ label, children }: { label: string; children?: ReactNode }) {
+  return (
+    <div className="mb-2.5 flex items-center gap-2">
+      <h2 className="text-[11px] font-semibold uppercase tracking-wide text-graphite">{label}</h2>
+      {children ? <div className="ml-auto flex items-center gap-2">{children}</div> : null}
+    </div>
+  );
+}
 
 /**
  * Composer (SPEC_FRONTEND §3.3): vive dentro do popup (composer-modal).
@@ -60,6 +71,11 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const [activeTab, setActiveTab] = useState('global');
+  // hover na fileira de redes "espia" a prévia daquela rede sem trocar a aba de edição (padrão
+  // Postiz: um `current` comanda a prévia; aqui o hover é transitório e o clique fixa a aba)
+  const [previewPeek, setPreviewPeek] = useState<string | null>(null);
+  // no mobile a prévia é colapsável (fica no fim da coluna única); no desktop é sempre visível
+  const [previewOpen, setPreviewOpen] = useState(true);
   const [globalEditor, setGlobalEditor] = useState<Editor | null>(null);
   const [channelEditors, setChannelEditors] = useState<Record<string, Editor | null>>({});
   const [confirmDiscard, setConfirmDiscard] = useState(false);
@@ -90,6 +106,16 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
 
   // seleção efetiva = ids do rascunho que ainda existem como canal
   const selected = (channels.data ?? []).filter((ch) => store.channelIds.includes(ch.id));
+  // aba resolvida (cai p/ global se o canal ativo saiu da seleção) e rede exibida na prévia
+  // (hover espia; sem hover, segue a aba fixa)
+  const resolvedTab =
+    activeTab === 'global' || selected.some((ch) => ch.id === activeTab) ? activeTab : 'global';
+  const previewCurrent = previewPeek ?? resolvedTab;
+  const previewChannel = selected.find((ch) => ch.id === previewCurrent);
+  const previewName =
+    previewCurrent === 'global'
+      ? t('preview.globalCard')
+      : (previewChannel?.name ?? previewChannel?.username ?? '');
   const providerOf = (providerId: string) => providers.data?.find((p) => p.id === providerId);
   const textFor = (channelId: string) => store.overrides[channelId] ?? store.text;
   const mediaById = new Map((mediaLibrary.data ?? []).map((m) => [m.id, m]));
@@ -301,34 +327,84 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
       <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
           {/* coluna principal */}
-          <div className="flex min-w-0 flex-col gap-5">
-            <ChannelPicker selectedIds={store.channelIds} onToggle={store.toggleChannel} />
+          <div className="flex min-w-0 flex-col gap-6">
+            <section>
+              <SectionHeader label={t('sections.channels')} />
+              <ChannelPicker selectedIds={store.channelIds} onToggle={store.toggleChannel} />
+            </section>
 
-            <Tabs
-              value={
-                activeTab === 'global' || selected.some((ch) => ch.id === activeTab)
-                  ? activeTab
-                  : 'global'
-              }
-              onValueChange={setActiveTab}
-            >
-              <TabsList className="flex-wrap">
-                <TabsTrigger value="global">{t('globalTab')}</TabsTrigger>
-                {selected.map((ch) => (
-                  <TabsTrigger key={ch.id} value={ch.id}>
-                    <Avatar className="size-4">
-                      {ch.avatarUrl ? <AvatarImage src={ch.avatarUrl} alt="" /> : null}
-                      <AvatarFallback className="text-[9px]">
-                        {(ch.name ?? '?').charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    {ch.name ?? ch.username ?? ch.id}
-                    {store.overrides[ch.id] !== undefined ? (
-                      <span aria-hidden className="size-1.5 rounded-full bg-accent" />
-                    ) : null}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
+            <section className="border-t border-line pt-6">
+            <SectionHeader label={t('sections.content')} />
+            <Tabs value={resolvedTab} onValueChange={setActiveTab}>
+              {/* Fileira de redes (padrão Postiz SelectCurrent): globo = edição/prévia global,
+                  depois um chip por canal. Comanda a aba de edição no clique e "espia" a prévia
+                  no hover. Rolável na horizontal no mobile — nunca quebra em várias linhas. */}
+              <div
+                role="tablist"
+                aria-label={t('networksTablist')}
+                // py/px sobra p/ a bolinha de "personalizado" (-top-1/-right-1) e o anel de foco
+                // não serem cortados — overflow-x:auto também recorta a vertical
+                className="-mx-1.5 flex gap-1.5 overflow-x-auto px-1.5 py-1.5 [scrollbar-width:thin]"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={resolvedTab === 'global'}
+                  onClick={() => setActiveTab('global')}
+                  onMouseEnter={() => setPreviewPeek('global')}
+                  onMouseLeave={() => setPreviewPeek(null)}
+                  title={t('globalTab')}
+                  className={cn(
+                    'bevel-surface flex size-10 shrink-0 items-center justify-center rounded-md border text-graphite outline-none transition-[filter] duration-200',
+                    'hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
+                    resolvedTab === 'global' && 'border-accent text-accent',
+                  )}
+                >
+                  <Globe className="size-4" aria-hidden />
+                </button>
+                {selected.map((ch) => {
+                  const active = resolvedTab === ch.id;
+                  const name = ch.name ?? ch.username ?? ch.id;
+                  return (
+                    <button
+                      key={ch.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      aria-label={name}
+                      onClick={() => setActiveTab(ch.id)}
+                      onMouseEnter={() => setPreviewPeek(ch.id)}
+                      onMouseLeave={() => setPreviewPeek(null)}
+                      title={name}
+                      className={cn(
+                        'bevel-surface relative flex size-10 shrink-0 items-center justify-center rounded-md border outline-none transition-[filter] duration-200',
+                        'hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
+                        active ? 'border-accent' : 'border-line',
+                      )}
+                    >
+                      <Avatar className="size-6">
+                        {ch.avatarUrl ? <AvatarImage src={ch.avatarUrl} alt="" /> : null}
+                        <AvatarFallback className="text-[10px]">{name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      {PROVIDER_ICONS[ch.provider] ? (
+                        <img
+                          src={PROVIDER_ICONS[ch.provider]}
+                          alt=""
+                          aria-hidden
+                          className="absolute -bottom-0.5 -right-0.5 size-3.5 rounded-sm border border-surface"
+                        />
+                      ) : null}
+                      {store.overrides[ch.id] !== undefined ? (
+                        <span
+                          aria-hidden
+                          title={t('customizedBadge')}
+                          className="absolute -right-1 -top-1 size-2 rounded-full border border-surface bg-accent"
+                        />
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
 
               <TabsContent value="global" className="flex flex-col gap-3">
                 {/* cartão do editor com toolbar embaixo */}
@@ -546,19 +622,47 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
                 ) : null}
               </div>
             )}
+            </section>
           </div>
 
           {/* preview ao vivo */}
-          <aside className="flex flex-col gap-3 self-start lg:sticky lg:top-0 lg:border-l lg:border-line lg:pl-6">
-            <h2 className="text-base font-semibold tracking-[-0.2px] text-ink">{t('preview.title')}</h2>
-            <PostPreview
-              channels={selected}
-              textFor={textFor}
-              settingsFor={(id) => store.channelSettings[id] ?? {}}
-              mediaIds={store.mediaIds}
-              thread={store.thread.map((item) => ({ text: item.text, mediaIds: item.mediaIds }))}
-              publishAt={publishAt}
-            />
+          <aside className="flex flex-col self-start border-t border-line pt-6 lg:sticky lg:top-0 lg:border-l lg:border-t-0 lg:border-line lg:pl-6 lg:pt-0">
+            {/* no mobile o cabeçalho colapsa a prévia (fica no fim da coluna única); no desktop
+                é só rótulo — o botão vira inerte (lg:pointer-events-none) e a prévia fica sempre aberta */}
+            <button
+              type="button"
+              onClick={() => setPreviewOpen((v) => !v)}
+              aria-expanded={previewOpen}
+              className="mb-2.5 flex w-full items-center gap-2 rounded-sm outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:pointer-events-none"
+            >
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-graphite">
+                {t('preview.title')}
+              </span>
+              {previewName ? (
+                <span className="min-w-0 flex-1 truncate text-left text-xs font-medium text-mist lg:flex-none">
+                  {previewName}
+                </span>
+              ) : null}
+              <ChevronDown
+                aria-hidden
+                className={cn(
+                  'ml-auto size-4 shrink-0 text-mist transition-transform duration-200 lg:hidden',
+                  previewOpen && 'rotate-180',
+                )}
+              />
+            </button>
+            <div className={cn('lg:block', !previewOpen && 'hidden')}>
+              <PostPreview
+                current={previewCurrent}
+                channels={selected}
+                globalText={store.text}
+                textFor={textFor}
+                settingsFor={(id) => store.channelSettings[id] ?? {}}
+                mediaIds={store.mediaIds}
+                thread={store.thread.map((item) => ({ text: item.text, mediaIds: item.mediaIds }))}
+                publishAt={publishAt}
+              />
+            </div>
           </aside>
         </div>
       </div>
@@ -567,28 +671,32 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
           no desktop vira uma linha com data, rascunho e CTA à direita */}
       <footer className="bevel-surface shrink-0 border-t border-line px-4 py-3 sm:px-6 sm:py-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-2">
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="require-approval"
-              checked={store.requireApproval}
-              onCheckedChange={(checked) => store.setRequireApproval(checked === true)}
-            />
-            <Label htmlFor="require-approval">{t('approval')}</Label>
-          </div>
+          {/* no mobile "aprovar" e a data dividem uma linha; no desktop viram itens soltos da flex-row */}
+          <div className="flex items-center gap-3 sm:contents">
+            <div className="flex shrink-0 items-center gap-2">
+              <Checkbox
+                id="require-approval"
+                checked={store.requireApproval}
+                onCheckedChange={(checked) => store.setRequireApproval(checked === true)}
+              />
+              <Label htmlFor="require-approval">{t('approval')}</Label>
+            </div>
 
-          <DateTimePicker
-            value={store.publishAtLocal}
-            min={toLocalInput(new Date())}
-            onChange={store.setPublishAtLocal}
-            ariaLabel={t('modeSchedule')}
-            className="w-full sm:w-auto"
-          />
+            <DateTimePicker
+              value={store.publishAtLocal}
+              min={toLocalInput(new Date())}
+              onChange={store.setPublishAtLocal}
+              ariaLabel={t('modeSchedule')}
+              className="min-w-0 flex-1 sm:w-auto sm:flex-none"
+            />
+          </div>
 
           {uniqueIssues.length > 0 ? (
             <span className="text-xs leading-relaxed text-graphite">{uniqueIssues[0]}</span>
           ) : null}
 
-          <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row sm:items-center">
+          {/* no mobile: descartar + publicar-agora dividem uma linha, o CTA principal ocupa a linha toda embaixo */}
+          <div className="grid grid-cols-2 gap-2 sm:ml-auto sm:flex sm:flex-row sm:items-center">
             {/* descartar = mesmo padrão do "publicar agora" (outline), mas hover danger + confirmação */}
             <Button
               variant="outline"
@@ -610,7 +718,7 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
               </Button>
             ) : null}
             <Button
-              className="w-full sm:w-auto"
+              className={cn('w-full sm:w-auto', store.requireApproval ? '' : 'col-span-2 sm:col-auto')}
               disabled={issues.length > 0 || scheduleIssues.length > 0}
               isLoading={schedule.isPending}
               onClick={() => submit(false)}

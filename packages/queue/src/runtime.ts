@@ -6,6 +6,8 @@ import type {
   CryptoService,
   IdempotencyStore,
   JobScheduler,
+  MediaRepository,
+  MediaStorage,
   MetricsSink,
   PublishingRepository,
   RateLimiter,
@@ -41,6 +43,9 @@ export interface PublishingRuntimeOpts {
   allowPrivateWebhookUrls?: boolean;
   /** secrets de app por provider (env → ctx.secrets do worker) */
   providerSecrets?: Record<string, Record<string, string>>;
+  /** resolução de `mediaSettings` no publish (ex.: miniatura do YouTube: id → URL) */
+  media?: Pick<MediaRepository, 'findMany'>;
+  storage?: Pick<MediaStorage, 'publicUrl'>;
   /** coletor de métricas (SPEC_INFRA §4) — publish/recover incrementam contadores */
   metrics?: MetricsSink;
 }
@@ -116,6 +121,8 @@ export async function createPublishingRuntime(
     ...(rateLimiter ? { rateLimiter } : {}),
     ...(opts.metrics ? { metrics: opts.metrics } : {}),
     ...(opts.providerSecrets ? { secrets: opts.providerSecrets } : {}),
+    ...(opts.media ? { media: opts.media } : {}),
+    ...(opts.storage ? { storage: opts.storage } : {}),
     events,
     log,
   });
@@ -129,6 +136,8 @@ export async function createPublishingRuntime(
     ...(rateLimiter ? { rateLimiter } : {}),
     ...(opts.metrics ? { metrics: opts.metrics } : {}),
     ...(opts.providerSecrets ? { secrets: opts.providerSecrets } : {}),
+    ...(opts.media ? { media: opts.media } : {}),
+    ...(opts.storage ? { storage: opts.storage } : {}),
     events,
     log,
   });

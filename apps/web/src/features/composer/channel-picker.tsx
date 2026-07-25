@@ -47,7 +47,7 @@ export function ChannelPicker({
   }
 
   return (
-    <div className="rounded-lg border border-line bg-surface p-3">
+    <div className="bevel-surface rounded-lg border p-3">
       <ul className="flex flex-wrap gap-2.5">
         {channels.data.map((ch) => {
           const active = ch.status === 'ACTIVE';

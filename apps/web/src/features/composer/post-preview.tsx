@@ -13,19 +13,26 @@ interface PreviewItem {
 }
 
 /**
- * Preview ao vivo do composer: um cartão por canal selecionado com o layout
- * aproximado da rede de destino
- * (network-preview.tsx), texto efetivo (override quando houver) e thread.
+ * Preview ao vivo do composer: UM cartão por vez, com o layout aproximado da rede
+ * de destino (network-preview.tsx). `current` é 'global' (cartão neutro com o texto
+ * base) ou o id de um canal (a rede dele). Trocar de rede é papel do seletor
+ * globo+canais no composer — antes empilhávamos todos os canais e a tela inflava.
  */
 export function PostPreview({
+  current,
   channels,
+  globalText,
   textFor,
   settingsFor,
   mediaIds,
   thread,
   publishAt,
 }: {
+  /** 'global' = cartão neutro; senão o id do canal exibido */
+  current: string;
   channels: Channel[];
+  /** texto base (usado no cartão global) */
+  globalText: string;
   textFor: (channelId: string) => string;
   /** settings em edição do canal — o preview do Dev.to tira o título do artigo daqui */
   settingsFor?: (channelId: string) => Record<string, unknown>;
@@ -46,28 +53,32 @@ export function PostPreview({
     return <p className="text-sm leading-relaxed text-graphite">{t('noChannels')}</p>;
   }
 
-  const anyText = channels.some((ch) => textFor(ch.id).trim().length > 0);
-  if (!anyText && mediaIds.length === 0) {
+  const channel = current === 'global' ? undefined : channels.find((ch) => ch.id === current);
+  const text = channel ? textFor(channel.id) : globalText;
+
+  if (text.trim().length === 0 && mediaIds.length === 0) {
     return <p className="text-sm leading-relaxed text-graphite">{t('startWriting')}</p>;
   }
 
+  const entries = [
+    { text, media: resolve(mediaIds) },
+    ...thread.map((item) => ({ text: item.text, media: resolve(item.mediaIds) })),
+  ];
+
+  // cartão global: provider desconhecido cai no GenericPreview (cartão neutro, sem chrome de rede)
+  if (!channel) {
+    return <NetworkPreview provider="__global__" name={t('globalCard')} publishAt={publishAt} entries={entries} />;
+  }
+
   return (
-    <div className="flex flex-col gap-3">
-      {channels.map((ch) => (
-        <NetworkPreview
-          key={ch.id}
-          provider={ch.provider}
-          name={ch.name ?? ch.username ?? ch.id}
-          username={ch.username}
-          avatarUrl={ch.avatarUrl}
-          publishAt={publishAt}
-          settings={settingsFor?.(ch.id)}
-          entries={[
-            { text: textFor(ch.id), media: resolve(mediaIds) },
-            ...thread.map((item) => ({ text: item.text, media: resolve(item.mediaIds) })),
-          ]}
-        />
-      ))}
-    </div>
+    <NetworkPreview
+      provider={channel.provider}
+      name={channel.name ?? channel.username ?? channel.id}
+      username={channel.username}
+      avatarUrl={channel.avatarUrl}
+      publishAt={publishAt}
+      settings={settingsFor?.(channel.id)}
+      entries={entries}
+    />
   );
 }

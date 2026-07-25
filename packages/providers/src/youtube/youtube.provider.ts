@@ -51,6 +51,27 @@ const TITLE_MAX = 100;
 const TAGS_MAX_TOTAL = 500;
 /** "People & Blogs": categoria válida em toda região — categoria inválida é recusa dura */
 const DEFAULT_CATEGORY_ID = '22';
+/**
+ * Categorias que o YouTube aceita em UPLOAD (o `videos.insert` recusa as demais). Os ids são
+ * globais; o nome é traduzido na UI (options.youtube.categoryId.<id>). Escolher por nome, não por
+ * número, é metade do conserto da UX — o usuário nunca deveria precisar saber que "22" é People & Blogs.
+ */
+const UPLOAD_CATEGORY_IDS = [
+  '1', // Filme e animação
+  '2', // Automóveis e veículos
+  '10', // Música
+  '15', // Animais e bichos
+  '17', // Esportes
+  '19', // Viagens e eventos
+  '20', // Jogos
+  '22', // Pessoas e blogs
+  '23', // Comédia
+  '24', // Entretenimento
+  '25', // Notícias e política
+  '26', // Como fazer e estilo
+  '27', // Educação
+  '28', // Ciência e tecnologia
+] as const;
 /** prefixo lido para achar o `moov` de um export faststart */
 const PROBE_BYTES = 2 * 1024 * 1024;
 
@@ -71,9 +92,9 @@ const settingsSchema = z.object({
       'Visibilidade do vídeo. Enquanto o projeto no Google não passar pela auditoria de conformidade, o YouTube força todo envio por API como Privado, mesmo pedindo Público.',
     ),
   categoryId: z
-    .string()
+    .enum(UPLOAD_CATEGORY_IDS)
     .default(DEFAULT_CATEGORY_ID)
-    .describe('Categoria do vídeo no YouTube (padrão: 22, "Pessoas e blogs").'),
+    .describe('Categoria do vídeo no YouTube — escolhida por nome, não pelo código.'),
   selfDeclaredMadeForKids: z
     .boolean()
     .default(false)
@@ -93,12 +114,11 @@ const settingsSchema = z.object({
     .describe(
       'O YouTube não tem parâmetro de Short: ele classifica pelo próprio arquivo (vertical e até 3 minutos vira Short). Escolha "auto" para aceitar o que sair, ou trave em Short/vídeo comum para o manypost recusar antes de enviar se o arquivo não corresponder.',
     ),
-  thumbnailUrl: z
+  thumbnail: z
     .string()
-    .url()
     .optional()
     .describe(
-      'Miniatura personalizada (URL). Exige conta verificada no YouTube; se for recusada, o vídeo é publicado assim mesmo.',
+      'Miniatura personalizada — escolhida na biblioteca de mídia. Exige conta verificada no YouTube; se for recusada, o vídeo é publicado assim mesmo, com a capa automática.',
     ),
   publishAt: z
     .string()
@@ -366,6 +386,8 @@ export const youtubeProvider: ChannelProvider = {
   },
   settingsSchema,
   requiredSecrets: ['clientId', 'clientSecret'],
+  // a miniatura é escolhida na biblioteca; a plataforma resolve o id → URL antes do publish
+  mediaSettings: ['thumbnail'],
 
   async getAuthUrl(ctx, { redirectUri }) {
     const state = crypto.randomUUID();
@@ -445,9 +467,10 @@ export const youtubeProvider: ChannelProvider = {
 
     // DAQUI PARA BAIXO NADA PODE LANÇAR: o vídeo já está no canal e um throw faria a máquina de
     // estados retentar a publicação inteira — ou seja, subir o vídeo de novo.
-    if (cfg.thumbnailUrl) {
+    // cfg.thumbnail já vem resolvido de id de mídia para URL pública (mediaSettings) antes do publish
+    if (cfg.thumbnail) {
       try {
-        const img = await ctx.fetch(cfg.thumbnailUrl, { signal: AbortSignal.timeout(60_000) });
+        const img = await ctx.fetch(cfg.thumbnail, { signal: AbortSignal.timeout(60_000) });
         if (img.ok) {
           const res = await ctx.fetch(`${UPLOAD_BASE}/thumbnails/set?videoId=${uploaded.id}`, {
             method: 'POST',
