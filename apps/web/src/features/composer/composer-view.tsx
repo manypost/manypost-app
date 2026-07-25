@@ -2,7 +2,7 @@
 
 import { CircleAlert, Globe, Lock, LockOpen, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -39,6 +39,17 @@ import { MediaPicker, MediaStrip } from './media-picker';
 import { validateMediaForProvider } from './media-validation';
 import { PostPreview } from './post-preview';
 import { useComposerStore } from './store';
+
+/** Rótulo de seção do composer — mesmo estilo de header curto usado no calendário/billing,
+ *  para as regiões (Canais · Conteúdo · Pré-visualização) lerem como blocos distintos. */
+function SectionHeader({ label, children }: { label: string; children?: ReactNode }) {
+  return (
+    <div className="mb-2.5 flex items-center gap-2">
+      <h2 className="text-[11px] font-semibold uppercase tracking-wide text-graphite">{label}</h2>
+      {children ? <div className="ml-auto flex items-center gap-2">{children}</div> : null}
+    </div>
+  );
+}
 
 /**
  * Composer (SPEC_FRONTEND §3.3): vive dentro do popup (composer-modal).
@@ -309,9 +320,14 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
       <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
           {/* coluna principal */}
-          <div className="flex min-w-0 flex-col gap-5">
-            <ChannelPicker selectedIds={store.channelIds} onToggle={store.toggleChannel} />
+          <div className="flex min-w-0 flex-col gap-6">
+            <section>
+              <SectionHeader label={t('sections.channels')} />
+              <ChannelPicker selectedIds={store.channelIds} onToggle={store.toggleChannel} />
+            </section>
 
+            <section className="border-t border-line pt-6">
+            <SectionHeader label={t('sections.content')} />
             <Tabs value={resolvedTab} onValueChange={setActiveTab}>
               {/* Fileira de redes (padrão Postiz SelectCurrent): globo = edição/prévia global,
                   depois um chip por canal. Comanda a aba de edição no clique e "espia" a prévia
@@ -597,11 +613,20 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
                 ) : null}
               </div>
             )}
+            </section>
           </div>
 
           {/* preview ao vivo */}
-          <aside className="flex flex-col gap-3 self-start lg:sticky lg:top-0 lg:border-l lg:border-line lg:pl-6">
-            <h2 className="text-base font-semibold tracking-[-0.2px] text-ink">{t('preview.title')}</h2>
+          <aside className="flex flex-col self-start border-t border-line pt-6 lg:sticky lg:top-0 lg:border-l lg:border-t-0 lg:border-line lg:pl-6 lg:pt-0">
+            <SectionHeader label={t('preview.title')}>
+              <span className="truncate text-xs font-medium text-mist">
+                {previewCurrent === 'global'
+                  ? t('preview.globalCard')
+                  : (selected.find((ch) => ch.id === previewCurrent)?.name ??
+                    selected.find((ch) => ch.id === previewCurrent)?.username ??
+                    '')}
+              </span>
+            </SectionHeader>
             <PostPreview
               current={previewCurrent}
               channels={selected}

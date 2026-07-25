@@ -317,7 +317,7 @@
     "threadHint": "Selecione canais primeiro — a thread é publicada como réplicas encadeadas.",
     "threadUnavailable": "Thread indisponível: {channels} não suporta réplicas encadeadas.",
     "preview": {
-      "title": "Preview",
+      "title": "Pré-visualização",
       "noChannels": "Selecione canais para ver o preview.",
       "startWriting": "Comece a escrever para ver o preview do post.",
       "now": "agora",
@@ -680,7 +680,11 @@
       }
     },
     "networksTablist": "Escolha a rede para editar e pré-visualizar",
-    "customizedBadge": "Texto personalizado para este canal"
+    "customizedBadge": "Texto personalizado para este canal",
+    "sections": {
+      "channels": "Canais",
+      "content": "Conteúdo do post"
+    }
   },
   "calendar": {
     "title": "Calendário",
