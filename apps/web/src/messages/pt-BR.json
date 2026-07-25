@@ -360,7 +360,8 @@
         "short": "Short",
         "views": "1,2 mil visualizações",
         "scheduled": "Liberar automaticamente em {when}"
-      }
+      },
+      "globalCard": "Todos os canais"
     },
     "channelSettings": {
       "title": "Configurações de {name}",
@@ -677,7 +678,9 @@
         "unsupportedType": "{name} não aceita o formato {mime}.",
         "tooLarge": "Um arquivo {mime} passou do tamanho máximo de {name}."
       }
-    }
+    },
+    "networksTablist": "Escolha a rede para editar e pré-visualizar",
+    "customizedBadge": "Texto personalizado para este canal"
   },
   "calendar": {
     "title": "Calendário",

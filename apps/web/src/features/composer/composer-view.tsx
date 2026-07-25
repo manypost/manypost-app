@@ -1,6 +1,6 @@
 'use client';
 
-import { CircleAlert, Lock, LockOpen, Plus, Trash2 } from 'lucide-react';
+import { CircleAlert, Globe, Lock, LockOpen, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -22,7 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { HoverPopover } from '@/components/ui/hover-popover';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useChannels, useProviders } from '@/features/channels/hooks';
 import { PROVIDER_ICONS } from '@/features/channels/provider-icon';
 import { useMediaList } from '@/features/media/hooks';
@@ -60,6 +60,9 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const [activeTab, setActiveTab] = useState('global');
+  // hover na fileira de redes "espia" a prévia daquela rede sem trocar a aba de edição (padrão
+  // Postiz: um `current` comanda a prévia; aqui o hover é transitório e o clique fixa a aba)
+  const [previewPeek, setPreviewPeek] = useState<string | null>(null);
   const [globalEditor, setGlobalEditor] = useState<Editor | null>(null);
   const [channelEditors, setChannelEditors] = useState<Record<string, Editor | null>>({});
   const [confirmDiscard, setConfirmDiscard] = useState(false);
@@ -90,6 +93,11 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
 
   // seleção efetiva = ids do rascunho que ainda existem como canal
   const selected = (channels.data ?? []).filter((ch) => store.channelIds.includes(ch.id));
+  // aba resolvida (cai p/ global se o canal ativo saiu da seleção) e rede exibida na prévia
+  // (hover espia; sem hover, segue a aba fixa)
+  const resolvedTab =
+    activeTab === 'global' || selected.some((ch) => ch.id === activeTab) ? activeTab : 'global';
+  const previewCurrent = previewPeek ?? resolvedTab;
   const providerOf = (providerId: string) => providers.data?.find((p) => p.id === providerId);
   const textFor = (channelId: string) => store.overrides[channelId] ?? store.text;
   const mediaById = new Map((mediaLibrary.data ?? []).map((m) => [m.id, m]));
@@ -304,31 +312,74 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
           <div className="flex min-w-0 flex-col gap-5">
             <ChannelPicker selectedIds={store.channelIds} onToggle={store.toggleChannel} />
 
-            <Tabs
-              value={
-                activeTab === 'global' || selected.some((ch) => ch.id === activeTab)
-                  ? activeTab
-                  : 'global'
-              }
-              onValueChange={setActiveTab}
-            >
-              <TabsList className="flex-wrap">
-                <TabsTrigger value="global">{t('globalTab')}</TabsTrigger>
-                {selected.map((ch) => (
-                  <TabsTrigger key={ch.id} value={ch.id}>
-                    <Avatar className="size-4">
-                      {ch.avatarUrl ? <AvatarImage src={ch.avatarUrl} alt="" /> : null}
-                      <AvatarFallback className="text-[9px]">
-                        {(ch.name ?? '?').charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    {ch.name ?? ch.username ?? ch.id}
-                    {store.overrides[ch.id] !== undefined ? (
-                      <span aria-hidden className="size-1.5 rounded-full bg-accent" />
-                    ) : null}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
+            <Tabs value={resolvedTab} onValueChange={setActiveTab}>
+              {/* Fileira de redes (padrão Postiz SelectCurrent): globo = edição/prévia global,
+                  depois um chip por canal. Comanda a aba de edição no clique e "espia" a prévia
+                  no hover. Rolável na horizontal no mobile — nunca quebra em várias linhas. */}
+              <div
+                role="tablist"
+                aria-label={t('networksTablist')}
+                className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={resolvedTab === 'global'}
+                  onClick={() => setActiveTab('global')}
+                  onMouseEnter={() => setPreviewPeek('global')}
+                  onMouseLeave={() => setPreviewPeek(null)}
+                  title={t('globalTab')}
+                  className={cn(
+                    'bevel-surface flex size-10 shrink-0 items-center justify-center rounded-md border text-graphite outline-none transition-[filter] duration-200',
+                    'hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
+                    resolvedTab === 'global' && 'border-accent text-accent',
+                  )}
+                >
+                  <Globe className="size-4" aria-hidden />
+                </button>
+                {selected.map((ch) => {
+                  const active = resolvedTab === ch.id;
+                  const name = ch.name ?? ch.username ?? ch.id;
+                  return (
+                    <button
+                      key={ch.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      aria-label={name}
+                      onClick={() => setActiveTab(ch.id)}
+                      onMouseEnter={() => setPreviewPeek(ch.id)}
+                      onMouseLeave={() => setPreviewPeek(null)}
+                      title={name}
+                      className={cn(
+                        'bevel-surface relative flex size-10 shrink-0 items-center justify-center rounded-md border outline-none transition-[filter] duration-200',
+                        'hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
+                        active ? 'border-accent' : 'border-line',
+                      )}
+                    >
+                      <Avatar className="size-6">
+                        {ch.avatarUrl ? <AvatarImage src={ch.avatarUrl} alt="" /> : null}
+                        <AvatarFallback className="text-[10px]">{name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      {PROVIDER_ICONS[ch.provider] ? (
+                        <img
+                          src={PROVIDER_ICONS[ch.provider]}
+                          alt=""
+                          aria-hidden
+                          className="absolute -bottom-0.5 -right-0.5 size-3.5 rounded-sm border border-surface"
+                        />
+                      ) : null}
+                      {store.overrides[ch.id] !== undefined ? (
+                        <span
+                          aria-hidden
+                          title={t('customizedBadge')}
+                          className="absolute -right-1 -top-1 size-2 rounded-full border border-surface bg-accent"
+                        />
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
 
               <TabsContent value="global" className="flex flex-col gap-3">
                 {/* cartão do editor com toolbar embaixo */}
@@ -552,7 +603,9 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
           <aside className="flex flex-col gap-3 self-start lg:sticky lg:top-0 lg:border-l lg:border-line lg:pl-6">
             <h2 className="text-base font-semibold tracking-[-0.2px] text-ink">{t('preview.title')}</h2>
             <PostPreview
+              current={previewCurrent}
               channels={selected}
+              globalText={store.text}
               textFor={textFor}
               settingsFor={(id) => store.channelSettings[id] ?? {}}
               mediaIds={store.mediaIds}
