@@ -429,7 +429,7 @@ export function ChannelSettingsCard({
   const isMediaField = (key: string) => (MEDIA_FIELDS[providerId] ?? []).includes(key);
 
   return (
-    <div className="overflow-hidden rounded-md border border-line bg-surface">
+    <div className="bevel-surface overflow-hidden rounded-md border">
       <button
         type="button"
         aria-expanded={open}
