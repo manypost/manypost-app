@@ -1,6 +1,6 @@
 'use client';
 
-import { CircleAlert, Globe, Lock, LockOpen, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, CircleAlert, Globe, Lock, LockOpen, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -74,6 +74,8 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
   // hover na fileira de redes "espia" a prévia daquela rede sem trocar a aba de edição (padrão
   // Postiz: um `current` comanda a prévia; aqui o hover é transitório e o clique fixa a aba)
   const [previewPeek, setPreviewPeek] = useState<string | null>(null);
+  // no mobile a prévia é colapsável (fica no fim da coluna única); no desktop é sempre visível
+  const [previewOpen, setPreviewOpen] = useState(true);
   const [globalEditor, setGlobalEditor] = useState<Editor | null>(null);
   const [channelEditors, setChannelEditors] = useState<Record<string, Editor | null>>({});
   const [confirmDiscard, setConfirmDiscard] = useState(false);
@@ -109,6 +111,11 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
   const resolvedTab =
     activeTab === 'global' || selected.some((ch) => ch.id === activeTab) ? activeTab : 'global';
   const previewCurrent = previewPeek ?? resolvedTab;
+  const previewChannel = selected.find((ch) => ch.id === previewCurrent);
+  const previewName =
+    previewCurrent === 'global'
+      ? t('preview.globalCard')
+      : (previewChannel?.name ?? previewChannel?.username ?? '');
   const providerOf = (providerId: string) => providers.data?.find((p) => p.id === providerId);
   const textFor = (channelId: string) => store.overrides[channelId] ?? store.text;
   const mediaById = new Map((mediaLibrary.data ?? []).map((m) => [m.id, m]));
@@ -335,7 +342,9 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
               <div
                 role="tablist"
                 aria-label={t('networksTablist')}
-                className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]"
+                // py/px sobra p/ a bolinha de "personalizado" (-top-1/-right-1) e o anel de foco
+                // não serem cortados — overflow-x:auto também recorta a vertical
+                className="-mx-1.5 flex gap-1.5 overflow-x-auto px-1.5 py-1.5 [scrollbar-width:thin]"
               >
                 <button
                   type="button"
@@ -618,25 +627,42 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
 
           {/* preview ao vivo */}
           <aside className="flex flex-col self-start border-t border-line pt-6 lg:sticky lg:top-0 lg:border-l lg:border-t-0 lg:border-line lg:pl-6 lg:pt-0">
-            <SectionHeader label={t('preview.title')}>
-              <span className="truncate text-xs font-medium text-mist">
-                {previewCurrent === 'global'
-                  ? t('preview.globalCard')
-                  : (selected.find((ch) => ch.id === previewCurrent)?.name ??
-                    selected.find((ch) => ch.id === previewCurrent)?.username ??
-                    '')}
+            {/* no mobile o cabeçalho colapsa a prévia (fica no fim da coluna única); no desktop
+                é só rótulo — o botão vira inerte (lg:pointer-events-none) e a prévia fica sempre aberta */}
+            <button
+              type="button"
+              onClick={() => setPreviewOpen((v) => !v)}
+              aria-expanded={previewOpen}
+              className="mb-2.5 flex w-full items-center gap-2 rounded-sm outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:pointer-events-none"
+            >
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-graphite">
+                {t('preview.title')}
               </span>
-            </SectionHeader>
-            <PostPreview
-              current={previewCurrent}
-              channels={selected}
-              globalText={store.text}
-              textFor={textFor}
-              settingsFor={(id) => store.channelSettings[id] ?? {}}
-              mediaIds={store.mediaIds}
-              thread={store.thread.map((item) => ({ text: item.text, mediaIds: item.mediaIds }))}
-              publishAt={publishAt}
-            />
+              {previewName ? (
+                <span className="min-w-0 flex-1 truncate text-left text-xs font-medium text-mist lg:flex-none">
+                  {previewName}
+                </span>
+              ) : null}
+              <ChevronDown
+                aria-hidden
+                className={cn(
+                  'ml-auto size-4 shrink-0 text-mist transition-transform duration-200 lg:hidden',
+                  previewOpen && 'rotate-180',
+                )}
+              />
+            </button>
+            <div className={cn('lg:block', !previewOpen && 'hidden')}>
+              <PostPreview
+                current={previewCurrent}
+                channels={selected}
+                globalText={store.text}
+                textFor={textFor}
+                settingsFor={(id) => store.channelSettings[id] ?? {}}
+                mediaIds={store.mediaIds}
+                thread={store.thread.map((item) => ({ text: item.text, mediaIds: item.mediaIds }))}
+                publishAt={publishAt}
+              />
+            </div>
           </aside>
         </div>
       </div>
@@ -645,28 +671,32 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
           no desktop vira uma linha com data, rascunho e CTA à direita */}
       <footer className="bevel-surface shrink-0 border-t border-line px-4 py-3 sm:px-6 sm:py-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-2">
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="require-approval"
-              checked={store.requireApproval}
-              onCheckedChange={(checked) => store.setRequireApproval(checked === true)}
-            />
-            <Label htmlFor="require-approval">{t('approval')}</Label>
-          </div>
+          {/* no mobile "aprovar" e a data dividem uma linha; no desktop viram itens soltos da flex-row */}
+          <div className="flex items-center gap-3 sm:contents">
+            <div className="flex shrink-0 items-center gap-2">
+              <Checkbox
+                id="require-approval"
+                checked={store.requireApproval}
+                onCheckedChange={(checked) => store.setRequireApproval(checked === true)}
+              />
+              <Label htmlFor="require-approval">{t('approval')}</Label>
+            </div>
 
-          <DateTimePicker
-            value={store.publishAtLocal}
-            min={toLocalInput(new Date())}
-            onChange={store.setPublishAtLocal}
-            ariaLabel={t('modeSchedule')}
-            className="w-full sm:w-auto"
-          />
+            <DateTimePicker
+              value={store.publishAtLocal}
+              min={toLocalInput(new Date())}
+              onChange={store.setPublishAtLocal}
+              ariaLabel={t('modeSchedule')}
+              className="min-w-0 flex-1 sm:w-auto sm:flex-none"
+            />
+          </div>
 
           {uniqueIssues.length > 0 ? (
             <span className="text-xs leading-relaxed text-graphite">{uniqueIssues[0]}</span>
           ) : null}
 
-          <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:flex-row sm:items-center">
+          {/* no mobile: descartar + publicar-agora dividem uma linha, o CTA principal ocupa a linha toda embaixo */}
+          <div className="grid grid-cols-2 gap-2 sm:ml-auto sm:flex sm:flex-row sm:items-center">
             {/* descartar = mesmo padrão do "publicar agora" (outline), mas hover danger + confirmação */}
             <Button
               variant="outline"
@@ -688,7 +718,7 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
               </Button>
             ) : null}
             <Button
-              className="w-full sm:w-auto"
+              className={cn('w-full sm:w-auto', store.requireApproval ? '' : 'col-span-2 sm:col-auto')}
               disabled={issues.length > 0 || scheduleIssues.length > 0}
               isLoading={schedule.isPending}
               onClick={() => submit(false)}
