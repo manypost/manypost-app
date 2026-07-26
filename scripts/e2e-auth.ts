@@ -163,9 +163,12 @@ check(
   const yt = providers.find((p) => p.id === 'youtube');
   if (ids.includes('youtube')) {
     check(yt?.connectType === 'oauth', 'youtube conecta por OAuth (redirect do Google)');
-    check(yt?.capabilities?.requiresMedia === true, 'youtube exige mídia (não existe post só-texto)');
-    check(yt?.capabilities?.media?.videos?.maxCount === 1, 'youtube aceita exatamente 1 vídeo por post');
-    check(yt?.capabilities?.media?.images?.maxCount === 0, 'youtube não aceita imagem anexa (capa é setting)');
+    // o catálogo achata as capabilities no topo da entrada (`providerCatalogEntry`) — as três
+    // asserções nasceram lendo `capabilities.*`, que a rota nunca devolveu, e por isso falhavam
+    // sempre (a onda do YouTube registrou o E2E isolado como NÃO RODADO). Forma igual às demais.
+    check(yt?.requiresMedia === true, 'youtube exige mídia (não existe post só-texto)');
+    check(yt?.media?.videos?.maxCount === 1, 'youtube aceita exatamente 1 vídeo por post');
+    check(yt?.media?.images?.maxCount === 0, 'youtube não aceita imagem anexa (capa é setting)');
     check(
       (yt?.settingsSchema?.required as string[] | undefined)?.includes('title') === true,
       'youtube exige title no settingsSchema (vídeo sem título é recusado ao agendar)',
