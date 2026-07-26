@@ -25,6 +25,9 @@ const STATUS: Record<string, ContentfulStatusCode> = {
   'billing.disabled': 404,
   'billing.no_subscription': 404,
   'billing.provider_error': 502,
+  // o bucket/volume falhou, não o pedido do cliente — 502 diz "é do nosso lado", e a mídia
+  // pode ser tentada de novo sem mudar nada na requisição
+  'media.store_failed': 502,
 };
 
 export function errorHandler(err: unknown, c: Context) {

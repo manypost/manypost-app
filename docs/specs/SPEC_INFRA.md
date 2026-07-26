@@ -49,6 +49,19 @@ Compose acima + Caddy (TLS automático) na frente; guia com backup (`pg_dump` di
 ### Config
 Env tipada com zod em `packages/config` (fail-fast com mensagem clara na var faltante — equivalente melhorado do `ConfigurationChecker` do Postiz). Secrets mínimos: `DATABASE_URL`, `REDIS_URL`, `JWT_SECRET`, `ENCRYPTION_KEY` (distintos!), `PUBLIC_URL`, storage e credenciais por provider social (opcionais — provider sem env some do catálogo, como no Postiz).
 
+### Storage de mídia (implementado — `add-s3-media-storage`)
+
+Dois drivers atrás do port `MediaStorage`, escolhidos por `STORAGE_PROVIDER`:
+
+- **`local`** (padrão, self-host): volume em `UPLOAD_DIR`, servido pela própria API em `/uploads/:org/:file` sem auth (chaves são UUID, não enumeráveis).
+- **`s3`**: bucket S3-compatível — Cloudflare R2, AWS S3 ou MinIO — sobre o `Bun.S3Client` nativo (zero dependência nova). Exige `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` e `MEDIA_PUBLIC_URL`; `S3_ENDPOINT` é obrigatório no R2/MinIO e `S3_REGION` é `auto` no R2. **Um bucket por ambiente** — compartilhar bucket entre staging e produção compartilha credencial, regra de ciclo de vida e raio de dano.
+
+**`MEDIA_PUBLIC_URL` é a URL sob a qual as CHAVES são servidas diretamente** (`<base>/<orgId>/<arquivo>`), e vale para os dois drivers. Ela existe porque a família Meta e o Dev.to fazem *pull* da mídia por URL pública, sem credencial: o endereço publicado não pode depender da origem do app (em `localhost` a Meta não alcança, e o container volta `ERROR` permanente). Vazia no driver local = `PUBLIC_URL/uploads` — a forma das URLs já materializadas dentro de `publications.content`.
+
+Regras que o driver garante: configuração incompleta **falha fechado no boot** nomeando a variável (nunca o valor); a forma da chave (`<orgId>/<uuid>.<ext>`) é validada **antes** de qualquer I/O nos dois drivers (num bucket, `..` não é resolvido pelo sistema de arquivos — seria objeto fora do prefixo da org, em silêncio); objeto ausente na leitura vira `null` (a rota responde 404), mas `AccessDenied`/`NoSuchBucket` **doem** como `media.store_failed` → 502, senão credencial errada ficaria mascarada de mídia inexistente.
+
+Verificação real (opt-in, fora do CI): `bun run scripts/live-r2.ts` grava, lê pelo driver, busca a URL pública **sem credencial** e apaga.
+
 ## 4. Observabilidade
 
 - **Logs estruturados JSON** (pino): `{ts, level, msg, correlationId, orgId, module, ...}`; redaction automática (`*token*`, `*secret*`, `authorization`). Correlation id: middleware gera/propaga `X-Request-Id` → use-cases → jobs (persistido no job payload) → webhooks de saída — um agendamento é rastreável do clique à publicação.

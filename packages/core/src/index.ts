@@ -29,4 +29,7 @@ export * from './application/use-cases/publishing';
 export * from './application/use-cases/webhooks';
 export * from './infra/crypto/aes-gcm.service';
 export * from './infra/storage/local.storage';
+export * from './infra/storage/media-key';
+export * from './infra/storage/media-storage';
+export * from './infra/storage/s3.storage';
 export * from './infra/media/sniff';
