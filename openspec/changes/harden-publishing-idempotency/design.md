@@ -96,9 +96,27 @@ expected unless implementation later changes an HTTP contract.
 6. Roll back by disabling new claims, waiting for leases to expire and
    redeploying the previous Railway revision. Preserve attempt rows.
 
-## Open Questions
+## Resolved during implementation (2026-07-26)
 
-- What lease/heartbeat duration covers the slowest provider upload?
-- Which providers support native idempotency or post lookup?
-- Who owns review resolution for `INDETERMINATE` publications?
-- What is the attempt-history retention period?
+- **Lease duration:** one fixed window of 15 minutes (`PUBLISH_LEASE_SEC`), and the zombie
+  watchdog now reads the *same* constant instead of its own literal. A heartbeat was rejected:
+  the two numbers only stay correct together, and a timer that must outlive a provider call is
+  another thing to leak. A lease shorter than the watchdog would let a second owner publish while
+  the first still breathes; a longer one would leave a publication in review with the claim stuck.
+- **Native idempotency:** `mastodon` (header `Idempotency-Key` on `POST /api/v1/statuses`) and the
+  `fake` provider, which now simulates the deduplication. The Mastodon key used to be a fresh
+  `randomUUID()` per attempt — the exact anti-pattern this change describes — and is now the
+  platform key. Every other provider stays non-idempotent, so an uncertain outcome goes to review.
+- **`INDETERMINATE` resolution is human:** the publication lands in `NEEDS_REVIEW`, which the
+  kanban already surfaces and whose only exit is the explicit "try again" button (DECISIONS §7).
+- **Retention:** none yet. Attempt rows are small and bounded by publication count; a policy waits
+  for a real audit window, as the original risk note said.
+
+## Still open
+
+- `NEEDS_REVIEW` produces no notification or event, so an indeterminate outcome is only visible to
+  someone looking at the board. This predates the change (the zombie watchdog has the same gap) and
+  adding an event is an API contract change with its own OpenSpec.
+- A provider call that outlives the 15-minute lease (a very large video upload) would be reclaimed
+  mid-flight. No current provider approaches it; if one does, the answer is a per-provider lease,
+  not a heartbeat.
