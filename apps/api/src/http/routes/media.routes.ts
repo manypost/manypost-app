@@ -1,6 +1,6 @@
 import { z } from '@hono/zod-openapi';
 import { ErrorCodes } from '@manypost/contracts';
-import { DomainError, MIME_BY_EXT, type MediaRecord } from '@manypost/core';
+import { DomainError, MIME_BY_EXT, parseMediaKey, type MediaRecord } from '@manypost/core';
 import type { Container } from '../../container';
 import { requireAuth } from '../middleware/auth';
 import { AUTH_SECURITY, createApp, errorResponses, jsonBody, jsonResponse } from '../openapi';
@@ -139,12 +139,14 @@ export function mediaRoutes(ctn: Container) {
   return app;
 }
 
-const ORG_RE = /^[0-9a-f-]{36}$/i;
-const FILE_RE = /^([0-9a-f-]{36})\.([a-z0-9]{2,5})$/i;
-
 /**
- * Servir uploads do storage local (SEM auth): as redes precisam baixar a mídia por URL pública
+ * Servir uploads pelo storage ativo (SEM auth): as redes precisam baixar a mídia por URL pública
  * (IG exige; Mastodon baixa via worker). Chaves são UUIDs — não enumeráveis.
+ *
+ * Com `STORAGE_PROVIDER=s3` esta rota é caminho de COMPATIBILIDADE: as URLs já materializadas
+ * dentro de `publications.content` apontam para a origem do app, e continuam resolvendo por aqui
+ * (repassando bytes) enquanto os objetos antigos não forem copiados para o bucket. Publicação
+ * nova já nasce com a URL do bucket.
  */
 export function publicUploadRoutes(ctn: Container) {
   const app = createApp();
@@ -163,15 +165,14 @@ export function publicUploadRoutes(ctn: Container) {
     },
   });
   app.get('/:org/:file', async (c) => {
-    const org = c.req.param('org');
-    const file = c.req.param('file');
-    const ext = FILE_RE.exec(file)?.[2]?.toLowerCase();
-    if (!ORG_RE.test(org) || !ext) return c.notFound();
-    const bytes = await ctn.storage.read(`${org}/${file}`);
+    // a forma da chave vem do storage (fonte única): pedido fora dela nem chega ao driver
+    const key = parseMediaKey(`${c.req.param('org')}/${c.req.param('file')}`);
+    if (!key) return c.notFound();
+    const bytes = await ctn.storage.read(`${key.orgId}/${key.file}`);
     if (!bytes) return c.notFound();
     return new Response(bytes, {
       headers: {
-        'content-type': MIME_BY_EXT[ext] ?? 'application/octet-stream',
+        'content-type': MIME_BY_EXT[key.ext] ?? 'application/octet-stream',
         'cache-control': 'public, max-age=31536000, immutable',
         'x-content-type-options': 'nosniff',
       },

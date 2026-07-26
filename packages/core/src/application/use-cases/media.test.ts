@@ -1,5 +1,7 @@
+import { ErrorCodes } from '@manypost/contracts';
 import { beforeEach, describe, expect, test } from 'bun:test';
 import type { MediaRecord, MediaRepository, MediaStorage } from '../ports/media';
+import { DomainError } from '../../domain/shared/result';
 import { pngBytes } from '../../infra/media/sniff.fixtures';
 import {
   makeDeleteMedia,
@@ -70,6 +72,19 @@ describe('uploadMedia', () => {
     await expect(
       makeUploadMedia(f)({ orgId: 'org-1', bytes: new TextEncoder().encode('#!/bin/sh\nrm -rf /') }),
     ).rejects.toMatchObject({ code: 'media.unsupported_type' });
+  });
+
+  // sem isso a biblioteca listaria uma mídia cuja URL devolve 404 — e um post agendado
+  // com ela falharia só no horário marcado, na rede
+  test('falha do storage não cria registro de mídia', async () => {
+    const storage: MediaStorage = {
+      ...f.storage,
+      put: () => Promise.reject(new DomainError(ErrorCodes.MediaStoreFailed, 'bucket fora')),
+    };
+    await expect(
+      makeUploadMedia({ ...f, storage })({ orgId: 'org-1', bytes: pngBytes() }),
+    ).rejects.toMatchObject({ code: 'media.store_failed' });
+    expect(f.records).toHaveLength(0);
   });
 
   test('acima do limite por tipo → media.too_large e nada é gravado', async () => {

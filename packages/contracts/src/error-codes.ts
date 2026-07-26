@@ -16,6 +16,8 @@ export const ErrorCodes = {
   MediaUnsupportedType: 'media.unsupported_type',
   MediaTooLarge: 'media.too_large',
   MediaFetchFailed: 'media.fetch_failed',
+  /** o backend não conseguiu gravar/ler no storage (bucket fora, credencial errada) — 502 */
+  MediaStoreFailed: 'media.store_failed',
   // plano/limites (impostos só no gerenciado — IS_SELF_HOSTED=false)
   PlanChannelLimit: 'plan.channel_limit',
   PlanPostsLimit: 'plan.posts_limit',

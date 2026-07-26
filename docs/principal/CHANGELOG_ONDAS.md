@@ -14,6 +14,7 @@
 
 | Onda | Data | Entrega |
 |---|---|---|
+| 25 | 2026-07-26 | Driver S3/R2 — mídia num bucket e URL pública desacoplada da origem do app (destrava a família Meta e o Dev.to) |
 | 24 | 2026-07-24 | UX das configurações por canal — cada campo com o controle certo (data, mídia, chips, categoria por nome) e mídia em settings resolvida no publish |
 | 23.1 | 2026-07-24 | MCP OAuth interop — DCR público no issuer + RFC 8252 loopback (OpenCode/Codex/Claude/VS Code) |
 | 23 | 2026-07-24 | YouTube — primeiro destino de **vídeo** puro: upload resumível em streaming e Short medido no arquivo |
@@ -45,6 +46,86 @@
 > registradas em [STATUS.md §2](STATUS.md#2-o-que-já-está-pronto-e-verificado), com spec e código de cada uma.
 
 ---
+
+## Onda 25 — Driver S3/R2: a mídia sai do disco do servidor (2026-07-26)
+
+**Por que esta onda existe.** Cinco providers entregues não conseguiam publicar mídia fora da
+máquina do dev. A família Meta (Threads, Instagram nas duas variantes, Facebook Pages) e o Dev.to
+**não aceitam upload de bytes**: eles *buscam* o arquivo numa URL que a gente entrega. A única
+implementação de `MediaStorage` escrevia num diretório e derivava a URL de `PUBLIC_URL` — ou seja, o
+endereço publicado era a origem do app, inalcançável em `localhost` e acoplado ao host da web em
+produção. E `STORAGE_PROVIDER=s3` já existia no schema de ambiente, mas o composition root **lançava
+exceção** nele: a opção era promessa, não driver.
+
+**O que entrou.** Driver S3-compatível (Cloudflare R2, AWS S3, MinIO) sobre o **`Bun.S3Client`
+nativo** — zero dependência nova, coerente com um monorepo que já escreve à mão o sniffer de magic
+bytes e o parser de MP4 (o `@aws-sdk/client-s3` custaria dezenas de MB na imagem Docker por quatro
+operações). O acoplamento ao runtime Bun fica preso a **um** adapter atrás do port; o port e os casos
+de uso seguem agnósticos, e `core/src/domain` continua sem framework.
+
+**`MEDIA_PUBLIC_URL` — a variável que era a pendência real.** A URL da mídia é `<base>/<chave>`, e a
+base vale para os **dois** drivers. Sem ela, o driver local mantém a forma histórica
+(`PUBLIC_URL/uploads/<chave>`), que é exatamente a forma das URLs **já materializadas dentro de
+`publications.content`** — por isso a assimetria é deliberada, e não uma inconsistência: mudar o
+default quebraria post agendado. Fixar `uploads` na base configurável, por outro lado, obrigaria um
+bucket R2 a carregar um prefixo `uploads/` sem propósito.
+
+**Api e worker não podem divergir.** A escolha do driver virou **um** mapeamento
+(`mediaStorageConfigFromEnv` em `@manypost/config`), no mesmo precedente do `providerSecretsFromEnv`
+— que existe justamente porque os dois composition roots **já divergiram uma vez** (decisão 20 do
+STATUS: o worker dedicado não recebia `providerSecrets`, e o refresh de token falhava só lá). Como
+`packages/config` vem antes do `core` no grafo de pacotes, os dois lados declaram a forma e a
+compatibilidade é **estrutural**, provada pelo typecheck do composition root.
+
+**Três decisões de segurança.** (1) **Falha fechado no boot**: `s3` sem bucket, sem credencial ou sem
+`MEDIA_PUBLIC_URL` recusa a subida nomeando a variável — nunca o valor. Um `s3` mal configurado
+publicaria URL inalcançável, e para a família Meta isso é falha **permanente** do post, não transiente.
+(2) **Forma da chave validada antes de qualquer I/O**, nos dois drivers, com fonte única compartilhada
+com a rota pública: no disco a travessia já era barrada pela contenção de diretório, mas num bucket
+`..` **não é resolvido pelo sistema de arquivos** — seria um objeto criado fora do prefixo da
+organização, em silêncio. O driver local manteve a contenção como defesa em profundidade. (3) **Só
+`NoSuchKey` vira `null`**: `AccessDenied`/`NoSuchBucket` doem como `media.store_failed` → 502, porque
+engolidos mascarariam credencial ou bucket errado como "mídia não encontrada".
+
+**Compatibilidade.** `STORAGE_PROVIDER` continua `local` por padrão — instalação que não configura
+nada não muda de comportamento. `GET /uploads/:org/:file` **segue montado** com `s3`, lendo pelo port:
+é caminho de compatibilidade para as URLs antigas dentro de `publications.content` enquanto os objetos
+não forem copiados para o bucket. Zero migration, zero mudança de schema: as chaves mantêm a forma
+`<orgId>/<uuid>.<ext>`, então registro gravado no driver local continua sendo chave válida no bucket
+depois da cópia. A rota também deixou de duplicar as regexes da chave (agora usa `parseMediaKey`).
+
+**Provas.** `bun run check` — 625 testes, 0 falhas (29 novos: forma da chave, driver local com base
+pública, driver S3 com dublê do cliente, escolha do driver, ambiente fail-closed, 502 no
+problem+json, e "falha de storage não cria registro de mídia"); fronteiras limpas; brand ok;
+`spec:validate` 14/14.
+
+Os testes usam **dublê** do cliente (AGENTS: zero rede em teste automatizado), então o driver foi
+exercitado contra um **MinIO real** em container, que é uma implementação S3 de verdade — é o que
+prova o que o dublê não pode: que o `Bun.S3Client` assina uma requisição que um servidor S3 aceita.
+Três provas com ele:
+
+1. `scripts/live-r2.ts` de ponta a ponta — grava, lê pelo driver, busca a URL pública **sem
+   credencial** comparando os bytes, apaga.
+2. **A suíte E2E inteira com `STORAGE_PROVIDER=s3`** (stack isolada em 5599/6499, MinIO em 9010):
+   `e2e-publish` TUDO OK — upload, biblioteca, agendar com `mediaIds`, publicar com mídia e recusar
+   5 imagens; os objetos aparecem no bucket sob o prefixo da organização (`<orgId>/<uuid>.png`).
+   Com `STORAGE_PROVIDER=local`, `e2e-auth`, `e2e-publish`, `e2e-public` e `e2e-mcp` seguem TUDO OK —
+   o caminho padrão não regrediu.
+3. **Fail-closed no boot verificado subindo a API de verdade**: omitir `S3_BUCKET`,
+   `MEDIA_PUBLIC_URL` ou `S3_SECRET_ACCESS_KEY` recusa a subida com `<VARIÁVEL> é obrigatória com
+   STORAGE_PROVIDER=s3` — nomeando a variável, nunca o valor.
+
+**Achado no caminho (não era desta onda):** três asserções do `e2e-auth` sobre o YouTube liam
+`capabilities.requiresMedia`/`capabilities.media.*`, forma que o catálogo **nunca** devolveu (ele
+achata tudo no topo, e as outras 4 asserções do mesmo arquivo já usavam o topo). Vieram no commit do
+YouTube (`23db05b`, #44), cuja própria tasks.md registra o E2E isolado como **NÃO RODADO** — por isso
+passaram despercebidas. Corrigidas aqui, e é o que destravou o `e2e-auth` TUDO OK.
+
+**Pendências honestas:** a prova de campo com bucket **de produção** (R2/S3 de verdade, não MinIO) e
+um post com mídia numa rede da família Meta continua sendo passo do dono; a cópia dos objetos já
+gravados no volume para o bucket é tarefa de operação. Roteiro dos dois em
+`openspec/changes/add-s3-media-storage/design.md`.
+
 
 ## Onda 24 — Configurações por canal deixam de ser caixas de texto (2026-07-24)
 

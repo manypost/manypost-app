@@ -112,6 +112,26 @@ const EnvSchema = z
 
     STORAGE_PROVIDER: z.enum(['local', 's3']).default('local'),
     UPLOAD_DIR: z.string().default('./uploads'),
+    /**
+     * URL base sob a qual as CHAVES de mídia são servidas publicamente (bucket público/CDN,
+     * ex.: `https://media.dominio`). A família Meta e o Dev.to fazem *pull* da mídia por essa
+     * URL, sem credencial — por isso ela não pode depender da origem do app. Obrigatória com
+     * `STORAGE_PROVIDER=s3`. Vazia no driver local = `PUBLIC_URL/uploads` (comportamento
+     * histórico); apontá-la para o driver local exige rotear a raiz desse host p/ `/uploads`.
+     */
+    MEDIA_PUBLIC_URL: z.string().url().optional(),
+    /**
+     * Bucket S3-compatível (R2/S3/MinIO) e credenciais dele. Use um bucket POR AMBIENTE —
+     * compartilhar bucket entre staging e produção compartilha credencial, regra de ciclo de
+     * vida e raio de dano. Obrigatórias com `STORAGE_PROVIDER=s3`.
+     */
+    S3_BUCKET: z.string().optional(),
+    /** `auto` no R2; a região real na AWS */
+    S3_REGION: z.string().optional(),
+    /** endpoint do serviço — obrigatório no R2/MinIO, dispensável na AWS */
+    S3_ENDPOINT: z.string().url().optional(),
+    S3_ACCESS_KEY_ID: z.string().optional(),
+    S3_SECRET_ACCESS_KEY: z.string().optional(),
     MEDIA_MAX_IMAGE_MB: z.coerce.number().min(1).default(10),
     MEDIA_MAX_VIDEO_MB: z.coerce.number().min(1).default(200),
     /** permite /media/from-url apontar p/ rede privada (apenas dev/e2e — anti-SSRF desligado) */
@@ -141,6 +161,26 @@ const EnvSchema = z
     message:
       'MCP_PUBLIC_URL precisa de um host DIFERENTE de PUBLIC_URL (ex.: mcp.dominio) — mesmo host esconderia a interface web',
     path: ['MCP_PUBLIC_URL'],
+  })
+  // storage de bucket falha FECHADO no boot, nomeando a variável que falta: um `s3` mal
+  // configurado publicaria URL inalcançável, e p/ a família Meta isso é falha PERMANENTE
+  .superRefine((env, ctx) => {
+    if (env.STORAGE_PROVIDER !== 's3') return;
+    const obrigatorias = [
+      'S3_BUCKET',
+      'S3_ACCESS_KEY_ID',
+      'S3_SECRET_ACCESS_KEY',
+      'MEDIA_PUBLIC_URL',
+    ] as const;
+    for (const nome of obrigatorias) {
+      if (!env[nome]) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [nome],
+          message: `${nome} é obrigatória com STORAGE_PROVIDER=s3`,
+        });
+      }
+    }
   })
   .superRefine((env, ctx) => {
     if (env.MODE === 'worker') return;
@@ -237,6 +277,47 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
     throw new Error(`Configuração inválida:\n${issues}`);
   }
   return parsed.data;
+}
+
+/**
+ * Configuração resolvida do storage de mídia — fonte única para a api E o worker dedicado
+ * (mesmo precedente do `providerSecretsFromEnv`: os dois composition roots já divergiram uma
+ * vez). A forma espelha `MediaStorageConfig` de `@manypost/core`; `config` vem antes do core
+ * no grafo de pacotes, então a compatibilidade é estrutural e o typecheck do composition root
+ * é quem a prova.
+ */
+export type MediaStorageConfig =
+  | { driver: 'local'; dir: string; publicBase: string }
+  | {
+      driver: 's3';
+      bucket: string;
+      region?: string;
+      endpoint?: string;
+      accessKeyId: string;
+      secretAccessKey: string;
+      publicBase: string;
+    };
+
+export function mediaStorageConfigFromEnv(env: Env): MediaStorageConfig {
+  if (env.STORAGE_PROVIDER === 's3') {
+    // o schema já reprovou o boot sem estas variáveis; o `!` aqui é a consequência disso
+    return {
+      driver: 's3',
+      bucket: env.S3_BUCKET!,
+      ...(env.S3_REGION ? { region: env.S3_REGION } : {}),
+      ...(env.S3_ENDPOINT ? { endpoint: env.S3_ENDPOINT } : {}),
+      accessKeyId: env.S3_ACCESS_KEY_ID!,
+      secretAccessKey: env.S3_SECRET_ACCESS_KEY!,
+      publicBase: env.MEDIA_PUBLIC_URL!,
+    };
+  }
+  return {
+    driver: 'local',
+    dir: env.UPLOAD_DIR,
+    // sem MEDIA_PUBLIC_URL, a mídia continua saindo pela rota /uploads da própria origem —
+    // é a forma das URLs já materializadas dentro de publications.content
+    publicBase: env.MEDIA_PUBLIC_URL ?? `${env.PUBLIC_URL.replace(/\/+$/, '')}/uploads`,
+  };
 }
 
 /** chaves do Env que guardam texto — o `satisfies` abaixo barra nome de variável errado */

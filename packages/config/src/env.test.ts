@@ -5,6 +5,7 @@ import {
   machineEndpoints,
   machineHosts,
   providerEnvVarNames,
+  mediaStorageConfigFromEnv,
   providerSecretsFromEnv,
 } from './env';
 
@@ -161,5 +162,62 @@ describe('secrets de provider ← env (SPEC_INTEGRATIONS §2)', () => {
     // provider/secret sem mapa não inventa nome (fica de fora da dica)
     expect(providerEnvVarNames('bluesky', ['handle'])).toEqual([]);
     expect(providerEnvVarNames('x', ['clientId', 'inexistente'])).toEqual(['X_CLIENT_ID']);
+  });
+});
+
+describe('storage de mídia (add-s3-media-storage)', () => {
+  const s3 = {
+    STORAGE_PROVIDER: 's3',
+    S3_BUCKET: 'manypost-media',
+    S3_ACCESS_KEY_ID: 'chave-publica',
+    S3_SECRET_ACCESS_KEY: 'nao-e-um-segredo-real',
+    MEDIA_PUBLIC_URL: 'https://media.manypost.com.br',
+  };
+
+  it('local não exige nada de bucket e serve pela rota /uploads da própria origem', () => {
+    const env = loadEnv(base);
+    expect(mediaStorageConfigFromEnv(env)).toEqual({
+      driver: 'local',
+      dir: './uploads',
+      publicBase: 'https://manypost.com.br/uploads',
+    });
+  });
+
+  it('MEDIA_PUBLIC_URL desacopla a URL da mídia da origem do app, inclusive no local', () => {
+    const env = loadEnv({ ...base, MEDIA_PUBLIC_URL: 'https://media.manypost.com.br/' });
+    expect(mediaStorageConfigFromEnv(env)).toMatchObject({
+      driver: 'local',
+      publicBase: 'https://media.manypost.com.br/',
+    });
+  });
+
+  it('s3 completo vira a configuração do driver de bucket', () => {
+    const env = loadEnv({ ...base, ...s3, S3_REGION: 'auto', S3_ENDPOINT: 'https://c.r2.example' });
+    expect(mediaStorageConfigFromEnv(env)).toEqual({
+      driver: 's3',
+      bucket: 'manypost-media',
+      region: 'auto',
+      endpoint: 'https://c.r2.example',
+      accessKeyId: 'chave-publica',
+      secretAccessKey: 'nao-e-um-segredo-real',
+      publicBase: 'https://media.manypost.com.br',
+    });
+  });
+
+  // fail-closed: cada ausência nomeia a variável, e a mensagem nunca carrega valor
+  it.each([
+    ['S3_BUCKET', 'S3_BUCKET'],
+    ['S3_ACCESS_KEY_ID', 'S3_ACCESS_KEY_ID'],
+    ['S3_SECRET_ACCESS_KEY', 'S3_SECRET_ACCESS_KEY'],
+    ['MEDIA_PUBLIC_URL', 'MEDIA_PUBLIC_URL'],
+  ])('s3 sem %s recusa o boot nomeando a variável', (ausente, nome) => {
+    const source: Record<string, string | undefined> = { ...base, ...s3 };
+    delete source[ausente];
+    expect(() => loadEnv(source)).toThrow(new RegExp(nome));
+    try {
+      loadEnv(source);
+    } catch (err) {
+      expect(String(err)).not.toContain('nao-e-um-segredo-real');
+    }
   });
 });

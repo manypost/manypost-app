@@ -1,4 +1,10 @@
-import { clerkConfig, isBillingEnabled, providerSecretsFromEnv, type Env } from '@manypost/config';
+import {
+  clerkConfig,
+  isBillingEnabled,
+  mediaStorageConfigFromEnv,
+  providerSecretsFromEnv,
+  type Env,
+} from '@manypost/config';
 import {
   createDb,
   makeApiKeyRepository,
@@ -35,7 +41,7 @@ import {
   makeGetApprovalPreview,
   makeGetBilling,
   makeIngestMediaFromUrl,
-  makeLocalMediaStorage,
+  makeMediaStorage,
   makeListApiKeys,
   makeListChannels,
   makeListInvoices,
@@ -122,10 +128,8 @@ export async function buildContainer(env: Env) {
     ? makeSaasPlanPolicy({ subscriptions: repos.subscriptions, usage: planUsage })
     : makeSelfHostedPlanPolicy({ usage: planUsage });
 
-  if (env.STORAGE_PROVIDER !== 'local') {
-    throw new Error('STORAGE_PROVIDER=s3 ainda não implementado — use local (S3/R2 vem com a onda 2)');
-  }
-  const storage = makeLocalMediaStorage({ dir: env.UPLOAD_DIR, publicBaseUrl: env.PUBLIC_URL });
+  // local (volume) ou bucket S3-compatível — a escolha vem do MESMO mapeamento que o worker usa
+  const storage = makeMediaStorage(mediaStorageConfigFromEnv(env));
   const mediaLimits = {
     imageMaxBytes: env.MEDIA_MAX_IMAGE_MB * 1024 * 1024,
     videoMaxBytes: env.MEDIA_MAX_VIDEO_MB * 1024 * 1024,

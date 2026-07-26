@@ -6,6 +6,33 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ## [Unreleased]
 
+### Added
+
+- **Mídia pode morar num bucket (Cloudflare R2, AWS S3 ou MinIO), não só no disco do servidor.**
+  `STORAGE_PROVIDER=s3` deixou de ser uma promessa que derrubava o boot e virou driver de verdade,
+  sobre o cliente S3 nativo do Bun — **sem dependência nova**. Isso destrava a publicação com mídia
+  nas redes que **buscam o arquivo por URL** em vez de aceitar upload: a família Meta inteira
+  (Threads, Instagram nas duas variantes, Facebook Pages) e a capa do Dev.to. O padrão continua
+  `local`: quem não configurar nada não vê diferença. Mudança OpenSpec: `add-s3-media-storage`.
+- **`MEDIA_PUBLIC_URL`**: a URL pública da mídia deixa de depender do endereço do app. Antes o
+  arquivo só existia em `PUBLIC_URL/uploads`, o que em `localhost` é inalcançável pelas redes — a
+  Meta responde que não conseguiu buscar a mídia, e isso é falha **permanente** do post. A variável
+  vale para os dois drivers, e o script opt-in `bun run scripts/live-r2.ts` prova o caminho inteiro
+  (grava, lê, busca a URL **sem credencial** e apaga) antes de qualquer publicação depender dela.
+- Novo erro estável `media.store_failed` (HTTP 502) para falha de gravação/leitura no storage —
+  antes um bucket fora do ar viraria 500 genérico. Falha na gravação **não cria registro de mídia**
+  (a biblioteca não lista arquivo cuja URL devolve 404).
+
+### Security
+
+- A forma da chave de mídia (`<orgId>/<uuid>.<ext>`) passa a ser validada **antes de qualquer I/O**
+  nos dois drivers, com fonte única compartilhada com a rota pública de uploads. No disco a
+  travessia já era barrada pela contenção de diretório; num bucket `..` não é resolvido pelo sistema
+  de arquivos, então uma chave malformada criaria objeto **fora do prefixo da organização** em
+  silêncio. Configuração de bucket incompleta **falha fechado no boot**, nomeando a variável que
+  falta e nunca o valor; e `AccessDenied`/`NoSuchBucket` na leitura não são engolidos como "mídia
+  não encontrada" (credencial errada mascarada de 404 é o pior modo de falhar).
+
 ### Changed
 
 - **Configurações por canal deixam de ser caixas de texto.** O compositor escolhia o controle de cada
