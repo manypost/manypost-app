@@ -113,6 +113,14 @@ export interface ProviderContext {
   log: (level: 'debug' | 'info' | 'warn' | 'error', msg: string, data?: object) => void;
   now: () => Date;
   secrets: Record<string, string>;
+  /**
+   * Chave opaca e estável do item lógico em publicação: o MESMO valor em toda retentativa da
+   * mesma (publicação, versão de job, posição). Provider cuja API desduplica por chave deve
+   * repassá-la e declarar `idempotentPublish` — é o que torna seguro retentar depois de um
+   * resultado incerto. Não contém conteúdo, id interno nem segredo (é um hash). Ausente em
+   * chamadas fora do caminho de publicação (connect, refresh, sub-contas).
+   */
+  idempotencyKey?: string;
 }
 
 export interface ChannelProvider {
@@ -131,6 +139,13 @@ export interface ChannelProvider {
    * org-scoped: id de outra org não resolve e o campo fica ausente. Ver SPEC_INTEGRATIONS.
    */
   readonly mediaSettings?: readonly string[];
+  /**
+   * A API da rede desduplica publicações pela `ctx.idempotencyKey` que este provider repassa.
+   * Só declare quando a chave for de fato enviada e honrada pela rede: com ela, um erro de
+   * transporte (timeout, conexão derrubada) vira retentativa; sem ela, vira revisão humana,
+   * porque a chamada pode ter sido aceita sem que a confirmação chegasse (SPEC_QUEUE §7).
+   */
+  readonly idempotentPublish?: boolean;
 
   /** Conexão direta por credenciais (Bluesky app password, Telegram bot) — sem redirect
    *  OAuth (SPEC_INTEGRATIONS §5). Presente = o connect usa este caminho e ignora getAuthUrl. */

@@ -5,6 +5,7 @@ import { AesGcmCryptoService } from '../../infra/crypto/aes-gcm.service';
 import type { ChannelRecord, PublicationView } from '../ports/publishing';
 import { channelAad, makeConnectChannel } from './channels';
 import {
+  isSafeToRetry,
   makeCancelPost,
   makeContinueThread,
   makePublishPublication,
@@ -27,12 +28,19 @@ function makeProvider(behavior: {
   requiredSetting?: boolean;
   /** provider com settings de MÍDIA (miniatura do YouTube: id da org → URL no publish) */
   mediaSetting?: boolean;
+  /** cai SEM resposta HTTP (timeout/conexão derrubada): o desfecho é incerto */
+  dropConnection?: boolean;
+  /** a rede desduplica pela ctx.idempotencyKey (declara idempotentPublish) */
+  idempotent?: boolean;
+  /** segura o publish até o teste liberar — abre a janela p/ outro dono reivindicar o item */
+  gate?: Promise<void>;
 }) {
   let calls = 0;
   let replyCalls = 0;
   let lastItems: any[] = [];
   let lastSettings: any;
   const replies: Array<{ parent: string; content: string }> = [];
+  const idempotencyKeys: string[] = [];
   const provider: ChannelProvider = {
     id: 'fake',
     name: 'Fake',
@@ -61,6 +69,9 @@ function makeProvider(behavior: {
     get mediaSettings(): readonly string[] {
       return behavior.mediaSetting ? ['thumbnail'] : [];
     },
+    get idempotentPublish() {
+      return behavior.idempotent === true;
+    },
     async getAuthUrl() {
       return { url: 'http://fake', state: 's' };
     },
@@ -77,21 +88,28 @@ function makeProvider(behavior: {
       behavior.expireToken = false; // token novo passa a valer
       return { accessToken: 'tok-2', scopes: [] };
     },
-    async publish(_ctx, _token, items, settings) {
+    async publish(ctx, _token, items, settings) {
       calls++;
       lastItems = items;
       lastSettings = settings;
+      idempotencyKeys.push(ctx.idempotencyKey ?? '(ausente)');
+      if (behavior.gate) await behavior.gate;
       if (behavior.expireToken) throw { status: 401, body: 'expired' };
       if (behavior.reject) throw { status: 422, body: 'rejected' };
       if (behavior.failFirst && calls <= behavior.failFirst) throw { status: 500, body: 'flaky' };
+      // sem status: a rede pode ter aceitado antes de a conexão cair
+      if (behavior.dropConnection) throw new Error('socket hang up');
       return [{ externalId: `ext-post-${calls}`, releaseUrl: 'https://fake/p/1' }];
     },
-    async publishReply(_ctx, _token, parentExternalId, item) {
+    async publishReply(ctx, _token, parentExternalId, item) {
       replyCalls++;
+      idempotencyKeys.push(ctx.idempotencyKey ?? '(ausente)');
+      if (behavior.gate) await behavior.gate;
       if (behavior.expireToken) throw { status: 401, body: 'expired' };
       if (behavior.failReplyFirst && replyCalls <= behavior.failReplyFirst) {
         throw { status: 500, body: 'flaky reply' };
       }
+      if (behavior.dropConnection) throw new Error('socket hang up');
       replies.push({ parent: parentExternalId, content: item.content });
       return { externalId: `ext-reply-${replyCalls}`, releaseUrl: `https://fake/r/${replyCalls}` };
     },
@@ -113,6 +131,7 @@ function makeProvider(behavior: {
     lastSettings: () => lastSettings,
     replyCount: () => replyCalls,
     replies: () => replies,
+    idempotencyKeys: () => idempotencyKeys,
   };
 }
 
@@ -127,6 +146,8 @@ function makeFakes(provider: ChannelProvider) {
   const jobs: { queue: string; payload: any; opts: any }[] = [];
   const mediaRecords: any[] = [];
   const pubItems: any[] = [];
+  /** tentativas de entrega (publication_attempts): posse durável por item lógico */
+  const claims: any[] = [];
 
   const deps = {
     crypto,
@@ -207,7 +228,73 @@ function makeFakes(provider: ChannelProvider) {
         pubItems
           .filter((x) => x.publicationId === pid)
           .sort((a, b) => a.position - b.position),
-      recordItemPublished: async (pid: string, itemId: string, position: number, d: any) => {
+
+      // Espelho em memória da semântica do INSERT ... ON CONFLICT do adapter Drizzle: a
+      // publicação viva é revalidada AQUI (estado, versão e cursor) e a posse é concedida no
+      // mesmo passo. Se este dublê afrouxar, os testes de concorrência não provam mais nada.
+      claimItem: async (d: any) => {
+        const pub = pubs.find((x) => x.id === d.publicationId);
+        if (!pub) return null;
+        if (pub.state !== 'PUBLISHING') return null;
+        if (pub.jobVersion !== d.jobVersion) return null;
+        if (pub.lastPublishedIndex !== d.position - 1) return null;
+        const now = Date.now();
+        const existing = claims.find(
+          (c) =>
+            c.publicationId === d.publicationId &&
+            c.jobVersion === d.jobVersion &&
+            c.position === d.position,
+        );
+        const token = `own-${++seq}`;
+        if (existing) {
+          const reclaimable =
+            existing.state === 'FAILED_SAFE' ||
+            (existing.state === 'CLAIMED' && existing.leaseExpiresAt <= now);
+          if (!reclaimable) return null; // dono vivo, ou CONFIRMED/INDETERMINATE
+          existing.state = 'CLAIMED';
+          existing.ownerToken = token;
+          existing.leaseExpiresAt = now + d.leaseSec * 1000;
+          existing.attemptCount++;
+          return {
+            attemptId: existing.id,
+            ownerToken: token,
+            idempotencyKey: existing.idempotencyKey,
+            attemptCount: existing.attemptCount,
+          };
+        }
+        const row = {
+          id: id(),
+          orgId: pub.orgId,
+          publicationId: d.publicationId,
+          jobVersion: d.jobVersion,
+          position: d.position,
+          state: 'CLAIMED',
+          ownerToken: token,
+          leaseExpiresAt: now + d.leaseSec * 1000,
+          // no adapter é um sha256; aqui basta ser derivada só da tripla (estável entre tentativas)
+          idempotencyKey: `k:${d.publicationId}:${d.jobVersion}:${d.position}`,
+          attemptCount: 1,
+          externalId: null as string | null,
+        };
+        claims.push(row);
+        return {
+          attemptId: row.id,
+          ownerToken: token,
+          idempotencyKey: row.idempotencyKey,
+          attemptCount: 1,
+        };
+      },
+      confirmItem: async (pid: string, itemId: string, position: number, ownerToken: string, d: any) => {
+        const c = claims.find(
+          (x) =>
+            x.publicationId === pid &&
+            x.position === position &&
+            x.ownerToken === ownerToken &&
+            x.state === 'CLAIMED',
+        );
+        if (!c) return false; // posse perdida: outro dono reivindicou o item
+        c.state = 'CONFIRMED';
+        c.externalId = d.externalId;
         const item = pubItems.find((x) => x.id === itemId)!;
         item.externalId = d.externalId;
         const pub = pubs.find((x) => x.id === pid)!;
@@ -216,6 +303,18 @@ function makeFakes(provider: ChannelProvider) {
           pub.externalId = d.externalId;
           if (d.releaseUrl !== undefined) pub.releaseUrl = d.releaseUrl;
         }
+        return true;
+      },
+      releaseItem: async (ownerToken: string, outcome: string) => {
+        const c = claims.find((x) => x.ownerToken === ownerToken && x.state === 'CLAIMED');
+        if (c) c.state = outcome;
+      },
+      abandonAttempts: async (orgId: string, pid: string) => {
+        const hit = claims.filter(
+          (c) => c.orgId === orgId && c.publicationId === pid && c.state === 'CLAIMED',
+        );
+        for (const c of hit) c.state = 'INDETERMINATE';
+        return hit.length;
       },
       getGroup: async (orgId: string, gid: string) => {
         const g = groups.find((x) => x.id === gid && x.orgId === orgId);
@@ -296,7 +395,7 @@ function makeFakes(provider: ChannelProvider) {
       delete: async () => {},
       publicUrl: (key: string) => `https://mp.test/uploads/${key}`,
     },
-    _state: { channels, pubs, events, jobs, groups, mediaRecords, pubItems },
+    _state: { channels, pubs, events, jobs, groups, mediaRecords, pubItems, claims },
   };
   return deps;
 }
@@ -314,6 +413,9 @@ let behavior: {
   noThreads?: boolean;
   requiredSetting?: boolean;
   mediaSetting?: boolean;
+  dropConnection?: boolean;
+  idempotent?: boolean;
+  gate?: Promise<void>;
 };
 let prov: ReturnType<typeof makeProvider>;
 let f: ReturnType<typeof makeFakes>;
@@ -787,6 +889,205 @@ describe('threads (SPEC_QUEUE §7/§9)', () => {
     f._state.pubs[0]!.jobVersion++; // simula edit/cancel bumpando a versão
     await makeContinueThread({ ...(f as any), retryBaseSec: 0.001 })(pubId, 0, 0);
     expect(prov.replyCount()).toBe(0); // continuação da versão antiga descartada
+  });
+});
+
+/**
+ * Posse durável por item (SPEC_QUEUE §7, openspec/specs/publication-delivery-safety). O ponto
+ * de todos estes testes é o mesmo: NADA chama a rede sem posse, e NADA avança o cursor sem
+ * apresentar a posse. Quem perde a corrida não publica; quem não consegue confirmar vai para
+ * revisão humana em vez de tentar de novo (DECISIONS §7).
+ */
+describe('segurança de entrega: posse, idempotência e desfecho incerto', () => {
+  const continueThread = (pubId: string, v: number, afterIndex: number) =>
+    makeContinueThread({ ...(f as any), retryBaseSec: 0.001 })(pubId, v, afterIndex);
+
+  beforeEach(async () => {
+    await connect(f, prov.provider);
+  });
+
+  test('duas continuações concorrentes do MESMO item: só uma publica', async () => {
+    const group = await schedule({
+      thread: [{ text: 'réplica 1', delaySec: 60 }, { text: 'réplica 2' }],
+    });
+    const pubId = group!.publications[0]!.id;
+    await publish(pubId); // publica item 0 e para no delay
+    expect(f._state.pubs[0]!.lastPublishedIndex).toBe(0);
+
+    // as duas leem o mesmo estado (PUBLISHING, v0, cursor 0) antes de qualquer uma reivindicar —
+    // é exatamente a janela que a checagem em memória deixava aberta
+    await Promise.all([continueThread(pubId, 0, 0), continueThread(pubId, 0, 0)]);
+
+    expect(prov.replies()).toHaveLength(2); // réplica 1 e 2, uma vez cada
+    expect(prov.replies().map((r) => r.content)).toEqual(['réplica 1', 'réplica 2']);
+    expect(f._state.pubs[0]!.state).toBe('PUBLISHED');
+    expect(prov.callCount()).toBe(1); // item 0 nunca repostado
+  });
+
+  test('posse é negada para versão de job obsoleta e para cursor divergente', async () => {
+    const group = await schedule({ thread: [{ text: 'réplica 1', delaySec: 60 }] });
+    const pubId = group!.publications[0]!.id;
+    await publish(pubId);
+
+    const claim = (over: any) =>
+      (f.publishing as any).claimItem({
+        publicationId: pubId,
+        jobVersion: 0,
+        position: 1,
+        leaseSec: 900,
+        ...over,
+      });
+    expect(await claim({ jobVersion: 9 })).toBeNull(); // post editado/cancelado no meio
+    expect(await claim({ position: 5 })).toBeNull(); // cursor não está em position-1
+    expect(await claim({})).not.toBeNull();
+    expect(await claim({})).toBeNull(); // dono vivo: a segunda não reivindica
+  });
+
+  test('item já confirmado é intransponível: reivindicar de novo é negado', async () => {
+    const group = await schedule();
+    const pubId = group!.publications[0]!.id;
+    await publish(pubId);
+    expect(f._state.pubs[0]!.state).toBe('PUBLISHED');
+    const attempt = f._state.claims[0]!;
+    expect(attempt.state).toBe('CONFIRMED');
+    // mesmo forçando a publicação de volta a PUBLISHING, o item 0 não é reivindicável
+    f._state.pubs[0]!.state = 'PUBLISHING';
+    f._state.pubs[0]!.lastPublishedIndex = -1;
+    expect(
+      await (f.publishing as any).claimItem({
+        publicationId: pubId,
+        jobVersion: 0,
+        position: 0,
+        leaseSec: 900,
+      }),
+    ).toBeNull();
+  });
+
+  test('dono expirado que volta tarde não avança o cursor — vai para revisão', async () => {
+    let openGate = () => {};
+    behavior.gate = new Promise<void>((r) => {
+      openGate = r;
+    });
+    const group = await schedule();
+    const pubId = group!.publications[0]!.id;
+
+    const running = publish(pubId); // fica preso dentro do provider
+    await Promise.resolve(); // deixa o runner chegar ao provider
+    await new Promise((r) => setTimeout(r, 5));
+
+    // a lease vence e OUTRO worker reivindica o mesmo item (o token roda)
+    const stale = f._state.claims[0]!;
+    stale.leaseExpiresAt = Date.now() - 1;
+    const reclaimed = await (f.publishing as any).claimItem({
+      publicationId: pubId,
+      jobVersion: 0,
+      position: 0,
+      leaseSec: 900,
+    });
+    expect(reclaimed).not.toBeNull();
+
+    openGate();
+    await running;
+
+    const pub = f._state.pubs[0]!;
+    expect(pub.state).toBe('NEEDS_REVIEW'); // publicou na rede, mas não pôde registrar
+    expect(pub.errorClass).toBe('indeterminate');
+    expect(pub.lastPublishedIndex).toBe(-1); // o cursor NÃO foi avançado por quem perdeu a posse
+    expect(f._state.jobs.filter((j: any) => j.queue === 'publish')).toHaveLength(1); // nenhum retry
+  });
+
+  test('conexão cai sem resposta HTTP: revisão humana, sem retry automático', async () => {
+    behavior.dropConnection = true;
+    const group = await schedule();
+    const pubId = group!.publications[0]!.id;
+    await publish(pubId);
+
+    const pub = f._state.pubs[0]!;
+    expect(pub.state).toBe('NEEDS_REVIEW');
+    expect(pub.errorClass).toBe('indeterminate');
+    expect(f._state.claims[0]!.state).toBe('INDETERMINATE');
+    // o job de agendamento é o único: nada foi re-enfileirado
+    expect(f._state.jobs.filter((j: any) => j.queue === 'publish')).toHaveLength(1);
+    expect(prov.callCount()).toBe(1);
+  });
+
+  test('provider que desduplica pela chave: a mesma queda vira retry seguro', async () => {
+    behavior.idempotent = true;
+    behavior.dropConnection = true;
+    const group = await schedule();
+    const pubId = group!.publications[0]!.id;
+    await publish(pubId);
+
+    const pub = f._state.pubs[0]!;
+    expect(pub.state).toBe('RETRYING'); // repetir é seguro: a rede reconhece a chave
+    expect(f._state.claims[0]!.state).toBe('FAILED_SAFE');
+    expect(f._state.jobs.filter((j: any) => j.queue === 'publish')).toHaveLength(2);
+  });
+
+  test('erro COM status é sempre retry seguro (o servidor respondeu — desfecho conhecido)', () => {
+    expect(isSafeToRetry({ status: 500, body: 'boom' }, false)).toBe(true);
+    expect(isSafeToRetry(new Error('getaddrinfo ENOTFOUND api.rede'), false)).toBe(true);
+    expect(isSafeToRetry(new Error('socket hang up'), false)).toBe(false);
+    expect(isSafeToRetry(new Error('The operation timed out'), false)).toBe(false);
+    expect(isSafeToRetry(new Error('socket hang up'), true)).toBe(true); // provider idempotente
+  });
+
+  test('a chave de idempotência é a MESMA em toda tentativa do mesmo item', async () => {
+    behavior.failFirst = 1;
+    const group = await schedule();
+    const pubId = group!.publications[0]!.id;
+    await publish(pubId); // falha 500 → RETRYING
+    await publish(pubId); // retry
+
+    const keys = prov.idempotencyKeys();
+    expect(keys).toHaveLength(2);
+    expect(keys[0]).toBe(keys[1]!);
+    expect(keys[0]).not.toBe('(ausente)');
+  });
+
+  test('cada item da thread tem a sua chave (uma réplica não desduplica com o post)', async () => {
+    const group = await schedule({ thread: [{ text: 'réplica 1' }] });
+    await publish(group!.publications[0]!.id);
+    const keys = prov.idempotencyKeys();
+    expect(new Set(keys).size).toBe(2);
+  });
+
+  test('tentativa é escopada por org: outra organização não lê nem muda nada', async () => {
+    behavior.gate = new Promise<void>(() => {}); // nunca resolve: a posse fica viva
+    const group = await schedule();
+    const pubId = group!.publications[0]!.id;
+    void publish(pubId);
+    await new Promise((r) => setTimeout(r, 5));
+    expect(f._state.claims[0]!.state).toBe('CLAIMED');
+
+    expect(await f.publishing.abandonAttempts('org-2', pubId)).toBe(0);
+    expect(f._state.claims[0]!.state).toBe('CLAIMED'); // intacta
+    expect(await f.publishing.abandonAttempts('org-1', pubId)).toBe(1);
+    expect(f._state.claims[0]!.state).toBe('INDETERMINATE');
+  });
+
+  test('scanner recupera lease abandonada: revisão + métrica, sem conteúdo no log', async () => {
+    behavior.gate = new Promise<void>(() => {});
+    const group = await schedule();
+    const pubId = group!.publications[0]!.id;
+    void publish(pubId);
+    await new Promise((r) => setTimeout(r, 5));
+
+    const recovered: number[] = [];
+    await makeRecoverDue({
+      ...(f as any),
+      publishing: {
+        ...f.publishing,
+        listDue: async () => [],
+        listStuck: async () => [{ id: pubId, orgId: 'org-1', state: 'PUBLISHING' as const }],
+      },
+      metrics: { onLeaseRecovered: (n: number) => recovered.push(n) },
+    })();
+
+    expect(recovered).toEqual([1]);
+    expect(f._state.claims[0]!.state).toBe('INDETERMINATE');
+    expect(f._state.pubs[0]!.state).toBe('NEEDS_REVIEW');
+    expect(f._state.pubs[0]!.errorClass).toBe('indeterminate');
   });
 });
 

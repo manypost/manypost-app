@@ -8,6 +8,7 @@ import { checkMediaRules } from '../shared/media-rules';
  *   failFirstAttempts — falha transitória N vezes antes de publicar
  *   expireToken       — força classificação refresh-token
  *   rejectContent     — força erro permanente
+ *   dropConnection    — cai SEM resposta HTTP nas N primeiras tentativas (resultado incerto)
  */
 const settingsSchema = z.object({
   failFirstAttempts: z.number().int().min(0).default(0).describe('Falha transitória nas N primeiras tentativas (dev)'),
@@ -19,9 +20,26 @@ const settingsSchema = z.object({
     .min(0)
     .default(0)
     .describe('Falha transitória nas N primeiras réplicas de thread — testa retomada pelo cursor (dev)'),
+  dropConnection: z
+    .number()
+    .int()
+    .min(0)
+    .default(0)
+    .describe('Derruba a conexão sem resposta nas N primeiras tentativas — exercita a idempotência (dev)'),
 });
 
 const attempts = new Map<string, number>();
+/** posts já criados por chave de idempotência — repetir a chave devolve o MESMO post */
+const byIdempotencyKey = new Map<string, { externalId: string; releaseUrl: string }>();
+
+const create = (key: string | undefined, releaseUrl: (id: string) => string) => {
+  const cached = key ? byIdempotencyKey.get(key) : undefined;
+  if (cached) return cached;
+  const id = crypto.randomUUID();
+  const result = { externalId: id, releaseUrl: releaseUrl(id) };
+  if (key) byIdempotencyKey.set(key, result);
+  return result;
+};
 
 export const fakeProvider: ChannelProvider = {
   id: 'fake',
@@ -41,6 +59,9 @@ export const fakeProvider: ChannelProvider = {
   },
   rateDefaults: { maxConcurrent: 2, perChannelWindow: { limit: 10, windowSec: 60 } },
   settingsSchema,
+  // simula uma rede que desduplica pela chave (como o Mastodon): repetir a mesma
+  // `ctx.idempotencyKey` devolve o post já criado em vez de criar outro
+  idempotentPublish: true,
 
   async getAuthUrl(_ctx: ProviderContext, { redirectUri }) {
     const state = crypto.randomUUID();
@@ -71,7 +92,7 @@ export const fakeProvider: ChannelProvider = {
     };
   },
 
-  async publish(_ctx, token: TokenSet, items: PublishItem[], rawSettings) {
+  async publish(ctx, token: TokenSet, items: PublishItem[], rawSettings) {
     const settings = settingsSchema.parse(rawSettings ?? {});
     if (settings.expireToken) throw { status: 401, body: '{"error":"token expired"}' };
     if (settings.rejectContent) throw { status: 422, body: '{"error":"content rejected"}' };
@@ -81,21 +102,22 @@ export const fakeProvider: ChannelProvider = {
     const n = (attempts.get(key) ?? 0) + 1;
     attempts.set(key, n);
     if (n <= settings.failFirstAttempts) throw { status: 500, body: '{"error":"flaky"}' };
+    if (n <= settings.failFirstAttempts + settings.dropConnection) {
+      // o post É criado e a resposta se perde — é o cenário que a chave de idempotência cobre
+      for (const _ of items) create(ctx.idempotencyKey, (id) => `https://fake.example/p/${id}`);
+      throw new Error('socket hang up');
+    }
 
-    return items.map(() => {
-      const id = crypto.randomUUID();
-      return { externalId: id, releaseUrl: `https://fake.example/p/${id}` };
-    });
+    return items.map(() => create(ctx.idempotencyKey, (id) => `https://fake.example/p/${id}`));
   },
 
-  async publishReply(_ctx, token: TokenSet, parentExternalId, item, rawSettings) {
+  async publishReply(ctx, token: TokenSet, parentExternalId, item, rawSettings) {
     const settings = settingsSchema.parse(rawSettings ?? {});
     const key = `${token.accessToken}:reply:${item.content}`;
     const n = (attempts.get(key) ?? 0) + 1;
     attempts.set(key, n);
     if (n <= settings.failFirstReplyAttempts) throw { status: 500, body: '{"error":"flaky reply"}' };
-    const id = crypto.randomUUID();
-    return { externalId: id, releaseUrl: `https://fake.example/p/${parentExternalId}/r/${id}` };
+    return create(ctx.idempotencyKey, (id) => `https://fake.example/p/${parentExternalId}/r/${id}`);
   },
 
   async validateMedia(items) {

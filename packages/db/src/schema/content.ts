@@ -14,7 +14,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { approvalStatus, groupState, postOrigin, publicationState } from './enums';
+import { approvalStatus, attemptState, groupState, postOrigin, publicationState } from './enums';
 import { bytea, pk, timestamps } from './helpers';
 import { channels } from './channels';
 import { organizations, users } from './identity';
@@ -111,6 +111,45 @@ export const publicationItems = pgTable(
     ...timestamps,
   },
   (t) => [uniqueIndex('publication_items_pos_ux').on(t.publicationId, t.position)],
+);
+
+/**
+ * Posse durável de cada item lógico de entrega (SPEC_QUEUE §7). Uma linha por
+ * (publicação, versão de job, posição) — as retentativas do MESMO item reusam a linha, e é isso
+ * que mantém a `idempotency_key` estável. O `owner_token` é o segredo que fenceia a confirmação:
+ * quem não o apresenta não avança o cursor. Tabela puramente aditiva: código anterior a ela
+ * continua funcionando (só não reivindica nada).
+ */
+export const publicationAttempts = pgTable(
+  'publication_attempts',
+  {
+    id: pk(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organizations.id),
+    publicationId: uuid('publication_id')
+      .notNull()
+      .references(() => publications.id),
+    /** versão do agendamento no momento da posse — edit/cancel invalidam a tentativa */
+    jobVersion: integer('job_version').notNull(),
+    /** índice do item na thread (0 = post principal) */
+    position: integer('position').notNull(),
+    state: attemptState('state').notNull().default('CLAIMED'),
+    /** segredo do dono vivo; rotaciona a cada reivindicação */
+    ownerToken: text('owner_token').notNull(),
+    leaseExpiresAt: timestamp('lease_expires_at', { withTimezone: true }).notNull(),
+    /** hash opaco e estável de (publicação, versão, posição) — vai ao provider como chave */
+    idempotencyKey: text('idempotency_key').notNull(),
+    attemptCount: integer('attempt_count').notNull().default(1),
+    externalId: text('external_id'),
+    ...timestamps,
+  },
+  (t) => [
+    // um item lógico = uma linha: é o que dá o ON CONFLICT do claim e a chave estável
+    uniqueIndex('publication_attempts_item_ux').on(t.publicationId, t.jobVersion, t.position),
+    index('publication_attempts_owner_ix').on(t.ownerToken),
+    index('publication_attempts_org_ix').on(t.orgId, t.publicationId),
+  ],
 );
 
 export const publicationEvents = pgTable(

@@ -88,6 +88,43 @@ const retried = await pollGroup(retry.body.id, (g) => g.state === 'DONE');
 check(retried.state === 'DONE', `retry: grupo → DONE (veio ${retried.state})`);
 check(retried.publications[0].attemptCount >= 2, `retry: >=2 tentativas (veio ${retried.publications[0].attemptCount})`);
 
+// ---- 2b) conexão derrubada sem resposta: o post JÁ saiu, e a retentativa não duplica ----
+// O fake cria o post e só então perde a conexão. Como ele desduplica pela chave de idempotência
+// (que a plataforma mantém estável por item lógico), a 2ª tentativa devolve o MESMO post em vez
+// de criar outro — é o cenário que a posse por item existe para tornar seguro (SPEC_QUEUE §7).
+// Canal PRÓPRIO de propósito: a janela do fake é por canal (10/60s) e este bloco gasta duas
+// tentativas — no canal principal ele adiaria os testes seguintes até a janela reabrir.
+const connect2 = await fetch(`${BASE}/v1/channels/connect`, {
+  method: 'POST',
+  headers: auth,
+  body: JSON.stringify({ provider: 'fake' }),
+});
+const state2 = connect2.headers.get('set-cookie')?.split(';')[0] ?? '';
+const q2 = new URL(((await connect2.json()) as any).url).searchParams;
+await fetch(`${BASE}/v1/channels/callback/fake?code=fake-code-drop&state=${q2.get('state')}`, {
+  headers: { ...auth, cookie: state2 },
+});
+const channels2 = (await (await fetch(`${BASE}/v1/channels`, { headers: auth })).json()) as any[];
+const dropChannel = channels2.find((c) => c.id !== channel.id);
+check(!!dropChannel, 'segundo canal fake conectado para o cenário de conexão derrubada');
+
+const dropped = await schedule({
+  text: 'post com conexão derrubada',
+  channelIds: [dropChannel.id],
+  publishAt: new Date().toISOString(),
+  settingsByChannel: { [dropChannel.id]: { dropConnection: 1 } },
+});
+const recovered = await pollGroup(dropped.body.id, (g) => g.state === 'DONE');
+check(recovered.state === 'DONE', `conexão derrubada: grupo → DONE (veio ${recovered.state})`);
+check(
+  recovered.publications[0].attemptCount >= 2,
+  `conexão derrubada: houve retentativa (veio ${recovered.publications[0].attemptCount})`,
+);
+check(
+  !!recovered.publications[0].externalId,
+  'conexão derrubada: externalId do post original, sem duplicar na rede',
+);
+
 // ---- 3) falha permanente: FAILED sem retry, com erro legível ----
 const perm = await schedule({
   text: 'post rejeitado pela rede',

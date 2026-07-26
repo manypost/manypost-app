@@ -72,7 +72,12 @@ Transições são **UPDATEs condicionais** (`WHERE state = $expected`) — prote
 ## 5. Idempotência e outbox
 
 - `singletonKey = publicationId` no pg-boss: 1 job ativo por publicação, sempre. Re-agendar = `cancel` + novo enqueue (equivalente ao `TERMINATE_EXISTING` do Postiz).
-- **Chave de idempotência na rede**: antes de chamar o provider, o worker grava `attempt_id` na publication; se o worker morrer após publicar e antes de confirmar, a re-execução consulta `provider.findRecentPost?` (quando a rede permite) ou aplica janela de dedup por conteúdo-hash nas últimas 24h; se indeterminado, marca `NEEDS_REVIEW` em vez de repostar. (Dupla publicação é o pior failure mode do domínio — nunca repostar às cegas.)
+- **Posse durável por item, antes da rede** (implementado em 2026-07-26 — `publication_attempts`, mudança OpenSpec `harden-publishing-idempotency`): o worker reivindica o item numa **única** instrução `INSERT ... SELECT ... ON CONFLICT DO UPDATE WHERE` que valida a publicação viva (estado `PUBLISHING`, `job_version` e cursor exatamente em `position - 1`) e concede um **lease com `owner_token`** no mesmo passo. Ler o estado e decidir em memória depois **não** é fencing: duas continuações de thread passam juntas pela mesma checagem e publicam o mesmo item duas vezes. Uma linha por (publicação, versão, posição) — a retentativa do mesmo item lógico reusa a linha, e é isso que mantém a chave de idempotência estável.
+  - Estados da tentativa: `CLAIMED` → `CONFIRMED` (a rede respondeu e o cursor avançou), `FAILED_SAFE` (é impossível que a rede tenha aceitado — reivindicável de novo) ou `INDETERMINATE` (pode ter saído — **intransponível**, só ação humana).
+  - **Confirmar exige apresentar o `owner_token`**: dono cuja lease foi reivindicada por outro não avança cursor nenhum; quando isso acontece com o post já na rede, a publicação vai a `NEEDS_REVIEW`.
+  - **Lease = 15 min, a MESMA constante do watchdog de zumbis do §8** (`PUBLISH_LEASE_SEC`). Menor deixaria um segundo dono publicar com o primeiro ainda vivo; maior deixaria a publicação em revisão com a posse presa.
+  - **Chave de idempotência na rede**: `sha256(publicationId:jobVersion:position)` em hex, entregue ao provider em `ctx.idempotencyKey` e **igual em toda retentativa** do mesmo item — chave nova por tentativa não desduplica nada. Provider que a envia e cuja API a honra declara `idempotentPublish` (hoje: `mastodon` e o `fake`).
+  - **Erro de transporte** (sem resposta HTTP): se a chamada não pode ter chegado (DNS, conexão recusada, TLS) ou o provider é idempotente, é retentativa segura e a plataforma classifica como `transient` — o `classifyError` do provider não é consultado, porque `status: 0` cairia em `permanent` e uma oscilação de rede mataria o post. Qualquer outro erro de transporte é `INDETERMINATE` → `NEEDS_REVIEW`. (Dupla publicação é o pior failure mode do domínio — nunca repostar às cegas.)
 - Enqueue sempre dentro da transação que muda o estado (outbox nativo por a fila SER o Postgres).
   > **Nota de implementação (fase 0):** o enqueue atual é pós-commit (a API pública do pg-boss v10 não expõe executor transacional); a linha da publication é a fonte de verdade e o scanner (§8) + fencing de estados garantem entrega sem duplicação — coberto por teste. Insert transacional direto na tabela do pg-boss fica como melhoria rastreada.
 
@@ -100,7 +105,7 @@ Cada provider implementa `classifyError(status, body)` (equivalente ao `handleEr
 ## 8. Recuperação de falha
 
 1. **Scanner de perdidos** (job cron a cada 5 min): `SELECT` publications `SCHEDULED` com `publishAt < now() - interval '3 min'` sem job ativo → re-enqueue + métrica `publishing_recovered_total`. *Seguindo a direção do Postiz (missing-posts das últimas 3h), núcleo AGPL.*
-2. **Zumbis**: `PUBLISHING`/`TOKEN_REFRESH` com `updated_at < now() - 15 min` → aplicar protocolo de idempotência do §5 (verificar antes de repostar).
+2. **Zumbis**: `PUBLISHING`/`TOKEN_REFRESH` com `updated_at < now() - 15 min` (= `PUBLISH_LEASE_SEC`) → `PUBLISHING` vira `NEEDS_REVIEW` com `errorClass: 'indeterminate'` e **toda posse ainda `CLAIMED` da publicação vira `INDETERMINATE`** (escopado por org), de modo que um dono que ressuscite já não consegue confirmar o item. Métrica `publishing_lease_recovered_total`.
 3. pg-boss `expireInSeconds`/`retentionDays` configurados; jobs mortos vão para `failed` e alarmam.
 4. Tudo re-executável manualmente pela UI (botão "tentar novamente" em `FAILED`).
 

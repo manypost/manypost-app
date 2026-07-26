@@ -141,7 +141,12 @@ export async function createPublishingRuntime(
     events,
     log,
   });
-  const recover = makeRecoverDue({ publishing: opts.publishing, scheduler, log });
+  const recover = makeRecoverDue({
+    publishing: opts.publishing,
+    scheduler,
+    ...(opts.metrics ? { metrics: opts.metrics } : {}),
+    log,
+  });
   const deliver = makeDeliverWebhook({
     webhooks: opts.webhooks,
     crypto: opts.crypto,
@@ -177,32 +182,34 @@ export async function createPublishingRuntime(
       }
     },
     async startWorker() {
-      await boss.work<{ publicationId: string; v?: number }>(PUBLISH_QUEUE, async (jobs) => {
+      // Falha inesperada de infraestrutura (banco fora, bug) é RELANÇADA depois de percorrer o
+      // lote: engolir marcaria o job como entregue e a publicação ficaria presa no estado em que
+      // parou até o watchdog. O retry de negócio continua sendo da máquina de estados
+      // (`retryLimit: 0`) — quem recupera o job falhado é o scanner do §8.
+      const runBatch = async <T>(jobs: Array<{ data: T }>, run: (data: T) => Promise<void>, msg: string) => {
+        let failure: unknown;
         for (const job of jobs) {
           try {
-            await publish(job.data.publicationId, job.data.v);
+            await run(job.data);
           } catch (err) {
-            log('error', 'publish handler falhou', {
-              publicationId: job.data.publicationId,
-              err: String(err),
-            });
+            log('error', msg, { ...(job.data as object), err: String(err) });
+            failure ??= err; // um job ruim não impede os demais do lote
           }
         }
-      });
+        if (failure !== undefined) throw failure;
+      };
+
+      await boss.work<{ publicationId: string; v?: number }>(PUBLISH_QUEUE, (jobs) =>
+        runBatch(jobs, (d) => publish(d.publicationId, d.v), 'publish handler falhou'),
+      );
       await boss.work<{ publicationId: string; v: number; afterIndex: number }>(
         THREAD_QUEUE,
-        async (jobs) => {
-          for (const job of jobs) {
-            try {
-              await continueThread(job.data.publicationId, job.data.v, job.data.afterIndex);
-            } catch (err) {
-              log('error', 'thread continuation falhou', {
-                publicationId: job.data.publicationId,
-                err: String(err),
-              });
-            }
-          }
-        },
+        (jobs) =>
+          runBatch(
+            jobs,
+            (d) => continueThread(d.publicationId, d.v, d.afterIndex),
+            'thread continuation falhou',
+          ),
       );
       await boss.work<{ deliveryId: string }>(WEBHOOK_QUEUE, async (jobs) => {
         for (const job of jobs) {
