@@ -114,8 +114,10 @@ async function postStatus(
     headers: {
       authorization: `Bearer ${token.accessToken}`,
       'content-type': 'application/json',
-      // idempotência nativa da API do Mastodon por tentativa
-      'idempotency-key': crypto.randomUUID(),
+      // Idempotência nativa do Mastodon. A chave vem da plataforma e é ESTÁVEL por item
+      // lógico — uma chave nova a cada tentativa (como era antes) não desduplica nada: é
+      // justamente a retentativa que precisa ser reconhecida como o mesmo toot.
+      'idempotency-key': ctx.idempotencyKey ?? crypto.randomUUID(),
     },
     body: JSON.stringify({
       status: item.content,
@@ -149,6 +151,9 @@ export const mastodonProvider: ChannelProvider = {
   },
   settingsSchema,
   connectionFieldsSchema: fieldsSchema,
+  // POST /api/v1/statuses desduplica pelo header `Idempotency-Key` (repassado em postStatus):
+  // repetir um toot cujo resultado se perdeu devolve o mesmo status, não cria um segundo
+  idempotentPublish: true,
 
   async getAuthUrl(ctx, { redirectUri, fields }) {
     const parsed = fieldsSchema.parse(fields ?? {});

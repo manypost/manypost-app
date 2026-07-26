@@ -159,7 +159,10 @@ function makeWorld() {
     findForPublish: async () => null,
     listDue: async () => [],
     listStuck: async () => [],
-    recordItemPublished: async () => {},
+    claimItem: async () => null,
+    confirmItem: async () => true,
+    releaseItem: async () => {},
+    abandonAttempts: async () => 0,
   };
 
   const approvals = {

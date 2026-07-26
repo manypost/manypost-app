@@ -14,6 +14,7 @@
 
 | Onda | Data | Entrega |
 |---|---|---|
+| 26 | 2026-07-26 | Posse durável por item — o post não sai duas vezes quando dois jobs se sobrepõem; incerteza vira revisão humana |
 | 25 | 2026-07-26 | Driver S3/R2 — mídia num bucket e URL pública desacoplada da origem do app (destrava a família Meta e o Dev.to) |
 | 24 | 2026-07-24 | UX das configurações por canal — cada campo com o controle certo (data, mídia, chips, categoria por nome) e mídia em settings resolvida no publish |
 | 23.1 | 2026-07-24 | MCP OAuth interop — DCR público no issuer + RFC 8252 loopback (OpenCode/Codex/Claude/VS Code) |
@@ -44,6 +45,77 @@
 > As ondas 1 e 2 do frontend e as fatias de backend anteriores (fundação, banco, auth, publicação,
 > retry, webhooks, mídia, threads, aprovação por link, listagens/SSE, providers da onda 1) estão
 > registradas em [STATUS.md §2](STATUS.md#2-o-que-já-está-pronto-e-verificado), com spec e código de cada uma.
+
+---
+
+## Onda 26 — Posse durável por item: o post não sai duas vezes (2026-07-26)
+
+**Por que esta onda existe.** A publicação inicial sempre foi fenceada por um `UPDATE` condicional
+(`SCHEDULED|RETRYING|TOKEN_REFRESH → PUBLISHING`): dois jobs disputando, um perde no `WHERE`. A
+**continuação de thread** não tinha nada disso. Ela lia a publicação, conferia em memória três
+coisas (estado `PUBLISHING`, `jobVersion` igual, cursor exatamente no índice esperado) e **só então**
+chamava a rede. Entre a leitura e a chamada não havia nada — duas continuações concorrentes (job
+duplicado, recuperação sobreposta, uma réplica lenta do worker) passavam **juntas** pelas três
+checagens e publicavam a mesma réplica duas vezes. Publicação duplicada é o pior modo de falha
+deste produto: é irreversível e acontece na frente do público do cliente.
+
+**A correção é onde tem que ser: no banco, antes da rede.** Cada item lógico agora é reivindicado
+por uma **única** instrução `INSERT ... SELECT ... ON CONFLICT DO UPDATE WHERE` que valida a
+publicação viva na origem do `SELECT` (estado, versão do agendamento e cursor em `position - 1`) e
+concede um lease com `owner_token` no mesmo passo. Uma linha por (publicação, versão, posição) — a
+retentativa do mesmo item reusa a linha, e é isso que mantém a chave de idempotência estável. As
+três checagens em memória continuam lá como filtro barato para o caso comum de job obsoleto, com um
+comentário dizendo o que elas **não** são: fencing.
+
+**Confirmar exige apresentar a posse.** O cursor só avança para quem tem o `owner_token` corrente.
+Isso fecha o outro lado da janela: se a lease vencer durante uma chamada lenta e outro dono assumir,
+o primeiro volta e **não consegue registrar nada** — e como o post já está na rede, a publicação vai
+para `NEEDS_REVIEW` em vez de fingir sucesso ou tentar de novo.
+
+**Lease e watchdog passaram a ser a mesma constante** (`PUBLISH_LEASE_SEC`, 15 min). Não é economia
+de código: uma lease mais curta que o watchdog deixaria um segundo dono publicar com o primeiro
+ainda respirando; mais longa deixaria a publicação em revisão com a posse presa. Descartamos o
+heartbeat — um timer que precisa sobreviver à chamada do provider é mais uma coisa para vazar, e
+os dois números só estão certos juntos.
+
+**Três desfechos, não dois.** Uma tentativa termina `CONFIRMED`, `FAILED_SAFE` (é **impossível** que
+a rede tenha aceitado — reivindicável de novo) ou `INDETERMINATE` (pode ter saído — intransponível,
+só ação humana). A regra que separa os dois últimos: erro **com** status HTTP é desfecho conhecido
+(o servidor respondeu, a recusa é decisão dele); erro de conexão que prova que o pedido não saiu
+(DNS, recusa, TLS) também; qualquer outro erro de transporte — timeout, conexão derrubada no meio —
+é incerto. DECISIONS §7 em código, não em prosa.
+
+**Um bug real caiu junto.** Erro de transporte chegava ao `classifyError` do provider com
+`status: 0`, e **todo** provider classifica isso como `permanent` — ou seja, um timeout de DNS
+reprovava o post de vez, sem retentativa. Agora falha de transporte é transitória para a plataforma
+e o classificador do provider nem é consultado (não há resposta para ele classificar).
+
+**Chave de idempotência que serve para alguma coisa.** `ctx.idempotencyKey` =
+`sha256(publicação:versão:posição)`, **igual em toda retentativa** do mesmo item, sem conteúdo, id
+interno ou segredo. O Mastodon já mandava `Idempotency-Key` — com um `randomUUID()` **novo a cada
+tentativa**, que é exatamente o anti-padrão: quem precisa ser reconhecida como o mesmo toot é a
+retentativa. Corrigido; `mastodon` e o `fake` declaram `idempotentPublish`, e para eles uma queda de
+conexão volta a ser retentativa segura em vez de revisão.
+
+**A fila parou de engolir falha de infraestrutura.** O handler registrava o erro e devolvia sucesso
+ao pg-boss: banco fora do ar marcava o job como entregue. Agora o erro é relançado **depois** de
+percorrer o lote (um job ruim não impede os demais) e o scanner recupera.
+
+**Provas.** 636 testes unitários (12 novos no bloco de segurança de entrega) + 4 de **integração
+contra Postgres 17 real** — porque só o banco prova que o `ON CONFLICT` casa com o índice único e
+que duas conexões concorrentes não ganham a mesma posse. Os testes têm dentes: afrouxar o dublê da
+posse faz 3 deles falharem. E os cinco E2E (`publish`, `auth`, `public`, `mcp`, `mcp-oauth`) rodaram
+verdes numa stack isolada com worker de verdade, incluindo um cenário novo: conexão derrubada
+**depois** de o post ser criado, provando que a retentativa devolve o mesmo post em vez de criar
+outro. `/metrics` ganhou `publishing_delivery_safety_total` e `publishing_lease_recovered_total`.
+
+**O que ficou de fora.** `NEEDS_REVIEW` continua sem notificação nem evento — quem não olhar o
+kanban não fica sabendo. A lacuna é anterior a esta onda (o watchdog de zumbis tem a mesma), e
+emitir evento novo é mudança de contrato de API, com OpenSpec próprio. Também não há política de
+retenção das tentativas, e nenhum provider além de Mastodon/`fake` declara idempotência — mapear
+quais APIs suportam chave nativa é trabalho por provider.
+
+Mudança OpenSpec: `harden-publishing-idempotency` (spec `publication-delivery-safety`).
 
 ---
 

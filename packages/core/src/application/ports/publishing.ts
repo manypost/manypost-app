@@ -6,6 +6,20 @@ import type {
   PublicationState,
 } from '@manypost/contracts';
 
+/** Posse durável de um item de publicação (SPEC_QUEUE §7): concedida antes da chamada à rede. */
+export interface PublicationClaim {
+  attemptId: string;
+  /** segredo do dono: confirmar/encerrar a tentativa exige apresentá-lo (fencing) */
+  ownerToken: string;
+  /** chave opaca estável do item lógico — igual em toda retentativa (ctx.idempotencyKey) */
+  idempotencyKey: string;
+  /** quantas vezes este item lógico já foi reivindicado (1 = primeira) */
+  attemptCount: number;
+}
+
+/** Desfecho de uma tentativa que NÃO confirmou (a confirmação é `confirmItem`). */
+export type AttemptRelease = 'FAILED_SAFE' | 'INDETERMINATE';
+
 /** Documento de conteúdo persistido em post_groups.base_content e publications.content. */
 export interface PostContent {
   text: string;
@@ -175,14 +189,37 @@ export interface PublishingRepository {
   listDue(before: Date, limit: number): Promise<Array<{ id: string; jobVersion: number }>>;
   /** itens da thread ordenados por position (sempre >= 1) */
   listItems(publicationId: string): Promise<PublicationItemView[]>;
-  /** confirma item publicado: external_id no item + cursor na publication (monotônico);
-   *  position 0 também preenche externalId/releaseUrl da publication */
-  recordItemPublished(
+  /**
+   * Reivindica a posse do item `position` ANTES de qualquer chamada à rede. Precisa ser uma
+   * única instrução atômica que valide a publicação viva (estado `PUBLISHING`, `jobVersion` e
+   * cursor exatamente em `position - 1`) e conceda o lease no mesmo passo — ler e depois
+   * decidir em memória deixa duas continuações passarem pelo mesmo ponto e duplicar o post.
+   * `null` = não há posse: outro dono vivo, item já `CONFIRMED`/`INDETERMINATE`, versão de job
+   * obsoleta ou cursor diferente. Sem posse, o chamador não pode tocar no provider.
+   */
+  claimItem(d: {
+    publicationId: string;
+    jobVersion: number;
+    position: number;
+    /** validade da posse em segundos; expirada, o item pode ser reivindicado de novo */
+    leaseSec: number;
+  }): Promise<PublicationClaim | null>;
+  /** confirma item publicado COM fencing por posse: external_id no item + cursor na publication
+   *  (monotônico) + tentativa `CONFIRMED`; position 0 também preenche externalId/releaseUrl da
+   *  publication. `false` = a posse foi perdida (lease reivindicada por outro dono) — o item já
+   *  está na rede e o desfecho é indeterminado. */
+  confirmItem(
     publicationId: string,
     itemId: string,
     position: number,
+    ownerToken: string,
     d: { externalId: string | null; releaseUrl?: string | null },
-  ): Promise<void>;
+  ): Promise<boolean>;
+  /** encerra a tentativa sem confirmação. Fencing por `ownerToken`: dono obsoleto é no-op. */
+  releaseItem(ownerToken: string, outcome: AttemptRelease): Promise<void>;
+  /** watchdog (§8): toda tentativa ainda `CLAIMED` da publicação vira `INDETERMINATE`.
+   *  Escopo por org — id de outra organização não lê nem muda nada. Devolve quantas mudaram. */
+  abandonAttempts(orgId: string, publicationId: string): Promise<number>;
   /** edita conteúdo/horário das publicações ainda pendentes (SCHEDULED/RETRYING):
    *  volta a SCHEDULED, zera tentativas e incrementa job_version (jobs antigos morrem).
    *  baseContent é MERGE (jsonb ||): editar só o texto preserva a mídia anexada.
@@ -216,8 +253,12 @@ export interface PublishingRepository {
   ): Promise<Array<{ id: string; channelId: string; jobVersion: number; publishAt: Date | null }>>;
   /** feed p/ calendário/kanban — ordenado por (publishAt, id) asc, filtros e cursor */
   listPublicationsFeed(orgId: string, q: PublicationFeedQuery): Promise<PublicationFeedItem[]>;
-  /** RETRYING/TOKEN_REFRESH/PUBLISHING parados há muito tempo (watchdog §8) */
-  listStuck(updatedBefore: Date, limit: number): Promise<Array<{ id: string; state: PublicationState }>>;
+  /** RETRYING/TOKEN_REFRESH/PUBLISHING parados há muito tempo (watchdog §8); `orgId` acompanha
+   *  porque toda mutação de tentativa é escopada por organização */
+  listStuck(
+    updatedBefore: Date,
+    limit: number,
+  ): Promise<Array<{ id: string; orgId: string; state: PublicationState }>>;
   /** agrega estados das publicações → estado do grupo (DONE/PARTIAL/…) */
   refreshGroupState(groupId: string): Promise<void>;
   /** posts (grupos) criados desde `since` — limite mensal do plano Grátis (PlanPolicy) */

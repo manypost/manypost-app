@@ -57,6 +57,15 @@ export type ApiScope = (typeof ApiScopes)[number];
 export const McpOAuthScopes = ['mcp:read', 'mcp:write'] as const;
 export type McpOAuthScope = (typeof McpOAuthScopes)[number];
 
+/**
+ * Estado de uma tentativa de entrega de item (SPEC_QUEUE §7 — posse durável antes da rede).
+ * `CLAIMED` = há um dono vivo com lease; `CONFIRMED` = a rede confirmou e o cursor avançou;
+ * `FAILED_SAFE` = é impossível que a rede tenha aceitado (retentativa segura);
+ * `INDETERMINATE` = pode ter saído sem confirmação local — NUNCA retenta sozinho (DECISIONS §7).
+ */
+export const AttemptStates = ['CLAIMED', 'CONFIRMED', 'FAILED_SAFE', 'INDETERMINATE'] as const;
+export type AttemptState = (typeof AttemptStates)[number];
+
 export const ApprovalStatuses = [
   'PENDING',
   'APPROVED',

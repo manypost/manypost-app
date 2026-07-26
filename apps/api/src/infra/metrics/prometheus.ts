@@ -131,6 +131,15 @@ export function createPrometheusMetrics() {
     'Publicações adiadas por rate-limit por provider e motivo',
     ['provider', 'reason'],
   );
+  const deliverySafety = new Counter(
+    'publishing_delivery_safety_total',
+    'Protocolo de posse por item: posses concedidas, duplicatas evitadas e desfechos incertos',
+    ['provider', 'outcome'],
+  );
+  const leaseRecovered = new Counter(
+    'publishing_lease_recovered_total',
+    'Posses abandonadas recuperadas pelo scanner',
+  );
   const httpDuration = new Histogram(
     'http_request_duration_seconds',
     'Latência das requisições HTTP por método, rota e status',
@@ -148,6 +157,8 @@ export function createPrometheusMetrics() {
     onRetry: (errorClass) => retries.inc({ class: errorClass }),
     onRecovered: (kind, count) => count > 0 && recovered.inc({ kind }, count),
     onRateLimitDenied: (provider, reason) => rateLimitDenied.inc({ provider, reason }),
+    onDeliverySafety: (provider, outcome) => deliverySafety.inc({ provider, outcome }),
+    onLeaseRecovered: (count) => count > 0 && leaseRecovered.inc({}, count),
   };
 
   return {
@@ -168,6 +179,8 @@ export function createPrometheusMetrics() {
           ...retries.render(),
           ...recovered.render(),
           ...rateLimitDenied.render(),
+          ...deliverySafety.render(),
+          ...leaseRecovered.render(),
           ...queueDepth.render(),
           ...httpDuration.render(),
         ].join('\n') + '\n'

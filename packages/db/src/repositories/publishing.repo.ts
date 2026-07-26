@@ -1,4 +1,6 @@
+import { randomUUID } from 'node:crypto';
 import { and, asc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
+import { uuidv7 } from '../uuid';
 import type { MediaRef, PublicationState } from '@manypost/contracts';
 import type { PublicationView, PublishingRepository, TransitionPatch } from '@manypost/core';
 import type { Db } from '../index';
@@ -6,6 +8,7 @@ import {
   approvalLinks,
   channels,
   postGroups,
+  publicationAttempts,
   publicationEvents,
   publicationItems,
   publications,
@@ -187,8 +190,72 @@ export function makePublishingRepository(db: Db): PublishingRepository {
       }));
     },
 
-    async recordItemPublished(publicationId, itemId, position, d) {
-      await db.transaction(async (tx) => {
+    async claimItem({ publicationId, jobVersion, position, leaseSec }) {
+      // UMA instrução: valida a publicação viva (estado, versão e cursor) na origem do INSERT e
+      // toma a posse no mesmo passo. Reivindicar de novo o MESMO item lógico cai no ON CONFLICT e
+      // só passa quando a tentativa anterior falhou em segurança ou a lease expirou — por isso
+      // CONFIRMED e INDETERMINATE são intransponíveis, e a idempotency_key nunca é reescrita.
+      const rows = await db.execute<{
+        id: string;
+        owner_token: string;
+        idempotency_key: string;
+        attempt_count: number;
+      }>(sql`
+        INSERT INTO publication_attempts
+          (id, org_id, publication_id, job_version, position, state, owner_token, lease_expires_at,
+           idempotency_key, attempt_count)
+        SELECT ${uuidv7()}::uuid, p.org_id, p.id, p.job_version, ${position}::int, 'CLAIMED'::attempt_state,
+               ${randomUUID()}::text, now() + (${leaseSec}::int * interval '1 second'),
+               encode(
+                 sha256(convert_to(
+                   p.id::text || ':' || p.job_version::text || ':' || ${position}::int::text, 'UTF8')),
+                 'hex'),
+               1
+        FROM publications p
+        WHERE p.id = ${publicationId}::uuid
+          AND p.job_version = ${jobVersion}::int
+          AND p.state = 'PUBLISHING'
+          AND p.last_published_index = ${position}::int - 1
+        ON CONFLICT (publication_id, job_version, position) DO UPDATE
+          SET owner_token = excluded.owner_token,
+              state = 'CLAIMED'::attempt_state,
+              lease_expires_at = excluded.lease_expires_at,
+              attempt_count = publication_attempts.attempt_count + 1,
+              updated_at = now()
+          WHERE publication_attempts.state = 'FAILED_SAFE'::attempt_state
+             OR (publication_attempts.state = 'CLAIMED'::attempt_state
+                 AND publication_attempts.lease_expires_at < now())
+        RETURNING id, owner_token, idempotency_key, attempt_count
+      `);
+      const row = rows[0];
+      if (!row) return null;
+      return {
+        attemptId: row.id,
+        ownerToken: row.owner_token,
+        idempotencyKey: row.idempotency_key,
+        attemptCount: Number(row.attempt_count),
+      };
+    },
+
+    async confirmItem(publicationId, itemId, position, ownerToken, d) {
+      return db.transaction(async (tx) => {
+        // fencing por posse: quem foi substituído por outro dono não confirma nada. Não é
+        // preciso revalidar estado/versão da publicação aqui — enquanto há posse viva ela está
+        // PUBLISHING, e PUBLISHING não pode ser cancelada nem editada.
+        const owned = await tx
+          .update(publicationAttempts)
+          .set({ state: 'CONFIRMED', externalId: d.externalId })
+          .where(
+            and(
+              eq(publicationAttempts.publicationId, publicationId),
+              eq(publicationAttempts.position, position),
+              eq(publicationAttempts.ownerToken, ownerToken),
+              eq(publicationAttempts.state, 'CLAIMED'),
+            ),
+          )
+          .returning({ id: publicationAttempts.id });
+        if (owned.length === 0) return false;
+
         await tx
           .update(publicationItems)
           .set({ externalId: d.externalId })
@@ -208,7 +275,35 @@ export function makePublishingRepository(db: Db): PublishingRepository {
           .where(
             and(eq(publications.id, publicationId), eq(publications.lastPublishedIndex, position - 1)),
           );
+        return true;
       });
+    },
+
+    async releaseItem(ownerToken, outcome) {
+      await db
+        .update(publicationAttempts)
+        .set({ state: outcome })
+        .where(
+          and(
+            eq(publicationAttempts.ownerToken, ownerToken),
+            eq(publicationAttempts.state, 'CLAIMED'),
+          ),
+        );
+    },
+
+    async abandonAttempts(orgId, publicationId) {
+      const rows = await db
+        .update(publicationAttempts)
+        .set({ state: 'INDETERMINATE' })
+        .where(
+          and(
+            eq(publicationAttempts.orgId, orgId),
+            eq(publicationAttempts.publicationId, publicationId),
+            eq(publicationAttempts.state, 'CLAIMED'),
+          ),
+        )
+        .returning({ id: publicationAttempts.id });
+      return rows.length;
     },
 
     async listDue(before, limit) {
@@ -410,7 +505,7 @@ export function makePublishingRepository(db: Db): PublishingRepository {
 
     async listStuck(updatedBefore, limit) {
       const rows = await db
-        .select({ id: publications.id, state: publications.state })
+        .select({ id: publications.id, orgId: publications.orgId, state: publications.state })
         .from(publications)
         .where(
           and(

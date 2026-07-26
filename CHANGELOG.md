@@ -6,7 +6,41 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Um post não sai duas vezes na rede porque dois jobs se sobrepuseram.** A continuação de uma
+  thread lia o estado da publicação, conferia em memória e só então chamava a rede: duas execuções
+  concorrentes do mesmo item passavam juntas por essa conferência e publicavam a mesma réplica duas
+  vezes. Agora cada item é **reivindicado no banco antes de qualquer chamada à rede**, numa única
+  instrução que valida estado, versão do agendamento e cursor e concede a posse no mesmo passo — e
+  o cursor só avança para quem apresenta essa posse. Publicação duplicada é o pior modo de falha do
+  produto. Mudança OpenSpec: `harden-publishing-idempotency`.
+- **Uma oscilação de rede não mata mais o post.** Erro sem resposta HTTP chegava ao classificador do
+  provider como `status: 0`, que todo provider trata como falha **permanente** — um timeout de DNS
+  reprovava o post de vez, sem retentativa. Agora falha de transporte é transitória para a
+  plataforma; a decisão de repetir ou não vem do protocolo de posse, não do código HTTP ausente.
+- **Mastodon:** o cabeçalho `Idempotency-Key` era um UUID novo a cada tentativa, o que não
+  desduplica nada (é justamente a retentativa que precisa ser reconhecida como o mesmo toot). Passou
+  a usar a chave estável da plataforma.
+- **Falha de infraestrutura na fila não é mais engolida:** o handler registrava o erro e devolvia
+  sucesso ao pg-boss, então um banco fora do ar marcava o job como entregue e a publicação ficava
+  parada até o watchdog. Agora o erro é relançado depois de percorrer o lote (um job ruim não
+  impede os demais), e o scanner recupera.
+
 ### Added
+
+- **Desfecho incerto vai para revisão humana, nunca para retentativa automática.** Quando a rede
+  pode ter aceitado a publicação mas a confirmação se perdeu (conexão derrubada no meio, posse
+  expirada durante a chamada), a publicação entra em `NEEDS_REVIEW` com `errorClass: 'indeterminate'`
+  e só sai pelo botão "tentar novamente", que é ação humana explícita (DECISIONS §7).
+- **Chave de idempotência estável por item lógico** entregue aos providers em `ctx.idempotencyKey`
+  (`sha256` de publicação+versão+posição — sem conteúdo, id interno ou segredo). Provider cuja API
+  desduplica declara `idempotentPublish` e, com isso, uma queda de conexão volta a ser retentativa
+  segura em vez de revisão. Hoje: `mastodon` e o provider `fake`.
+- Métricas `publishing_delivery_safety_total{provider,outcome}` (posses concedidas, duplicatas
+  evitadas, desfechos incertos) e `publishing_lease_recovered_total` em `/metrics`.
+- Migration aditiva `0005`: tabela `publication_attempts` (posse por item, escopada por
+  organização). Código anterior a ela continua funcionando — só não reivindica nada.
 
 - **Mídia pode morar num bucket (Cloudflare R2, AWS S3 ou MinIO), não só no disco do servidor.**
   `STORAGE_PROVIDER=s3` deixou de ser uma promessa que derrubava o boot e virou driver de verdade,

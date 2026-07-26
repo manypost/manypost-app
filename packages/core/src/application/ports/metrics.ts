@@ -12,4 +12,15 @@ export interface MetricsSink {
   onRecovered(kind: 'due' | 'stuck', count: number): void;
   /** `rate_limit_denied_total{provider,reason}` — reason ∈ window|concurrency */
   onRateLimitDenied(provider: string, reason: 'window' | 'concurrency'): void;
+  /**
+   * `publishing_delivery_safety_total{provider,outcome}` — protocolo de posse (SPEC_QUEUE §7):
+   * `claimed` = posse concedida; `claim_denied` = duplicata evitada antes de tocar a rede;
+   * `indeterminate` = desfecho incerto mandado para revisão humana.
+   */
+  onDeliverySafety?(
+    provider: string,
+    outcome: 'claimed' | 'claim_denied' | 'indeterminate',
+  ): void;
+  /** `publishing_lease_recovered_total` — leases abandonadas recuperadas pelo scanner (§8) */
+  onLeaseRecovered?(count: number): void;
 }

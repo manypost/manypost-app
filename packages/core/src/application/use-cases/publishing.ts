@@ -18,8 +18,50 @@ export const PUBLISH_QUEUE = 'publish';
 export const THREAD_QUEUE = 'publish-thread-item';
 export const RECOVER_QUEUE = 'recover-scan';
 const ERROR_MAX_LEN = 4000;
+/**
+ * Validade da posse de um item (SPEC_QUEUE §7) — e, pela mesma constante, o ponto em que o
+ * watchdog (§8) declara zumbi. Os dois números TÊM que ser o mesmo: uma lease que expirasse
+ * antes do watchdog deixaria um segundo dono publicar enquanto o primeiro ainda respira; uma
+ * que expirasse depois deixaria a publicação em revisão com a posse presa.
+ */
+export const PUBLISH_LEASE_SEC = 15 * 60;
 /** teto do delay entre itens de thread — mantém a publicação abaixo do watchdog de zumbis (15 min) */
 export const THREAD_MAX_DELAY_SEC = 600;
+
+/**
+ * Erros que provam que a rede NÃO chegou a receber o pedido: resolução de nome, recusa de
+ * conexão e handshake TLS acontecem antes do primeiro byte da requisição.
+ */
+const NEVER_LEFT_THE_HOST =
+  /ENOTFOUND|EAI_AGAIN|ECONNREFUSED|ConnectionRefused|Unable to connect|getaddrinfo|ERR_TLS|certificate|SSL routines/i;
+
+/**
+ * Falha de transporte na chamada ao provider: não houve resposta HTTP, então não existe veredito
+ * da rede a respeitar. Sem esta marca o erro chegaria ao `classifyError` com `status: 0`, que
+ * todo provider classifica como **permanente** — uma oscilação de rede mataria o post de vez.
+ * Para a plataforma é transitório; a decisão de repostar ou não já foi tomada por `isSafeToRetry`.
+ */
+class TransportFailure extends Error {
+  constructor(readonly original: unknown) {
+    super(String((original as Error)?.message ?? original));
+    this.name = 'TransportFailure';
+  }
+}
+
+/**
+ * Uma retentativa só é segura quando é impossível que a rede tenha aceitado a chamada:
+ *  - erro COM status HTTP: o servidor respondeu, então a recusa é decisão dele — seguro;
+ *  - erro de conexão (DNS/recusa/TLS): o pedido não saiu — seguro;
+ *  - provider que desduplica pela `idempotencyKey`: repetir não cria segundo post — seguro;
+ *  - qualquer outro erro de transporte (timeout, conexão derrubada no meio, abort): o pedido
+ *    PODE ter sido entregue e aceito — inseguro.
+ * Na incerteza nunca se reposta (DECISIONS §7): o caso inseguro vira revisão humana.
+ */
+export const isSafeToRetry = (err: unknown, providerIsIdempotent: boolean): boolean => {
+  if (providerIsIdempotent) return true;
+  if (Number((err as { status?: number })?.status ?? 0) > 0) return true;
+  return NEVER_LEFT_THE_HOST.test(String((err as Error)?.message ?? err));
+};
 
 /**
  * Issues do Zod prefixadas pelo campo. Sem o path, um campo obrigatório ausente vira só
@@ -295,8 +337,10 @@ const makeRunner = (deps: PublishDeps) =>
     };
 
     if (isContinuation) {
-      // continuação só roda se NADA mudou: mesma versão, ainda PUBLISHING e cursor exato.
-      // Qualquer divergência = job obsoleto/duplicado → no-op (nunca repostar)
+      // Filtro barato para o caso comum de job obsoleto (evita ida ao banco pelo claim); a
+      // AUTORIDADE é o `claimItem` do laço, que revalida estado, versão e cursor na mesma
+      // instrução em que toma a posse. Estas três linhas sozinhas não fencem nada: duas
+      // continuações concorrentes passam por elas juntas.
       if (pub.state !== 'PUBLISHING') return;
       if (jobVersion !== pub.jobVersion) return;
       if (pub.lastPublishedIndex !== afterIndex) return;
@@ -372,6 +416,23 @@ const makeRunner = (deps: PublishDeps) =>
       }
     }
     const attempt = isContinuation ? pub.attemptCount : pub.attemptCount + 1;
+
+    /**
+     * Desfecho incerto: o item PODE estar na rede. Vai para revisão humana e o retry automático
+     * nunca o alcança (só o botão "tentar novamente", que é ação humana explícita — DECISIONS §7).
+     */
+    const reviewIndeterminate = async (msg: string) => {
+      await deps.publishing.transition(pub.id, ['PUBLISHING'], 'NEEDS_REVIEW', {
+        errorClass: 'indeterminate',
+        errorMessage: msg.slice(0, ERROR_MAX_LEN),
+      });
+      deps.metrics?.onDeliverySafety?.(channel.provider, 'indeterminate');
+      deps.log?.('error', 'desfecho indeterminado — publicação em revisão', {
+        publicationId: pub.id,
+        provider: channel.provider,
+      });
+      await deps.publishing.refreshGroupState(pub.groupId);
+    };
 
     const fail = async (cls: string, msg: string) => {
       await deps.publishing.transition(pub.id, ['PUBLISHING', 'TOKEN_REFRESH'], 'FAILED', {
@@ -474,32 +535,78 @@ const makeRunner = (deps: PublishDeps) =>
       let prevExternalId = startIdx > 0 ? items[startIdx - 1]!.externalId : null;
       for (; i < items.length; i++) {
         const item = items[i]!;
-        let res;
-        if (i === 0) {
-          // item 0 publica a partir de pub.content — fonte de verdade p/ edições via PATCH
-          [res] = await provider.publish(
-            ctx,
-            token,
-            [{ content: pub.content.text, media: pub.content.media ?? [] }],
-            settings,
-          );
-        } else {
-          if (!provider.publishReply || !prevExternalId) {
-            throw { status: 422, body: 'thread sem suporte no provider ou sem item anterior' };
-          }
-          res = await provider.publishReply(
-            ctx,
-            token,
-            prevExternalId,
-            { content: item.content.text, media: item.media },
-            settings,
-          );
+
+        // POSSE ANTES DA REDE (SPEC_QUEUE §7). Uma instrução SQL valida a publicação viva
+        // (PUBLISHING + jobVersion + cursor exato) e concede o lease no mesmo passo. Sem isso,
+        // duas continuações sobrepostas passariam pela mesma checagem em memória e publicariam
+        // o mesmo item duas vezes. Negado = job duplicado/obsoleto, ou item já confirmado:
+        // não se chama o provider, não se altera estado — só sai.
+        const claim = await deps.publishing.claimItem({
+          publicationId: pub.id,
+          jobVersion: pub.jobVersion,
+          position: i,
+          leaseSec: PUBLISH_LEASE_SEC,
+        });
+        if (!claim) {
+          deps.metrics?.onDeliverySafety?.(channel.provider, 'claim_denied');
+          deps.log?.('warn', 'posse negada — item já em voo, confirmado ou versão obsoleta', {
+            publicationId: pub.id,
+            position: i,
+          });
+          return;
         }
-        // cursor avança SÓ após confirmação da rede — retry nunca reposta (SPEC_QUEUE §7)
-        await deps.publishing.recordItemPublished(pub.id, item.id, i, {
+        deps.metrics?.onDeliverySafety?.(channel.provider, 'claimed');
+        // a chave é estável por item lógico: a mesma em toda retentativa (o provider que a
+        // honra desduplica sozinho a repetição de um pedido cujo resultado se perdeu)
+        const itemCtx = { ...ctx, idempotencyKey: claim.idempotencyKey };
+
+        let res;
+        try {
+          if (i === 0) {
+            // item 0 publica a partir de pub.content — fonte de verdade p/ edições via PATCH
+            [res] = await provider.publish(
+              itemCtx,
+              token,
+              [{ content: pub.content.text, media: pub.content.media ?? [] }],
+              settings,
+            );
+          } else {
+            if (!provider.publishReply || !prevExternalId) {
+              throw { status: 422, body: 'thread sem suporte no provider ou sem item anterior' };
+            }
+            res = await provider.publishReply(
+              itemCtx,
+              token,
+              prevExternalId,
+              { content: item.content.text, media: item.media },
+              settings,
+            );
+          }
+        } catch (err) {
+          const safe = isSafeToRetry(err, provider.idempotentPublish === true);
+          await deps.publishing.releaseItem(claim.ownerToken, safe ? 'FAILED_SAFE' : 'INDETERMINATE');
+          if (!safe) {
+            return reviewIndeterminate(
+              `item ${i}: a rede pode ter aceitado o post antes de a conexão cair — confirme antes de repostar (${String((err as Error)?.message ?? err).slice(0, 300)})`,
+            );
+          }
+          // desfecho conhecido: segue a classificação transient/permanent/refresh
+          throw Number((err as { status?: number })?.status ?? 0) > 0 ? err : new TransportFailure(err);
+        }
+
+        // cursor avança SÓ após confirmação da rede E com a posse na mão — retry nunca
+        // reposta (SPEC_QUEUE §7). Perder a posse aqui significa post publicado sem registro
+        // local: é o caso indeterminado, não um erro de rede.
+        const confirmed = await deps.publishing.confirmItem(pub.id, item.id, i, claim.ownerToken, {
           externalId: res?.externalId ?? null,
           releaseUrl: res?.releaseUrl ?? null,
         });
+        if (!confirmed) {
+          await deps.publishing.releaseItem(claim.ownerToken, 'INDETERMINATE');
+          return reviewIndeterminate(
+            `item ${i}: publicado na rede, mas a posse da entrega foi perdida antes de registrar — confirme antes de repostar`,
+          );
+        }
         prevExternalId = res?.externalId ?? null;
         if (i === 0) {
           firstExternalId = res?.externalId ?? null;
@@ -529,7 +636,7 @@ const makeRunner = (deps: PublishDeps) =>
       );
       // em thread, aponta o item que falhou (os anteriores ficam publicados — cursor)
       const body = items.length > 1 ? `item ${i} da thread: ${rawBody}` : rawBody;
-      const cls = provider.classifyError(status, rawBody);
+      const cls = err instanceof TransportFailure ? 'transient' : provider.classifyError(status, rawBody);
 
       if (cls === 'permanent') return fail('permanent', body);
 
@@ -798,6 +905,7 @@ export const makeRetryPost = (deps: Pick<MutatePostDeps, 'publishing' | 'schedul
 export interface RecoverDeps {
   publishing: PublishingRepository;
   scheduler: JobScheduler;
+  metrics?: MetricsSink;
   log?: (level: string, msg: string, data?: object) => void;
 }
 
@@ -816,12 +924,17 @@ export const makeRecoverDue = (deps: RecoverDeps) =>
     }
     if (due.length > 0) deps.log?.('warn', 'scanner recuperou publicações', { count: due.length });
 
-    const stuck = await deps.publishing.listStuck(new Date(Date.now() - 15 * 60_000), 200);
+    // mesma constante da lease: quem passou daqui ou morreu, ou perdeu a posse do item
+    const stuck = await deps.publishing.listStuck(new Date(Date.now() - PUBLISH_LEASE_SEC * 1000), 200);
+    let recoveredLeases = 0;
     for (const s of stuck) {
       if (s.state === 'PUBLISHING') {
-        // morreu no meio da chamada à rede: NUNCA repostar às cegas (DECISIONS §7)
+        // morreu no meio da chamada à rede: NUNCA repostar às cegas (DECISIONS §7).
+        // A posse pendente vira INDETERMINATE — assim, mesmo que o dono ressuscite, ele já
+        // não consegue confirmar o item, e o histórico registra que o desfecho é desconhecido.
+        recoveredLeases += await deps.publishing.abandonAttempts(s.orgId, s.id);
         await deps.publishing.transition(s.id, ['PUBLISHING'], 'NEEDS_REVIEW', {
-          errorClass: 'unknown',
+          errorClass: 'indeterminate',
           errorMessage: 'worker interrompido durante a publicação — confirme na rede antes de repostar',
         });
       } else {
@@ -832,5 +945,6 @@ export const makeRecoverDue = (deps: RecoverDeps) =>
         );
       }
     }
+    if (recoveredLeases > 0) deps.metrics?.onLeaseRecovered?.(recoveredLeases);
     return { due: due.length, stuck: stuck.length };
   };

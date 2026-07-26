@@ -2,6 +2,7 @@ import { pgEnum } from 'drizzle-orm/pg-core';
 import {
   ActorTypes,
   ApprovalStatuses,
+  AttemptStates,
   BillingPeriods,
   ChannelStatuses,
   GroupStates,
@@ -17,6 +18,7 @@ export const channelStatus = pgEnum('channel_status', ChannelStatuses);
 export const groupState = pgEnum('group_state', GroupStates);
 export const publicationState = pgEnum('publication_state', PublicationStates);
 export const postOrigin = pgEnum('post_origin', PostOrigins);
+export const attemptState = pgEnum('attempt_state', AttemptStates);
 export const actorType = pgEnum('actor_type', ActorTypes);
 export const approvalStatus = pgEnum('approval_status', ApprovalStatuses);
 export const planTier = pgEnum('plan_tier', PlanTiers);
