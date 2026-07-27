@@ -101,16 +101,13 @@
 
 ## 9. Verification
 
-- [ ] 9.1 `bun run check` green (typechecks, tests, boundaries, AI grep, brand)
-- [ ] 9.2 `bun run build:web` green
-- [ ] 9.3 `bun run spec:validate` green
+- [x] 9.1 `bun run check` green (typechecks, tests, boundaries, AI grep, brand);
+      the final superset `bun run check:ci` passed with 965 tests
+- [x] 9.2 `bun run build:web` green (19 production pages)
+- [x] 9.3 `bun run spec:validate` green (21 changes/specs validated)
 - [x] 9.4 Extend `scripts/e2e-ai.ts`: a rewrite over the limit returns the whole
       text and `overLimit: true`; a rewrite without `channelId` succeeds
-- [ ] 9.5 **Not done — needs a browser.** Reproduce the original data-loss
-      scenario by hand: X + LinkedIn selected, 1200-character draft, "Corrigir".
-      The equivalent assertion runs at the API level in `scripts/e2e-ai.ts` (the
-      whole text comes back with `overLimit: true`), and the composer's mapping
-      is covered by unit tests, but nobody has watched the fixed flow in a real
-      browser. The repository has no browser test harness — every E2E is an API
-      script — so this is the same gap the audit records as finding 12, not an
-      oversight of this change.
+- [x] 9.5 Reproduce the original data-loss scenario in a real browser: X +
+      LinkedIn selected, 1200-character draft, "Corrigir". Playwright confirmed
+      the global rewrite omitted `channelId`, received and applied all 1200
+      characters, and exposed the undo action.

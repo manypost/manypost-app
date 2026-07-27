@@ -56,12 +56,14 @@
 
 ## 7. Verification
 
-- [ ] 7.1 `bun run check`, `bun run build:web`, `bun run db:check`, `bun run spec:validate`
+- [x] 7.1 `bun run check`, `bun run build:web`, `bun run db:check`, `bun run spec:validate`;
+      the final superset `bun run check:ci` passed with 965 tests and 19 pages
 - [x] 7.2 Extend `scripts/e2e-ai.ts`: an image is generated against the fake provider, lands in the
       library with provenance, costs 5 credits, and a replayed idempotency key charges once
 - [x] 7.3 Run idempotency replay/conflict against disposable Redis; fail the E2E when coordination
       is absent instead of treating the paid-operation assertion as optional
 - [x] 7.4 Apply migration `0007` to an empty database and to the preceding schema with existing
       media; inspect generated SQL/metadata, compatibility and rollback
-- [ ] 7.5 Browser smoke: capability hidden without image opt-in, dialog responsive when enabled,
-      one submission while pending, preview usable at desktop and mobile widths
+- [x] 7.5 Browser smoke: capability hidden without image opt-in, dialog responsive when enabled,
+      submit disabled with exactly one request while pending, and preview/buttons usable without
+      overflow at desktop (1440×1000) and mobile (390×844)
