@@ -52,6 +52,20 @@ express the shape of a requested image as an aspect ratio drawn from a closed se
 and the adapter SHALL translate that ratio into whatever dimensions its protocol
 accepts. No use case, route, contract or interface SHALL name a pixel resolution.
 
+#### Scenario: No provider configured by default
+
+- **WHEN** the environment does not set the provider variable
+- **THEN** the resolved configuration selects no adapter
+- **AND** the installation reports AI as unavailable
+
+#### Scenario: Adapter selected by protocol
+
+- **WHEN** the environment names a supported protocol together with a base URL
+  and a model, with an optional API key
+- **THEN** the resolved configuration selects the adapter for that protocol
+- **AND** the API and the dedicated worker resolve the same protocol, base URL
+  and models from the same mapping
+
 #### Scenario: Switching vendor without code change
 
 - **WHEN** the base URL and model name are changed to a different vendor that
@@ -75,6 +89,16 @@ accepts. No use case, route, contract or interface SHALL name a pixel resolution
 The system SHALL report, per installation, whether AI is configured at all,
 which optional AI capabilities exist, and the organization's remaining
 allowance, so an interface can hide what would fail rather than offering it.
+
+#### Scenario: Capabilities report AI off
+
+- **WHEN** no provider is configured and the organization reads its capabilities
+- **THEN** the response reports AI as not enabled
+
+#### Scenario: AI route called on an installation without AI
+
+- **WHEN** no provider is configured and a generation is requested
+- **THEN** the request is refused with the disabled-capability error
 
 #### Scenario: No provider configured
 
