@@ -18,6 +18,10 @@ if (!DATABASE_URL) {
   console.error('✗ defina TEST_DATABASE_URL apontando para um Postgres DESCARTÁVEL');
   process.exit(1);
 }
+if (!process.env.REDIS_URL) {
+  console.error('✗ defina REDIS_URL apontando para um Redis DESCARTÁVEL');
+  process.exit(1);
+}
 
 const API_PORT = Number(process.env.E2E_AI_PORT ?? 3198);
 const MODEL_PORT = API_PORT + 1;
@@ -41,9 +45,9 @@ function check(nome: string, condicao: boolean, detalhe?: unknown) {
 const recebidos: { path: string; body: Record<string, unknown> }[] = [];
 let respostaDoModelo = 'Legenda gerada pelo modelo de teste.';
 
-/** PNG 1x1 real — o caso de uso valida por magic bytes, então precisa ser uma imagem de verdade */
+/** PNG quadrado 191x191 real — permite recortar todas as proporções sem ampliar. */
 const PNG_B64 =
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==';
+  'iVBORw0KGgoAAAANSUhEUgAAAL8AAAC/CAYAAACv6g0GAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAEEklEQVR4nO3awW0EMQwEwYunU3Iik/05B38sgPXQf0H1NqghP/3s66hBB2vw+e8PcNQg8IOACMb8ICCCtD0gIILp+UFABHnwgoAIJu0BAREk6gQBEUzODwIiyJALBEQwE14QEEHWG0BABLPbA4Kdr4HFNhB8r9YA/A9cgjPwg8CPEPODgAim7QEBEaTnBwERzIMXBESQtAcERDBRJwiIIDk/CIhghlwgIIJMeEFABLPeAAIiyG4PCDpeA4ttD1yCM/CDwI8Q84OACKbtAQERpOcHARHMgxcERJC0BwREMFEnCIggOT8IiGCGXCAggkx4QUAEs94AAiLIbg8IOl4Di20PXIIz8IPAjxDzg4AIpu0BARGk5wcBEcyDFwREkLQHBEQwUScIiCA5PwiIYIZcICCCTHhBQASz3gACIshuDwg6XgOLbQ9cgjPwg8CPEPODgAim7QEBEaTnBwERzIMXBESQtAcERDBRJwiIIDk/CIhghlwgIIJMeEFABLPeAAIiyG4PCDpeA4ttD1yCM/CDwI8Q84OACKbtAQERpOcHARHMgxcERJC0BwREMFEnCIggOT8IiGCGXCAggkx4QUAEs94AAiLIbg8IOl4Di20PXIIz8IPAjxDzg4AIpu0BARGk5wcBEcyDFwREkLQHBEQwUScIiCA5PwiIYIZcICCCTHhBQASz3gACIshuDwg6XgOLbQ9cgjPwg8CPEPODgAim7QEBEaTnBwERzIMXBESQtAcERDBRJwiIIDk/CIhghlwgIIJMeEFABLPeAAIiyG4PCDpeA4ttD1yCM/CDwI8Q84OACKbtAQERpOcHARHMgxcERJC0BwREMFEnCIggOT8IiGCGXCAggkx4QUAEs94AAiLIbg8IOl4Di20PXIIz8IPAjxDzg4AIpu0BARGk5wcBEcyDFwREkLQHBEQwUScIiCA5PwiIYIZcICCCTHhBQASz3gACIshuDwg6XgOLbQ9cgjPwg8CPEPODgAim7QEBEaTnBwERzIMXBESQtAcERDBRJwiIIDk/CIhghlwgIIJMeEFABLPeAAIiyG4PCDpeA4ttD1yCM/CDwI8Q84OACKbtAQERpOcHARHMgxcERJC0BwREMFEnCIggOT8IiGCGXCAggkx4QUAEs94AAiLIbg8IOl4Di20PXIIz8IPAjxDzg4AIpu0BARGk5wcBEcyDFwREkLQHBEQwUScIiCA5PwiIYIZcICCCTHhBQASz3gACIshuDwg6XgOLbQ9cgjPwg8CPEPODgAim7QEBEaTnBwERzIMXBESQtAcERDBRJwiIIDk/CIhghlwgIIJMeEFABLPeAAIiyG4PCDpeA4ttD1yCM/CDwI8Q84OACKbtAQERpOcHARHMgxcERJC0BwREMFEnCIggOT8IiGCGXCAggkx4QUAEs94AAiLIbg8IOl4Di20PXIIz8IPAjxDzg4AIpu0BARGk5wcBEcyDFwREkLQHBEQwUScIiCA5PwiIYIZcICCCTHhBQASz3gACIshuDwg6XgOLbQ9cgjPwg8CPEPODgAim7QEBEaTnBwERzIMXBESQtAcERDBRJwiIIDk/CIhghlwgIIJMeEFABLPeAAIiyG4PCDpeA4ttD1yCM/CDwI8Q84OACKbtAQERpOcHARHMgxcERJC0BwREsD/X4BeYV9iDqMAASAAAAABJRU5ErkJggg==';
 /** trocável pelo teste: o que o "provedor" devolve como imagem */
 let respostaDeImagem: string | null = PNG_B64;
 
@@ -116,11 +120,17 @@ async function main() {
   console.log('\n▸ capacidades');
   const capRes = await fetch(`${API}/v1/capabilities`, { headers: authed() });
   const cap = (await capRes.json()) as {
-    ai: { enabled: boolean; canDescribeImages: boolean; credits: { granted: number; remaining: number; enforced: boolean } | null };
+    ai: {
+      enabled: boolean;
+      canDescribeImages: boolean;
+      canGenerateImages: boolean;
+      credits: { granted: number; remaining: number; enforced: boolean } | null;
+    };
   };
   check('capabilities responde 200', capRes.status === 200, capRes.status);
   check('IA aparece habilitada', cap.ai?.enabled === true, cap.ai);
   check('o adapter declara que enxerga imagem', cap.ai?.canDescribeImages === true);
+  check('o modelo de imagem opt-in habilita geração', cap.ai?.canGenerateImages === true);
   check('a franquia do plano aparece', (cap.ai?.credits?.granted ?? 0) > 0, cap.ai?.credits);
   const franquiaInicial = cap.ai!.credits!.remaining;
 
@@ -304,6 +314,11 @@ async function main() {
   check('image responde 200', img.status === 200, imgBody);
   check('a mídia volta marcada como gerada', imgBody.media?.source === 'ai', imgBody.media);
   check('com mime real de imagem', String(imgBody.media?.mime).startsWith('image/'), imgBody.media);
+  check(
+    'com a proporção 9:16 exata nas dimensões reais',
+    Number(imgBody.media?.width) * 16 === Number(imgBody.media?.height) * 9,
+    imgBody.media,
+  );
 
   const pedidoDeImagem = recebidos.at(-1)!;
   check('falou o dialeto de imagens', pedidoDeImagem.path === '/images/generations', pedidoDeImagem.path);
@@ -359,30 +374,38 @@ async function main() {
   const segunda = await idem();
   const segundaBody = (await segunda.json()) as { media?: { id?: string } };
 
-  // A idempotência é guardada no Redis e FALHA ABERTO sem ele (mesma política do resto da
-  // plataforma). Sem store, repetir gera de novo — que é o comportamento correto, não um defeito;
-  // então o bloco declara que não pôde provar, em vez de fingir que provou.
-  if (segunda.headers.get('idempotency-replayed') === 'true') {
-    check('a repetição responde 200', segunda.status === 200, segundaBody);
-    check(
-      'e devolve a MESMA mídia',
-      Boolean(primeiraBody.media?.id) && primeiraBody.media?.id === segundaBody.media?.id,
-      { primeira: primeiraBody.media?.id, segunda: segundaBody.media?.id },
-    );
-    check('o provedor foi chamado uma vez só', recebidos.length === chamadasAntesIdem + 1, {
-      chamadas: recebidos.length - chamadasAntesIdem,
-    });
-    const [aposIdem] = await sql<{ used: number }[]>`
-      SELECT used FROM ai_credits WHERE org_id = ${org!.id}::uuid`;
-    check('e cobrou 5 créditos uma vez só', aposIdem!.used === usadoAntesIdem + 5, {
-      antes: usadoAntesIdem,
-      depois: aposIdem!.used,
-    });
-  } else {
-    console.log(
-      '  · sem store de idempotência (Redis ausente): falha aberto por desenho — NÃO verificado',
-    );
-  }
+  check(
+    'a segunda resposta declara replay do Redis',
+    segunda.headers.get('idempotency-replayed') === 'true',
+    Object.fromEntries(segunda.headers),
+  );
+  check('a repetição responde 200', segunda.status === 200, segundaBody);
+  check(
+    'e devolve a MESMA mídia',
+    Boolean(primeiraBody.media?.id) && primeiraBody.media?.id === segundaBody.media?.id,
+    { primeira: primeiraBody.media?.id, segunda: segundaBody.media?.id },
+  );
+  check('o provedor foi chamado uma vez só', recebidos.length === chamadasAntesIdem + 1, {
+    chamadas: recebidos.length - chamadasAntesIdem,
+  });
+  const [aposIdem] = await sql<{ used: number }[]>`
+    SELECT used FROM ai_credits WHERE org_id = ${org!.id}::uuid`;
+  check('e cobrou 5 créditos uma vez só', aposIdem!.used === usadoAntesIdem + 5, {
+    antes: usadoAntesIdem,
+    depois: aposIdem!.used,
+  });
+
+  const conflito = await fetch(`${API}/v1/ai/image`, {
+    method: 'POST',
+    headers: { ...authed(), 'idempotency-key': chave },
+    body: JSON.stringify({ prompt: 'corpo diferente', aspect: '1:1' }),
+  });
+  const conflitoBody = (await conflito.json()) as { title?: string };
+  check(
+    'mesma chave com outro corpo é conflito',
+    conflito.status === 409 && conflitoBody.title === 'common.idempotency_conflict',
+    { status: conflito.status, body: conflitoBody },
+  );
 
   console.log('\n▸ bytes que não são imagem falham e devolvem a franquia');
   respostaDeImagem = btoa('<html>erro do proxy</html>');
