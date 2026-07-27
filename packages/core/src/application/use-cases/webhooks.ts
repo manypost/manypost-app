@@ -1,7 +1,7 @@
 import { createHmac } from 'node:crypto';
-import { lookup } from 'node:dns/promises';
 import { ErrorCodes, type WebhookEnvelope, type WebhookEvent } from '@manypost/contracts';
 import { DomainError } from '../../domain/shared/result';
+import { assertPublicDestination, outboundRequest } from '../../infra/net/outbound-http';
 import type { CryptoService } from '../ports/crypto';
 import type { EventPublisher, WebhookRecord, WebhookRepository } from '../ports/events';
 import type { JobScheduler } from '../ports/job-scheduler';
@@ -25,19 +25,13 @@ const sanitize = (w: WebhookRecord) => ({
   createdAt: w.createdAt,
 });
 
-/** Bloqueia URLs que resolvem para IP privado (anti-SSRF — SPEC_API_MCP §3). */
+/**
+ * Bloqueia URLs que resolvem para IP privado/reservado (anti-SSRF).
+ * Classificação normalizada IPv4/IPv6; o fetch de entrega usa pin do endereço
+ * validado (`outboundRequest`) — ver harden-outbound-request-security.
+ */
 export async function assertPublicUrl(rawUrl: string, allowPrivate = false, what = 'webhook') {
-  const url = new URL(rawUrl);
-  if (url.protocol !== 'https:' && url.protocol !== 'http:') {
-    throw new DomainError(ErrorCodes.PostInvalidSettings, `URL de ${what} deve ser http(s)`);
-  }
-  if (allowPrivate) return;
-  const addrs = await lookup(url.hostname, { all: true }).catch(() => []);
-  const isPrivate = (ip: string) =>
-    /^(10\.|127\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|0\.|::1|f[cd]|fe80)/i.test(ip);
-  if (addrs.length === 0 || addrs.some((a) => isPrivate(a.address))) {
-    throw new DomainError(ErrorCodes.PostInvalidSettings, `URL de ${what} não permitida (rede privada)`);
-  }
+  await assertPublicDestination(rawUrl, { allowPrivate, what });
 }
 
 export interface WebhookDeps {
@@ -116,6 +110,7 @@ export const signWebhookBody = (secret: string, timestamp: number, body: string)
 
 export const makeDeliverWebhook = (deps: WebhookDeps & {
   scheduler: JobScheduler;
+  /** @deprecated prefer o adapter pinado; ainda usado em testes que mockam fetch global-like */
   fetchFn?: typeof fetch;
   log?: (level: string, msg: string, data?: object) => void;
 }) =>
@@ -134,29 +129,46 @@ export const makeDeliverWebhook = (deps: WebhookDeps & {
     const attempts = delivery.attempts + 1;
     const body = JSON.stringify(delivery.payload);
     try {
-      await assertPublicUrl(webhook.url, deps.allowPrivateUrls);
       const secret = await deps.crypto.decrypt(
         webhook.secretEnc,
         webhookAad(webhook.orgId),
         webhook.secretKeyVersion,
       );
       const ts = Math.floor(Date.now() / 1000);
-      const res = await (deps.fetchFn ?? fetch)(webhook.url, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'user-agent': 'manypost-webhooks',
-          'x-manypost-event': delivery.event,
-          'x-manypost-signature': signWebhookBody(secret, ts, body),
-        },
-        body,
-        redirect: 'error',
-        signal: AbortSignal.timeout(10_000),
-      });
-      if (res.status >= 200 && res.status < 300) {
+      const headers = {
+        'content-type': 'application/json',
+        'user-agent': 'manypost-webhooks',
+        'x-manypost-event': delivery.event,
+        'x-manypost-signature': signWebhookBody(secret, ts, body),
+      };
+      let status: number;
+      if (deps.fetchFn) {
+        // caminho de teste legado — ainda valida destino antes
+        await assertPublicUrl(webhook.url, deps.allowPrivateUrls);
+        const res = await deps.fetchFn(webhook.url, {
+          method: 'POST',
+          headers,
+          body,
+          redirect: 'error',
+          signal: AbortSignal.timeout(10_000),
+        });
+        status = res.status;
+      } else {
+        const res = await outboundRequest(
+          { url: webhook.url, method: 'POST', headers, body, redirect: 'error' },
+          {
+            allowPrivate: deps.allowPrivateUrls,
+            what: 'webhook',
+            timeoutMs: 10_000,
+            userAgent: 'manypost-webhooks',
+          },
+        );
+        status = res.status;
+      }
+      if (status >= 200 && status < 300) {
         return deps.webhooks.markDelivery(deliveryId, { status: 'DELIVERED', attempts });
       }
-      throw new Error(`HTTP ${res.status}`);
+      throw new Error(`HTTP ${status}`);
     } catch (err) {
       if (attempts >= MAX_ATTEMPTS) {
         return deps.webhooks.markDelivery(deliveryId, {

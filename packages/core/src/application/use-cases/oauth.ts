@@ -3,6 +3,7 @@ import { ErrorCodes } from '@manypost/contracts';
 import { DomainError } from '../../domain/shared/result';
 import type { OAuthAppRecord, OAuthAppRepository, OAuthGrantRepository } from '../ports/oauth';
 import { randomToken, sha256Hex } from '../tokens';
+import { outboundRequest } from '../../infra/net/outbound-http';
 import { assertPublicUrl } from './webhooks';
 
 export const OAUTH_ACCESS_PREFIX = 'mpo_';
@@ -127,17 +128,38 @@ export const makeResolveOAuthClient = (deps: Pick<OAuthAsDeps, 'apps' | 'fetchIm
     if (existing) return existing;
     if (!clientId.startsWith('https://')) return null;
 
-    await assertPublicUrl(clientId, false, 'oauth_cimd');
-    const fetchFn = deps.fetchImpl ?? fetch;
-    const res = await fetchFn(clientId, {
-      redirect: 'error',
-      signal: AbortSignal.timeout(10_000),
-      headers: { accept: 'application/json' },
-    });
-    if (!res.ok) {
-      throw new DomainError(ErrorCodes.Forbidden, 'CIMD inacessível');
+    let buf: Uint8Array;
+    if (deps.fetchImpl) {
+      await assertPublicUrl(clientId, false, 'oauth_cimd');
+      const res = await deps.fetchImpl(clientId, {
+        redirect: 'error',
+        signal: AbortSignal.timeout(10_000),
+        headers: { accept: 'application/json' },
+      });
+      if (!res.ok) {
+        throw new DomainError(ErrorCodes.Forbidden, 'CIMD inacessível');
+      }
+      buf = new Uint8Array(await res.arrayBuffer());
+    } else {
+      const res = await outboundRequest(
+        {
+          url: clientId,
+          method: 'GET',
+          headers: { accept: 'application/json' },
+          redirect: 'error',
+        },
+        {
+          what: 'oauth_cimd',
+          timeoutMs: 10_000,
+          maxBytes: CIMD_MAX_BYTES,
+          userAgent: 'manypost-oauth-cimd',
+        },
+      );
+      if (res.status < 200 || res.status >= 300) {
+        throw new DomainError(ErrorCodes.Forbidden, 'CIMD inacessível');
+      }
+      buf = res.body;
     }
-    const buf = new Uint8Array(await res.arrayBuffer());
     if (buf.byteLength > CIMD_MAX_BYTES) {
       throw new DomainError(ErrorCodes.Forbidden, 'CIMD grande demais');
     }
