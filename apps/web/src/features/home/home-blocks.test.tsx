@@ -79,6 +79,13 @@ describe('bloco de hoje', () => {
     expect(html).toContain('4');
     expect(html).toContain('1 já publicado hoje');
   });
+
+  test('falha de hoje não vira estado vazio e oferece o caminho de resolução', () => {
+    const html = render(<TodayBlock today={{ scheduled: 0, published: 0, failed: 2 }} />);
+    expect(html).not.toContain('Nada agendado para hoje');
+    expect(html).toContain('2 falharam hoje');
+    expect(html).toContain('/kanban');
+  });
 });
 
 describe('bloco de plano', () => {

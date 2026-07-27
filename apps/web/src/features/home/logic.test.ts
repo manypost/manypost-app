@@ -150,6 +150,7 @@ describe('cobertura de tradução da home', () => {
     'todayEmptyCta',
     'todayPublished',
     'todayScheduled',
+    'todayFailed',
     'openCalendar',
     'usageTitle',
     'usagePosts',

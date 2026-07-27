@@ -780,6 +780,8 @@
     "expiredBody": "Reinicie a conexão pelo cliente MCP (Cursor, Claude, Codex, OpenCode, VS Code ou Inspector)."
   },
   "settings": {
+    "title": "Configurações",
+    "subtitle": "Gerencie seu perfil, chaves de API, agentes e webhooks desta organização.",
     "profileTitle": "Perfil",
     "apiKeysTitle": "API keys",
     "apiKeysHint": "Chaves mp_live_ para usar a API do manypost em scripts e integrações. A chave completa aparece uma única vez.",
@@ -1170,6 +1172,7 @@
     "todayEmptyCta": "Agendar um post",
     "todayPublished": "{count, plural, one {# já publicado hoje} other {# já publicados hoje}}",
     "todayScheduled": "{count, plural, one {# agendado} other {# agendados}}",
+    "todayFailed": "{count, plural, one {# falhou hoje} other {# falharam hoje}}",
     "openCalendar": "Abrir o calendário",
     "usageTitle": "Seu plano",
     "usagePosts": "Posts do mês",

@@ -145,7 +145,7 @@ export function AttentionBlock({ attention }: { attention: InsightsSummary['atte
 /** "Sai hoje" — a segunda pergunta da manhã, depois de "está tudo bem?" */
 export function TodayBlock({ today }: { today: InsightsSummary['today'] }) {
   const t = useTranslations('home');
-  const nada = today.scheduled === 0 && today.published === 0;
+  const nada = today.scheduled === 0 && today.published === 0 && today.failed === 0;
 
   return (
     <Card
@@ -175,6 +175,14 @@ export function TodayBlock({ today }: { today: InsightsSummary['today'] }) {
             <p className="text-compact text-graphite">
               {t('todayPublished', { count: today.published })}
             </p>
+          ) : null}
+          {today.failed > 0 ? (
+            <Link
+              href="/kanban"
+              className="text-compact font-semibold text-state-failed underline-offset-2 hover:underline"
+            >
+              {t('todayFailed', { count: today.failed })}
+            </Link>
           ) : null}
         </div>
       )}

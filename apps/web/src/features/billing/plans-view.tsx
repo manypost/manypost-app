@@ -126,9 +126,9 @@ export function PlansView() {
   if (!billingEnabled) {
     return (
       <div className="flex max-w-2xl flex-col gap-2 rounded-lg border border-line bg-surface p-5">
-        <h1 className="font-display text-base font-bold tracking-[-0.2px] text-ink">
+        <h2 className="font-display text-base font-bold tracking-[-0.2px] text-ink">
           {t('selfHostedTitle')}
-        </h1>
+        </h2>
         <p className="text-compact leading-relaxed text-graphite">{t('selfHostedBody')}</p>
       </div>
     );
