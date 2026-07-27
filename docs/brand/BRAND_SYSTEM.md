@@ -217,9 +217,11 @@ Cards estruturais devem ter altura igualizada (`height: 100%` em grids com `alig
 ### B. Badges de Indicadores (`.badge`)
 * **Especificação:** `font-size: 11px`, `font-weight: 600`, `padding: 4px 10px`, `border-radius: 4px`, `background: var(--surface)`, `border: 1px solid var(--line)`, `color: var(--graphite)`, `text-transform: uppercase`.
 
-### C. Logo Oficial (`/images/logo.png`)
-* A logo oficial do manypost está em `public/images/logo.png` (ou `logo.png` se carregado diretamente na raiz do componente de branding) — um mark quadrado roxo.
-* **No Header:** Utilizar `<img src="/images/logo.png" alt="Logo do manypost" width="28" height="28" />` (com fallback `onerror` na documentação HTML), acompanhada do wordmark **`manypost`** em fonte Display (Plus Jakarta Sans no app; Degular na landing legada quando disponível).
+### C. Logo Oficial (SVG)
+* **Completa** (`public/images/logo.svg` / `apps/web/public/images/logo.svg`): horizontal com ícone + wordmark **`manypost`** em curvas (não depende de fonte). Usar sozinha — **não** duplicar o texto ao lado.
+* **Simplificada** (`logoSimplificada.svg`): mark quadrado roxo (ícone only). Usar em sidebar recolhida, diagramas e espaços onde o wordmark não cabe.
+* **No Header / Wordmark do app:** componente `Wordmark` → `<img src="/images/logo.svg" alt="manypost" height="28" />` (proporção ~1600×420).
+* **Mark só:** `<img src="/images/logoSimplificada.svg" alt="manypost" width="32" height="32" />`.
 * **Grafia da Marca:** A grafia oficial é sempre **`manypost`** (tudo minúsculo), inclusive em títulos, textos e `<title>`. Nunca escrever ManyPost ou `Manypost` em superfícies de produto.
 
 ---

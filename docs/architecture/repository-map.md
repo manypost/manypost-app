@@ -249,7 +249,7 @@ e exigem alvo exato; consultas de diagnóstico não autorizam mutação.
 ## Assets e referências
 
 - `apps/web/public/`: assets servidos pelo Next.
-- `docs/brand/logo.png` e artefatos de marca: identidade atual.
+- `docs/brand/logo.svg` e `apps/web/public/images/{logo,logoSimplificada}.svg`: identidade atual (completa vs. mark).
 - binários/imagens de referência não devem ser recompactados por uma mudança de
   documentação.
 - licenças e atribuições na raiz/packages são material legal protegido.

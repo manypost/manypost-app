@@ -2,7 +2,7 @@
   <br />
   <a href="https://github.com/manypost/manypost-app">
     <picture>
-      <img alt="manypost" src="docs/brand/logo.png" width="280" />
+      <img alt="manypost" src="docs/brand/logo.svg" width="280" />
     </picture>
   </a>
   <br />

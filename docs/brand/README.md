@@ -37,7 +37,7 @@
 - **Botões**: `primary|enterprise|outline|ghost|link` (+`destructive`) × `sm|md|lg` exatamente como BRAND §6 (11/13/15px, radius 6px).
 - **Densidade do app** (substitui as métricas de landing): páginas com padding 24px; cards de app com padding 16–24px; linhas de tabela/lista 40–48px; gaps 8/12/16/24px — sempre múltiplos de 4/8 (princípio da marca preservado, escala reduzida).
 - **Fontes**: `next/font` self-hosted — Inter 400/500/600/700 e Plus Jakarta Sans 600/700/800.
-- **Wordmark**: `manypost` sempre minúsculo (UI, `<title>`, e-mails, docs). Logo: mark 500×500 roxo em `public/images/logo.png`, 28px no header com wordmark ao lado.
+- **Wordmark**: `manypost` sempre minúsculo (UI, `<title>`, e-mails, docs). Logos SVG em `apps/web/public/images/`: `logo.svg` (completa, ícone + texto) e `logoSimplificada.svg` (mark quadrado). Header usa a completa via `Wordmark` (~28px de altura); espaços apertados usam a simplificada.
 
 ## 3. Tokens semânticos de estado (✅ APROVADO — promovido ao BRAND_SYSTEM.md §3.1 em 2026-07-10)
 
