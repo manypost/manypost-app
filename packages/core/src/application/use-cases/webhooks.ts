@@ -157,7 +157,7 @@ export const makeDeliverWebhook = (deps: WebhookDeps & {
         const res = await outboundRequest(
           { url: webhook.url, method: 'POST', headers, body, redirect: 'error' },
           {
-            allowPrivate: deps.allowPrivateUrls,
+            ...(deps.allowPrivateUrls ? { allowPrivate: true } : {}),
             what: 'webhook',
             timeoutMs: 10_000,
             userAgent: 'manypost-webhooks',

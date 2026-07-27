@@ -73,7 +73,7 @@ export const makeIngestMediaFromUrl = (
           redirect: 'follow',
         },
         {
-          allowPrivate: deps.allowPrivateUrls,
+          ...(deps.allowPrivateUrls ? { allowPrivate: true } : {}),
           what: 'mídia',
           maxRedirects: 3,
           timeoutMs: 30_000,
