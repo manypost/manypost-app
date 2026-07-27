@@ -33,3 +33,5 @@ export * from './infra/storage/media-key';
 export * from './infra/storage/media-storage';
 export * from './infra/storage/s3.storage';
 export * from './infra/media/sniff';
+export * from './infra/net/ip-classify';
+export * from './infra/net/outbound-http';
