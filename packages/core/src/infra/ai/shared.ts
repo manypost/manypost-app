@@ -15,6 +15,12 @@ export type AiAdapterConfig = {
   model: string;
   timeoutMs: number;
   maxOutputTokens: number;
+  /**
+   * Modelo de imagem, quando o de texto não desenha. Opcional: sem ele, a geração de imagem usa
+   * `model`. Existe porque um operador não deveria precisar de duas instalações só porque o modelo
+   * de texto que ele escolheu não produz imagem.
+   */
+  imageModel?: string;
 };
 
 /** o mesmo `fetch` global, injetável para os testes não tocarem a rede */
@@ -71,9 +77,12 @@ export async function postJson(
   path: string,
   body: unknown,
   headers: Record<string, string>,
+  /** cancelamento do chamador — soma-se ao teto de tempo da instalação, nunca o substitui */
+  signal?: AbortSignal,
 ): Promise<unknown> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), config.timeoutMs);
+  signal?.addEventListener('abort', () => controller.abort(), { once: true });
   try {
     const response = await fetchImpl(joinUrl(config.baseUrl, path), {
       method: 'POST',
@@ -121,6 +130,26 @@ export const cappedTokens = (config: AiAdapterConfig, requested: number): number
   void requested;
   return Math.max(1, config.maxOutputTokens);
 };
+
+/**
+ * Base64 → bytes, sem confiar na entrada.
+ *
+ * `atob` estoura com caractere fora do alfabeto, e um provedor devolvendo lixo é um caso real
+ * (proxy que injeta HTML de erro num corpo JSON, por exemplo). A falha vira `ai.invalid_response`,
+ * que o `withBudget` trata como erro NOSSO e devolve a franquia — cobrar por lixo seria a troca
+ * errada.
+ */
+export function decodeBase64(b64: string): Uint8Array {
+  try {
+    const bin = atob(b64.replace(/\s/g, ''));
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    if (bytes.byteLength === 0) throw new Error('vazio');
+    return bytes;
+  } catch {
+    throw invalidResponse();
+  }
+}
 
 export const authHeaders = (
   apiKey: string | undefined,

@@ -64,7 +64,7 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
           aria-hidden
         />
       </button>
-      {open ? <p className="pb-3.5 text-[13px] leading-relaxed text-graphite">{answer}</p> : null}
+      {open ? <p className="pb-3.5 text-compact leading-relaxed text-graphite">{answer}</p> : null}
     </div>
   );
 }
@@ -124,14 +124,14 @@ export function OnboardingView() {
       {/* ---------------- argumento ---------------- */}
       <div className="flex flex-col gap-7 px-5 py-8 md:px-10 lg:py-12">
         <div className="flex flex-col gap-3">
-          <span className="flex w-fit items-center gap-1.5 rounded-sm bg-accent-tint px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-accent">
+          <span className="flex w-fit items-center gap-1.5 rounded-sm bg-accent-tint px-2.5 py-1 text-meta font-semibold uppercase tracking-wide text-accent">
             <PartyPopper className="size-3.5" aria-hidden />
             {t('welcome')}
           </span>
           <h1 className="max-w-3xl font-display text-3xl font-bold leading-[1.1] tracking-[-1px] text-ink md:text-[40px]">
             Uma marca, <span className="text-accent">todas as suas redes.</span>
           </h1>
-          <p className="max-w-2xl text-[15px] leading-relaxed text-graphite">{t('subheadline')}</p>
+          <p className="max-w-2xl text-panel leading-relaxed text-graphite">{t('subheadline')}</p>
         </div>
 
         {/* selos de confiança numa linha só, ocupando a largura (padrão da referência) */}
@@ -147,7 +147,7 @@ export function OnboardingView() {
           </span>
           <div className="flex min-w-0 flex-col gap-0.5">
             <p className="text-sm font-semibold text-ink">{t('compareTitle')}</p>
-            <p className="text-[13px] leading-relaxed text-graphite">{t('compareBody')}</p>
+            <p className="text-compact leading-relaxed text-graphite">{t('compareBody')}</p>
           </div>
         </div>
 
@@ -201,7 +201,7 @@ export function OnboardingView() {
       {/* ---------------- barra fixa de conversão ---------------- */}
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface px-5 py-3 md:px-10">
         <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-3">
-          <p className="min-w-0 text-[13px] leading-snug text-graphite">
+          <p className="min-w-0 text-compact leading-snug text-graphite">
             {selected === 'FREE' || !selectedPrice
               ? t('footerFree')
               : t('footerPaid', {

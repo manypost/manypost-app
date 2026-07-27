@@ -45,7 +45,7 @@ export function PeriodToggle({
         >
           {period === 'MONTHLY' ? t('monthly') : t('yearly')}
           {period === 'YEARLY' ? (
-            <span className="rounded-sm bg-accent px-1.5 py-0.5 text-[10px] font-bold text-paper">
+            <span className="rounded-sm bg-accent px-1.5 py-0.5 text-axis font-bold text-paper">
               {t('yearlyDiscount')}
             </span>
           ) : null}
@@ -85,7 +85,7 @@ export function PlanPickerCard({
       aria-checked={selected}
       onClick={onSelect}
       className={cn(
-        'flex flex-col items-start gap-1 rounded-lg border px-4 py-3.5 text-left outline-none transition-colors duration-200',
+        'flex cursor-pointer flex-col items-start gap-1 rounded-lg border px-4 py-3.5 text-left outline-none transition-colors duration-200',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
         selected
           ? 'bevel-accent'
@@ -142,13 +142,13 @@ export function PlanIncludes({ tier }: { tier: PlanTier }) {
       </h3>
       <ul className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
         {bullets.map((bullet) => (
-          <li key={bullet} className="flex items-start gap-2 text-[13px] leading-snug text-ink-soft">
+          <li key={bullet} className="flex items-start gap-2 text-compact leading-snug text-ink-soft">
             <Check className="mt-0.5 size-4 shrink-0 text-accent" aria-hidden />
             {bullet}
           </li>
         ))}
         {excluded.map((bullet) => (
-          <li key={bullet} className="flex items-start gap-2 text-[13px] leading-snug text-mist">
+          <li key={bullet} className="flex items-start gap-2 text-compact leading-snug text-mist">
             <span className="mt-0.5 grid size-4 shrink-0 place-items-center" aria-hidden>
               <span className="h-px w-2.5 bg-mist" />
             </span>

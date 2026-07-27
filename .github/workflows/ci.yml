@@ -89,6 +89,11 @@ jobs:
           BASE_URL=http://localhost:3988 API_BASE_URL=http://127.0.0.1:3988/v1 bun run scripts/e2e-public.ts
           BASE_URL=http://localhost:3988 MCP_URL=http://127.0.0.2:3988 bun run scripts/e2e-mcp.ts
           BASE_URL=http://localhost:3988 MCP_URL=http://127.0.0.2:3988 bun run scripts/e2e-mcp-oauth.ts
+          # Resumo da tela inicial: SQL agregado, e agregado é onde um `where org_id` esquecido
+          # não quebra nada — só mistura as contas de dois clientes. Roda no fim porque semeia
+          # organizações próprias e não depende do estado das fases anteriores.
+          DATABASE_URL=postgresql://mp:mp@localhost:5499/mp BASE_URL=http://localhost:3988 \
+            bun run scripts/e2e-insights.ts
 
       # Limites de plano: exige a API em modo GERENCIADO (IS_SELF_HOSTED=false + Stripe).
       # Nenhuma chamada sai para a Stripe — o enforcement é local; a chave só liga o modo.

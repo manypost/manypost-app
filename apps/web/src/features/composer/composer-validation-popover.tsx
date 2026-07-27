@@ -105,7 +105,7 @@ export function ComposerValidationPopover({
           // o mousedown é o que tira o cursor do texto — o clique continua abrindo o popover
           onMouseDown={(e) => e.preventDefault()}
           className={cn(
-            'flex shrink-0 cursor-pointer items-center gap-1.5 rounded-sm border px-2 py-1 text-[11px] font-semibold tabular-nums outline-none transition-colors duration-200',
+            'flex shrink-0 cursor-pointer items-center gap-1.5 rounded-sm border px-2 py-1 text-meta font-semibold tabular-nums outline-none transition-colors duration-200',
             'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
             invalido
               ? 'border-state-failed bg-state-failed-tint text-state-failed'
@@ -138,7 +138,7 @@ export function ComposerValidationPopover({
       >
         {capacidades.length > 0 ? (
           <section className="flex flex-col gap-2">
-            <h3 className="text-[11px] font-semibold uppercase tracking-wide text-graphite">
+            <h3 className="text-meta font-semibold uppercase tracking-wide text-graphite">
               {t('validation.channelsTitle')}
             </h3>
             <ul className="flex flex-col gap-2">
@@ -181,7 +181,7 @@ export function ComposerValidationPopover({
           <section
             className={cn('flex flex-col gap-1.5', capacidades.length > 0 && 'border-t border-line pt-3')}
           >
-            <h3 className="text-[11px] font-semibold uppercase tracking-wide text-graphite">
+            <h3 className="text-meta font-semibold uppercase tracking-wide text-graphite">
               {t('validation.issuesTitle')}
             </h3>
             <ul className="flex flex-col gap-1">

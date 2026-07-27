@@ -1,7 +1,12 @@
 'use client';
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
+import {
+  draftPersistenceMonitor,
+  draftStateStorage,
+  trackDraftStorage,
+} from './draft-persistence';
 
 /**
  * Estado do composer (SPEC_FRONTEND §3.3): Zustand com persist = autosave do
@@ -170,6 +175,11 @@ export const useComposerStore = create<ComposerState>()(
         })),
       reset: () => set((s) => ({ ...EMPTY, editorNonce: s.editorNonce + 1 })),
     }),
-    { name: 'mp-composer-draft' },
+    {
+      name: 'mp-composer-draft',
+      storage: createJSONStorage(() =>
+        trackDraftStorage(draftStateStorage, draftPersistenceMonitor),
+      ),
+    },
   ),
 );

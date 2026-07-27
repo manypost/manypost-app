@@ -8,6 +8,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Plug,
+  House,
   Settings,
   SquareKanban,
 } from 'lucide-react';
@@ -23,6 +24,9 @@ import { cn } from '@/lib/utils';
 import type { IconType } from '@/types';
 
 const MAIN_NAV: Array<{ href: string; key: string; icon: IconType }> = [
+  // Início primeiro: é a âncora da navegação. Sem ela, o produto não tinha "começo" — e o
+  // wordmark levava ao calendário, então nem o gesto universal de voltar ao início existia.
+  { href: '/inicio', key: 'home', icon: House },
   { href: '/calendario', key: 'calendar', icon: CalendarDays },
   { href: '/kanban', key: 'kanban', icon: SquareKanban },
   { href: '/midia', key: 'media', icon: ImageIcon },
@@ -69,7 +73,7 @@ function RailItem({
     >
       <Icon className="size-4 shrink-0" aria-hidden />
       {!collapsed ? (
-        <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{label}</span>
+        <span className="min-w-0 flex-1 truncate text-compact font-medium">{label}</span>
       ) : null}
       {dot ? (
         <span
@@ -138,7 +142,7 @@ export function AppSidebar() {
         )}
       >
         <Link
-          href="/calendario"
+          href="/inicio"
           aria-label="manypost"
           className={cn(
             'flex items-center outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',

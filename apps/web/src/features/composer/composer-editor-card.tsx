@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useState } from 'react';
 import type { Editor } from '@tiptap/react';
-import { AiActions } from '@/features/ai/ai-actions';
+import { AiActions, type AiActionsProps } from '@/features/ai/ai-actions';
 import { cn } from '@/lib/utils';
 import { useTextoDoEscopo } from './composer-selectors';
 import { ComposerValidationPopover } from './composer-validation-popover';
@@ -32,7 +32,7 @@ export function ComposerEditorCard({
   label,
   placeholder,
   autoFocus,
-  aiChannelIds,
+  ai,
   cabecalho,
   media,
   extra,
@@ -46,11 +46,11 @@ export function ComposerEditorCard({
   label: string;
   placeholder?: string;
   autoFocus?: boolean;
-  /** canais que a IA considera para limite e formato */
-  aiChannelIds: string[];
+  /** contrato da IA para o escopo deste cartão */
+  ai: Pick<AiActionsProps, 'channelIds' | 'scope' | 'onVariants' | 'networkNameOf'>;
   /** faixa no topo do cartão (ex.: "personalizando para X" + voltar ao global) */
   cabecalho?: ReactNode;
-  media?: { selectedIds: string[]; onToggle: (mediaId: string) => void };
+  media?: { selectedIds: string[]; onToggle: (mediaId: string) => void; channelId?: string };
   /** controles próprios do cartão (ex.: espera e remover, na thread) */
   extra?: ReactNode;
   editorClassName?: string;
@@ -82,9 +82,13 @@ export function ComposerEditorCard({
         <FormattingToolbar editor={editor} />
         <span aria-hidden className="mx-1 h-4 w-px shrink-0 bg-line" />
         {media ? (
-          <MediaPicker selectedIds={media.selectedIds} onToggle={media.onToggle} />
+          <MediaPicker
+            selectedIds={media.selectedIds}
+            onToggle={media.onToggle}
+            {...(media.channelId ? { channelId: media.channelId } : {})}
+          />
         ) : null}
-        <AiActions editor={editor} text={texto} channelIds={aiChannelIds} />
+        <AiActions editor={editor} text={texto} {...ai} />
         {extra}
         <ComposerValidationPopover escopo={escopo} className="ml-auto" />
       </div>

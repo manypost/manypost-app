@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+import sharp from 'sharp';
 import { DomainError } from '../../domain/shared/result';
 import { makeChatCompletionsProvider } from './chat-completions';
 
@@ -9,6 +10,7 @@ const config = {
   timeoutMs: 5000,
   maxOutputTokens: 500,
 };
+const imageConfig = { ...config, imageModel: 'modelo-de-imagem' };
 
 /** dublê de fetch: guarda a última requisição e devolve o que o teste mandar */
 function fakeFetch(reply: { status?: number; body?: unknown; text?: string }) {
@@ -203,5 +205,130 @@ describe('adapter de chat-completions', () => {
     await makeChatCompletionsProvider({ ...config, baseUrl: 'https://g.example/v1/' }, f)
       .generateText({ system: 's', prompt: 'p', maxTokens: 10 });
     expect(f.calls[0]!.url).toBe('https://g.example/v1/chat/completions');
+  });
+});
+
+/** Quadrado real grande o bastante para recortar todas as proporções sem ampliar. */
+const PNG_B64 = Buffer.from(
+  await sharp({
+    create: {
+      width: 191,
+      height: 191,
+      channels: 4,
+      background: { r: 42, g: 91, b: 120, alpha: 1 },
+    },
+  })
+    .png()
+    .toBuffer(),
+).toString('base64');
+
+describe('geração de imagem', () => {
+  const imagemOk = { data: [{ b64_json: PNG_B64, revised_prompt: 'um gato, iluminado' }] };
+
+  it('traduz PROPORÇÃO em resolução do fornecedor — o core nunca manda pixel', async () => {
+    const f = fakeFetch({ body: imagemOk });
+    const provider = makeChatCompletionsProvider(imageConfig, f);
+
+    await provider.generateImage!({ prompt: 'um gato', aspect: '9:16' });
+
+    expect(f.calls[0]!.url).toBe('https://gateway.example/v1/images/generations');
+    const enviado = body(f);
+    expect(enviado.size).toBe('1024x1792'); // 9:16 → retrato
+    expect(enviado.model).toBe('modelo-de-imagem');
+    expect(enviado.n).toBe(1); // uma requisição, uma imagem (custo previsível)
+  });
+
+  it('cada proporção suportada tem uma resolução própria', async () => {
+    const vistos = new Set<string>();
+    for (const aspect of ['1:1', '4:5', '9:16', '16:9', '1.91:1'] as const) {
+      const f = fakeFetch({ body: imagemOk });
+      const provider = makeChatCompletionsProvider(imageConfig, f);
+      await provider.generateImage!({ prompt: 'x', aspect });
+      vistos.add(String(body(f).size));
+    }
+    // 1:1 e 4:5 podem coincidir num fornecedor sem retrato próprio, mas retrato e paisagem não
+    expect(vistos.size).toBeGreaterThanOrEqual(3);
+  });
+
+  it('devolve BYTES, dimensões e o prompt revisado — nunca uma URL que expira', async () => {
+    const f = fakeFetch({ body: imagemOk });
+    const provider = makeChatCompletionsProvider(imageConfig, f);
+
+    const img = await provider.generateImage!({ prompt: 'um gato', aspect: '1:1' });
+
+    expect(img.bytes).toBeInstanceOf(Uint8Array);
+    expect(img.bytes.byteLength).toBeGreaterThan(8);
+    // assinatura PNG: os bytes chegaram decodificados, não em base64
+    expect([...img.bytes.slice(0, 4)]).toEqual([0x89, 0x50, 0x4e, 0x47]);
+    expect(img.width).toBe(191);
+    expect(img.height).toBe(191);
+    expect(img.revisedPrompt).toBe('um gato, iluminado');
+    expect(img).not.toHaveProperty('url');
+  });
+
+  it('sem modelo de imagem explícito, o adapter de texto NÃO anuncia que desenha', () => {
+    const f = fakeFetch({ body: imagemOk });
+    const provider = makeChatCompletionsProvider(config, f);
+    expect(provider.generateImage).toBeUndefined();
+    expect(f.calls).toHaveLength(0);
+  });
+
+  it('recorta os bytes para a proporção EXATA e devolve as dimensões reais', async () => {
+    const ratios = {
+      '1:1': [1, 1],
+      '4:5': [4, 5],
+      '9:16': [9, 16],
+      '16:9': [16, 9],
+      '1.91:1': [191, 100],
+    } as const;
+
+    for (const [aspect, [numerator, denominator]] of Object.entries(ratios)) {
+      const f = fakeFetch({ body: imagemOk });
+      const provider = makeChatCompletionsProvider(imageConfig, f);
+      const result = await provider.generateImage!({
+        prompt: 'x',
+        aspect: aspect as keyof typeof ratios,
+      });
+      const metadata = await sharp(result.bytes).metadata();
+
+      expect(result.width * denominator).toBe(result.height * numerator);
+      expect(metadata.width).toBe(result.width);
+      expect(metadata.height).toBe(result.height);
+      expect(result.width).toBeLessThanOrEqual(191);
+      expect(result.height).toBeLessThanOrEqual(191);
+    }
+  });
+
+  it('resposta sem imagem vira ai.invalid_response, não um objeto vazio', async () => {
+    const f = fakeFetch({ body: { data: [] } });
+    const provider = makeChatCompletionsProvider(imageConfig, f);
+
+    const erro = (await provider
+      .generateImage!({ prompt: 'x', aspect: '1:1' })
+      .catch((e: unknown) => e)) as DomainError;
+    expect(erro.code).toBe('ai.invalid_response');
+  });
+
+  it('base64 inválido também vira ai.invalid_response', async () => {
+    const f = fakeFetch({ body: { data: [{ b64_json: '!!!nao-e-base64!!!' }] } });
+    const provider = makeChatCompletionsProvider(imageConfig, f);
+
+    const erro = (await provider
+      .generateImage!({ prompt: 'x', aspect: '1:1' })
+      .catch((e: unknown) => e)) as DomainError;
+    expect(erro.code).toBe('ai.invalid_response');
+  });
+
+  it('falha do provedor não vaza chave nem endereço', async () => {
+    const f = fakeFetch({ status: 500, body: { error: 'nao-e-uma-chave-real vazou' } });
+    const provider = makeChatCompletionsProvider(imageConfig, f);
+
+    const erro = (await provider
+      .generateImage!({ prompt: 'x', aspect: '1:1' })
+      .catch((e: unknown) => e)) as DomainError;
+
+    const serializado = JSON.stringify({ m: erro.message, d: erro.detail });
+    expect(serializado).not.toContain('nao-e-uma-chave-real');
+    expect(serializado).not.toContain('gateway.example');
   });
 });

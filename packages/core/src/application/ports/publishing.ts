@@ -274,4 +274,31 @@ export interface PublishingRepository {
     since: Date,
     limit: number,
   ): Promise<Date[]>;
+  /**
+   * Contagens agregadas para a tela inicial (SPEC home-operational-overview).
+   *
+   * É agregação de propósito: a home abre a cada visita, e contar percorrendo o feed paginado
+   * custaria uma varredura por página. `dayStart`/`dayEnd`/`weekEnd` chegam já resolvidos em UTC
+   * pelo caso de uso, que sabe o fuso; `timezone` acompanha porque o corte POR DIA dentro da
+   * janela precisa ser feito no banco, no fuso do usuário. Os três limites são explícitos porque
+   * um dia civil pode ter 23 ou 25 horas.
+   */
+  summarize(
+    orgId: string,
+    window: { dayStart: Date; dayEnd: Date; weekEnd: Date; timezone: string },
+  ): Promise<PublishingSummaryCounts>;
+}
+
+/** contagens que a home consome — a forma é o contrato entre core e db */
+export interface PublishingSummaryCounts {
+  failed: number;
+  needsReview: number;
+  awaitingApproval: number;
+  partial: number;
+  todayScheduled: number;
+  todayPublished: number;
+  todayFailed: number;
+  /** 7 posições, índice 0 = o dia de `dayStart`, no fuso pedido */
+  weekByDay: number[];
+  everScheduled: boolean;
 }

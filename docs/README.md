@@ -39,6 +39,8 @@ planejamento anterior e podem conter números ou topologias históricos.
 | [audits/2026-07-23-validation-report.md](audits/2026-07-23-validation-report.md) | comandos executados, resultados, limitações e estado do PR |
 | [audits/postiz-reference-inventory.md](audits/postiz-reference-inventory.md) | decisões de identidade Manypost e referências preservadas |
 | [audits/technical-backlog.md](audits/technical-backlog.md) | riscos abertos, advisories e ordem recomendada |
+| [audits/2026-07-27-ai-slice-review-and-proposals.md](audits/2026-07-27-ai-slice-review-and-proposals.md) | revisão crítica da fatia de IA (PR #52), achados com evidência e propostas — inclui o desenho de geração de imagem (`ai.image`) |
+| [audits/2026-07-27-home-e-evolucao-do-app.md](audits/2026-07-27-home-e-evolucao-do-app.md) | a home que não existe (`/` é redirect), o que a plataforma já sabe e não mostra, e o plano de evolução do app por ondas |
 | [`CHANGELOG.md`](../CHANGELOG.md) | impacto de cada entrega para usuário, desenvolvimento e operação |
 
 ---

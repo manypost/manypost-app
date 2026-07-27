@@ -15,6 +15,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMediaList } from '@/features/media/hooks';
 import { MediaThumb } from '@/features/media/media-thumb';
+import { GenerateImageDialog } from '@/features/ai/generate-image-dialog';
 import { UploadZone } from '@/features/media/upload-zone';
 import { cn } from '@/lib/utils';
 
@@ -26,10 +27,13 @@ export function MediaPicker({
   selectedIds,
   onToggle,
   triggerLabel,
+  channelId,
 }: {
   selectedIds: string[];
   onToggle: (mediaId: string) => void;
   triggerLabel?: string;
+  /** canal de destino: a imagem gerada já nasce na proporção que essa rede trata melhor */
+  channelId?: string;
 }) {
   const t = useTranslations('composer.media');
   const [open, setOpen] = useState(false);
@@ -51,6 +55,14 @@ export function MediaPicker({
             compact
             onUploaded={(id) => {
               if (!selectedIds.includes(id)) onToggle(id);
+            }}
+          />
+          {/* gerar aqui é o momento certo: a pessoa já sabe para qual post e para qual rede, e a
+              imagem entra selecionada no post em vez de exigir uma volta pela biblioteca */}
+          <GenerateImageDialog
+            {...(channelId ? { channelId } : {})}
+            onGenerated={(m) => {
+              if (!selectedIds.includes(m.id)) onToggle(m.id);
             }}
           />
           {media.isPending ? (

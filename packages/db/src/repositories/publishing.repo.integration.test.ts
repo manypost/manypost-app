@@ -50,6 +50,34 @@ const claimArgs = (publicationId: string) => ({
   leaseSec: 900,
 });
 
+async function seedSummaryPublication(input: {
+  orgId: string;
+  channelId: string;
+  state: 'SCHEDULED' | 'PUBLISHED' | 'FAILED';
+  at: Date;
+}) {
+  const timestamp = input.at.toISOString();
+  const [group] = await client!<{ id: string }[]>`
+    INSERT INTO post_groups (id, org_id, state, publish_at)
+    VALUES (
+      gen_random_uuid(), ${input.orgId},
+      ${input.state === 'PUBLISHED' ? 'DONE' : 'SCHEDULED'},
+      ${timestamp}::timestamptz
+    )
+    RETURNING id`;
+  await client!`
+    INSERT INTO publications (
+      id, org_id, group_id, channel_id, state, publish_at, published_at, updated_at, content
+    )
+    VALUES (
+      gen_random_uuid(), ${input.orgId}, ${group!.id}, ${input.channelId}, ${input.state},
+      ${timestamp}::timestamptz,
+      ${input.state === 'PUBLISHED' ? timestamp : null}::timestamptz,
+      ${timestamp}::timestamptz,
+      '{"text":"limite"}'
+    )`;
+}
+
 describe('posse de entrega com PostgreSQL real', () => {
   pgTest('só um dono ganha a posse; a chave de idempotência é estável entre tentativas', async () => {
     const repo = makePublishingRepository(db!);
@@ -139,5 +167,82 @@ describe('posse de entrega com PostgreSQL real', () => {
     expect(abandoned!.state).toBe('INDETERMINATE');
     // e depois de abandonada ninguém reivindica: o desfecho é desconhecido
     expect(await repo.claimItem(claimArgs(publicationId))).toBeNull();
+  });
+});
+
+describe('resumo operacional com PostgreSQL real', () => {
+  pgTest('usa os limites civis explícitos num dia de 23h e não mistura organizações', async () => {
+    const suffix = `${Date.now()}-dst`;
+    const [org] = await client!<{ id: string }[]>`
+      INSERT INTO organizations (id, name, slug)
+      VALUES (gen_random_uuid(), 'DST Alfa', ${`dst-alfa-${suffix}`}) RETURNING id`;
+    const [otherOrg] = await client!<{ id: string }[]>`
+      INSERT INTO organizations (id, name, slug)
+      VALUES (gen_random_uuid(), 'DST Beta', ${`dst-beta-${suffix}`}) RETURNING id`;
+    const [channel] = await client!<{ id: string }[]>`
+      INSERT INTO channels (id, org_id, provider, external_id, name, scopes, token_enc, token_key_version)
+      VALUES (gen_random_uuid(), ${org!.id}, 'fake', ${`dst-${suffix}`}, 'DST', '{}', '\\x00', 1)
+      RETURNING id`;
+    const [otherChannel] = await client!<{ id: string }[]>`
+      INSERT INTO channels (id, org_id, provider, external_id, name, scopes, token_enc, token_key_version)
+      VALUES (gen_random_uuid(), ${otherOrg!.id}, 'fake', ${`dst-other-${suffix}`}, 'DST Beta', '{}', '\\x00', 1)
+      RETURNING id`;
+
+    // Lisboa em 29/03/2026: [00:00Z, 23:00Z) é o dia civil inteiro (23 horas).
+    await seedSummaryPublication({
+      orgId: org!.id,
+      channelId: channel!.id,
+      state: 'SCHEDULED',
+      at: new Date('2026-03-29T22:59:59.999Z'),
+    });
+    await seedSummaryPublication({
+      orgId: org!.id,
+      channelId: channel!.id,
+      state: 'SCHEDULED',
+      at: new Date('2026-03-29T23:00:00.000Z'),
+    });
+    await seedSummaryPublication({
+      orgId: org!.id,
+      channelId: channel!.id,
+      state: 'SCHEDULED',
+      at: new Date('2026-04-04T22:59:59.999Z'),
+    });
+    await seedSummaryPublication({
+      orgId: org!.id,
+      channelId: channel!.id,
+      state: 'SCHEDULED',
+      at: new Date('2026-04-04T23:00:00.000Z'),
+    });
+    await seedSummaryPublication({
+      orgId: org!.id,
+      channelId: channel!.id,
+      state: 'PUBLISHED',
+      at: new Date('2026-03-29T22:59:59.999Z'),
+    });
+    await seedSummaryPublication({
+      orgId: org!.id,
+      channelId: channel!.id,
+      state: 'FAILED',
+      at: new Date('2026-03-29T22:59:59.999Z'),
+    });
+    await seedSummaryPublication({
+      orgId: otherOrg!.id,
+      channelId: otherChannel!.id,
+      state: 'SCHEDULED',
+      at: new Date('2026-03-29T12:00:00.000Z'),
+    });
+
+    const summary = await makePublishingRepository(db!).summarize(org!.id, {
+      dayStart: new Date('2026-03-29T00:00:00.000Z'),
+      dayEnd: new Date('2026-03-29T23:00:00.000Z'),
+      weekEnd: new Date('2026-04-04T23:00:00.000Z'),
+      timezone: 'Europe/Lisbon',
+    });
+
+    expect(summary.todayScheduled).toBe(1);
+    expect(summary.todayPublished).toBe(1);
+    expect(summary.todayFailed).toBe(1);
+    expect(summary.weekByDay).toEqual([1, 1, 0, 0, 0, 0, 1]);
+    expect(summary.weekByDay.reduce((sum, count) => sum + count, 0)).toBe(3);
   });
 });

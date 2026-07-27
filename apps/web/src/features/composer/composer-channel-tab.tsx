@@ -72,7 +72,11 @@ export function ComposerChannelTab({
         initialText={useComposerStore.getState().overrides[channel.id] ?? ''}
         onChange={(text) => setOverride(channel.id, text)}
         label={t('channelEditorLabel', { name: nome })}
-        aiChannelIds={[channel.id]}
+        ai={{
+          channelIds: [channel.id],
+          scope: 'channel',
+          networkNameOf: () => providerInfo?.name ?? nome,
+        }}
         cabecalho={
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-line bg-surface-2/60 px-3 py-1.5">
             <span className="flex items-center gap-1.5 text-xs font-semibold text-ink">
@@ -91,7 +95,7 @@ export function ComposerChannelTab({
                   setOverride(channel.id, useComposerStore.getState().text);
                   bumpEditors();
                 }}
-                className="h-6 gap-1 px-2 text-[11px] font-semibold text-graphite hover:bg-surface hover:text-ink"
+                className="h-6 gap-1 px-2 text-meta font-semibold text-graphite hover:bg-surface hover:text-ink"
               >
                 <ClipboardCopy className="size-3" aria-hidden />
                 {t('channelTab.copyGlobal')}
@@ -101,7 +105,7 @@ export function ComposerChannelTab({
                 variant="ghost"
                 size="sm"
                 onClick={() => clearOverride(channel.id)}
-                className="h-6 gap-1 px-2 text-[11px] font-semibold text-graphite hover:bg-surface hover:text-ink"
+                className="h-6 gap-1 px-2 text-meta font-semibold text-graphite hover:bg-surface hover:text-ink"
               >
                 <Lock className="size-3" aria-hidden />
                 {t('channelTab.useGlobal')}

@@ -1886,6 +1886,65 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/v1/insights/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resumo operacional da organização (tela inicial)
+         * @description Contagens agregadas: o que precisa de atenção (falhas, revisão, aprovação, entrega parcial, canais a reconectar), o que sai hoje e a semana por dia. **Não traz métrica de desempenho** — a plataforma não coleta engajamento, então todo número aqui vem do registro do que ela mesma pediu e entregou. As fronteiras de dia são resolvidas no fuso informado em `tz`.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    tz?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description resumo */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InsightsSummary"];
+                    };
+                };
+                /** @description requisição fora do contrato (problem+json) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description não autenticado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/ai/caption": {
         parameters: {
             query?: never;
@@ -1996,7 +2055,7 @@ export type paths = {
         put?: never;
         /**
          * Reescreve um texto seguindo uma instrução
-         * @description Requer a feature `ai_caption` (plano Pro).
+         * @description Requer a feature `ai_caption` (plano Pro). **Nunca encurta o texto**: reescrever é a única operação cuja entrada é o texto que a pessoa escreveu, e cortá-lo para caber num limite que ela não escolheu perderia trabalho. Quando um canal é informado e o resultado passa do limite dele, `overLimit` vem true e o texto vem inteiro — o limite continua sendo imposto no agendamento.
          */
         post: {
             parameters: {
@@ -2009,9 +2068,18 @@ export type paths = {
                 content: {
                     "application/json": {
                         text: string;
-                        instruction: string;
-                        /** Format: uuid */
-                        channelId: string;
+                        /**
+                         * @description instrução do catálogo do servidor
+                         * @enum {string}
+                         */
+                        instructionId?: "shorten" | "expand" | "formal" | "casual" | "with_emoji" | "without_emoji" | "fix_grammar";
+                        /** @description instrução em texto livre — alternativa a `instructionId` */
+                        instruction?: string;
+                        /**
+                         * Format: uuid
+                         * @description opcional: sem canal a reescrita roda e nenhum limite é imposto nem reportado
+                         */
+                        channelId?: string;
                         /** @description settings da publicação, mergeados com os do canal — mesma semântica do agendamento (uma conta verificada do X, por exemplo, valida contra o limite maior) */
                         settings?: {
                             [key: string]: unknown;
@@ -2026,7 +2094,7 @@ export type paths = {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["AiVariant"];
+                        "application/json": components["schemas"]["AiRewriteResult"];
                     };
                 };
                 /** @description requisição fora do contrato (problem+json) */
@@ -2469,6 +2537,132 @@ export type paths = {
                 };
                 /** @description rate limit — aguarde e tente de novo */
                 429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ai/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Gera uma imagem e guarda na biblioteca de mídia
+         * @description Requer a feature `ai_image` (plano Premium) **e** um provedor que gere imagem; sem essa capacidade responde 501 `ai.capability_unavailable`. Custa 5 créditos — uma requisição, uma imagem. A forma pedida é **proporção**, nunca resolução: quem traduz é o adapter. Os bytes devolvidos pelo provedor são validados por assinatura de arquivo (o `content-type` declarado não é confiável) e entram na biblioteca marcados como gerados, com o prompt e o modelo. Aceita `Idempotency-Key`: a cinco créditos, duplo clique é caro.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    "Idempotency-Key"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        prompt: string;
+                        /**
+                         * @description proporção; sem ela, `channelId` decide; sem os dois, 1:1
+                         * @enum {string}
+                         */
+                        aspect?: "1:1" | "4:5" | "9:16" | "16:9" | "1.91:1";
+                        /**
+                         * Format: uuid
+                         * @description a proporção vira a que a rede deste canal trata melhor no feed
+                         */
+                        channelId?: string;
+                        /** @enum {string} */
+                        quality?: "draft" | "standard";
+                        /** @description descrição para leitor de tela */
+                        alt?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description mídia gerada */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            media: components["schemas"]["AiGeneratedMedia"];
+                        };
+                    };
+                };
+                /** @description requisição fora do contrato (problem+json) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description não autenticado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description plano atual não inclui — `extra.requiredTier` diz o plano mínimo */
+                402: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description não encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description conflito */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description rate limit — aguarde e tente de novo */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description capacidade não disponível nesta instalação */
+                501: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -5206,6 +5400,8 @@ export type components = {
             url: string;
             /** @example image/png */
             mime: string;
+            /** @description `ai` = gerada por IA; `upload` = enviada por alguém */
+            source: string;
             byteSize: number;
             width: number | null;
             height: number | null;
@@ -5272,6 +5468,7 @@ export type components = {
             ai: {
                 enabled: boolean;
                 canDescribeImages: boolean;
+                canGenerateImages: boolean;
                 credits: {
                     granted: number;
                     used: number;
@@ -5290,12 +5487,58 @@ export type components = {
                 mcpUrl: string;
             };
         };
+        ChannelNeedingAction: {
+            channelId: string;
+            provider: string;
+            name: string | null;
+            /** @description REFRESH_REQUIRED | PENDING_ACCOUNT_SELECTION | DISABLED */
+            status: string;
+        };
+        InsightsSummary: {
+            /** @description fuso em que as fronteiras de dia foram resolvidas — a resposta diz qual usou */
+            timezone: string;
+            attention: {
+                failed: number;
+                /** @description desfecho incerto: nunca retentado sozinho, espera decisão humana */
+                needsReview: number;
+                /** @description por GRUPO, não por publicação */
+                awaitingApproval: number;
+                /** @description saiu em algumas redes e não em outras */
+                partial: number;
+                channels: components["schemas"]["ChannelNeedingAction"][];
+                /** @description 0 = a interface esconde o bloco inteiro */
+                total: number;
+            };
+            today: {
+                scheduled: number;
+                published: number;
+                failed: number;
+            };
+            week: {
+                scheduled: number;
+                /** @description 7 posições, índice 0 = hoje no fuso pedido */
+                byDay: number[];
+            };
+            /**
+             * @description organização sem o que operar. A interface troca os blocos operacionais por próximos passos em vez de mostrar uma grade de zeros. null = já está operando.
+             * @enum {string|null}
+             */
+            firstRun: "no_channels" | "no_posts" | null;
+        };
         AiVariant: {
             channelId: string;
             text: string;
             maxLength: number;
             /** @description true = o texto passou do limite do canal e foi cortado */
             shortened: boolean;
+        };
+        AiRewriteResult: {
+            /** @description null = reescrita sem canal */
+            channelId: string | null;
+            text: string;
+            maxLength: number | null;
+            /** @description true = passou do limite do canal, e nada foi removido por isso */
+            overLimit: boolean;
         };
         AiPlannedSlot: {
             channelId: string;
@@ -5305,6 +5548,17 @@ export type components = {
             publishAt: string;
             maxLength: number;
             shortened: boolean;
+        };
+        AiGeneratedMedia: {
+            id: string;
+            url: string;
+            mime: string;
+            byteSize: number;
+            width: number | null;
+            height: number | null;
+            alt: string | null;
+            /** @description `ai` = gerada; `upload` = enviada por alguém */
+            source: string;
         };
         AiBestTimes: {
             channelId: string;
@@ -5321,6 +5575,11 @@ export type components = {
             sampleSize: number;
             /** @description true = veio da linha de base da rede, sem histórico próprio */
             fromBaseline: boolean;
+            /**
+             * @description o que sustenta a resposta. `own_posting_history` = os horários que a organização MAIS USA neste canal, não uma medição de desempenho — enquanto for esse o sinal, `confidence` não passa de `medium`. `own_engagement` depende da coleta de métricas, que ainda não existe.
+             * @enum {string}
+             */
+            signal: "network_baseline" | "own_posting_history" | "own_engagement";
         };
         PlanCatalog: {
             currency: string;

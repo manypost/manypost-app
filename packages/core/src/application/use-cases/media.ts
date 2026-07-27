@@ -28,6 +28,52 @@ const assertWithinLimit = (kind: 'image' | 'video', size: number, limits: MediaL
   }
 };
 
+export interface PersistMediaBytesInput {
+  orgId: string;
+  bytes: Uint8Array;
+  mime: keyof typeof EXT_BY_MIME;
+  width: number | null;
+  height: number | null;
+  alt: string | null;
+  source?: MediaRecord['source'];
+  generationPrompt?: string | null;
+  generationModel?: string | null;
+}
+
+/**
+ * Fronteira compensatória entre objeto e linha de mídia.
+ *
+ * Storage e PostgreSQL não compartilham transação. Se o `put` passou e o `create` falhou, apagar
+ * o objeto é a única forma de não acumular órfãos. A limpeza é best-effort e nunca substitui o
+ * erro primário, que é o que explica por que a operação falhou para o chamador.
+ */
+export async function persistMediaBytes(
+  deps: Pick<MediaDeps, 'media' | 'storage'>,
+  input: PersistMediaBytesInput,
+): Promise<MediaRecord> {
+  const key = `${input.orgId}/${crypto.randomUUID()}.${EXT_BY_MIME[input.mime]}`;
+  await deps.storage.put(key, input.bytes, input.mime);
+  try {
+    return await deps.media.create({
+      orgId: input.orgId,
+      path: key,
+      mime: input.mime,
+      byteSize: input.bytes.byteLength,
+      width: input.width,
+      height: input.height,
+      alt: input.alt,
+      ...(input.source ? { source: input.source } : {}),
+      ...(input.generationPrompt !== undefined
+        ? { generationPrompt: input.generationPrompt }
+        : {}),
+      ...(input.generationModel !== undefined ? { generationModel: input.generationModel } : {}),
+    });
+  } catch (primaryError) {
+    await deps.storage.delete(key).catch(() => {});
+    throw primaryError;
+  }
+}
+
 async function storeSniffed(
   deps: MediaDeps,
   input: { orgId: string; bytes: Uint8Array; alt?: string },
@@ -40,13 +86,10 @@ async function storeSniffed(
     );
   }
   assertWithinLimit(sniffed.kind, input.bytes.byteLength, deps.limits);
-  const key = `${input.orgId}/${crypto.randomUUID()}.${EXT_BY_MIME[sniffed.mime]}`;
-  await deps.storage.put(key, input.bytes, sniffed.mime);
-  return deps.media.create({
+  return persistMediaBytes(deps, {
     orgId: input.orgId,
-    path: key,
+    bytes: input.bytes,
     mime: sniffed.mime,
-    byteSize: input.bytes.byteLength,
     width: sniffed.width ?? null,
     height: sniffed.height ?? null,
     alt: input.alt?.trim() || null,

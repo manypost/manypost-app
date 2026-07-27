@@ -33,7 +33,7 @@ export function ScheduleSlide() {
         role="img"
         aria-label={t('slideScheduleSub')}
       >
-        <p className="mb-4 text-[11px] font-semibold uppercase tracking-wide text-paper/50">
+        <p className="mb-4 text-meta font-semibold uppercase tracking-wide text-paper/50">
           {t('slideWeekLabel')}
         </p>
         <div className="grid min-h-0 flex-1 grid-cols-7 gap-2.5">
@@ -45,7 +45,7 @@ export function ScheduleSlide() {
                 className="auth-enter auth-cell flex min-w-0 flex-col gap-2.5 rounded-md border border-paper/10 bg-paper/[0.02] p-2.5 transition-colors duration-200 hover:border-accent-on-dark/35 hover:bg-paper/[0.05]"
                 style={{ '--i': i } as React.CSSProperties}
               >
-                <span className="truncate text-[10px] font-semibold uppercase tracking-wide text-paper/45">
+                <span className="truncate text-axis font-semibold uppercase tracking-wide text-paper/45">
                   {day}
                 </span>
                 {slot ? (
@@ -56,7 +56,7 @@ export function ScheduleSlide() {
                         name={slot.network.name}
                         className="size-5"
                       />
-                      <span className="truncate text-[10px] font-semibold tabular-nums text-accent-on-dark">
+                      <span className="truncate text-axis font-semibold tabular-nums text-accent-on-dark">
                         {slot.time}
                       </span>
                     </div>

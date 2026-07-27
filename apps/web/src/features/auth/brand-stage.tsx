@@ -60,7 +60,7 @@ export function BrandStage() {
           />
         </section>
 
-        <p className="flex items-center gap-2 text-[12px] text-paper/50">
+        <p className="flex items-center gap-2 text-xs text-paper/50">
           <a
             href="https://github.com/manypost/manypost"
             target="_blank"

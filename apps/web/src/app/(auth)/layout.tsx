@@ -30,7 +30,7 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
           <div className="flex flex-1 flex-col justify-center gap-6">
             {/* resumo da marca só quando o palco não está visível */}
             <div className="flex flex-col items-center gap-3 text-center lg:hidden">
-              <p className="text-[13px] leading-relaxed text-graphite">{t('mobileTagline')}</p>
+              <p className="text-compact leading-relaxed text-graphite">{t('mobileTagline')}</p>
               <div className="flex flex-wrap justify-center gap-1.5">
                 {AUTH_NETWORKS.map((n) => (
                   <ProviderIcon key={n.id} provider={n.id} name={n.name} className="size-7" />
@@ -41,7 +41,7 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
             <div className="bevel-surface rounded-lg border p-6 sm:p-8">{children}</div>
 
             {/* rodapé de projeto aberto — no desktop ele vive no palco escuro */}
-            <p className="flex items-center justify-center gap-2 text-[12px] text-mist lg:hidden">
+            <p className="flex items-center justify-center gap-2 text-xs text-mist lg:hidden">
               <a
                 href="https://github.com/manypost/manypost"
                 target="_blank"

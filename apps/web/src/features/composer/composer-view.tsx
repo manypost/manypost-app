@@ -80,6 +80,14 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
   const abaAtual =
     activeTab === 'global' || selected.some((ch) => ch.id === activeTab) ? activeTab : 'global';
   const canalDaAba = selected.find((ch) => ch.id === abaAtual);
+  const networkNameOf = (channelId: string) => {
+    const channel = selected.find((item) => item.id === channelId);
+    return (
+      (channel && providers.data?.find((provider) => provider.id === channel.provider)?.name) ??
+      channel?.name ??
+      channelId
+    );
+  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -89,7 +97,7 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
             <section>
               <SectionHeader label={t('sections.channels')}>
                 {totalDeCanais > 0 ? (
-                  <span className="text-[11px] font-medium tabular-nums text-mist">
+                  <span className="text-meta font-medium tabular-nums text-mist">
                     {t('sections.channelsCount', {
                       selected: selected.length,
                       total: totalDeCanais,
@@ -107,6 +115,7 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
                     que `textByChannel` do agendamento já aceita — nada é agendado aqui */}
                 <DraftFromIdea
                   channelIds={channelIds}
+                  networkNameOf={networkNameOf}
                   onDrafts={(drafts) => {
                     for (const d of drafts) setOverride(d.channelId, d.text);
                     bumpEditors();
@@ -141,7 +150,11 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
         </div>
       </div>
 
-      <ComposerFooter onDone={onDone} onDiscard={() => setConfirmarDescarte(true)} />
+      <ComposerFooter
+        onDone={onDone}
+        onDiscard={() => setConfirmarDescarte(true)}
+        overlayBloqueanteAberto={confirmarDescarte}
+      />
 
       <ComposerDiscardDialog
         open={confirmarDescarte}

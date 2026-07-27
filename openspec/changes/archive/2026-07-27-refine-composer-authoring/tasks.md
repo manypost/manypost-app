@@ -1,61 +1,58 @@
 ## 1. Pure modules and the global-text rule (test-first)
 
-- [ ] 1.1 Create `apps/web/src/features/composer/editor-guards.ts` with `editorUtilizavel`, moved from
+- [x] 1.1 Create `apps/web/src/features/composer/editor-guards.ts` with `editorUtilizavel`, moved from
       `ai-actions.tsx`; re-export from `ai-actions.tsx` so `ai-actions.test.tsx` keeps passing
-- [ ] 1.2 Add `toolbarMarks(editor)` to `editor-guards.ts` — returns `{ bold, italic }` and never
+- [x] 1.2 Add `toolbarMarks(editor)` to `editor-guards.ts` — returns `{ bold, italic }` and never
       touches a destroyed or unmounted instance
-- [ ] 1.3 Failing test `editor-guards.test.ts`: a fake whose `isActive` throws and whose
+- [x] 1.3 Failing test `editor-guards.test.ts`: a fake whose `isActive` throws and whose
       `isDestroyed` is true returns all-false and is never called
-- [ ] 1.4 Create `validation.ts` (React-free, receives the translator): `computeCounters`,
+- [x] 1.4 Create `validation.ts` (React-free, receives the translator): `computeCounters`,
       `computeMinMax`, `computeIssues`, `computeScheduleIssues`
-- [ ] 1.5 Failing test `validation.test.ts`: global empty + every selected channel with a non-empty
+- [x] 1.5 Failing test `validation.test.ts`: global empty + every selected channel with a non-empty
       override → no `emptyText`
-- [ ] 1.6 Failing test: global empty + one selected channel without an override → `emptyText` is
+- [x] 1.6 Failing test: global empty + one selected channel without an override → `emptyText` is
       still raised
-- [ ] 1.7 Failing test: an override present but blank → `emptyOverride`, never `emptyText`
-- [ ] 1.8 Failing test: no channel selected → `noChannelSelected`
-- [ ] 1.9 Failing tests for the rules carried over unchanged: `overLimit` per provider `maxLength`,
+- [x] 1.7 Failing test: an override present but blank → `emptyOverride`, never `emptyText`
+- [x] 1.8 Failing test: no channel selected → `noChannelSelected`
+- [x] 1.9 Failing tests for the rules carried over unchanged: `overLimit` per provider `maxLength`,
       `requiresMedia`, `missingSetting`, thread item over `minMax`, thread delay bounds
-- [ ] 1.10 Each issue carries the channel that raised it, so the popover can lead to it
-- [ ] 1.11 Create `submit-payload.ts` with `buildSchedulePayload(...)` (React-free)
-- [ ] 1.12 Failing test `submit-payload.test.ts`: global empty → `text` falls back to the first
+- [x] 1.10 Each issue carries the channel that raised it, so the popover can lead to it
+- [x] 1.11 Create `submit-payload.ts` with `buildSchedulePayload(...)` (React-free)
+- [x] 1.12 Failing test `submit-payload.test.ts`: global empty → `text` falls back to the first
       channel's text and **every** override ships in `textByChannel`
-- [ ] 1.13 Failing test: an override identical to a non-empty global still ships (no silent drop)
-- [ ] 1.14 Failing test: empty `mediaIds` / `thread` / `settingsByChannel` are omitted
-- [ ] 1.15 Implement until 1.3–1.14 pass — `bun test apps/web`
+- [x] 1.13 Failing test: an override identical to a non-empty global still ships (no silent drop)
+- [x] 1.14 HTTP body omits empty `mediaIds`, `thread` and `settingsByChannel`
+- [x] 1.15 Implement until 1.3–1.14 pass — `bun test apps/web`
 
 ## 2. Focus (the reported defect)
 
-- [ ] 2.1 `editor.tsx`: `mousedown` on the card padding places the caret (`e.target ===
+- [x] 2.1 `editor.tsx`: `mousedown` on the card padding places the caret (`e.target ===
       e.currentTarget`, `preventDefault`, focus the editor); card gets `cursor-text`
-- [ ] 2.2 `editor.tsx`: hoist `StarterKit.configure(...)` to the module, memoise `extensions` and
+- [x] 2.2 `editor.tsx`: hoist `StarterKit.configure(...)` to the module, memoise `extensions` and
       `editorProps`, freeze initial `content` at mount
-- [ ] 2.3 `composer-modal.tsx`: prevent `onOpenAutoFocus` so the composer opens with the caret in the
+- [x] 2.3 `composer-modal.tsx`: prevent `onOpenAutoFocus` so the composer opens with the caret in the
       editor
-- [ ] 2.4 `formatting-toolbar.tsx`: `preventDefault` on `mousedown` for every control; prevent
+- [x] 2.4 `formatting-toolbar.tsx`: `preventDefault` on `mousedown` for every control; prevent
       `onCloseAutoFocus` on the dropdown content
-- [ ] 2.5 `ai-actions.tsx`: prevent `onCloseAutoFocus` on the dropdown content
-- [ ] 2.6 `formatting-toolbar.tsx`: replace the render-time `editor?.isActive(...)` reads with
+- [x] 2.5 `ai-actions.tsx`: prevent `onCloseAutoFocus` on the dropdown content
+- [x] 2.6 `formatting-toolbar.tsx`: replace the render-time `editor?.isActive(...)` reads with
       `toolbarMarks` via `useEditorState`, so marks track the caret and never touch a dead instance
-- [ ] 2.7 `features/channels/hooks.ts`: `refetchOnWindowFocus: false` on `useProviders`
+- [x] 2.7 `features/channels/hooks.ts`: `refetchOnWindowFocus: false` on `useProviders`
 
 ## 3. One validation surface
 
-- [ ] 3.1 Create `composer-validation-popover.tsx` — click-triggered `Popover`, `onOpenAutoFocus` and
+- [x] 3.1 Create `composer-validation-popover.tsx` — click-triggered `Popover`, `onOpenAutoFocus` and
       `onCloseAutoFocus` prevented, per-channel capacity list, then the scoped issues
-- [ ] 3.2 Each issue is a control that moves the composer to the channel that raised it
-- [ ] 3.3 Use it in all three places, each with its own scope (global, per channel, per thread item)
-- [ ] 3.4 The footer's blocked-CTA explanation becomes the same component, removing the `<span>` that
+- [x] 3.2 Each issue is a control that moves the composer to the channel that raised it
+- [x] 3.3 Use it in all three places, each with its own scope (global, per channel, per thread item)
+- [x] 3.4 The footer's blocked-CTA explanation becomes the same component, removing the `<span>` that
       mounted and unmounted on every keystroke
-- [ ] 3.5 Delete `apps/web/src/components/ui/hover-popover.tsx` — the composer was its only importer
+- [x] 3.5 Delete `apps/web/src/components/ui/hover-popover.tsx` — the composer was its only importer
 
 ## 4. Decomposition and subscriptions
 
-- [ ] 4.1 `composer-selectors.ts`: `useComposerActions()` via `useShallow`, plus fine-grained
+- [x] 4.1 `composer-selectors.ts`: `useComposerActions()` via `useShallow`, plus fine-grained
       selectors for `text`, `overrides`, `thread`, `mediaIds`, `channelIds`, `editorNonce`
-- [ ] 4.2 `composer-ui-store.ts`: `activeTab`, `previewPeek`, `previewOpen` — not persisted
-- [ ] 4.3 `use-composer-validation.ts` and `use-composer-submit.ts` over the pure modules
-- [ ] 4.4 `composer-editor-card.tsx` — owns its own `Editor` instance; the hoisted `channelEditors`
 - [x] 4.2 `composer-ui-store.ts`: `activeTab`, `previewPeek`, `previewOpen` — not persisted
 - [x] 4.3 `use-composer-validation.ts` and `use-composer-submit.ts` over the pure modules
 - [x] 4.4 `composer-editor-card.tsx` — owns its own `Editor` instance; the hoisted `channelEditors`
@@ -104,3 +101,22 @@
 - [x] 6.7 `CHANGELOG.md` (root, Keep a Changelog)
 - [x] 6.8 `docs/principal/STATUS.md` + a new entry at the top of `docs/principal/CHANGELOG_ONDAS.md`
 - [x] 6.9 `bun run spec:validate`
+
+## 7. Parallel-change compatibility (test-first)
+
+- [x] 7.1 Add failing pure tests for global/channel/thread AI scope, including global rewrite without
+      `channelId` and no per-network adaptation on a shared thread item
+- [x] 7.2 Forward AI scope, `onVariants` and `networkNameOf` through `ComposerEditorCard`; distribute
+      every global caption variant to its channel override
+- [x] 7.3 Add a failing validation test for a footer whose only issue belongs to a thread item; add an
+      `all` scope and keep editor-local scopes unchanged
+- [x] 7.4 Add failing shortcut tests; reject repeated keydown and scheduling while discard confirmation
+      is open
+- [x] 7.5 Add failing persistence acknowledgement tests; show saved only after the latest storage write
+      succeeds and expose a non-destructive failure state
+- [x] 7.6 Forward the first selected channel from the global editor to `MediaPicker`; keep shared thread
+      items without a fabricated destination
+- [x] 7.7 Run focused tests, full `check:ci`, web build and browser checks at desktop and mobile
+      widths; retain the already-green AI/insights E2E evidence from the integrated parent
+- [x] 7.8 Reconcile changelog/status, sync the delta spec, archive this change and verify that
+      `origin/main` is an ancestor of the final branch

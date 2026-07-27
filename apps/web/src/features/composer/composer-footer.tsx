@@ -1,8 +1,8 @@
 'use client';
 
-import { Check } from 'lucide-react';
+import { AlertTriangle, Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
@@ -16,8 +16,9 @@ import {
   useComposerPublishAtLocal,
   useComposerRequireApproval,
 } from './composer-selectors';
+import { podeAgendarPorAtalho } from './composer-shortcut';
 import { ComposerValidationPopover } from './composer-validation-popover';
-import { useComposerStore } from './store';
+import { draftPersistenceMonitor } from './draft-persistence';
 import { useComposerSubmit } from './use-composer-submit';
 import { useComposerValidation } from './use-composer-validation';
 
@@ -35,10 +36,13 @@ const ID_BLOQUEIO = 'composer-bloqueio';
 export function ComposerFooter({
   onDone,
   onDiscard,
+  overlayBloqueanteAberto = false,
 }: {
   onDone: () => void;
   /** abre a confirmação de descarte, que mora na casca */
   onDiscard: () => void;
+  /** impede que o atalho atravesse um diálogo de confirmação sobre o composer */
+  overlayBloqueanteAberto?: boolean;
 }) {
   const t = useTranslations('composer');
   const { setPublishAtLocal, setRequireApproval } = useComposerActions();
@@ -54,16 +58,25 @@ export function ComposerFooter({
   // Ctrl/Cmd + Enter agenda. Vive no documento porque o composer é um diálogo modal: o atalho
   // vale de qualquer campo dele, inclusive de dentro do editor. O que ele executa fica numa ref
   // para o listener não ser trocado a cada tecla — o rodapé re-renderiza junto com a validação.
-  const agendar = useRef<() => void>(() => {});
-  agendar.current = () => {
-    if (travadoParaAgendar || isPending) return;
+  const agendar = useRef<(repeticao: boolean) => void>(() => {});
+  agendar.current = (repeticao) => {
+    if (
+      !podeAgendarPorAtalho({
+        bloqueado: travadoParaAgendar,
+        enviando: isPending,
+        overlayBloqueanteAberto,
+        repeticao,
+      })
+    ) {
+      return;
+    }
     submit({ agora: false, selected, publishAt });
   };
   useEffect(() => {
     const atalho = (e: KeyboardEvent) => {
       if (e.key !== 'Enter' || !(e.ctrlKey || e.metaKey)) return;
       e.preventDefault();
-      agendar.current();
+      agendar.current(e.repeat);
     };
     document.addEventListener('keydown', atalho);
     return () => document.removeEventListener('keydown', atalho);
@@ -93,7 +106,7 @@ export function ComposerFooter({
               <Label htmlFor="require-approval">{t('approval')}</Label>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-mist">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-meta text-mist">
             <span className="hidden sm:inline">{t('footer.shortcut')}</span>
             <IndicadorRascunho />
           </div>
@@ -101,7 +114,7 @@ export function ComposerFooter({
 
         <div className="flex flex-col items-stretch gap-2 sm:items-end lg:ml-auto">
           <ComposerValidationPopover
-            escopo={{ kind: 'global' }}
+            escopo={{ kind: 'all' }}
             variante="footer"
             incluirAgendamento
             id={ID_BLOQUEIO}
@@ -149,31 +162,38 @@ export function ComposerFooter({
 }
 
 /**
- * "Rascunho salvo": aparece por uns segundos depois de uma escrita.
- *
- * O `persist` do zustand grava a cada `set`, então a afirmação é literal — o indicador só torna
- * visível o que já acontecia em silêncio, que é o que faz alguém confiar em fechar o popup.
+ * Confirma o rascunho somente depois que o adapter de storage conclui a escrita.
  */
 function IndicadorRascunho() {
   const t = useTranslations('composer');
+  const persistencia = useSyncExternalStore(
+    draftPersistenceMonitor.subscribe,
+    draftPersistenceMonitor.getSnapshot,
+    draftPersistenceMonitor.getSnapshot,
+  );
   const [visivel, setVisivel] = useState(false);
 
   useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const parar = useComposerStore.subscribe(() => {
-      setVisivel(true);
-      clearTimeout(timer);
-      timer = setTimeout(() => setVisivel(false), 2500);
-    });
-    return () => {
-      clearTimeout(timer);
-      parar();
-    };
-  }, []);
+    if (persistencia.status === 'idle' || persistencia.status === 'saving') {
+      setVisivel(false);
+      return;
+    }
+    setVisivel(true);
+    const timer = setTimeout(() => setVisivel(false), 3500);
+    return () => clearTimeout(timer);
+  }, [persistencia]);
 
   if (!visivel) return null;
+  if (persistencia.status === 'failed') {
+    return (
+      <span className="flex items-center gap-1 text-state-failed" role="status">
+        <AlertTriangle className="size-3" aria-hidden />
+        {t('footer.saveFailed')}
+      </span>
+    );
+  }
   return (
-    <span className="flex items-center gap-1 text-accent">
+    <span className="flex items-center gap-1 text-accent" role="status">
       <Check className="size-3" aria-hidden />
       {t('footer.saved')}
     </span>

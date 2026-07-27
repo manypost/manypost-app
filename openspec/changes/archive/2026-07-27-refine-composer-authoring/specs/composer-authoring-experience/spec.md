@@ -110,6 +110,12 @@ that names a channel SHALL lead to that channel.
 - **THEN** the composer SHALL state that there are issues to resolve alongside the unavailable action
 - **AND** that statement SHALL lead to the same validation surface
 
+#### Scenario: A thread-only issue explains the disabled footer
+
+- **WHEN** the only blocking issue belongs to a thread item
+- **THEN** the footer SHALL still render its validation summary
+- **AND** the disabled scheduling action SHALL reference a mounted description
+
 ### Requirement: An authoring control offers only what the platform performs
 
 A control that writes into the post SHALL only offer content the platform delivers as the control
@@ -126,3 +132,74 @@ publishing.
 - **WHEN** a control inserts text that is published exactly as written
 - **THEN** that control MAY be offered
 - **AND** its label SHALL describe the text as literal
+
+### Requirement: AI authoring preserves the content scope
+
+The composer SHALL tell an AI action whether it is editing global, channel-specific or thread
+content. It SHALL NOT impose a channel limit on global text, discard a paid channel variant, or offer
+an adaptation whose result cannot be represented by the edited scope.
+
+#### Scenario: Global rewrite has no arbitrary channel
+
+- **WHEN** a person rewrites shared global text with multiple channels selected
+- **THEN** the rewrite request SHALL omit `channelId`
+- **AND** the complete result SHALL remain pending for explicit confirmation if another rule requires it
+
+#### Scenario: Global caption returns one result per channel
+
+- **WHEN** caption generation returns variants for several selected channels
+- **THEN** every requested variant SHALL be written to its matching channel override
+- **AND** no generated variant SHALL replace the shared global text
+
+#### Scenario: Thread does not promise per-network adaptation
+
+- **WHEN** an AI toolbar belongs to a shared thread item
+- **THEN** it SHALL NOT offer an action that produces incompatible per-network variants
+
+### Requirement: Scheduling shortcuts respect blocking surfaces
+
+A keyboard shortcut SHALL only perform the same action that is currently available and visible in
+the composer. It SHALL NOT schedule behind a confirmation surface or execute more than once for a
+repeated key event.
+
+#### Scenario: Discard confirmation suspends scheduling shortcut
+
+- **WHEN** the discard confirmation is open
+- **AND** Ctrl/Cmd + Enter is pressed
+- **THEN** no scheduling request SHALL start
+
+#### Scenario: Repeated keydown is ignored
+
+- **WHEN** the browser reports a repeated Ctrl/Cmd + Enter keydown
+- **THEN** no additional scheduling request SHALL start
+
+### Requirement: Draft persistence status is truthful
+
+The composer SHALL distinguish an in-memory edit from a browser-storage confirmation. It SHALL only
+state that a draft is saved after the latest corresponding storage write completes successfully.
+
+#### Scenario: Browser storage rejects the draft
+
+- **WHEN** the latest persistence write throws or rejects
+- **THEN** the composer SHALL NOT state that the draft is saved
+- **AND** the in-memory draft SHALL remain available
+
+#### Scenario: An older write completes after a newer edit
+
+- **WHEN** a previous storage write completes after a newer draft mutation began
+- **THEN** that older completion SHALL NOT mark the newer draft as saved
+
+### Requirement: Generated-image suggestions preserve destination context
+
+The composer SHALL forward a destination channel when it has one unambiguous network suggestion and
+SHALL omit that hint when the edited content spans several destinations.
+
+#### Scenario: Global post suggests the first selected network
+
+- **WHEN** image generation opens from the global post editor with selected channels
+- **THEN** the first selected channel SHALL be forwarded as an aspect-ratio suggestion
+
+#### Scenario: Shared thread does not invent a destination
+
+- **WHEN** image generation opens from a thread item shared by several channels
+- **THEN** no single channel SHALL be asserted as its destination

@@ -434,11 +434,11 @@ export function PostDetailSheet({
                                   />
                                 ) : null}
                               </span>
-                              <span className="truncate text-[13px] font-semibold text-ink sm:hidden">{name}</span>
+                              <span className="truncate text-compact font-semibold text-ink sm:hidden">{name}</span>
                             </div>
 
                             <span className="flex shrink-0 items-center gap-1 sm:hidden">
-                              <Badge variant={stateBadgeVariant(pub.state)} className="text-[10px]">
+                              <Badge variant={stateBadgeVariant(pub.state)} className="text-axis">
                                 {tCal.has(`state.${pub.state}`) ? tCal(`state.${pub.state}`) : pub.state}
                               </Badge>
                               {RETRYABLE_STATES.has(pub.state) && groupId ? (
@@ -470,7 +470,7 @@ export function PostDetailSheet({
                           </div>
 
                           <span className="w-full min-w-0 flex-1 sm:w-auto">
-                            <span className="hidden truncate text-[13px] font-semibold text-ink sm:block">{name}</span>
+                            <span className="hidden truncate text-compact font-semibold text-ink sm:block">{name}</span>
                             <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-graphite">
                               {pub.itemCount > 1 ? (
                                 <span>
@@ -687,7 +687,7 @@ function ApprovalLinkSection({ groupId }: { groupId: string }) {
 
           {freshUrl ? (
             <div className="bevel-chip flex items-center gap-2 rounded-md border border-accent bg-accent-tint px-3 py-2">
-              <span className="min-w-0 flex-1 truncate text-[13px] text-accent">{freshUrl}</span>
+              <span className="min-w-0 flex-1 truncate text-compact text-accent">{freshUrl}</span>
               <Button variant="ghost" size="icon-sm" aria-label={t('copy')} onClick={() => copy(freshUrl)}>
                 <Copy aria-hidden />
               </Button>
@@ -696,7 +696,7 @@ function ApprovalLinkSection({ groupId }: { groupId: string }) {
 
           {pending ? (
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="flex items-center gap-1.5 text-[13px] text-graphite">
+              <span className="flex items-center gap-1.5 text-compact text-graphite">
                 <Check className="size-4 text-state-published" aria-hidden />
                 {t('pendingUntil', {
                   date: new Intl.DateTimeFormat(locale, {

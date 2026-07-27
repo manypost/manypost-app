@@ -26,6 +26,17 @@ export interface TimeSlot {
   score: number;
 }
 
+/**
+ * De onde a sugestão vem. Existe porque `confidence` sozinha é ambígua: uma amostra grande de
+ * horários de publicação diz que a organização é CONSISTENTE, não que aqueles horários deram
+ * resultado. Sem essa distinção, a interface escreve "baseado no seu histórico" e a pessoa lê
+ * "medimos o que funcionou para você".
+ *
+ * `own_engagement` entra quando a coleta de métricas existir (`channel_metrics` está vazia hoje),
+ * e é o único valor que autoriza `confidence: 'high'`.
+ */
+export type BestTimesSignal = 'network_baseline' | 'own_posting_history' | 'own_engagement';
+
 export interface BestTimes {
   channelId: string;
   timezone: string;
@@ -35,6 +46,8 @@ export interface BestTimes {
   sampleSize: number;
   /** true = veio só da linha de base da rede, sem histórico próprio */
   fromBaseline: boolean;
+  /** o que sustenta a resposta — a interface escreve a frase a partir daqui */
+  signal: BestTimesSignal;
 }
 
 /** fuso default explícito — melhor um documentado que uma hora local ambígua */
@@ -109,8 +122,16 @@ export function weekdayHourIn(date: Date, timeZone: string): { weekday: number; 
 
 const chave = (weekday: number, hour: number) => `${weekday}:${hour}`;
 
-const confiancaDe = (amostras: number): BestTimes['confidence'] =>
-  amostras >= AMOSTRA_ALTA ? 'high' : amostras >= AMOSTRA_MEDIA ? 'medium' : 'low';
+/**
+ * Confiança a partir do tamanho da amostra, **limitada pelo sinal**. Frequência de publicação
+ * não vira `high` por mais que a amostra cresça: mil publicações no mesmo horário provam hábito,
+ * não desempenho. O teto sai daqui quando `own_engagement` existir.
+ */
+const confiancaDe = (amostras: number, signal: BestTimesSignal): BestTimes['confidence'] => {
+  const bruta = amostras >= AMOSTRA_ALTA ? 'high' : amostras >= AMOSTRA_MEDIA ? 'medium' : 'low';
+  if (bruta === 'high' && signal !== 'own_engagement') return 'medium';
+  return bruta;
+};
 
 /** dias úteis e fim de semana recebem a mesma lista de horas da linha de base */
 function slotsDaBaseline(provider: string, quantidade: number): TimeSlot[] {
@@ -157,11 +178,14 @@ export const makeSuggestBestTimes =
       MAX_AMOSTRAS,
     );
 
+    const signal: BestTimesSignal =
+      historico.length === 0 ? 'network_baseline' : 'own_posting_history';
     const base = {
       channelId: canal.id,
       timezone,
       sampleSize: historico.length,
-      confidence: confiancaDe(historico.length),
+      confidence: confiancaDe(historico.length, signal),
+      signal,
     };
 
     // sem histórico nenhum, a resposta é a linha de base — e diz que é

@@ -25,6 +25,9 @@ describe('catálogo de planos ↔ página de preços', () => {
     for (const feature of [
       'ai_multichannel_draft',
       'ai_calendar',
+      // imagem é a de maior custo unitário: uma ordem de magnitude acima de uma legenda, então a
+      // franquia de 500 do Pro se esgotaria em cem imagens
+      'ai_image',
       'ai_inbox',
       'ai_triage',
       'ai_campaign_reports',

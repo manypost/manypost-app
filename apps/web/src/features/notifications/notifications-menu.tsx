@@ -37,7 +37,7 @@ export function NotificationsMenu() {
           {unread > 0 ? (
             <span
               aria-hidden
-              className="bevel-chip absolute -right-0.5 -top-0.5 grid min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold leading-4 text-paper"
+              className="bevel-chip absolute -right-0.5 -top-0.5 grid min-w-4 place-items-center rounded-full bg-accent px-1 text-axis font-bold leading-4 text-paper"
             >
               {unread > 9 ? '9+' : unread}
             </span>
@@ -46,7 +46,7 @@ export function NotificationsMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80 p-0">
         <div className="flex items-center justify-between border-b border-line px-3 py-2">
-          <span className="text-[13px] font-semibold text-ink">{t('title')}</span>
+          <span className="text-compact font-semibold text-ink">{t('title')}</span>
           {unread > 0 ? (
             <Button
               variant="ghost"
@@ -61,7 +61,7 @@ export function NotificationsMenu() {
           ) : null}
         </div>
         {recent.length === 0 ? (
-          <p className="px-3 py-8 text-center text-[13px] text-graphite">{t('empty')}</p>
+          <p className="px-3 py-8 text-center text-compact text-graphite">{t('empty')}</p>
         ) : (
           <ul className="max-h-96 overflow-y-auto py-1">
             {recent.map((n) => (
@@ -83,7 +83,7 @@ export function NotificationsMenu() {
                     )}
                   />
                   <span className="min-w-0 flex-1">
-                    <span className={cn('block truncate text-[13px]', n.readAt ? 'text-graphite' : 'font-semibold text-ink')}>
+                    <span className={cn('block truncate text-compact', n.readAt ? 'text-graphite' : 'font-semibold text-ink')}>
                       {n.title}
                     </span>
                     {n.body ? (

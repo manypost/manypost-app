@@ -23,6 +23,8 @@ export * from './application/use-cases/approvals';
 export * from './application/use-cases/ai-budget';
 export * from './application/use-cases/ai';
 export * from './application/use-cases/ai-best-times';
+export * from './application/use-cases/insights';
+export * from './application/use-cases/ai-image';
 export * as aiPrompts from './application/prompts';
 export * from './application/use-cases/billing';
 export * from './application/use-cases/plan-policy';

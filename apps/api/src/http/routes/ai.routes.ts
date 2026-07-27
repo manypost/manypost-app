@@ -1,8 +1,9 @@
 import { z } from '@hono/zod-openapi';
 import { ErrorCodes } from '@manypost/contracts';
-import { DomainError } from '@manypost/core';
+import { DomainError, IMAGE_ASPECTS, aiPrompts } from '@manypost/core';
 import type { Container } from '../../container';
 import { requireAuth } from '../middleware/auth';
+import { idempotency } from '../middleware/public-api';
 import { AUTH_SECURITY, createApp, errorResponses, jsonBody, jsonResponse } from '../openapi';
 
 /**
@@ -13,6 +14,8 @@ import { AUTH_SECURITY, createApp, errorResponses, jsonBody, jsonResponse } from
  *  - `/best-times`: heurística estatística, sem modelo e sem franquia — por isso continua
  *    respondendo mesmo numa instalação com `AI_PROVIDER=none`.
  */
+
+const REWRITE_INSTRUCTION_IDS = aiPrompts.REWRITE_INSTRUCTION_IDS;
 
 const ChannelIds = z
   .array(z.string().uuid())
@@ -47,12 +50,58 @@ const CaptionBody = z.object({
   settings: Settings,
 });
 
-const RewriteBody = z.object({
-  text: z.string().min(1).max(20_000),
-  instruction: z.string().min(1).max(500),
-  channelId: z.string().uuid(),
-  settings: Settings,
-});
+/**
+ * Reescrita. Duas diferenças em relação às outras rotas, e as duas são o conserto de um defeito:
+ *
+ * - **`channelId` é opcional.** A aba global do composer edita um texto compartilhado por várias
+ *   redes; escolher um canal arbitrariamente impunha o limite de uma rede não relacionada e o
+ *   texto voltava cortado.
+ * - **a instrução normalmente vem por id.** O catálogo é prompt do servidor, não rótulo de UI;
+ *   o texto livre continua aceito para chamador de API/MCP.
+ */
+const RewriteBody = z
+  .object({
+    text: z.string().min(1).max(20_000),
+    instructionId: z
+      .enum(REWRITE_INSTRUCTION_IDS as [string, ...string[]])
+      .optional()
+      .openapi({ description: 'instrução do catálogo do servidor' }),
+    instruction: z
+      .string()
+      .min(1)
+      .max(500)
+      .optional()
+      .openapi({ description: 'instrução em texto livre — alternativa a `instructionId`' }),
+    channelId: z
+      .string()
+      .uuid()
+      .optional()
+      .openapi({
+        description:
+          'opcional: sem canal a reescrita roda e nenhum limite é imposto nem reportado',
+      }),
+    settings: Settings,
+  })
+  .refine((b) => (b.instructionId === undefined) !== (b.instruction === undefined), {
+    message: 'informe exatamente um entre `instructionId` e `instruction`',
+    path: ['instructionId'],
+  });
+
+/**
+ * O resultado de uma reescrita **não** é um `AiVariant`: não tem `shortened`, porque nada é
+ * cortado. `overLimit` avisa que passou do limite do canal para a interface poder confirmar
+ * antes de escrever no editor — o limite continua sendo imposto no agendamento.
+ */
+const RewriteOut = z
+  .object({
+    channelId: z.string().nullable().openapi({ description: 'null = reescrita sem canal' }),
+    text: z.string(),
+    maxLength: z.number().int().nullable(),
+    overLimit: z
+      .boolean()
+      .openapi({ description: 'true = passou do limite do canal, e nada foi removido por isso' }),
+  })
+  .openapi('AiRewriteResult');
 
 const HashtagsBody = z.object({
   text: z.string().min(1).max(20_000),
@@ -92,6 +141,34 @@ const PlannedSlot = z
   })
   .openapi('AiPlannedSlot');
 
+const ImageBody = z.object({
+  prompt: z.string().min(1).max(2000),
+  aspect: z
+    .enum(IMAGE_ASPECTS as unknown as [string, ...string[]])
+    .optional()
+    .openapi({ description: 'proporção; sem ela, `channelId` decide; sem os dois, 1:1' }),
+  channelId: z
+    .string()
+    .uuid()
+    .optional()
+    .openapi({ description: 'a proporção vira a que a rede deste canal trata melhor no feed' }),
+  quality: z.enum(['draft', 'standard']).optional(),
+  alt: z.string().max(1000).optional().openapi({ description: 'descrição para leitor de tela' }),
+});
+
+const MediaOut = z
+  .object({
+    id: z.string(),
+    url: z.string(),
+    mime: z.string(),
+    byteSize: z.number().int(),
+    width: z.number().int().nullable(),
+    height: z.number().int().nullable(),
+    alt: z.string().nullable(),
+    source: z.string().openapi({ description: "`ai` = gerada; `upload` = enviada por alguém" }),
+  })
+  .openapi('AiGeneratedMedia');
+
 const BestTimes = z
   .object({
     channelId: z.string(),
@@ -111,6 +188,12 @@ const BestTimes = z
     fromBaseline: z
       .boolean()
       .openapi({ description: 'true = veio da linha de base da rede, sem histórico próprio' }),
+    signal: z.enum(['network_baseline', 'own_posting_history', 'own_engagement']).openapi({
+      description:
+        'o que sustenta a resposta. `own_posting_history` = os horários que a organização MAIS ' +
+        'USA neste canal, não uma medição de desempenho — enquanto for esse o sinal, `confidence` ' +
+        'não passa de `medium`. `own_engagement` depende da coleta de métricas, que ainda não existe.',
+    }),
   })
   .openapi('AiBestTimes');
 
@@ -188,17 +271,25 @@ export function aiRoutes(ctn: Container) {
     tags: ['ai'],
     security: AUTH_SECURITY,
     summary: 'Reescreve um texto seguindo uma instrução',
-    description: 'Requer a feature `ai_caption` (plano Pro).',
+    description:
+      'Requer a feature `ai_caption` (plano Pro). **Nunca encurta o texto**: reescrever é a única ' +
+      'operação cuja entrada é o texto que a pessoa escreveu, e cortá-lo para caber num limite ' +
+      'que ela não escolheu perderia trabalho. Quando um canal é informado e o resultado passa do ' +
+      'limite dele, `overLimit` vem true e o texto vem inteiro — o limite continua sendo imposto ' +
+      'no agendamento.',
     request: jsonBody(RewriteBody),
-    responses: { 200: jsonResponse('texto reescrito', Variant), ...erros },
+    responses: { 200: jsonResponse('texto reescrito', RewriteOut), ...erros },
   });
   app.post('/rewrite', async (c) => {
     const body = RewriteBody.parse(await c.req.json());
     return c.json(
       await requireAi().rewrite(actor(c), {
         text: body.text,
-        instruction: body.instruction,
-        channelId: body.channelId,
+        ...(body.instructionId
+          ? { instructionId: body.instructionId as aiPrompts.RewriteInstructionId }
+          : {}),
+        ...(body.instruction ? { instruction: body.instruction } : {}),
+        ...(body.channelId ? { channelId: body.channelId } : {}),
         ...(body.settings ? { settings: body.settings } : {}),
       }),
     );
@@ -306,6 +397,57 @@ export function aiRoutes(ctn: Container) {
         ...(body.settings ? { settings: body.settings } : {}),
       }),
     );
+  });
+
+  app.openAPIRegistry.registerPath({
+    method: 'post',
+    path: '/image',
+    tags: ['ai'],
+    security: AUTH_SECURITY,
+    summary: 'Gera uma imagem e guarda na biblioteca de mídia',
+    description:
+      'Requer a feature `ai_image` (plano Premium) **e** um provedor que gere imagem; sem essa ' +
+      'capacidade responde 501 `ai.capability_unavailable`. Custa 5 créditos — uma requisição, ' +
+      'uma imagem. A forma pedida é **proporção**, nunca resolução: quem traduz é o adapter. ' +
+      'Os bytes devolvidos pelo provedor são validados por assinatura de arquivo (o `content-type` ' +
+      'declarado não é confiável) e entram na biblioteca marcados como gerados, com o prompt e o ' +
+      'modelo. Aceita `Idempotency-Key`: a cinco créditos, duplo clique é caro.',
+    request: {
+      ...jsonBody(ImageBody),
+      headers: z.object({
+        'Idempotency-Key': z.string().optional().openapi({
+          description:
+            'Identifica a tentativa lógica. Repetir a mesma chave e o mesmo corpo devolve a resposta original sem nova cobrança.',
+          example: '0198f0d8-5038-7c4e-a46f-243c2495f949',
+        }),
+      }),
+    },
+    responses: {
+      200: jsonResponse('mídia gerada', z.object({ media: MediaOut })),
+      ...errorResponses(400, 401, 402, 404, 409, 429, 501),
+    },
+  });
+  app.post('/image', idempotency(ctn.runtime.idempotency), async (c) => {
+    const body = ImageBody.parse(await c.req.json());
+    const { media } = await requireAi().image(actor(c), {
+      prompt: body.prompt,
+      ...(body.aspect ? { aspect: body.aspect } : {}),
+      ...(body.channelId ? { channelId: body.channelId } : {}),
+      ...(body.quality ? { quality: body.quality } : {}),
+      ...(body.alt ? { alt: body.alt } : {}),
+    });
+    return c.json({
+      media: {
+        id: media.id,
+        url: ctn.storage.publicUrl(media.path),
+        mime: media.mime,
+        byteSize: media.byteSize,
+        width: media.width,
+        height: media.height,
+        alt: media.alt,
+        source: media.source,
+      },
+    });
   });
 
   const BestTimesQuery = z.object({

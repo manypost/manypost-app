@@ -86,6 +86,7 @@ describe('ai_best_time — sem histórico', () => {
     expect(r.fromBaseline).toBe(true);
     expect(r.confidence).toBe('low');
     expect(r.sampleSize).toBe(0);
+    expect(r.signal).toBe('network_baseline');
     expect(r.slots.length).toBeGreaterThan(0);
   });
 
@@ -118,8 +119,24 @@ describe('ai_best_time — com histórico próprio', () => {
 
     expect(r.fromBaseline).toBe(false);
     expect(r.sampleSize).toBe(30);
-    expect(r.confidence).toBe('high');
+    expect(r.signal).toBe('own_posting_history');
     expect(r.slots[0]).toMatchObject({ weekday: 1, hour: 9, score: 1 });
+  });
+
+  /**
+   * O sinal disponível hoje é FREQUÊNCIA DE PUBLICAÇÃO, não desempenho: `channel_metrics` está
+   * vazia. Uma amostra grande prova que a organização é consistente, não que aqueles horários
+   * funcionaram. Enquanto for esse o sinal, a confiança não passa de média — e o `signal` deixa
+   * a interface escrever a frase certa em vez de insinuar medição.
+   */
+  it('confiança não passa de média enquanto o sinal é só frequência de publicação', async () => {
+    const { deps } = harness({ historico: historicoEm(300, '2026-07-27T12:00:00Z') });
+    const r = await makeSuggestBestTimes(deps)(ACTOR, { channelId: 'ch-1' });
+
+    expect(r.sampleSize).toBe(300);
+    expect(r.signal).toBe('own_posting_history');
+    expect(r.confidence).toBe('medium');
+    expect(r.confidence).not.toBe('high');
   });
 
   it('pouca amostra fica em confiança baixa mesmo usando o histórico', async () => {

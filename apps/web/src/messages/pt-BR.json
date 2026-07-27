@@ -143,6 +143,7 @@
     "slidePosition": "{n} de {total}"
   },
   "nav": {
+    "home": "Início",
     "compose": "Novo post",
     "calendar": "Calendário",
     "kanban": "Kanban",
@@ -266,7 +267,8 @@
         "webhookUrl": "URL do webhook do canal",
         "webhookUrlPlaceholder": "https://discord.com/api/webhooks/…"
       }
-    }
+    },
+    "pageDescription": "As contas onde você publica. Conecte, reconecte e ajuste o que cada rede exige."
   },
   "composer": {
     "title": "Compor",
@@ -728,6 +730,7 @@
     "footer": {
       "shortcut": "Ctrl + Enter agenda",
       "saved": "Rascunho salvo",
+      "saveFailed": "Rascunho não salvo neste dispositivo",
       "discardShort": "Descartar",
       "blocked": "Resolva {count, plural, one {# ajuste} other {# ajustes}} para agendar"
     },
@@ -827,7 +830,8 @@
       "NEEDS_REVIEW": "Precisa de revisão",
       "DONE": "Publicado",
       "PARTIAL": "Parcial"
-    }
+    },
+    "pageDescription": "Onde cada post cai no tempo. Arraste para reagendar; filtre por canal ou por estado."
   },
   "approval": {
     "badge": "Aprovação",
@@ -866,6 +870,8 @@
     "expiredBody": "Reinicie a conexão pelo cliente MCP (Cursor, Claude, Codex, OpenCode, VS Code ou Inspector)."
   },
   "settings": {
+    "title": "Configurações",
+    "subtitle": "Gerencie seu perfil, chaves de API, agentes e webhooks desta organização.",
     "profileTitle": "Perfil",
     "apiKeysTitle": "API keys",
     "apiKeysHint": "Chaves mp_live_ para usar a API do manypost em scripts e integrações. A chave completa aparece uma única vez.",
@@ -914,6 +920,7 @@
     "create": "Criar"
   },
   "kanban": {
+    "title": "Quadro",
     "columns": {
       "draft": "Rascunho",
       "awaiting": "Aguardando aprovação",
@@ -925,7 +932,8 @@
     "newPost": "Novo post",
     "retry": "Tentar de novo",
     "retryStarted": "Nova tentativa disparada.",
-    "invalidMove": "Só dá para arrastar de Falhou para Agendado (tentar de novo). Use o card para outras ações."
+    "invalidMove": "Só dá para arrastar de Falhou para Agendado (tentar de novo). Use o card para outras ações.",
+    "pageDescription": "Seus posts por etapa — do rascunho ao publicado, com o que falhou à vista."
   },
   "postDetail": {
     "title": "Publicação",
@@ -999,7 +1007,8 @@
     "deleteTitle": "Excluir esta mídia?",
     "deleteWarning": "Ela sai da biblioteca, mas posts já agendados que a usam continuam publicando normalmente.",
     "deleteCta": "Excluir",
-    "deleted": "Mídia excluída."
+    "deleted": "Mídia excluída.",
+    "pageDescription": "Suas imagens e vídeos. Envie uma vez e reuse em qualquer post, em qualquer rede."
   },
   "notifications": {
     "title": "Notificações",
@@ -1156,5 +1165,129 @@
         "a": "Você continua com o plano até o fim do período já pago. Depois a marca volta ao Grátis: 3 redes, 15 posts por mês e sem X."
       }
     ]
+  },
+  "ai": {
+    "menuTitle": "Escrever com IA",
+    "triggerLabel": "Escrever com IA",
+    "credits": "{count, plural, one {# crédito} other {# créditos}}",
+    "creditsCost": "custa {count, plural, one {# crédito} other {# créditos}}",
+    "adaptToNetwork": "Adaptar para cada rede",
+    "adaptToNetworkOne": "Adaptar para esta rede",
+    "suggestHashtags": "Sugerir hashtags",
+    "rewriteGroup": "Reescrever",
+    "toneGroup": "Ajustar o tom",
+    "rewrite": {
+      "shorten": "Encurtar",
+      "expand": "Alongar",
+      "formal": "Mais formal",
+      "casual": "Mais casual",
+      "with_emoji": "Com emojis",
+      "without_emoji": "Sem emojis",
+      "fix_grammar": "Corrigir"
+    },
+    "lockedPro": "Recurso do plano Pro",
+    "lockedPremium": "Este recurso faz parte do plano Premium.",
+    "exhausted": "Franquia de IA esgotada neste mês",
+    "seePlans": "Ver planos",
+    "needChannel": "Escolha ao menos um canal para a IA saber o limite e o formato.",
+    "genericError": "Não foi possível gerar agora. Tente de novo.",
+    "workingAnnounce": "Gerando…",
+    "appliedOne": "Texto aplicado. Revise antes de agendar.",
+    "appliedPerChannel": "{count, plural, one {# versão aplicada} other {# versões aplicadas}} — uma por canal. Revise em cada aba.",
+    "shortenedNotice": "Encurtado para caber em {network} ({max} caracteres).",
+    "overLimitNotice": "A reescrita ficou com {length} caracteres, acima do limite de {network} ({max}). Nada foi cortado — você decide.",
+    "applyAnyway": "Aplicar mesmo assim",
+    "discard": "Descartar",
+    "undo": "Desfazer",
+    "undone": "Alteração desfeita.",
+    "dismiss": "Fechar aviso",
+    "describeImage": "Descrever com IA",
+    "describeError": "Não foi possível descrever agora.",
+    "draftTrigger": "Rascunho por IA",
+    "draftTitle": "Rascunho multicanal",
+    "draftDescription": "Descreva a ideia. A IA escreve um texto adaptado para cada canal selecionado — você revisa antes de agendar.",
+    "draftFieldLabel": "Sua ideia",
+    "draftPlaceholder": "Ex.: agora abrimos aos domingos, das 9h às 14h, com café da manhã",
+    "draftSubmit": "Gerar rascunhos",
+    "bestTimeTrigger": "Sugerir melhor horário",
+    "bestTimeTitle": "Melhores horários",
+    "bestTimeLoading": "Calculando…",
+    "bestTimeError": "Não foi possível calcular agora. Tente abrir de novo em instantes.",
+    "bestTimeTimezone": "Horários no fuso {timezone}.",
+    "bestTimeBaseline": "Ponto de partida para esta rede — ainda não há histórico seu neste canal.",
+    "bestTimeOwnHistory": "Os horários que você mais usa neste canal ({count, plural, one {# publicação} other {# publicações}}). Ainda não medimos desempenho.",
+    "draftShortened": "{count, plural, one {O texto de {networks} foi encurtado para caber no limite da rede.} other {Os textos de {networks} foram encurtados para caber no limite de cada rede.}}",
+    "draftReview": "Revisar no composer",
+    "imageTrigger": "Gerar imagem",
+    "imageTitle": "Gerar imagem com IA",
+    "imageDescription": "Descreva a imagem. Ela entra na sua biblioteca marcada como gerada por IA — você revisa antes de usar.",
+    "imageFieldLabel": "O que a imagem deve mostrar",
+    "imagePlaceholder": "Ex.: uma xícara de café sobre uma mesa de madeira, luz da manhã pela janela",
+    "imageAspectLabel": "Formato",
+    "imageAspectHint": "Escolhido pela rede que você selecionou.",
+    "imageSubmit": "Gerar imagem",
+    "imageGenerating": "Gerando a imagem…",
+    "imageCost": "Custa {count, plural, one {# crédito} other {# créditos}}.",
+    "imageDone": "Imagem gerada e salva na biblioteca.",
+    "imageUseIt": "Usar no post",
+    "imageAnother": "Gerar outra",
+    "imageError": "Não foi possível gerar a imagem agora.",
+    "imageBadge": "IA",
+    "imageBadgeTitle": "Imagem gerada por IA",
+    "aspect1x1": "Quadrado",
+    "aspect4x5": "Retrato",
+    "aspect9x16": "Vertical",
+    "aspect16x9": "Paisagem",
+    "aspect191x1": "Link"
+  },
+  "home": {
+    "title": "Início",
+    "greetingMorning": "Bom dia",
+    "greetingAfternoon": "Boa tarde",
+    "greetingEvening": "Boa noite",
+    "subtitle": "O que precisa de você agora, e o que sai nas próximas horas.",
+    "newPost": "Novo post",
+    "attentionTitle": "Precisa de atenção",
+    "attentionFailed": "{count, plural, one {# publicação falhou} other {# publicações falharam}}",
+    "attentionNeedsReview": "{count, plural, one {# publicação com desfecho incerto} other {# publicações com desfecho incerto}}",
+    "attentionAwaitingApproval": "{count, plural, one {# post aguardando aprovação} other {# posts aguardando aprovação}}",
+    "attentionPartial": "{count, plural, one {# post saiu em parte das redes} other {# posts saíram em parte das redes}}",
+    "attentionChannel": "{name} precisa ser reconectado",
+    "attentionChannelGeneric": "{name} precisa de atenção",
+    "goToFailed": "Ver falhas",
+    "goToReview": "Revisar",
+    "goToApproval": "Ver aprovações",
+    "goToPartial": "Ver posts",
+    "goToChannels": "Reconectar",
+    "todayTitle": "Sai hoje",
+    "todayEmpty": "Nada agendado para hoje.",
+    "todayEmptyCta": "Agendar um post",
+    "todayPublished": "{count, plural, one {# já publicado hoje} other {# já publicados hoje}}",
+    "todayScheduled": "{count, plural, one {# agendado} other {# agendados}}",
+    "todayFailed": "{count, plural, one {# falhou hoje} other {# falharam hoje}}",
+    "openCalendar": "Abrir o calendário",
+    "usageTitle": "Seu plano",
+    "usagePosts": "Posts do mês",
+    "usageChannels": "Canais",
+    "usageAiCredits": "Créditos de IA",
+    "usageUnlimited": "sem limite",
+    "usageOf": "{used} de {limit}",
+    "usageRenews": "Renova em {date}.",
+    "usageNearLimit": "Você está perto do limite do plano.",
+    "seePlans": "Ver planos",
+    "weekTitle": "Próximos 7 dias",
+    "weekTotal": "{count, plural, one {# post agendado} other {# posts agendados}}",
+    "weekEmptyDays": "{count, plural, one {# dia sem nada agendado} other {# dias sem nada agendado}}",
+    "weekNothing": "Nenhum post agendado nos próximos 7 dias.",
+    "firstRunTitle": "Vamos começar",
+    "firstRunConnectTitle": "Conecte uma rede social",
+    "firstRunConnectBody": "Sem um canal conectado não há para onde publicar. Começa por aqui.",
+    "firstRunConnectCta": "Conectar uma rede",
+    "firstRunComposeTitle": "Crie seu primeiro post",
+    "firstRunComposeBody": "Escreva uma vez e escolha as redes — o texto se adapta ao limite de cada uma.",
+    "firstRunComposeCta": "Escrever um post",
+    "firstRunAiTitle": "Deixe a IA escrever o rascunho",
+    "firstRunAiBody": "Descreva a ideia em uma linha e revise o que ela propõe para cada rede.",
+    "loadError": "Não foi possível carregar o resumo agora."
   }
 }

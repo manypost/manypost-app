@@ -860,6 +860,10 @@
             "type": "string",
             "example": "image/png"
           },
+          "source": {
+            "type": "string",
+            "description": "`ai` = gerada por IA; `upload` = enviada por alguém"
+          },
           "byteSize": {
             "type": "integer"
           },
@@ -890,6 +894,7 @@
           "id",
           "url",
           "mime",
+          "source",
           "byteSize",
           "width",
           "height",
@@ -1139,6 +1144,9 @@
               "canDescribeImages": {
                 "type": "boolean"
               },
+              "canGenerateImages": {
+                "type": "boolean"
+              },
               "credits": {
                 "type": [
                   "object",
@@ -1179,6 +1187,7 @@
             "required": [
               "enabled",
               "canDescribeImages",
+              "canGenerateImages",
               "credits"
             ]
           },
@@ -1208,6 +1217,136 @@
           "endpoints"
         ]
       },
+      "ChannelNeedingAction": {
+        "type": "object",
+        "properties": {
+          "channelId": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "description": "REFRESH_REQUIRED | PENDING_ACCOUNT_SELECTION | DISABLED"
+          }
+        },
+        "required": [
+          "channelId",
+          "provider",
+          "name",
+          "status"
+        ]
+      },
+      "InsightsSummary": {
+        "type": "object",
+        "properties": {
+          "timezone": {
+            "type": "string",
+            "description": "fuso em que as fronteiras de dia foram resolvidas — a resposta diz qual usou"
+          },
+          "attention": {
+            "type": "object",
+            "properties": {
+              "failed": {
+                "type": "integer"
+              },
+              "needsReview": {
+                "type": "integer",
+                "description": "desfecho incerto: nunca retentado sozinho, espera decisão humana"
+              },
+              "awaitingApproval": {
+                "type": "integer",
+                "description": "por GRUPO, não por publicação"
+              },
+              "partial": {
+                "type": "integer",
+                "description": "saiu em algumas redes e não em outras"
+              },
+              "channels": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ChannelNeedingAction"
+                }
+              },
+              "total": {
+                "type": "integer",
+                "description": "0 = a interface esconde o bloco inteiro"
+              }
+            },
+            "required": [
+              "failed",
+              "needsReview",
+              "awaitingApproval",
+              "partial",
+              "channels",
+              "total"
+            ]
+          },
+          "today": {
+            "type": "object",
+            "properties": {
+              "scheduled": {
+                "type": "integer"
+              },
+              "published": {
+                "type": "integer"
+              },
+              "failed": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "scheduled",
+              "published",
+              "failed"
+            ]
+          },
+          "week": {
+            "type": "object",
+            "properties": {
+              "scheduled": {
+                "type": "integer"
+              },
+              "byDay": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                },
+                "description": "7 posições, índice 0 = hoje no fuso pedido"
+              }
+            },
+            "required": [
+              "scheduled",
+              "byDay"
+            ]
+          },
+          "firstRun": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "no_channels",
+              "no_posts"
+            ],
+            "description": "organização sem o que operar. A interface troca os blocos operacionais por próximos passos em vez de mostrar uma grade de zeros. null = já está operando."
+          }
+        },
+        "required": [
+          "timezone",
+          "attention",
+          "today",
+          "week",
+          "firstRun"
+        ]
+      },
       "AiVariant": {
         "type": "object",
         "properties": {
@@ -1230,6 +1369,37 @@
           "text",
           "maxLength",
           "shortened"
+        ]
+      },
+      "AiRewriteResult": {
+        "type": "object",
+        "properties": {
+          "channelId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "null = reescrita sem canal"
+          },
+          "text": {
+            "type": "string"
+          },
+          "maxLength": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "overLimit": {
+            "type": "boolean",
+            "description": "true = passou do limite do canal, e nada foi removido por isso"
+          }
+        },
+        "required": [
+          "channelId",
+          "text",
+          "maxLength",
+          "overLimit"
         ]
       },
       "AiPlannedSlot": {
@@ -1262,6 +1432,55 @@
           "publishAt",
           "maxLength",
           "shortened"
+        ]
+      },
+      "AiGeneratedMedia": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "mime": {
+            "type": "string"
+          },
+          "byteSize": {
+            "type": "integer"
+          },
+          "width": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "height": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "alt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "description": "`ai` = gerada; `upload` = enviada por alguém"
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "mime",
+          "byteSize",
+          "width",
+          "height",
+          "alt",
+          "source"
         ]
       },
       "AiBestTimes": {
@@ -1311,6 +1530,15 @@
           "fromBaseline": {
             "type": "boolean",
             "description": "true = veio da linha de base da rede, sem histórico próprio"
+          },
+          "signal": {
+            "type": "string",
+            "enum": [
+              "network_baseline",
+              "own_posting_history",
+              "own_engagement"
+            ],
+            "description": "o que sustenta a resposta. `own_posting_history` = os horários que a organização MAIS USA neste canal, não uma medição de desempenho — enquanto for esse o sinal, `confidence` não passa de `medium`. `own_engagement` depende da coleta de métricas, que ainda não existe."
           }
         },
         "required": [
@@ -1319,7 +1547,8 @@
           "slots",
           "confidence",
           "sampleSize",
-          "fromBaseline"
+          "fromBaseline",
+          "signal"
         ]
       },
       "PlanCatalog": {
@@ -4328,6 +4557,64 @@
         }
       }
     },
+    "/v1/insights/summary": {
+      "get": {
+        "tags": [
+          "insights"
+        ],
+        "security": [
+          {
+            "clerkAuth": []
+          }
+        ],
+        "summary": "Resumo operacional da organização (tela inicial)",
+        "description": "Contagens agregadas: o que precisa de atenção (falhas, revisão, aprovação, entrega parcial, canais a reconectar), o que sai hoje e a semana por dia. **Não traz métrica de desempenho** — a plataforma não coleta engajamento, então todo número aqui vem do registro do que ela mesma pediu e entregou. As fronteiras de dia são resolvidas no fuso informado em `tz`.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "IANA; inválido responde 400",
+              "example": "America/Sao_Paulo"
+            },
+            "required": false,
+            "name": "tz",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "resumo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InsightsSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "requisição fora do contrato (problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/ai/caption": {
       "post": {
         "tags": [
@@ -4466,7 +4753,7 @@
           }
         ],
         "summary": "Reescreve um texto seguindo uma instrução",
-        "description": "Requer a feature `ai_caption` (plano Pro).",
+        "description": "Requer a feature `ai_caption` (plano Pro). **Nunca encurta o texto**: reescrever é a única operação cuja entrada é o texto que a pessoa escreveu, e cortá-lo para caber num limite que ela não escolheu perderia trabalho. Quando um canal é informado e o resultado passa do limite dele, `overLimit` vem true e o texto vem inteiro — o limite continua sendo imposto no agendamento.",
         "requestBody": {
           "required": true,
           "content": {
@@ -4479,14 +4766,29 @@
                     "minLength": 1,
                     "maxLength": 20000
                   },
+                  "instructionId": {
+                    "type": "string",
+                    "enum": [
+                      "shorten",
+                      "expand",
+                      "formal",
+                      "casual",
+                      "with_emoji",
+                      "without_emoji",
+                      "fix_grammar"
+                    ],
+                    "description": "instrução do catálogo do servidor"
+                  },
                   "instruction": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 500
+                    "maxLength": 500,
+                    "description": "instrução em texto livre — alternativa a `instructionId`"
                   },
                   "channelId": {
                     "type": "string",
-                    "format": "uuid"
+                    "format": "uuid",
+                    "description": "opcional: sem canal a reescrita roda e nenhum limite é imposto nem reportado"
                   },
                   "settings": {
                     "type": "object",
@@ -4495,9 +4797,7 @@
                   }
                 },
                 "required": [
-                  "text",
-                  "instruction",
-                  "channelId"
+                  "text"
                 ]
               }
             }
@@ -4509,7 +4809,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiVariant"
+                  "$ref": "#/components/schemas/AiRewriteResult"
                 }
               }
             }
@@ -5056,6 +5356,170 @@
           },
           "429": {
             "description": "rate limit — aguarde e tente de novo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/ai/image": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "security": [
+          {
+            "clerkAuth": []
+          }
+        ],
+        "summary": "Gera uma imagem e guarda na biblioteca de mídia",
+        "description": "Requer a feature `ai_image` (plano Premium) **e** um provedor que gere imagem; sem essa capacidade responde 501 `ai.capability_unavailable`. Custa 5 créditos — uma requisição, uma imagem. A forma pedida é **proporção**, nunca resolução: quem traduz é o adapter. Os bytes devolvidos pelo provedor são validados por assinatura de arquivo (o `content-type` declarado não é confiável) e entram na biblioteca marcados como gerados, com o prompt e o modelo. Aceita `Idempotency-Key`: a cinco créditos, duplo clique é caro.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Identifica a tentativa lógica. Repetir a mesma chave e o mesmo corpo devolve a resposta original sem nova cobrança.",
+              "example": "0198f0d8-5038-7c4e-a46f-243c2495f949"
+            },
+            "required": false,
+            "name": "Idempotency-Key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  "aspect": {
+                    "type": "string",
+                    "enum": [
+                      "1:1",
+                      "4:5",
+                      "9:16",
+                      "16:9",
+                      "1.91:1"
+                    ],
+                    "description": "proporção; sem ela, `channelId` decide; sem os dois, 1:1"
+                  },
+                  "channelId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "a proporção vira a que a rede deste canal trata melhor no feed"
+                  },
+                  "quality": {
+                    "type": "string",
+                    "enum": [
+                      "draft",
+                      "standard"
+                    ]
+                  },
+                  "alt": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "description": "descrição para leitor de tela"
+                  }
+                },
+                "required": [
+                  "prompt"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "mídia gerada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "media": {
+                      "$ref": "#/components/schemas/AiGeneratedMedia"
+                    }
+                  },
+                  "required": [
+                    "media"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "requisição fora do contrato (problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "plano atual não inclui — `extra.requiredTier` diz o plano mínimo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "não encontrado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "conflito",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate limit — aguarde e tente de novo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "capacidade não disponível nesta instalação",
             "content": {
               "application/problem+json": {
                 "schema": {

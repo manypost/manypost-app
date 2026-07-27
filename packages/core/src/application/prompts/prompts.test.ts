@@ -9,6 +9,9 @@ import {
   draftSystem,
   hashtagsPrompt,
   hashtagsSystem,
+  isRewriteInstructionId,
+  REWRITE_INSTRUCTION_IDS,
+  REWRITE_INSTRUCTIONS,
   rewritePrompt,
   rewriteSystem,
   weekPlanPrompt,
@@ -106,6 +109,39 @@ describe('templates de prompt (SPEC_AI §2)', () => {
     expect(prompt).toContain('ch-1');
     expect(prompt).toContain('ch-2');
     expect(prompt).toContain('apenas ids que aparecem na lista');
+  });
+
+  it('o catálogo de reescrita cobre as instruções oferecidas e resolve por id', () => {
+    expect(REWRITE_INSTRUCTION_IDS).toEqual([
+      'shorten',
+      'expand',
+      'formal',
+      'casual',
+      'with_emoji',
+      'without_emoji',
+      'fix_grammar',
+    ]);
+    for (const id of REWRITE_INSTRUCTION_IDS) {
+      expect(REWRITE_INSTRUCTIONS[id].trim().length).toBeGreaterThan(10);
+    }
+  });
+
+  it('id de instrução é validado pelo guard, não por confiança no chamador', () => {
+    expect(isRewriteInstructionId('formal')).toBe(true);
+    expect(isRewriteInstructionId('nao-existe')).toBe(false);
+    // não pode aceitar chave herdada de Object.prototype
+    expect(isRewriteInstructionId('toString')).toBe(false);
+  });
+
+  // A aba global do composer edita um texto compartilhado: não há canal único, e escolher um
+  // arbitrariamente foi o que destruía o texto das outras redes.
+  it('reescrita sem canal não declara limite nenhum ao modelo', () => {
+    const semCanal = rewritePrompt({ text: 'oi', instruction: 'encurte' });
+    expect(semCanal).not.toMatch(/\d+ caracteres/);
+    expect(semCanal).toContain('várias redes');
+
+    const comCanal = rewritePrompt({ text: 'oi', instruction: 'encurte', channel: canal });
+    expect(comCanal).toContain('2200 caracteres');
   });
 
   it('alt text é para leitor de tela e não começa com "imagem de"', () => {

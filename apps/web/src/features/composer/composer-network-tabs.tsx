@@ -133,7 +133,7 @@ export function ComposerNetworkTabs({ resolvedTab }: { resolvedTab: string }) {
             <span className="relative flex size-7 items-center justify-center">
               <Avatar className="size-6">
                 {ch.avatarUrl ? <AvatarImage src={ch.avatarUrl} alt="" /> : null}
-                <AvatarFallback className="text-[10px]">{nome.charAt(0)}</AvatarFallback>
+                <AvatarFallback className="text-axis">{nome.charAt(0)}</AvatarFallback>
               </Avatar>
               {PROVIDER_ICONS[ch.provider] ? (
                 <img

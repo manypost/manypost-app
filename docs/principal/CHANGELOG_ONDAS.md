@@ -10,21 +10,235 @@
 > **Como manter:** ao fechar uma fatia, adicione a onda nova **no topo** e atualize o STATUS.
 > Cada entrada é auto-contida: o que mudou, onde no código, e a prova de que funciona.
 
-## Onda 29 — 2026-07-27 — Composer redesenhado e estabilizado
+## Onda 33 — 2026-07-27 — Composer modular sem regressões de IA ou agendamento
 
-**O que mudou.** A interface de autoria de post do Manypost ("Composer") passou por uma refatoração profunda para resolver problemas de UX e de estabilidade, migrando de um arquivo monolítico para uma arquitetura modularizada em componentes menores.
+**O ponto de integração.** O redesenho do Composer nasceu em paralelo às ondas 29–32. A separação
+do monólito em componentes menores resolvia foco e clareza, mas a primeira versão não carregava
+todos os contratos que haviam chegado à implementação anterior: escopo de IA, distribuição de
+variantes, validação de thread no rodapé, contexto de mídia e confirmação verificável do autosave.
 
-- **Componentização e estabilidade do TipTap:** o arquivo `composer-view.tsx` foi fatiado. O principal ganho de estabilidade é o `ComposerEditorCard`, que agora é **dono de sua própria instância do TipTap**. Cada aba (global ou por canal) e cada item da thread tem seu próprio editor isolado, resolvendo o bug em que botões tentavam atuar sobre instâncias destruídas e causavam crashes ("Cannot read properties of null"). O `editorNonce` garante o remount correto quando o estado da IA atualiza o texto de fora.
-- **Trilho de redes inteligente:** os avatares de rede no topo agora servem também para navegação em abas e exibem **barras de capacidade de caracteres** abaixo do ícone, permitindo ver os limites de cada canal antes de focar neles.
-- **Abas global e por rede esclarecidas:** a aba global, quando inativa, não mostra mais um campo vazio que causava confusão, mas sim um aviso de que cada rede já tem seu próprio texto. A aba de canal herdado não mostra mais um aviso invasivo; em vez disso, exibe o texto global em modo de leitura (para prever como sairá) e botões de ação para personalizar ou copiar o texto.
-- **Validação consolidada (popover):** os erros de validação ("issues") deixaram de ser gerados no rodapé, o que causava pulos na tela e bugs de `MutationObserver` (foco roubado). A validação se tornou puramente funcional (`validation.ts`) e é exibida em um **popover** amarrado ao contador de caracteres, que pisca quando há erro (ou no clique). O rodapé bloqueado direciona para ele.
-- **Threads compactas e formatação atualizada:** os cartões de thread ficaram menores, a numeração foi movida para a margem esquerda e a pausa (delay) virou um seletor combo (em segundos) no lugar do input numérico bruto (0 a 600). O menu de formatação abandonou as variáveis dinâmicas em favor de "snippets" — textos práticos que o usuário insere prontos no editor (ex: assinatura).
-- **Atalho no rodapé e feedback de gravação:** Ctrl/Cmd + Enter (ou Ctrl/Cmd + S) agora atua no agendamento do rascunho, e o rodapé mostra sutilmente quando um "Rascunho [está] salvo", dando tranquilidade ao usuário sem invadir a edição.
+**O que ficou consolidado**
 
-**Provas.** `bun run check` (typecheck e testes + linting) limpo e `bun run build:web` rodado sem erros. Validado o render isolado com Dummy data, test-kit e E2E.
-Mudança OpenSpec: `refine-composer-authoring`.
+- Cada aba e item de thread possui seu próprio TipTap; a toolbar nunca consulta uma instância
+  destruída, mantém o foco ao abrir menus e reflete as marcas na posição atual do cursor.
+- O trilho de canais navega entre abas e mede o limite real de cada rede. A aba global explica
+  quando cada rede já tem texto próprio; a aba herdada mostra o texto efetivo e oferece
+  personalização direta.
+- A validação é uma função pura e uma única superfície em popover. O rodapé consulta o escopo
+  completo, inclusive threads, sem montar mensagens que roubavam o foco.
+- IA respeita o destino do texto: global sem `channelId`, canal com seu id e thread sem adaptação
+  por rede. Todas as variantes pagas são aplicadas como overrides e instruções continuam
+  identificadas pelo catálogo controlado pelo servidor.
+- `Ctrl/Cmd + Enter` não repete submissão nem atravessa a confirmação de descarte. O indicador de
+  autosave acompanha a conclusão do storage e informa falha sem interromper a edição.
+- O seletor de mídia global recebe o primeiro canal selecionado; mídia de thread continua
+  compartilhada, sem um canal inventado.
+
+**Provas.** `bun run check:ci` verde: **997 testes passaram**, 18 integrações dependentes de
+PostgreSQL foram puladas na rodada sem `TEST_DATABASE_URL`, dependency-cruiser/IA/brand verdes,
+Drizzle válido, build de produção com **19 páginas** e OpenSpec **21/21** antes do arquivamento.
+Os 72 testes focados cobrem IA, validação, payload, atalho, autosave, selectors e ciclo de vida do
+editor. Smoke em stack descartável (PostgreSQL + Redis + Clerk assinado localmente + provider
+`fake`) passou em **1440×900 e 375×812**: seleção, digitação, contador, preview e autosave
+sincronizados; nenhuma falha de console ou API; `Ctrl/Cmd + Enter` atrás da confirmação de descarte
+não produziu `POST /v1/posts`. Mudança OpenSpec: `refine-composer-authoring`.
 
 ---
+
+## Onda 32 — 2026-07-27 — fechamento verificável de IA, home e imagem
+
+**Por que houve uma onda de fechamento.** As ondas 29–31 tinham o comportamento principal, mas
+ainda declaravam lacunas reais: horário de verão não estava provado no repository, a geração de
+imagem presumiria que o modelo de texto desenhava, a idempotência paga não tinha sido exercitada
+com Redis, migrations só tinham validação estrutural e ninguém havia percorrido a UI num browser.
+Também havia tarefas OpenSpec marcadas como concluídas sem evidência equivalente.
+
+**O que foi endurecido**
+
+- O resumo da home recebe limites civis explícitos de início/fim. Lisboa foi exercitada em dias de
+  23 e 25 horas; o SQL deixou de derivar o fim com `interval '1 day'`, e cada agregado/join prova
+  `org_id`.
+- `AI_IMAGE_MODEL` virou opt-in real. Sem ele, `canGenerateImages=false`; quando presente, o
+  adapter usa `sharp` para entregar a proporção exata pedida dentro do teto de 8192×8192.
+- Se o objeto de imagem foi gravado e a linha `media` falha, o objeto recebe compensação
+  best-effort sem mascarar o erro primário.
+- O cliente de imagem mantém o mesmo `Idempotency-Key` após falha ambígua da mesma entrada e gira
+  após sucesso ou mudança de prompt/proporção/canal. O header passou a existir no OpenAPI gerado.
+- A topbar não compete mais com o `PageHeader` como segundo `h1`; falhas do dia continuam
+  explícitas. O catálogo `next-intl` usa namespaces aninhados válidos em runtime.
+
+**Provas finais**
+
+| Verificação | Resultado |
+| --- | --- |
+| `bun run check:ci` | ✅ **965 testes**, 0 falhas, 3 snapshots; typechecks, 530 módulos/1643 dependências sem violação, checks de IA/brand, Drizzle, build web e OpenSpec |
+| `bun run build:web` | ✅ build de produção, **19 páginas** |
+| `bun run spec:validate` | ✅ **21 passed**, 0 failed |
+| `scripts/e2e-ai.ts` | ✅ **71 checks** com Postgres + Redis + provedor falso: replay/conflito, cobrança única, proporção exata, proveniência e compensações |
+| `scripts/e2e-insights.ts` | ✅ **23 checks**, dois tenants e fronteiras de dia |
+| Migration `0007` | ✅ banco vazio e schema anterior com mídia existente; insert legado após upgrade e SQL inverso de rollback conferidos |
+| Plano de consulta | ✅ cenário representativo de 55 mil linhas usou `publications_org_state_date_ix`/`post_groups_org_state_ix` (~5,6 ms no ambiente descartável) |
+| Browser desktop/mobile | ✅ `/inicio`, `/midia` e demais rotas principais sem overflow e com um `h1`; primeiro uso/operacional; X+LinkedIn com reescrita de 1200 caracteres sem perda; imagem escondida sem opt-in, submissão única pendente e preview responsivo |
+
+O smoke usou Postgres/Redis e chaves Clerk locais descartáveis; o bypass do SDK frontend existiu
+somente durante a execução e foi revertido antes do diff. Screenshots e estado de browser ficaram
+fora do repositório. Não houve chamada a modelo, rede social, Clerk ou storage de produção.
+
+**Fora do corte.** Ainda não há suíte visual no CI; a verificação de browser é uma evidência
+manual reproduzível, não um teste permanente. Qualidade estética de um modelo de imagem real,
+smokes com credenciais sociais e deploy Railway continuam provas de campo separadas.
+
+## Onda 31 — 2026-07-27 — a IA passa a produzir a imagem
+
+**O ponto de partida.** A `SPEC_AI §3` lista `ai.image` (5 créditos) e ele era o único item da
+família de criação entregue como nada: o port guardava o slot `generateImage` sem implementação.
+A revisão da onda 29 apontou que o slot precisava ser **refeito antes de usado**.
+
+**O que mudou**
+
+- **O port fala em proporção, não em pixel.** A união `'1024x1024' | '1792x1024' | '1024x1792'`
+  era o catálogo de um fornecedor dentro do contrato agnóstico — o acoplamento que a regra 4 do
+  `CLAUDE.md` proíbe, de roupa nova. E rede social nenhuma pensa em pixel. Agora: `1:1`, `4:5`,
+  `9:16`, `16:9`, `1.91:1`, com a tradução para resolução dentro do adapter.
+- **Bytes, não URL.** URL de provedor expira em horas; guardá-la colocaria mídia com prazo dentro
+  de um post agendado para a semana que vem, e baixá-la é a classe de requisição que a onda 30 de
+  segurança endureceu.
+- **Os bytes são validados como bytes** pelo mesmo `sniffMedia` de todo upload — o `content-type`
+  declarado não é confiável. Lixo vira `ai.invalid_response` com a franquia devolvida.
+- **Proveniência** (`source`, `generation_prompt`, `generation_model`, migration 0007 aditiva):
+  plataformas já exigem divulgar conteúdo sintético, e sem a coluna o produto não teria como
+  cumprir. A biblioteca marca com selo; o prompt nunca entra no `audit_log`.
+- **Idempotente desde o primeiro commit** — a cinco créditos, duplo clique é caro.
+- Superfícies: biblioteca de mídia, seletor do composer (com a proporção da rede já escolhida) e
+  tool MCP sob escopo de escrita.
+
+**As provas**
+
+| Verificação | Resultado |
+| --- | --- |
+| `bun run check` | ✅ 930 testes, 0 falhas; fronteiras sem violação; brand ok |
+| `bun run db:check` | ✅ `Everything's fine` — migration 0007 gerada pelo CLI, nunca à mão |
+| `bun run build:web` | ✅ compilado |
+| `bun run spec:validate` | ✅ 21 passed, 0 failed |
+| `scripts/e2e-ai.ts` | ✅ **62 checks** contra API real: a proporção vira resolução no adapter, uma imagem por requisição, proveniência gravada com o prompt **revisado**, custo de 5 créditos (classe própria), auditoria sem o prompt, e bytes que não são imagem devolvendo a franquia |
+| Teste não vazio | ✅ mutation check: remover a validação por magic bytes faz o teste do "HTML como imagem" falhar |
+
+**O que esta onda NÃO provou.** A idempotência não foi verificada localmente: ela vive no Redis e
+**falha aberto** sem ele (por desenho, como o resto da plataforma), e não há Redis nesta máquina. O
+E2E detecta a ausência e **diz que não provou**, em vez de fingir; o CI tem Redis e roda a
+asserção completa. Nada foi verificado em navegador — segue o achado 12.
+
+## Onda 30 — 2026-07-27 — a home que não existia, e o design system reconciliado
+
+**O ponto de partida.** `apps/web/src/app/page.tsx` tinha seis linhas e redirecionava para
+`/calendario`. Não havia home: a primeira tela do produto era uma ferramenta. E a plataforma já
+sabia tudo o que uma home precisaria — `/v1/capabilities` entregava plano, limites e uso; o feed de
+publicações filtrava por janela, estado e canal; `FAILED`, `NEEDS_REVIEW`, `PARTIAL`,
+`REFRESH_REQUIRED` e `awaitingApproval` existiam no contrato. Faltava **uma leitura agregada e uma
+tela que montasse isso**.
+
+**O que mudou**
+
+- **`GET /v1/insights/summary`** — contagens, não documentos. Fronteiras de dia resolvidas no fuso
+  do usuário por `Intl` (offset fixo erraria no horário de verão, e uma hora de erro move um post
+  do "hoje" para o "amanhã" na tela que existe para conferir o dia). `org_id` em toda ramificação.
+- **`/inicio`**, com quatro blocos que **desaparecem quando não têm o que dizer**: atenção (só
+  quando algo está errado), hoje, plano (só onde o limite é imposto) e semana. Primeiro uso troca
+  tudo por próximos passos.
+- **Nenhuma métrica de desempenho** — `channel_metrics` está vazia, então todo número vem do nosso
+  registro do que foi pedido e entregue. Há teste que reprova mensagem que fale de alcance ou
+  engajamento.
+- **`PageHeader` (design.md §13)** em cinco telas. Nenhuma tela do app tinha cabeçalho: o título
+  vivia só na topbar e nenhuma delas dizia o que era.
+- **Adendo `design.md §51`** — o documento se declarava proposta e contradizia o brand system em
+  sombra (§24.1/§27.2/§46.3), raio (§47.2/§47.3 pediam 10 e 12px) e namespace de token. Decisão:
+  onde há conflito, **o brand vence**; as seções ficam sobrescritas e há mapa `--mp-*` → tokens
+  reais. Sem isso, "conforme o design.md" era ambíguo — dava para escrever componente que passasse
+  na spec e **reprovasse o CI**.
+- **Escala tipográfica do §6.3 virou utility.** O Tailwind dá 12/14/16/18px; faltavam 10, 11, 13 e
+  15px, então cada componente escrevia o valor à mão (102× `text-[13px]`, 57× 11px, 18× 10px, mais
+  9 e 10.5px — **abaixo do piso de 11px** que o §6.4 fixa). Agora há `text-axis/meta/compact/panel`
+  e as 192 ocorrências migraram, pixel a pixel.
+- **Tokens de série analítica** (`--data-1/-2/-track`). O teal do §47.3 (`#14B8A6`) **não** foi
+  adotado: 2,49:1 contra branco, abaixo do 3:1 da WCAG 1.4.11 para objeto gráfico — e o §2.1 do
+  próprio documento põe acessibilidade acima de preferência visual. `#0f766e` dá 5,47:1.
+- **`check:brand` ganhou três regras** (fonte arbitrária no regime compacto, `motion-reduce`,
+  `cursor-pointer` em `<button>`), que acusaram 12 violações já existentes — entre elas o Skeleton
+  do app inteiro pulsando sob `prefers-reduced-motion`, que o §28.2 proíbe.
+
+**As provas**
+
+| Verificação | Resultado |
+| --- | --- |
+| `bun run check` | ✅ 904 testes, 0 falhas; fronteiras (525 módulos, 1601 dependências) sem violação; brand ok com as três regras novas |
+| `bun run build:web` | ✅ compilado, 19 páginas (`/inicio` incluída) |
+| `bun run db:check` | ✅ `Everything's fine` |
+| `bun run spec:validate` | ✅ 20 passed, 0 failed |
+| `scripts/e2e-insights.ts` | ✅ **23 checks** contra API real + Postgres descartável, cenário escrito à mão: cada contagem conferida, **duas organizações** provando que o agregado não mistura inquilinos (as 9 falhas da segunda não contaminam as 2 da primeira), e nenhum texto de publicação no payload |
+| Renderização dos blocos | ✅ `home-blocks.test.tsx` com `renderToStaticMarkup` (molde do `auth-placeholders.test.tsx`, zero dependência nova) |
+| Testes não vazios | ✅ **dois mutation checks**: remover o `return null` do bloco de atenção quebra o teste de "o bloco desaparece"; trocar `rounded-lg` por `rounded-3xl` quebra o teste de escala de raio |
+| Contrato OpenAPI | ✅ 71 → 72 rotas, **nenhuma perdida**, dois schemas novos |
+
+**O que esta onda NÃO fez.** Ninguém abriu a home num navegador — o repositório continua sem
+harness de navegador, e a prova existe na camada de API (E2E com dados semeados) e na marcação
+renderizada. Segue sendo o achado 12 da revisão e o portão pendente. O cache de 30s no Redis
+previsto na proposta foi **descartado com motivo**: num painel de "está tudo bem?", meia janela de
+cache esconde falha nova e mantém falha resolvida na tela.
+
+## Onda 29 — 2026-07-27 — a revisão da onda 28, e o conserto do que ela destruía
+
+**O ponto de partida.** A onda 28 entregou um motor de IA melhor que o volante ligado nele. Duas
+revisões críticas pós-merge da [PR #52](https://github.com/manypost/manypost-app/pull/52) estão em
+[`docs/audits/2026-07-27-ai-slice-review-and-proposals.md`](../audits/2026-07-27-ai-slice-review-and-proposals.md)
+e [`docs/audits/2026-07-27-home-e-evolucao-do-app.md`](../audits/2026-07-27-home-e-evolucao-do-app.md):
+13 achados na fatia de IA, dois deles P0, e o inventário do que a plataforma já sabe e não mostra.
+Esta onda fecha os achados de comportamento da interface de IA.
+
+**O defeito que motivou tudo.** A reescrita perdia texto. Na aba global o componente mandava
+`channelIds[0]`, o caso de uso cortava a resposta no limite daquele canal, e o resultado
+substituía o editor inteiro. X (280) + LinkedIn (3000) selecionados nessa ordem, "Corrigir" num
+rascunho de 1200 caracteres: ~920 caracteres apagados, sem aviso, numa ação que se lê como
+inofensiva. O `shortened: true` voltava na resposta e nenhum componente lia esse campo.
+
+**O que mudou**
+
+- **Reescrita não corta mais.** É a única operação cuja *entrada* é o texto da pessoa. `channelId`
+  virou opcional (a aba global não tem canal único a resolver), a resposta troca `shortened` por
+  `overLimit` + `maxLength` nulo, e a interface pergunta antes de escrever quando passa do limite.
+  O `shortenTo` continua exatamente onde a saída é texto novo: legenda, rascunho e plano da semana.
+- **Nenhuma legenda paga é descartada.** A franquia cobra um crédito por canal; agora cada
+  variante chega ao seu canal como override, pelo caminho que o rascunho multicanal já usava, a
+  aba ativa vai para o primeiro canal afetado, e um aviso diz quantas versões foram aplicadas.
+- **Item de thread** perdeu "adaptar para a rede" — cobrava N e aplicava um, num texto que é
+  compartilhado por todas as redes que suportam thread.
+- **`shortened` passou a ser renderizado**, nomeando a rede e o limite. O rascunho multicanal
+  mantém o diálogo aberto listando quais redes foram cortadas, em vez de aplicar em silêncio.
+- **Melhor horário parou de insinuar medição.** O sinal é frequência de publicação, não
+  desempenho: a resposta ganhou `signal`, a confiança ficou limitada a `medium` enquanto for esse
+  o sinal, e a frase virou "os horários que você mais usa neste canal". `own_engagement` fica
+  reservado para quando a coleta de métricas existir — é o único valor que libera `high`.
+- **Instruções de reescrita saíram do cliente.** Não eram rótulo: eram prompt em português
+  enviado ao modelo. Vivem em `packages/core/src/application/prompts/` e são escolhidas por id.
+- **Acessibilidade:** `isLoading` do `Button` no gatilho (traz `aria-busy` e preserva o rótulo),
+  região `aria-live` em toda ação, `Tooltip` em vez de `title` no botão desabilitado de alt text
+  (um botão `disabled` não anuncia `title` de forma confiável), `motion-reduce` nos spinners.
+- **i18n:** ~40 strings foram para `messages/pt-BR.json`; a classe `text-meta` substituiu os
+  `text-[11px]` avulsos.
+
+**As provas**
+
+| Verificação | Resultado |
+| --- | --- |
+| `bun run check` | ✅ 847 testes, 0 falhas; fronteiras (512 módulos, 1547 dependências) sem violação; `check:ai-providers` e `check:brand` ok |
+| `bun run build:web` | ✅ compilado, 18 páginas |
+| `bun run spec:validate` | ✅ 19 passed, 0 failed |
+| `scripts/e2e-ai.ts` (API real + Postgres real + modelo falso) | ✅ **47 checks** — inclui a regressão do P0: reescrita acima do limite devolve o texto com **contagem de caracteres idêntica** à do modelo, `overLimit: true`, e a resposta não tem `shortened`; reescrita sem canal não inventa canal nem limite; id de instrução fora do catálogo é 400 |
+| Contrato OpenAPI | ✅ regenerado contra API de pé: 71 rotas antes e depois, **nenhuma perdida**, um schema novo (`AiRewriteResult`), `signal` adicionado a `AiBestTimes` |
+
+**O que esta onda NÃO fez** — e é registro, não desculpa: ninguém viu o fluxo corrigido num
+navegador. O repositório não tem harness de navegador (todo E2E é script de API), então a prova
+existe na camada de API e nos testes das funções puras do composer. É o achado 12 da revisão, e
+está na fila como portão da próxima onda de UI.
 
 ## Onda 28 — 2026-07-27 — a fatia de IA sai do papel (4 das 8 features prometidas)
 
@@ -123,8 +337,6 @@ de mídia gerada e classe de custo própria.
 
 | Onda | Data | Entrega |
 |---|---|---|
-| 29 | 2026-07-27 | Composer redesenhado e estabilizado (TipTap isolado, abas herdadas, popover de validação, trilho de limites) |
-| 28 | 2026-07-27 | A fatia de IA sai do papel (4 features: legenda, melhor horário, rascunho, calendário) |
 | 27 | 2026-07-27 | Alinhamento total docs/OpenSpec + anti-SSRF pinado + Postman completo |
 | 26 | 2026-07-26 | Posse durável por item — o post não sai duas vezes quando dois jobs se sobrepõem; incerteza vira revisão humana |
 | 25 | 2026-07-26 | Driver S3/R2 — mídia num bucket e URL pública desacoplada da origem do app (destrava a família Meta e o Dev.to) |

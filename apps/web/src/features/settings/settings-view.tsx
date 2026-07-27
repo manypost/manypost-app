@@ -125,7 +125,7 @@ function MachineEndpoints() {
         {rows.map((row) => (
           <li key={row.label} className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-3 last:border-b-0">
             <div className="min-w-0 flex-1">
-              <p className="text-[13px] font-semibold text-ink">{row.label}</p>
+              <p className="text-compact font-semibold text-ink">{row.label}</p>
               <code className="mt-0.5 block truncate text-xs text-graphite">{row.value}</code>
               <p className="mt-1 text-xs text-graphite">{row.hint}</p>
             </div>
@@ -201,11 +201,11 @@ function ConnectAgent({ mcpUrl, restBaseUrl }: { mcpUrl: string; restBaseUrl: st
     <div className="rounded-lg border border-line bg-surface">
       <button
         type="button"
-        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2"
+        className="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
-        <span className="flex items-center gap-2 text-[13px] font-semibold text-ink">
+        <span className="flex items-center gap-2 text-compact font-semibold text-ink">
           <Bot className="size-4 text-graphite" aria-hidden />
           {t('agentTitle')}
         </span>
@@ -213,11 +213,11 @@ function ConnectAgent({ mcpUrl, restBaseUrl }: { mcpUrl: string; restBaseUrl: st
       </button>
       {open ? (
         <div className="flex flex-col gap-5 border-t border-line px-4 py-4">
-          <p className="text-[13px] leading-relaxed text-graphite">{t('agentIntro')}</p>
+          <p className="text-compact leading-relaxed text-graphite">{t('agentIntro')}</p>
 
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-[13px] font-semibold text-ink">{t('agentPromptTitle')}</p>
+              <p className="text-compact font-semibold text-ink">{t('agentPromptTitle')}</p>
               <CopyButton value={prompt} label={t('agentCopyPrompt')} />
             </div>
             <p className="text-xs text-graphite">{t('agentPromptHint')}</p>
@@ -228,7 +228,7 @@ function ConnectAgent({ mcpUrl, restBaseUrl }: { mcpUrl: string; restBaseUrl: st
 
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-[13px] font-semibold text-ink">{t('agentManualTitle')}</p>
+              <p className="text-compact font-semibold text-ink">{t('agentManualTitle')}</p>
               <CopyButton value={config} label={t('agentCopyConfig')} />
             </div>
             <p className="text-xs text-graphite">{t('agentManualHint')}</p>
@@ -294,7 +294,7 @@ export function SettingsView() {
             </Avatar>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-ink">{user?.name}</p>
-              <p className="truncate text-[13px] text-graphite">{user?.email}</p>
+              <p className="truncate text-compact text-graphite">{user?.email}</p>
             </div>
             {me.data?.role ? <Badge variant="accent">{me.data.role}</Badge> : null}
           </div>
@@ -315,7 +315,7 @@ export function SettingsView() {
             {t('newKey')}
           </Button>
         </div>
-        <p className="-mt-2 text-[13px] leading-relaxed text-graphite">{t('apiKeysHint')}</p>
+        <p className="-mt-2 text-compact leading-relaxed text-graphite">{t('apiKeysHint')}</p>
         <PlanLockNotice feature="public_api" />
         <MachineEndpoints />
 
@@ -324,11 +324,11 @@ export function SettingsView() {
         {apiKeys.isPending ? (
           <Skeleton className="h-24 rounded-lg" />
         ) : apiKeys.isError ? (
-          <p className="rounded-md border border-line bg-surface-2 px-3 py-4 text-center text-[13px] text-graphite">
+          <p className="rounded-md border border-line bg-surface-2 px-3 py-4 text-center text-compact text-graphite">
             {errorMessage(apiKeys.error)}
           </p>
         ) : apiKeys.data.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line bg-surface-2 px-3 py-6 text-center text-[13px] text-graphite">
+          <p className="rounded-md border border-dashed border-line bg-surface-2 px-3 py-6 text-center text-compact text-graphite">
             {t('noKeys')}
           </p>
         ) : (
@@ -339,9 +339,9 @@ export function SettingsView() {
                 className="flex flex-wrap items-center gap-3 border-b border-line bg-surface px-4 py-3 last:border-b-0"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="flex flex-wrap items-center gap-2 text-[13px] font-semibold text-ink">
+                  <p className="flex flex-wrap items-center gap-2 text-compact font-semibold text-ink">
                     {key.name}
-                    <code className="rounded-sm border border-line bg-surface-2 px-1.5 py-0.5 text-[11px] font-normal text-graphite">
+                    <code className="rounded-sm border border-line bg-surface-2 px-1.5 py-0.5 text-meta font-normal text-graphite">
                       {key.prefix}…
                     </code>
                     {key.revokedAt ? <Badge>{t('revoked')}</Badge> : null}
@@ -384,7 +384,7 @@ export function SettingsView() {
             {t('newWebhook')}
           </Button>
         </div>
-        <p className="-mt-2 text-[13px] leading-relaxed text-graphite">{t('webhooksHint')}</p>
+        <p className="-mt-2 text-compact leading-relaxed text-graphite">{t('webhooksHint')}</p>
         <PlanLockNotice feature="public_api" />
 
         {freshSecret ? <SecretOnce value={freshSecret} onDismiss={() => setFreshSecret(null)} /> : null}
@@ -392,11 +392,11 @@ export function SettingsView() {
         {webhooks.isPending ? (
           <Skeleton className="h-24 rounded-lg" />
         ) : webhooks.isError ? (
-          <p className="rounded-md border border-line bg-surface-2 px-3 py-4 text-center text-[13px] text-graphite">
+          <p className="rounded-md border border-line bg-surface-2 px-3 py-4 text-center text-compact text-graphite">
             {errorMessage(webhooks.error)}
           </p>
         ) : webhooks.data.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line bg-surface-2 px-3 py-6 text-center text-[13px] text-graphite">
+          <p className="rounded-md border border-dashed border-line bg-surface-2 px-3 py-6 text-center text-compact text-graphite">
             {t('noWebhooks')}
           </p>
         ) : (
@@ -407,7 +407,7 @@ export function SettingsView() {
                 className="flex flex-wrap items-center gap-3 border-b border-line bg-surface px-4 py-3 last:border-b-0"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="flex flex-wrap items-center gap-2 text-[13px] font-semibold text-ink">
+                  <p className="flex flex-wrap items-center gap-2 text-compact font-semibold text-ink">
                     {hook.name}
                     {hook.disabledAt ? <Badge>{t('disabled')}</Badge> : null}
                   </p>
@@ -446,10 +446,10 @@ export function SettingsView() {
             />
           </div>
           <fieldset className="flex flex-col gap-2">
-            <legend className="mb-1 text-[13px] font-semibold text-ink">{t('scopes')}</legend>
+            <legend className="mb-1 text-compact font-semibold text-ink">{t('scopes')}</legend>
             <div className="grid grid-cols-2 gap-2">
               {ALL_SCOPES.map((scope) => (
-                <label key={scope} className="flex items-center gap-2 text-[13px] text-ink">
+                <label key={scope} className="flex items-center gap-2 text-compact text-ink">
                   <Checkbox
                     checked={keyScopes.includes(scope)}
                     onCheckedChange={(checked) =>
@@ -512,10 +512,10 @@ export function SettingsView() {
             />
           </div>
           <fieldset className="flex flex-col gap-2">
-            <legend className="mb-1 text-[13px] font-semibold text-ink">{t('events')}</legend>
+            <legend className="mb-1 text-compact font-semibold text-ink">{t('events')}</legend>
             <div className="grid grid-cols-2 gap-2">
               {ALL_EVENTS.map((event) => (
-                <label key={event} className="flex items-center gap-2 text-[13px] text-ink">
+                <label key={event} className="flex items-center gap-2 text-compact text-ink">
                   <Checkbox
                     checked={hookEvents.includes(event)}
                     onCheckedChange={(checked) =>
