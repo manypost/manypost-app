@@ -91,8 +91,8 @@ use o cliente tipado, atualize mensagens e execute `bun run check`,
 
 **Responsabilidade:** shared kernel sem lógica de negócio.
 
-- Arquivos principais: `src/enums.ts`, `events.ts`, `providers.ts`,
-  `billing.ts`, `errors.ts`.
+- Arquivos principais: `src/enums.ts`, `events.ts`, `channel-provider.ts`,
+  `billing.ts`, `error-codes.ts`.
 - Dependências: apenas runtime/types permitidos.
 - Consumidores: core, API, web via OpenAPI indireto, db e providers.
 - Risco: uma enum/string é contrato público ou persistido.
@@ -107,7 +107,8 @@ provider.
 - Entrada: `src/env.ts`; exportações em `src/index.ts`.
 - Consumidores: API, worker, scripts.
 - Riscos: refine de hosts muda roteamento; default inseguro pode alcançar
-  produção; schema aceita `s3` embora adapter não exista.
+  produção. `STORAGE_PROVIDER=s3` exige `MEDIA_PUBLIC_URL` e credenciais S3
+  (driver `Bun.S3Client` em `packages/core/src/infra/storage`).
 - Alteração: adicione teste de valor ausente/inválido/default, atualize
   `.env.example` e documentação, sem valores reais.
 
@@ -123,6 +124,7 @@ compartilhada que não depende de adapters.
 | `src/application/ports/` | interfaces de saída | repositories, providers, jobs, events, crypto |
 | `src/infra/crypto/` | AES-GCM e helpers | `aes-gcm.service.ts` |
 | `src/infra/media/` | detecção por conteúdo | `sniff.ts` |
+| `src/infra/storage/` | drivers `local` e `s3` de mídia | `local.storage.ts`, `s3.storage.ts` |
 
 - Dependências: contracts e bibliotecas permitidas; nunca apps/db/providers.
 - Consumidores: API, worker e testes/fakes.
@@ -152,8 +154,10 @@ compartilhada que não depende de adapters.
 **Responsabilidade:** traduzir o port social para APIs externas.
 
 - Registry: `src/index.ts`.
-- Adapters: uma pasta por Mastodon, Telegram, Bluesky, Discord, LinkedIn, X,
-  TikTok, Threads, Instagram, Facebook, Twitch e Kick.
+- Adapters (pastas): `mastodon`, `telegram`, `bluesky`, `discord` (OAuth+Bot e
+  webhook no mesmo package), `linkedin`, `x`, `tiktok`, `threads`,
+  `instagram-standalone`, `facebook`, `instagram` (via Facebook Business),
+  `twitch`, `kick`, `devto`, `youtube`, `fake`.
 - Compartilhado: `src/shared/`; contrato de teste em `test-kit/`; fake em
   `src/fake/`.
 - Dependências: contracts e HTTP injetado; sem banco/route handler.
