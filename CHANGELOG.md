@@ -21,6 +21,9 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
     compartilhadas continuam sem um destino artificial.
   - “Rascunho salvo” passou a refletir a conclusão real do storage. Falhas de quota ou privacidade
     preservam o estado em memória, não interrompem a edição e são informadas sem falso sucesso.
+- **Runtime de imagens endurecido.** A dependência direta `sharp`, usada para normalizar os bytes
+  produzidos pela geração de imagens, foi atualizada para `0.35.3`, fora da faixa afetada pelo
+  advisory conhecido das versões anteriores.
 
 ### Added
 
