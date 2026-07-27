@@ -39,7 +39,7 @@ export interface AiProvider {
    * A forma pedida é **proporção**, nunca resolução. Duas razões:
    *
    * 1. Uma lista de resoluções neste port seria o catálogo de UM fornecedor dentro do contrato
-   *    agnóstico — o mesmo acoplamento que a regra 4 do `CLAUDE.md` proíbe, de roupa nova.
+   *    agnóstico — o mesmo acoplamento que a fronteira de adapters proíbe, de roupa nova.
    * 2. Rede social nenhuma pensa em pixel: pensa em proporção (1:1 e 4:5 no feed do Instagram,
    *    9:16 em stories/reels, 16:9 no YouTube, 1.91:1 em prévia de link). A tradução
    *    proporção→dimensão vive dentro de cada adapter, o único lugar autorizado a conhecer o

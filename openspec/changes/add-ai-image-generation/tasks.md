@@ -4,7 +4,8 @@
       bytes + mime + dimensions + optional `revisedPrompt`, accepts `AbortSignal`
 - [x] 1.2 Add `ai_image` to `PlanFeature` and to the Premium bundle in `contracts/src/billing.ts`
 - [x] 1.3 Failing test: `minimumTierFor('ai_image')` is `PREMIUM`
-- [x] 1.4 `AI_IMAGE_MODEL` (optional) in `packages/config/src/env.ts`, defaulting to `AI_MODEL`
+- [ ] 1.4 `AI_IMAGE_MODEL` as an optional explicit capability opt-in in
+      `packages/config/src/env.ts`; without it the text adapter does not expose image generation
 
 ## 2. Provenance (migration + repo)
 
@@ -15,10 +16,11 @@
 
 ## 3. Adapter (test-first)
 
-- [x] 3.1 Failing test in `infra/ai/chat-completions.test.ts`: a ratio becomes the vendor's
-      resolution, and the response's base64 payload becomes bytes
-- [x] 3.2 Failing test: an adapter without image support does not expose the method
-- [x] 3.3 Implement `generateImage` in the images dialect; the messages dialect omits it
+- [ ] 3.1 Failing test in `infra/ai/chat-completions.test.ts`: every ratio becomes the vendor's
+      closest native resolution, and the returned bytes have the exact requested aspect
+- [ ] 3.2 Failing test: an adapter without `AI_IMAGE_MODEL` does not expose the method
+- [ ] 3.3 Implement `generateImage` only when opted in; center-crop with bounded Sharp processing
+      and return the real transformed dimensions
 - [x] 3.4 `canGenerateImages` on the selected provider, beside `canDescribeImages`
 
 ## 4. Use case (test-first)
@@ -29,6 +31,8 @@
 - [x] 4.4 Failing test: the audit entry carries neither prompt nor bytes
 - [x] 4.5 Implement `makeGenerateImage`, reusing `sniffMedia` and the storage/repository path that
       uploads already use — the ceiling and the magic-byte check come for free
+- [ ] 4.6 Failing test: repository failure after `storage.put` deletes the object best-effort,
+      preserves the primary error and releases the allowance; reuse the invariant for uploads
 
 ## 5. Surfaces
 
@@ -46,14 +50,17 @@
 - [x] 6.2 Media library: the action plus an "IA" badge on generated assets
 - [x] 6.3 Composer media picker: same action with the aspect preselected from the chosen channels
 - [x] 6.4 Strings in `messages/pt-BR.json`; hidden entirely when the installation cannot generate
+- [ ] 6.5 Browser sends one stable `Idempotency-Key` for retries of the same logical request and a
+      new key after prompt/aspect/channel changes
 
 ## 7. Verification
 
-- [x] 7.1 `bun run check`, `bun run build:web`, `bun run db:check`, `bun run spec:validate`
-- [x] 7.2 Extend `scripts/e2e-ai.ts`: an image is generated against the fake provider, lands in the
+- [ ] 7.1 `bun run check`, `bun run build:web`, `bun run db:check`, `bun run spec:validate`
+- [ ] 7.2 Extend `scripts/e2e-ai.ts`: an image is generated against the fake provider, lands in the
       library with provenance, costs 5 credits, and a replayed idempotency key charges once
-- [ ] 7.3 **Not verified locally: no Redis.** Idempotency is stored in Redis and fails **open**
-      without it — by design, matching the rest of the platform — so a local run regenerates
-      instead of replaying. The E2E detects the absence and says so rather than pretending to have
-      proved it; CI has Redis and runs the full assertion. The byte-validation rule was
-      mutation-checked instead (removing the sniff makes the HTML-as-image test fail).
+- [ ] 7.3 Run idempotency replay/conflict against disposable Redis; fail the E2E when coordination
+      is absent instead of treating the paid-operation assertion as optional
+- [ ] 7.4 Apply migration `0007` to an empty database and to the preceding schema with existing
+      media; inspect generated SQL/metadata, compatibility and rollback
+- [ ] 7.5 Browser smoke: capability hidden without image opt-in, dialog responsive when enabled,
+      one submission while pending, preview usable at desktop and mobile widths

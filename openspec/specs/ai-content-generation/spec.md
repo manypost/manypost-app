@@ -183,4 +183,3 @@ generated text to the audit record.
 
 - **WHEN** an audit entry for a generation is written
 - **THEN** it contains neither the prompt nor the generated text
-

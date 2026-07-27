@@ -46,7 +46,12 @@ generateImage?(req: { prompt: string; size: '1024x1024' | '1792x1024' | '1024x17
   and the existing per-kind size ceilings apply.
 - **`POST /v1/ai/image` is idempotent from the first commit.** Every other AI route can be made
   idempotent later; at five credits, a double click here is expensive enough that shipping without
-  it would be a defect. It reuses the `Idempotency-Key` middleware the public API already has.
+  it would be a defect. It reuses the `Idempotency-Key` middleware the public API already has, and
+  the browser supplies one stable key for the logical generation attempt.
+- **The returned bytes match the requested ratio.** The adapter asks for the closest native shape
+  and center-crops the validated response to an exact integer multiple of the requested ratio.
+- **Storage writes are compensating.** If the media row cannot be created after the bytes were
+  stored, the storage object is deleted best-effort and the original persistence error is kept.
 - **Alt text is offered on the generated image** when the configured model can see images, so a
   synthetic asset does not enter the library less accessible than an uploaded one.
 - **Surfaces:** a "Generate image" dialog in the media library, the same action inside the
@@ -85,9 +90,9 @@ generateImage?(req: { prompt: string; size: '1024x1024' | '1792x1024' | '1024x17
   with the media (it is the person's own text, and it is what makes the result reproducible) but
   **never** enters `audit_log`, keeping the rule the AI slice already follows. Generation requires
   the write scope on MCP.
-- **Environment:** `AI_IMAGE_MODEL`, optional. When unset, an installation with an
-  image-capable dialect uses `AI_MODEL`; when the configured text model cannot draw, the operator
-  names the image model here instead of running a second installation.
+- **Environment:** `AI_IMAGE_MODEL`, optional and explicit. When unset, image generation is
+  disabled even if text AI is configured; setting it is the operator's declaration that this
+  protocol endpoint has a model capable of drawing.
 - **Product identity:** none.
 - **Railway/deploy:** nothing required. Without an image-capable provider the route answers
   `capability.disabled` and the interface hides the surface, exactly as with the rest of the AI.
@@ -103,4 +108,3 @@ behave as today with one new `false` in the capabilities payload. Existing media
 Revert the branch and run the inverse of `0007`. Media already generated stays in the library as an
 ordinary upload — losing only its provenance, which is the correct failure mode: the file itself is
 never orphaned.
-</content>

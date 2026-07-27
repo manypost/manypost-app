@@ -19,7 +19,7 @@
       with a real schema
 - [x] 2.2 Mount it in the container and in `apps/api/src/main.ts` beside the other `/v1` groups
 - [x] 2.3 Route test: 401 without a session; invalid `tz` is 400; the payload carries no text
-- [ ] 2.4 **Dropped on purpose, not skipped.** A 30s cache on the "is anything wrong" panel makes
+- [x] 2.4 **Dropped on purpose, not skipped.** A 30s cache on the "is anything wrong" panel makes
       a new failure invisible for half a window and, worse, keeps a resolved failure on screen
       after the person fixed it — which teaches them not to trust the screen. Invalidating it
       properly would couple publishing, retry, approval and channel-status changes to a cache key:
@@ -37,6 +37,8 @@
       description that says what the screen is for (none of them said anything before)
 - [x] 3.3 Keep the topbar title (it is the mobile identity) but stop it from being the only place a
       screen names itself
+- [ ] 3.4 Consolidate the two `PageHeader` implementations; prove `/midia` and `/conexoes` render
+      one page-level heading, and adopt the primitive on the remaining application screens
 
 ## 4. Home
 
@@ -53,6 +55,7 @@
 - [x] 4.6 `first-run-block.tsx` — ordered next steps, replacing the operational blocks
 - [x] 4.7 `home-view.tsx` composing them, two columns above 1200px and one below
 - [x] 4.8 `apps/web/src/app/(app)/inicio/page.tsx` with `Suspense` and skeletons
+- [ ] 4.9 Failing render test: a day with `failed > 0` is not empty and displays the failed count
 
 ## 5. Navigation
 
@@ -69,12 +72,12 @@
 
 ## 7. Verification
 
-- [x] 7.1 `bun run check`, `bun run build:web`, `bun run spec:validate` green
-- [x] 7.2 `scripts/e2e-insights.ts` — 23 checks against the real API and a disposable Postgres,
+- [ ] 7.1 `bun run check`, `bun run build:web`, `bun run spec:validate` green
+- [ ] 7.2 `scripts/e2e-insights.ts` — checks against the real API and a disposable Postgres,
       with a hand-written expected scenario, including two organizations to prove the aggregate
-      does not mix tenants
+      does not mix tenants and boundary rows across a daylight-saving transition
 - [x] 7.3 Both honesty rules asserted by rendering (`home-blocks.test.tsx`), and both mutation
       checked: removing the early return makes the "block disappears" test fail; changing a radius
-      makes the scale test fail. Not verified in a browser — the repository still has no browser
-      harness (audit finding 12).
-</content>
+      makes the scale test fail
+- [ ] 7.4 Browser smoke at desktop and mobile widths: one page header, no horizontal overflow,
+      failed-today visible, and first-run/operational states readable

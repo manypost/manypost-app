@@ -124,4 +124,3 @@ description from the file name or metadata.
 - **WHEN** alt text is requested and the selected adapter cannot describe images
 - **THEN** the request is refused with a capability-unavailable error
 - **AND** no allowance is consumed
-

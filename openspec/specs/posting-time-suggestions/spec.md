@@ -82,4 +82,3 @@ suggestion can be applied directly to the scheduling field without conversion.
 
 - **WHEN** the requested time zone is not a valid identifier
 - **THEN** the request is refused as invalid
-

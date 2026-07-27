@@ -45,4 +45,3 @@ performance.
 - **THEN** the wording refers to the times the organization uses most on that
   channel
 - **AND** it does not attribute the suggestion to how the posts performed
-</content>

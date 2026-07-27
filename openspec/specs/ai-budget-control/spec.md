@@ -125,4 +125,3 @@ generated content, the API key or the vendor identity.
 
 - **WHEN** any consumption record is written
 - **THEN** it contains neither prompt text, generated text, nor any credential
-

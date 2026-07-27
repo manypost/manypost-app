@@ -106,4 +106,3 @@ that route alone — `/caption` and `/draft` keep the non-null `AiVariant`.
 Revert the branch. Nothing persisted changes, so there is no data to migrate
 back. Turning the AI surface off entirely remains `AI_PROVIDER=none`, with no
 deploy.
-</content>

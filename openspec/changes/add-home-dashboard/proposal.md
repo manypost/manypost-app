@@ -63,9 +63,10 @@ additive and no other endpoint's contract moves.
 - **Security:** the summary is organization-scoped like every other read; the aggregate must not
   become a way to count another organization's rows. Counts only — no publication text, no channel
   token, no personal data in the payload.
-- **Performance:** the home is loaded on every visit, so the summary is a small number of aggregate
-  queries rather than a page walk over the feed, and it is cached briefly in Redis with the same
-  fail-open policy the rest of the platform uses.
+- **Performance:** the home is loaded on every visit, so the summary is a small number of indexed
+  aggregate queries rather than a page walk over the feed. It is deliberately not cached on the
+  server: a new or resolved failure must be visible immediately. The browser query's `staleTime`
+  is the explicit freshness trade-off.
 - **Product identity:** none. No Postiz reference touched.
 - **Railway/deploy:** nothing required.
 
@@ -80,4 +81,3 @@ persisted value is read differently and no contract field changes type.
 Revert the branch. With no migration and no writes, there is nothing to undo in the database. If
 only the landing needs reverting, pointing `app/page.tsx` back at `/calendario` is a one-line
 change that leaves the route and the endpoint in place.
-</content>

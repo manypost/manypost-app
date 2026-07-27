@@ -32,4 +32,3 @@ cost of one call stays bounded and predictable.
 
 - **WHEN** an image is requested
 - **THEN** exactly one image is produced and charged
-</content>

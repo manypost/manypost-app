@@ -42,6 +42,12 @@ caller declares.
 - **WHEN** a caller declares a time zone
 - **THEN** "today" spans that zone's calendar day, not the server's
 
+#### Scenario: A daylight-saving transition changes elapsed duration
+
+- **WHEN** the caller's next civil day begins 23 or 25 elapsed hours after today
+- **THEN** today ends at that next local midnight
+- **AND** the seven-day window still contains exactly seven local calendar days
+
 #### Scenario: Invalid time zone
 
 - **WHEN** the declared time zone is not a valid IANA name
@@ -96,7 +102,8 @@ when the organization has nothing to operate yet.
 ### Requirement: Every screen states what it is
 
 The system SHALL give each application screen a header carrying its title, a one-line description
-of what the screen is for, and its primary actions.
+of what the screen is for, and its primary actions. A screen SHALL render one page-level header,
+not one in both its route wrapper and feature view.
 
 #### Scenario: A screen is opened
 
@@ -108,4 +115,19 @@ of what the screen is for, and its primary actions.
 
 - **WHEN** the viewport is too narrow for title and actions side by side
 - **THEN** the actions move below the title rather than shrinking or wrapping the title
-</content>
+
+#### Scenario: Route and feature compose the same screen
+
+- **WHEN** a route wrapper renders a feature view
+- **THEN** their composition contains exactly one page-level title and description
+
+### Requirement: Today's summary does not discard returned states
+
+The system SHALL present scheduled, published and failed counts returned for the caller's current
+day. A day with failures SHALL NOT be described as empty.
+
+#### Scenario: A publication failed today
+
+- **WHEN** today's aggregate reports one or more failed publications
+- **THEN** the today block displays that failed count
+- **AND** it links to the surface where the failure can be resolved

@@ -123,4 +123,3 @@ its channel; the interface MUST NOT keep one result and discard the rest.
 
 - **WHEN** no channel is given
 - **THEN** the request is refused as invalid before any model call
-</content>

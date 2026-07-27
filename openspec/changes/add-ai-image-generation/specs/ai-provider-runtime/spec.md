@@ -11,6 +11,9 @@ capability, and an adapter that cannot draw SHALL not implement it. In both
 cases the capabilities endpoint SHALL advertise whether this installation has
 the capability, so the interface can hide an action instead of offering one that
 would fail. Neither capability SHALL be simulated by falling back to the other.
+Image generation SHALL require an explicitly configured image model; a text
+model SHALL NOT be assumed to produce images merely because the protocol has an
+image endpoint.
 
 #### Scenario: Configured model cannot see images
 
@@ -23,6 +26,12 @@ would fail. Neither capability SHALL be simulated by falling back to the other.
 - **WHEN** an image is requested and the selected adapter cannot generate images
 - **THEN** the request is refused with a capability-unavailable error
 - **AND** no allowance is consumed
+
+#### Scenario: Text AI exists without an image model
+
+- **WHEN** text AI is configured but no image model is declared
+- **THEN** the adapter omits image generation
+- **AND** the capabilities endpoint reports `canGenerateImages: false`
 
 #### Scenario: Capabilities advertise both independently
 
@@ -83,4 +92,3 @@ allowance, so an interface can hide what would fail rather than offering it.
 - **WHEN** no provider is configured
 - **AND** a feature that needs no model is requested
 - **THEN** it answers normally
-</content>

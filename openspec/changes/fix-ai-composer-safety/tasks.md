@@ -98,9 +98,9 @@
 
 ## 9. Verification
 
-- [x] 9.1 `bun run check` green (typechecks, tests, boundaries, AI grep, brand)
-- [x] 9.2 `bun run build:web` green
-- [x] 9.3 `bun run spec:validate` green
+- [ ] 9.1 `bun run check` green (typechecks, tests, boundaries, AI grep, brand)
+- [ ] 9.2 `bun run build:web` green
+- [ ] 9.3 `bun run spec:validate` green
 - [x] 9.4 Extend `scripts/e2e-ai.ts`: a rewrite over the limit returns the whole
       text and `overLimit: true`; a rewrite without `channelId` succeeds
 - [ ] 9.5 **Not done — needs a browser.** Reproduce the original data-loss
@@ -111,4 +111,3 @@
       browser. The repository has no browser test harness — every E2E is an API
       script — so this is the same gap the audit records as finding 12, not an
       oversight of this change.
-</content>
