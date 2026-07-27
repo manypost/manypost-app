@@ -6,6 +6,27 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ## [Unreleased]
 
+### Security
+
+- **Anti-SSRF com pin de DNS.** Media import, entrega de webhooks e fetch CIMD do MCP
+  passam por um adapter único que classifica IPv4/IPv6 (incluindo mapped/CGNAT/link-local),
+  rejeita respostas mistas público/privado e **conecta no IP validado** com SNI/Host do
+  hostname original — fecha a janela de rebinding entre `assertPublicUrl` e o `fetch`.
+  Redirects revalidam a cada salto; downgrade HTTPS→HTTP é recusado; erros de política
+  carregam só `reason` + `hostname` (sem query/headers). OpenSpec:
+  `harden-outbound-request-security` → living `outbound-request-security`.
+- **Webhook worker não engole mais erro de infraestrutura** (mesma política do publish/thread):
+  falha inesperada é relançada ao pg-boss após o lote.
+
+### Documentation
+
+- Alinhamento docs↔código: inventário de **28 tabelas** / migrations `0000..0005`,
+  `maxConcurrent` como entregue, mapa de contracts/providers, Clerk-only em SPEC_API_MCP,
+  wordmark `manypost` no BRAND_SYSTEM, banners de verdade em SPECs legados.
+- OpenSpec: archive de `harden-publishing-idempotency` e `harden-outbound-request-security`.
+- **Coleção Postman completa** em `postman/` (HTTP interno, público, OAuth AS, MCP) +
+  environments local/cloud + `scripts/generate-postman.py`.
+
 ### Fixed
 
 - **Um post não sai duas vezes na rede porque dois jobs se sobrepuseram.** A continuação de uma

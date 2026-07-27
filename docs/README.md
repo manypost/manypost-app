@@ -15,7 +15,7 @@ você está lendo — [por quê](#por-que-o-planejamento-também-é-público).
 | **Quem quer só usar** (self-host) | [TESTING.md](../TESTING.md) — subir com Docker e publicar um post de teste | [INTEGRATIONS_SETUP.md](principal/INTEGRATIONS_SETUP.md) para conectar redes de verdade |
 | **Quem vai contribuir com código** | [Arquitetura vigente](architecture/README.md) — componentes, limites e onde alterar | [`AGENTS.md`](../AGENTS.md) + [OpenSpec](openspec.md) + a spec da mudança |
 | **Agente de IA trabalhando no repo** | [`AGENTS.md`](../AGENTS.md) — regras verificáveis e segurança | [Mapa do repositório](architecture/repository-map.md) + [OpenSpec](openspec.md) |
-| **Quem integra por API ou agente de IA** | [SPEC_API_MCP.md](specs/SPEC_API_MCP.md) — REST pública e servidor MCP | `/docs` na sua instância (explorador OpenAPI ao vivo) |
+| **Quem integra por API ou agente de IA** | [SPEC_API_MCP.md](specs/SPEC_API_MCP.md) — REST pública e servidor MCP; coleção Postman em [`postman/`](../postman/README.md) | `/docs` na sua instância (explorador OpenAPI ao vivo) |
 | **Quem vai mexer em qualquer tela** | [BRAND_SYSTEM.md](brand/BRAND_SYSTEM.md) — **obrigatório** | [brand/README.md](brand/README.md) + [SPEC_FRONTEND.md](specs/SPEC_FRONTEND.md) |
 | **Quem quer entender as escolhas** | [DECISIONS.md](principal/DECISIONS.md) — decisões congeladas, com o porquê | [POSTIZ_ANALYSIS.md](principal/POSTIZ_ANALYSIS.md) — a análise que as originou |
 
