@@ -25,6 +25,7 @@
     "spec:status": "openspec status",
     "spec:validate": "openspec validate --all --strict --no-interactive",
     "spec:archive": "openspec archive",
+    "postman:generate": "python3 scripts/generate-postman.py",
     "build:web": "bun run --cwd apps/web build",
     "db:check": "bun run --cwd packages/db check",
     "stripe:sync": "bun run scripts/stripe-sync.ts",
