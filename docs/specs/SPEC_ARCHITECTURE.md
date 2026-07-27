@@ -4,6 +4,8 @@
 
 > **Status:** APROVADA (DECISIONS.md v1 + Adendo Open Source v1.2, 2026-07-17) — licença de `@manypost/contracts` validada como AGPL-3.0 integral no monorepo.
 > **Contexto:** o manypost reimplementa as soluções do [Postiz](https://github.com/gitroomhq/postiz-app) (AGPL-3.0) em nova stack. **Monorepo unificado 100% Open Source sob AGPL-3.0 com atribuição ao Postiz** (derivação documentada em `POSTIZ_ANALYSIS.md §8`). A separação entre uso grátis self-hosted e portas comerciais no SaaS na nuvem ocorre via variáveis de ambiente (`IS_SELF_HOSTED`, `HIDE_BILLING`). Este documento define os bounded contexts e como as camadas se encaixam. Specs irmãs: BACKEND, FRONTEND, QUEUE_PUBLISHING, INTEGRATIONS, DATA, API_MCP, AI, INFRA, ROADMAP.
+>
+> **Estado de verdade (2026-07-27):** auth humana = **Clerk-only** (não JWT access/refresh Manypost). Confirme em `openspec/specs/clerk-human-authentication`, middleware da API e [STATUS.md](../principal/STATUS.md). Trechos abaixo que citam JWT humano são **histórico/aspiracional**.
 
 ## 1. Objetivo do produto
 
@@ -19,7 +21,10 @@ Agendador e publicador de posts para redes sociais, self-hostable, com: conexão
 | Dados | **PostgreSQL** + **Drizzle** (migrations versionadas) |
 | Fila | **pg-boss** (Postgres-nativa) + orquestração explícita — avaliação em SPEC_QUEUE_PUBLISHING §2 |
 | Cache/locks/rate-limit | **Redis** |
-| Arquitetura | **Monólito modular DDD** (domain / application / inflowchart TB
+| Arquitetura | **Monólito modular DDD** (domain / application / infra) |
+
+```mermaid
+flowchart TB
     subgraph AGPL["Monorepo Unificado — manypost (100% Open Source / AGPL-3.0)"]
         IDENT["Identity & Access<br/>users, orgs, membros, auth,<br/>API keys, OAuth-as-provider"]
         CHAN["Channels<br/>providers, OAuth por rede,<br/>tokens, refresh, capacidades"]
@@ -40,7 +45,7 @@ Agendador e publicador de posts para redes sociais, self-hostable, com: conexão
 
 ### Responsabilidade de cada contexto
 
-- **Identity & Access** — usuários, organizações, membership com papéis (`OWNER|ADMIN|MEMBER`), sessões JWT access/refresh, API keys com hash+escopos, e o papel de *authorization server* OAuth para MCP/apps de terceiros. *Seguindo a direção do Postiz (núcleo AGPL)* em multi-org e API key por organização; corrigindo JWT eterno e key sem hash.
+- **Identity & Access** — usuários, organizações, membership com papéis (`OWNER|ADMIN|MEMBER`), **sessão humana no Clerk** (Bearer JWT Clerk / cookie `__session`), API keys `mp_live_` com hash+escopos, e authorization server OAuth 2.1 (`mpo_*`) para MCP. *(Histórico pré-Clerk: JWT access/refresh Manypost em `sessions` — sem consumidor no runtime.)*
 - **Channels** — registry de `ChannelProvider`s, fluxo de conexão OAuth (incl. 2 passos), armazenamento criptografado de tokens, refresh proativo/reativo, capacidades declarativas por rede. *Seguindo a direção do Postiz.*
 - **Content** — post multi-canal (grupo), variantes por canal, threads, tags, biblioteca de mídia, sets de canais, assinaturas. *Seguindo a direção do Postiz.*
 - **Publishing** — agendamento, orquestração durável (post agendado → N publicações), retry/backoff, rate-limit por conta/rede, idempotência, status por canal, recuperação. *Seguindo a direção do Postiz*, trocando Temporal por orquestração própria sobre pg-boss (SPEC_QUEUE_PUBLISHING).
