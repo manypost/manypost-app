@@ -45,8 +45,11 @@ function check(nome: string, condicao: boolean, detalhe?: unknown) {
 const recebidos: { path: string; body: Record<string, unknown> }[] = [];
 let respostaDoModelo = 'Legenda gerada pelo modelo de teste.';
 
-/** PNG quadrado 191x191 real — permite recortar todas as proporções sem ampliar. */
+/** PNG quadrado 191x191 válido — permite recortar todas as proporções sem ampliar. */
 const PNG_B64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAL8AAAC/AQMAAACVJJ9FAAAAA1BMVEUqW3iVMYN9AAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAG0lEQVRYw+3BMQEAAADCoPVPbQwfoAAAAADgbhKnAAHV6RVBAAAAAElFTkSuQmCC';
+/** PNG cujo cabeçalho é legível, mas cujo stream foi truncado. */
+const CORRUPT_PNG_B64 =
   'iVBORw0KGgoAAAANSUhEUgAAAL8AAAC/CAYAAACv6g0GAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAEEklEQVR4nO3awW0EMQwEwYunU3Iik/05B38sgPXQf0H1NqghP/3s66hBB2vw+e8PcNQg8IOACMb8ICCCtD0gIILp+UFABHnwgoAIJu0BAREk6gQBEUzODwIiyJALBEQwE14QEEHWG0BABLPbA4Kdr4HFNhB8r9YA/A9cgjPwg8CPEPODgAim7QEBEaTnBwERzIMXBESQtAcERDBRJwiIIDk/CIhghlwgIIJMeEFABLPeAAIiyG4PCDpeA4ttD1yCM/CDwI8Q84OACKbtAQERpOcHARHMgxcERJC0BwREMFEnCIggOT8IiGCGXCAggkx4QUAEs94AAiLIbg8IOl4Di20PXIIz8IPAjxDzg4AIpu0BARGk5wcBEcyDFwREkLQHBEQwUScIiCA5PwiIYIZcICCCTHhBQASz3gACIshuDwg6XgOLbQ9cgjPwg8CPEPODgAim7QEBEaTnBwERzIMXBESQtAcERDBRJwiIIDk/CIhghlwgIIJMeEFABLPeAAIiyG4PCDpeA4ttD1yCM/CDwI8Q84OACKbtAQERpOcHARHMgxcERJC0BwREMFEnCIggOT8IiGCGXCAggkx4QUAEs94AAiLIbg8IOl4Di20PXIIz8IPAjxDzg4AIpu0BARGk5wcBEcyDFwREkLQHBEQwUScIiCA5PwiIYIZcICCCTHhBQASz3gACIshuDwg6XgOLbQ9cgjPwg8CPEPODgAim7QEBEaTnBwERzIMXBESQtAcERDBRJwiIIDk/CIhghlwgIIJMeEFABLPeAAIiyG4PCDpeA4ttD1yCM/CDwI8Q84OACKbtAQERpOcHARHMgxcERJC0BwREMFEnCIggOT8IiGCGXCAggkx4QUAEs94AAiLIbg8IOl4Di20PXIIz8IPAjxDzg4AIpu0BARGk5wcBEcyDFwREkLQHBEQwUScIiCA5PwiIYIZcICCCTHhBQASz3gACIshuDwg6XgOLbQ9cgjPwg8CPEPODgAim7QEBEaTnBwERzIMXBESQtAcERDBRJwiIIDk/CIhghlwgIIJMeEFABLPeAAIiyG4PCDpeA4ttD1yCM/CDwI8Q84OACKbtAQERpOcHARHMgxcERJC0BwREMFEnCIggOT8IiGCGXCAggkx4QUAEs94AAiLIbg8IOl4Di20PXIIz8IPAjxDzg4AIpu0BARGk5wcBEcyDFwREkLQHBEQwUScIiCA5PwiIYIZcICCCTHhBQASz3gACIshuDwg6XgOLbQ9cgjPwg8CPEPODgAim7QEBEaTnBwERzIMXBESQtAcERDBRJwiIIDk/CIhghlwgIIJMeEFABLPeAAIiyG4PCDpeA4ttD1yCM/CDwI8Q84OACKbtAQERpOcHARHMgxcERJC0BwREMFEnCIggOT8IiGCGXCAggkx4QUAEs94AAiLIbg8IOl4Di20PXIIz8IPAjxDzg4AIpu0BARGk5wcBEcyDFwREkLQHBEQwUScIiCA5PwiIYIZcICCCTHhBQASz3gACIshuDwg6XgOLbQ9cgjPwg8CPEPODgAim7QEBEaTnBwERzIMXBESQtAcERDBRJwiIIDk/CIhghlwgIIJMeEFABLPeAAIiyG4PCDpeA4ttD1yCM/CDwI8Q84OACKbtAQERpOcHARHMgxcERJC0BwREsD/X4BeYV9iDqMAASAAAAABJRU5ErkJggg==';
 /** trocável pelo teste: o que o "provedor" devolve como imagem */
 let respostaDeImagem: string | null = PNG_B64;
@@ -437,6 +440,23 @@ async function main() {
     SELECT used, reserved FROM ai_credits WHERE org_id = ${org!.id}::uuid`;
   check('a franquia NÃO foi cobrada', aposLixo!.used === usadoAntesDoLixo, aposLixo);
   check('e nada ficou reservado', aposLixo!.reserved === 0, aposLixo);
+
+  console.log('\n▸ imagem com cabeçalho válido e stream truncado também falha fechado');
+  respostaDeImagem = CORRUPT_PNG_B64;
+  const pngCorrompido = await post('/v1/ai/image', { prompt: 'x', aspect: '9:16' });
+  const pngCorrompidoBody = (await pngCorrompido.json()) as { title: string };
+  check(
+    'PNG corrompido vira ai.invalid_response',
+    pngCorrompidoBody.title === 'ai.invalid_response',
+    { status: pngCorrompido.status, body: pngCorrompidoBody },
+  );
+  const [aposPngCorrompido] = await sql<{ used: number; reserved: number }[]>`
+    SELECT used, reserved FROM ai_credits WHERE org_id = ${org!.id}::uuid`;
+  check(
+    'PNG corrompido também devolve a franquia',
+    aposPngCorrompido!.used === usadoAntesDoLixo && aposPngCorrompido!.reserved === 0,
+    aposPngCorrompido,
+  );
   respostaDeImagem = PNG_B64;
 
   // -------------------------------------------------------------------------
