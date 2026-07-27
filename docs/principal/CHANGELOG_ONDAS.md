@@ -34,14 +34,16 @@ variantes, validação de thread no rodapé, contexto de mídia e confirmação 
 - O seletor de mídia global recebe o primeiro canal selecionado; mídia de thread continua
   compartilhada, sem um canal inventado.
 
-**Provas.** `bun run check:ci` verde: **997 testes passaram**, 18 integrações dependentes de
+**Provas.** `bun run check:ci` verde: **998 testes passaram**, 18 integrações dependentes de
 PostgreSQL foram puladas na rodada sem `TEST_DATABASE_URL`, dependency-cruiser/IA/brand verdes,
 Drizzle válido, build de produção com **19 páginas** e OpenSpec **21/21** antes do arquivamento.
 Os 72 testes focados cobrem IA, validação, payload, atalho, autosave, selectors e ciclo de vida do
 editor. Smoke em stack descartável (PostgreSQL + Redis + Clerk assinado localmente + provider
 `fake`) passou em **1440×900 e 375×812**: seleção, digitação, contador, preview e autosave
 sincronizados; nenhuma falha de console ou API; `Ctrl/Cmd + Enter` atrás da confirmação de descarte
-não produziu `POST /v1/posts`. Mudança OpenSpec: `refine-composer-authoring`.
+não produziu `POST /v1/posts`. O CI remoto também passou migration, imagem Docker e os E2E geral,
+billing e IA; este último fechou com **73 checks**, incluindo PNG truncado e devolução da franquia.
+Mudança OpenSpec: `refine-composer-authoring`.
 
 ---
 
