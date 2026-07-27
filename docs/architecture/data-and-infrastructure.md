@@ -1,6 +1,6 @@
 # Dados e infraestrutura
 
-Este documento descreve o estado operacional confirmado em 2026-07-23. Não
+Este documento descreve o estado operacional confirmado em 2026-07-26. Não
 contém valores de ambiente, credenciais ou connection strings reais.
 
 ## Modelo de dados
@@ -21,15 +21,22 @@ erDiagram
   CHANNELS ||--o{ PUBLICATIONS : receives
   PUBLICATIONS ||--o{ PUBLICATION_ITEMS : contains
   PUBLICATIONS ||--o{ PUBLICATION_EVENTS : records
+  PUBLICATIONS ||--o{ PUBLICATION_ATTEMPTS : claims
+  ORGANIZATIONS ||--o{ PUBLICATION_ATTEMPTS : scopes
   ORGANIZATIONS ||--o{ MEDIA : owns
   POST_GROUPS ||--o{ APPROVAL_LINKS : exposes
   ORGANIZATIONS ||--o{ WEBHOOKS : owns
   WEBHOOKS ||--o{ WEBHOOK_DELIVERIES : emits
   ORGANIZATIONS ||--o{ NOTIFICATIONS : owns
   ORGANIZATIONS ||--o| SUBSCRIPTIONS : has
+  ORGANIZATIONS ||--o{ OAUTH_APPS : registers
+  ORGANIZATIONS ||--o{ OAUTH_GRANTS : issues
 ```
 
-O diagrama mostra relações principais, não todas as tabelas auxiliares.
+O diagrama mostra relações principais. **28 tabelas** no schema Drizzle
+(`packages/db/src/schema/`); auxiliares (`tags`, `signatures`, `ai_credits`,
+`idempotency_keys`, `audit_log`, `channel_metrics`, `channel_sets`, etc.)
+existem no schema mesmo quando o consumidor de produto ainda é parcial.
 
 ### Identidade e tenant
 
@@ -63,6 +70,7 @@ associados a `token_key_version` e AAD derivado do tenant/provider/identidade.
 | `publications` | uma execução por grupo+canal, conteúdo/settings resolvidos e máquina de estado |
 | `publication_items` | itens ordenados de thread/reply e cursor externo |
 | `publication_events` | transições de estado append-only |
+| `publication_attempts` | posse durável por item lógico (`job_version` + `position`): lease, `owner_token`, `idempotency_key` e estado `CLAIMED`/`CONFIRMED`/`FAILED_SAFE`/`INDETERMINATE` |
 | `media` | metadata/path de asset por organização |
 | `tags`, `post_group_tags` | classificação de grupos |
 | `channel_sets` | coleções de IDs de canal |
@@ -71,8 +79,10 @@ associados a `token_key_version` e AAD derivado do tenant/provider/identidade.
 | `channel_metrics` | série diária por canal/métrica |
 
 `publications` desnormaliza `org_id` e `publish_at` para feed/scanners. O
-`job_version` invalida job antigo; `last_published_index` é cursor de thread;
-`attempt_id` identifica tentativa.
+`job_version` invalida job antigo; `last_published_index` é cursor de thread.
+Antes de qualquer chamada externa, o runner reivindica a linha em
+`publication_attempts` (única por publicação+versão+posição); o cursor só
+avança com o `owner_token` da posse.
 
 ### Plataforma
 
@@ -83,25 +93,29 @@ associados a `token_key_version` e AAD derivado do tenant/provider/identidade.
 | `notifications` | caixa in-app por organização/usuário |
 | `audit_log` | ator, ação, alvo, IP e detalhe |
 | `ai_credits` | janela de franquia de IA |
-| `oauth_apps`, `oauth_grants` | authorization server futuro para MCP/terceiros |
+| `oauth_apps`, `oauth_grants` | authorization server OAuth 2.1 do MCP (DCR, static client, grants `mpo_*`; `org_id` opcional em apps públicos) |
 | `idempotency_keys` | modelo PostgreSQL de idempotência |
 | `subscriptions` | espelho da assinatura Stripe por organização |
 
-`ai_credits`, OAuth server, idempotência PostgreSQL, `channel_sets`,
-`signatures` e `channel_metrics` não possuem consumidor funcional completo
-confirmado. Não remova: são dados/roadmap e exigem decisão/migration.
+`oauth_apps`/`oauth_grants` **têm** consumidor no runtime MCP OAuth 2.1.
+`ai_credits`, idempotência PostgreSQL (a API pública usa Redis quando há
+`REDIS_URL`), `channel_sets`, `signatures` e `channel_metrics` ainda não
+possuem consumidor funcional completo confirmado. Não remova: são
+dados/roadmap e exigem decisão/migration.
 
 ## Isolamento por organização
 
 Tabelas diretamente escopadas: organizations, memberships, API keys, channels,
-post groups, publications, media, tags, sets, signatures, approval links,
-webhooks, notifications, audit, AI credits, OAuth apps/grants, idempotency e
-subscriptions.
+post groups, publications, publication_attempts, media, tags, sets, signatures,
+approval links, webhooks, notifications, audit, AI credits, OAuth apps/grants,
+idempotency e subscriptions.
 
-Tabelas filhas sem `org_id`: auth identities (escopo por user), sessions
-(legado sem consumidor no runtime),
-publication items/events (por publication), group tags (por group/tag),
-channel metrics (por channel) e webhook deliveries (por webhook).
+Tabelas filhas sem `org_id` próprio: auth identities (escopo por user), sessions
+(legado sem consumidor no runtime Clerk-only), publication items/events (por
+publication — a posse em `publication_attempts` **tem** `org_id`), group tags
+(por group/tag), channel metrics (por channel) e webhook deliveries (por
+webhook). Isolamento nesses filhos depende de join/lookup do pai já escopado
+(dívida M-09 no backlog técnico se uma query filha for exposta sem o join).
 
 Consequências:
 
@@ -116,12 +130,14 @@ responsabilidade da aplicação/repositories.
 
 ## Migrations
 
-Arquivos vigentes:
+Arquivos vigentes (append-only; ordem do journal):
 
-- `0000_init.sql`;
-- `0001_social_login.sql`;
-- `0002_job_version.sql`;
-- `0003_billing.sql`;
+- `0000_init.sql` — schema base (identidade, canais, conteúdo, plataforma);
+- `0001_social_login.sql` — `auth_identities`;
+- `0002_job_version.sql` — fencing `job_version` em publicações;
+- `0003_billing.sql` — `subscriptions`;
+- `0004_mcp-oauth-as.sql` — colunas AS (client público, refresh anterior, resource);
+- `0005_typical_kulan_gath.sql` — `publication_attempts` + enum `attempt_state`;
 - snapshots e `_journal.json` em `migrations/meta/`.
 
 `runMigrations` usa Drizzle migrator e advisory lock `72019001`, limitando
