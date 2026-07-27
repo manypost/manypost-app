@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { textToHtml } from '@/features/composer/editor';
+import { editorUtilizavel } from '@/features/composer/editor-guards';
 import { cn } from '@/lib/utils';
 import {
   REWRITE_EDIT_IDS,
@@ -77,15 +78,13 @@ export interface AiActionsProps {
    */
   scope?: 'global' | 'channel' | 'thread';
   /** aplica uma legenda por canal como override — o caminho que o rascunho multicanal já usa */
-  onVariants?: (variants: AiVariant[]) => void;
+  onVariants?: (variants: Array<{ channelId: string; text: string }>) => void;
   /** rótulo humano da rede, para o aviso citar "X (280)" em vez de um uuid */
   networkNameOf?: (channelId: string) => string;
   disabled?: boolean;
 }
 
-/** instância utilizável: existe E não foi destruída pelo remount do `editorNonce` */
-export const editorUtilizavel = (editor: Editor | null): editor is Editor =>
-  Boolean(editor && !editor.isDestroyed);
+export { editorUtilizavel };
 
 /**
  * Texto de trabalho das ações. Vem do STORE e **nunca** de uma leitura do editor — é
@@ -116,6 +115,24 @@ export function variantesParaOverrides(
     saida.push({ channelId: v.channelId, text: v.text });
   }
   return saida;
+}
+
+export type AiComposerScope = 'global' | 'channel' | 'thread';
+
+export interface AiScopeStrategy {
+  rewriteChannelId: string | undefined;
+  canAdaptPerChannel: boolean;
+}
+
+/** Contrato puro entre a posição da toolbar e as operações que ela pode representar. */
+export function resolveAiScope(
+  scope: AiComposerScope,
+  channelIds: string[],
+): AiScopeStrategy {
+  return {
+    rewriteChannelId: scope === 'global' ? undefined : channelIds[0],
+    canAdaptPerChannel: scope !== 'thread',
+  };
 }
 
 export function AiActions({
@@ -149,6 +166,7 @@ export function AiActions({
   if (ai.isLoading || !ai.enabled) return null;
 
   const primeiroCanal = channelIds[0];
+  const aiScope = resolveAiScope(scope, channelIds);
   const semCanal = channelIds.length === 0;
   const semTexto = text.trim().length === 0;
   const nomeDaRede = (id: string) => networkNameOf?.(id) ?? id;
@@ -179,7 +197,7 @@ export function AiActions({
       if (scope === 'global' && onVariants) {
         const distribuidas = variantesParaOverrides(variantes, channelIds);
         if (distribuidas.length === 0) return;
-        onVariants(variantes);
+        onVariants(distribuidas);
         setResultado({ kind: 'appliedPerChannel', count: distribuidas.length });
         return;
       }
@@ -201,11 +219,10 @@ export function AiActions({
    */
   const reescrever = (instructionId: RewriteId) =>
     executar(async () => {
-      const canalDaReescrita = scope === 'global' ? undefined : primeiroCanal;
       const r = await rewrite.mutateAsync({
         text,
         instructionId,
-        ...(canalDaReescrita ? { channelId: canalDaReescrita } : {}),
+        ...(aiScope.rewriteChannelId ? { channelId: aiScope.rewriteChannelId } : {}),
       });
 
       if (r.overLimit && r.maxLength !== null && r.channelId) {
@@ -276,6 +293,7 @@ export function AiActions({
                 aria-label={t('triggerLabel')}
                 disabled={disabled}
                 isLoading={carregando}
+                onMouseDown={(event) => event.preventDefault()}
                 className={cn(
                   'cursor-pointer text-graphite transition-colors duration-200',
                   'hover:text-ink',
@@ -291,7 +309,11 @@ export function AiActions({
           </TooltipContent>
         </Tooltip>
 
-        <DropdownMenuContent align="start" className="w-72">
+        <DropdownMenuContent
+          align="start"
+          className="w-72"
+          onCloseAutoFocus={(event) => event.preventDefault()}
+        >
           <DropdownMenuLabel className="flex items-center justify-between gap-2">
             <span>{t('menuTitle')}</span>
             {ai.credits?.enforced ? (
@@ -314,7 +336,7 @@ export function AiActions({
           ) : (
             <>
               {/* "adaptar para a rede" é por canal: não existe para um item de thread */}
-              {scope !== 'thread' ? (
+              {aiScope.canAdaptPerChannel ? (
                 <DropdownMenuItem
                   className="cursor-pointer justify-between gap-3"
                   disabled={acaoIndisponivel}

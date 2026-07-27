@@ -1,97 +1,66 @@
 'use client';
 
-import { ChevronDown, CircleAlert, Globe, Lock, LockOpen, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, useEffect, useState } from 'react';
-import { toast } from 'sonner';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { DateTimePicker } from '@/components/ui/date-time-picker';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { HoverPopover } from '@/components/ui/hover-popover';
+import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent } from '@/components/ui/tabs';
-import { useChannels, useProviders } from '@/features/channels/hooks';
-import { PROVIDER_ICONS } from '@/features/channels/provider-icon';
-import { useMediaList } from '@/features/media/hooks';
-import { useApiErrorMessage } from '@/lib/api/errors';
-import { toLocalInput } from '@/lib/datetime';
-import { cn } from '@/lib/utils';
-import type { Editor } from '@tiptap/react';
-import { ChannelPicker } from './channel-picker';
-import { ChannelSettingsCard } from './channel-settings';
-import { AiActions } from '@/features/ai/ai-actions';
-import { BestTimeHint } from '@/features/ai/best-time-hint';
 import { DraftFromIdea } from '@/features/ai/draft-from-idea';
-import { ComposerEditor } from './editor';
-import { FormattingToolbar } from './formatting-toolbar';
-import { useSchedulePost } from './hooks';
-import { MediaPicker, MediaStrip } from './media-picker';
-import { validateMediaForProvider } from './media-validation';
-import { PostPreview } from './post-preview';
-import { useComposerStore } from './store';
-
-/** Rótulo de seção do composer — mesmo estilo de header curto usado no calendário/billing,
- *  para as regiões (Canais · Conteúdo · Pré-visualização) lerem como blocos distintos. */
-function SectionHeader({ label, children }: { label: string; children?: ReactNode }) {
-  return (
-    <div className="mb-2.5 flex items-center gap-2">
-      <h2 className="text-meta font-semibold uppercase tracking-wide text-graphite">{label}</h2>
-      {children ? <div className="ml-auto flex items-center gap-2">{children}</div> : null}
-    </div>
-  );
-}
+import { useChannels, useProviders } from '@/features/channels/hooks';
+import { toLocalInput } from '@/lib/datetime';
+import { ChannelPicker } from './channel-picker';
+import { ComposerChannelTab } from './composer-channel-tab';
+import { ComposerDiscardDialog } from './composer-discard-dialog';
+import { ComposerFooter } from './composer-footer';
+import { ComposerGlobalTab } from './composer-global-tab';
+import { ComposerNetworkTabs, idDaAba, idDoPainel } from './composer-network-tabs';
+import { ComposerPreviewPane } from './composer-preview-pane';
+import {
+  useComposerActions,
+  useComposerChannelIds,
+  useComposerPublishAtLocal,
+} from './composer-selectors';
+import { ComposerThread } from './composer-thread';
+import { useComposerUiStore } from './composer-ui-store';
+import { SectionHeader } from './section-header';
+import { useCanaisSelecionados } from './use-composer-validation';
 
 /**
  * Composer (SPEC_FRONTEND §3.3): vive dentro do popup (composer-modal).
- * Avatares p/ escolher canais → abas global/por canal →
- * editor com toolbar e contador no canto → thread empilhada → preview ao vivo →
- * rodapé mobile-first com data e CTAs. Estado no Zustand com persist (rascunho
- * sobrevive a F5). O corpo rola; o rodapé fica fixo no pé do popup.
- * `onDone` fecha o popup (submit ok ou descartar).
+ *
+ * Este arquivo é só a CASCA — grade, seções e composição. Cada região assina o que lê:
+ * o texto vive nas folhas que o editam, e digitar não re-renderiza o trilho de redes, a prévia
+ * nem o rodapé inteiro. Antes eram 788 linhas assinando o store inteiro sem seletor.
+ *
+ * O corpo rola; o rodapé fica fixo no pé do popup. `onDone` fecha o popup (submit ok ou
+ * descartar).
  */
 export function ComposerView({ onDone }: { onDone: () => void }) {
   const t = useTranslations('composer');
-  const errorMessage = useApiErrorMessage();
-  const store = useComposerStore();
-  const channels = useChannels();
+  const { toggleChannel, setOverride, bumpEditors, setPublishAtLocal } = useComposerActions();
+  const channelIds = useComposerChannelIds();
+  const publishAtLocal = useComposerPublishAtLocal();
+  const selected = useCanaisSelecionados();
   const providers = useProviders();
-  const mediaLibrary = useMediaList();
-  const schedule = useSchedulePost();
+  const totalDeCanais = useChannels().data?.length ?? 0;
+  const activeTab = useComposerUiStore((s) => s.activeTab);
+  const [confirmarDescarte, setConfirmarDescarte] = useState(false);
 
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  const [activeTab, setActiveTab] = useState('global');
-  // hover na fileira de redes "espia" a prévia daquela rede sem trocar a aba de edição (padrão
-  // Postiz: um `current` comanda a prévia; aqui o hover é transitório e o clique fixa a aba)
-  const [previewPeek, setPreviewPeek] = useState<string | null>(null);
-  // no mobile a prévia é colapsável (fica no fim da coluna única); no desktop é sempre visível
-  const [previewOpen, setPreviewOpen] = useState(true);
-  const [globalEditor, setGlobalEditor] = useState<Editor | null>(null);
-  const [channelEditors, setChannelEditors] = useState<Record<string, Editor | null>>({});
-  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  // o rascunho vem de localStorage: só depois de montar o cliente é que ele existe
+  const [montado, setMontado] = useState(false);
+  useEffect(() => setMontado(true), []);
+
+  // fechar o popup desmonta a view: qual aba estava aberta não é conteúdo e não sobrevive
+  const resetUi = useComposerUiStore((s) => s.resetUi);
+  useEffect(() => resetUi, [resetUi]);
 
   // primeiro uso: sugere a próxima hora cheia
   useEffect(() => {
-    if (!mounted || store.publishAtLocal) return;
+    if (!montado || publishAtLocal) return;
     const d = new Date(Date.now() + 60 * 60 * 1000);
     d.setMinutes(0, 0, 0);
-    store.setPublishAtLocal(toLocalInput(d));
-  }, [mounted, store.publishAtLocal, store.setPublishAtLocal]);
+    setPublishAtLocal(toLocalInput(d));
+  }, [montado, publishAtLocal, setPublishAtLocal]);
 
-  if (!mounted) {
+  if (!montado) {
     return (
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="flex-1 overflow-y-auto p-4 sm:p-6">
@@ -107,713 +76,91 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
     );
   }
 
-  // seleção efetiva = ids do rascunho que ainda existem como canal
-  const selected = (channels.data ?? []).filter((ch) => store.channelIds.includes(ch.id));
-  // aba resolvida (cai p/ global se o canal ativo saiu da seleção) e rede exibida na prévia
-  // (hover espia; sem hover, segue a aba fixa)
-  const resolvedTab =
+  // a aba cai para a global quando o canal em edição sai da seleção
+  const abaAtual =
     activeTab === 'global' || selected.some((ch) => ch.id === activeTab) ? activeTab : 'global';
-  const previewCurrent = previewPeek ?? resolvedTab;
-  const previewChannel = selected.find((ch) => ch.id === previewCurrent);
-  const previewName =
-    previewCurrent === 'global'
-      ? t('preview.globalCard')
-      : (previewChannel?.name ?? previewChannel?.username ?? '');
-  const providerOf = (providerId: string) => providers.data?.find((p) => p.id === providerId);
-  const textFor = (channelId: string) => store.overrides[channelId] ?? store.text;
-  const mediaById = new Map((mediaLibrary.data ?? []).map((m) => [m.id, m]));
-  const selectedMedia = store.mediaIds.map((id) => mediaById.get(id)).filter((m) => m !== undefined);
-
-  const counters = selected.map((ch) => {
-    const max = providerOf(ch.provider)?.maxLength;
-    const len = textFor(ch.id).trim().length;
-    return { channel: ch, max, len, over: max !== undefined && len > max };
-  });
-
-  // limite mais apertado entre os canais selecionados — vale p/ itens de thread
-  const minMax = selected.reduce<number | undefined>((acc, ch) => {
-    const max = providerOf(ch.provider)?.maxLength;
-    if (max === undefined) return acc;
-    return acc === undefined ? max : Math.min(acc, max);
-  }, undefined);
-
-  /** rótulo da rede de um canal — o aviso da IA cita "X (280)", nunca um uuid */
+  const canalDaAba = selected.find((ch) => ch.id === abaAtual);
   const networkNameOf = (channelId: string) => {
-    const ch = selected.find((c) => c.id === channelId);
-    return (ch && providerOf(ch.provider)?.name) ?? ch?.name ?? channelId;
-  };
-
-  /**
-   * Aplica uma legenda por canal como override. É o mesmo caminho do rascunho multicanal — e é o
-   * conserto de um defeito: a aba global cobrava um crédito por canal, recebia N variantes e
-   * aplicava só a primeira, descartando trabalho já pago.
-   */
-  const aplicarVariantesPorCanal = (variants: Array<{ channelId: string; text: string }>) => {
-    for (const v of variants) store.setOverride(v.channelId, v.text);
-    store.bumpEditors();
-    // levar a pessoa para onde o resultado está: sem isto, N versões chegam invisíveis
-    const primeiro = variants[0];
-    if (primeiro) setActiveTab(primeiro.channelId);
-  };
-
-  const threadSupported = selected.length > 0 && selected.every((ch) => providerOf(ch.provider)?.threads);
-  const threadUnsupportedNames = selected
-    .filter((ch) => !providerOf(ch.provider)?.threads)
-    .map((ch) => ch.name ?? ch.id);
-
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const publishAt = store.publishAtLocal ? new Date(store.publishAtLocal) : null;
-
-  // ---- validação client-side (o servidor revalida tudo) ----
-  const issues: string[] = [];
-  if (store.text.trim().length === 0) issues.push(t('issues.emptyText'));
-  if (selected.length === 0) issues.push(t('issues.noChannelSelected'));
-  for (const c of counters) {
-    const override = store.overrides[c.channel.id];
-    if (override !== undefined && override.trim().length === 0) {
-      issues.push(t('issues.emptyOverride', { name: c.channel.name ?? c.channel.id }));
-    }
-  }
-  const overNames = counters.filter((c) => c.over).map((c) => c.channel.name ?? c.channel.id);
-  if (overNames.length > 0) issues.push(t('issues.overLimit', { channels: overNames.join(', ') }));
-
-  if (selectedMedia.length > 0) {
-    const seen = new Set<string>();
-    for (const ch of selected) {
-      const info = providerOf(ch.provider);
-      if (!info) continue;
-      for (const issue of validateMediaForProvider(info, selectedMedia)) {
-        const msg = t(`issues.media.${issue.code}`, {
-          name: ch.name ?? ch.id,
-          max: 'max' in issue ? issue.max : 0,
-          mime: 'mime' in issue ? issue.mime : '',
-        });
-        if (!seen.has(msg)) {
-          seen.add(msg);
-          issues.push(msg);
-        }
-      }
-    }
-  } else {
-    // redes que não aceitam post só-texto (ex.: TikTok) — o servidor revalida no agendamento
-    for (const ch of selected) {
-      if (providerOf(ch.provider)?.requiresMedia) {
-        issues.push(t('issues.requiresMedia', { name: ch.name ?? ch.id }));
-      }
-    }
-  }
-
-  // settings obrigatórias por canal (ex.: canal do Discord) — o servidor revalida
-  for (const ch of selected) {
-    const info = providerOf(ch.provider);
-    const required = (info?.settingsSchema as { required?: string[] } | undefined)?.required ?? [];
-    const chSettings = store.channelSettings[ch.id] ?? {};
-    for (const key of required) {
-      const v = chSettings[key];
-      const missing =
-        v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0);
-      if (missing) {
-        const field =
-          info && t.has(`channelSettings.fields.${info.id}.${key}`)
-            ? t(`channelSettings.fields.${info.id}.${key}`)
-            : key;
-        issues.push(t('issues.missingSetting', { name: ch.name ?? ch.id, field }));
-      }
-    }
-  }
-
-  if (store.thread.length > 0 && threadUnsupportedNames.length > 0) {
-    issues.push(t('issues.threadUnsupported', { channels: threadUnsupportedNames.join(', ') }));
-  }
-  store.thread.forEach((item, i) => {
-    if (item.text.trim().length === 0) issues.push(t('issues.threadEmpty', { index: i + 1 }));
-    if (minMax !== undefined && item.text.trim().length > minMax)
-      issues.push(t('issues.threadOverLimit', { index: i + 1 }));
-    if (item.delaySec < 0 || item.delaySec > 600)
-      issues.push(t('issues.threadDelay', { index: i + 1 }));
-  });
-
-  const scheduleIssues: string[] = [];
-  if (!publishAt || Number.isNaN(publishAt.getTime())) scheduleIssues.push(t('issues.noDate'));
-  else if (publishAt.getTime() < Date.now() - 60_000) scheduleIssues.push(t('issues.pastDate'));
-
-  const globalLen = store.text.trim().length;
-  const counterInvalid = issues.length > 0;
-
-  const submit = (now: boolean) => {
-    const at = now ? new Date() : publishAt;
-    if (!at || Number.isNaN(at.getTime())) return;
-    const textByChannel: Record<string, string> = {};
-    for (const ch of selected) {
-      const override = store.overrides[ch.id]?.trim();
-      if (override && override !== store.text.trim()) textByChannel[ch.id] = override;
-    }
-    const settingsByChannel: Record<string, Record<string, unknown>> = {};
-    for (const ch of selected) {
-      const settings = store.channelSettings[ch.id];
-      if (settings && Object.keys(settings).length > 0) settingsByChannel[ch.id] = settings;
-    }
-    schedule.mutate(
-      {
-        text: store.text.trim(),
-        channelIds: selected.map((ch) => ch.id),
-        publishAt: at.toISOString(),
-        timezone,
-        textByChannel,
-        settingsByChannel,
-        mediaIds: store.mediaIds,
-        thread: store.thread.map((item) => ({
-          text: item.text.trim(),
-          ...(item.mediaIds.length > 0 ? { mediaIds: item.mediaIds } : {}),
-          ...(item.delaySec > 0 ? { delaySec: item.delaySec } : {}),
-        })),
-        requireApproval: store.requireApproval,
-      },
-      {
-        onSuccess: () => {
-          toast.success(
-            store.requireApproval ? t('draftCreated') : now ? t('publishedNow') : t('scheduled'),
-          );
-          store.reset();
-          onDone();
-        },
-        onError: (err) => toast.error(errorMessage(err)),
-      },
+    const channel = selected.find((item) => item.id === channelId);
+    return (
+      (channel && providers.data?.find((provider) => provider.id === channel.provider)?.name) ??
+      channel?.name ??
+      channelId
     );
   };
 
-  const uniqueIssues = Array.from(new Set(issues));
-
-  /** conteúdo da validação no hover-popover */
-  const validationContent = (
-    <div className="flex flex-col gap-2">
-      {counters.length > 0 ? (
-        <ul className="flex flex-col gap-1">
-          {counters.map(({ channel, max, len, over }) => (
-            <li
-              key={channel.id}
-              className={cn(
-                'flex items-center justify-between gap-2 text-xs tabular-nums',
-                over ? 'font-semibold text-state-failed' : 'text-graphite',
-              )}
-            >
-              <span className="flex min-w-0 items-center gap-1.5">
-                {PROVIDER_ICONS[channel.provider] ? (
-                  <img src={PROVIDER_ICONS[channel.provider]} alt="" aria-hidden className="size-3.5 rounded-sm" />
-                ) : null}
-                <span className="truncate">{channel.name ?? channel.id}</span>
-              </span>
-              {len}
-              {max !== undefined ? `/${max}` : ''}
-            </li>
-          ))}
-        </ul>
-      ) : !uniqueIssues.includes(t('issues.noChannelSelected')) ? (
-        <p className="text-xs leading-relaxed text-graphite">{t('issues.noChannelSelected')}</p>
-      ) : null}
-      {uniqueIssues.length > 0 ? (
-        <ul className={cn('flex flex-col gap-1', counters.length > 0 ? 'border-t border-line pt-2' : '')}>
-          {uniqueIssues.map((issue) => (
-            <li key={issue} className="text-xs leading-relaxed text-state-failed">
-              {issue}
-            </li>
-          ))}
-        </ul>
-      ) : null}
-    </div>
-  );
-
-  /** Pill no canto do editor que abre a validação por canal ou erros via hover. */
-  const counterPill = (
-    <HoverPopover align="end" className="flex w-80 flex-col gap-2 p-3" content={validationContent}>
-      <button
-        type="button"
-        className={cn(
-          'ml-auto flex cursor-pointer shrink-0 items-center gap-1.5 rounded-sm border px-2 py-1 text-meta font-semibold tabular-nums outline-none transition-colors duration-200',
-          'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
-          counterInvalid
-            ? 'border-state-failed bg-state-failed-tint text-state-failed'
-            : 'border-line bg-surface text-graphite hover:border-ink',
-        )}
-      >
-        {counterInvalid ? <CircleAlert className="size-3.5" aria-hidden /> : null}
-        {globalLen}
-        {minMax !== undefined ? `/${minMax}` : ''}
-      </button>
-    </HoverPopover>
-  );
-
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* corpo rolável */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
-          {/* coluna principal */}
           <div className="flex min-w-0 flex-col gap-6">
             <section>
-              <SectionHeader label={t('sections.channels')} />
-              <ChannelPicker selectedIds={store.channelIds} onToggle={store.toggleChannel} />
+              <SectionHeader label={t('sections.channels')}>
+                {totalDeCanais > 0 ? (
+                  <span className="text-meta font-medium tabular-nums text-mist">
+                    {t('sections.channelsCount', {
+                      selected: selected.length,
+                      total: totalDeCanais,
+                    })}
+                  </span>
+                ) : null}
+              </SectionHeader>
+              <ChannelPicker selectedIds={channelIds} onToggle={toggleChannel} />
             </section>
 
-            <section className="border-t border-line pt-6">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <SectionHeader label={t('sections.content')} />
-              {/* a ideia vira um texto por canal: chega como override, exatamente o formato
-                  que `textByChannel` do agendamento já aceita — nada é agendado aqui */}
-              <DraftFromIdea
-                channelIds={store.channelIds}
-                networkNameOf={networkNameOf}
-                onDrafts={aplicarVariantesPorCanal}
-              />
-            </div>
-            <Tabs value={resolvedTab} onValueChange={setActiveTab}>
-              {/* Fileira de redes (padrão Postiz SelectCurrent): globo = edição/prévia global,
-                  depois um chip por canal. Comanda a aba de edição no clique e "espia" a prévia
-                  no hover. Rolável na horizontal no mobile — nunca quebra em várias linhas. */}
+            <section className="flex flex-col gap-3 border-t border-line pt-6">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <SectionHeader label={t('sections.content')} />
+                {/* a ideia vira um texto por canal: chega como override, exatamente o formato
+                    que `textByChannel` do agendamento já aceita — nada é agendado aqui */}
+                <DraftFromIdea
+                  channelIds={channelIds}
+                  networkNameOf={networkNameOf}
+                  onDrafts={(drafts) => {
+                    for (const d of drafts) setOverride(d.channelId, d.text);
+                    bumpEditors();
+                  }}
+                />
+              </div>
+
+              <ComposerNetworkTabs resolvedTab={abaAtual} />
+
               <div
-                role="tablist"
-                aria-label={t('networksTablist')}
-                // py/px sobra p/ a bolinha de "personalizado" (-top-1/-right-1) e o anel de foco
-                // não serem cortados — overflow-x:auto também recorta a vertical
-                className="-mx-1.5 flex gap-1.5 overflow-x-auto px-1.5 py-1.5 [scrollbar-width:thin]"
+                role="tabpanel"
+                id={idDoPainel(abaAtual)}
+                aria-labelledby={idDaAba(abaAtual)}
+                tabIndex={-1}
+                className="outline-none"
               >
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={resolvedTab === 'global'}
-                  onClick={() => setActiveTab('global')}
-                  onMouseEnter={() => setPreviewPeek('global')}
-                  onMouseLeave={() => setPreviewPeek(null)}
-                  title={t('globalTab')}
-                  className={cn(
-                    'bevel-surface flex size-10 shrink-0 items-center justify-center rounded-md border text-graphite outline-none transition-[filter] duration-200',
-                    'hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
-                    resolvedTab === 'global' && 'border-accent text-accent',
-                  )}
-                >
-                  <Globe className="size-4" aria-hidden />
-                </button>
-                {selected.map((ch) => {
-                  const active = resolvedTab === ch.id;
-                  const name = ch.name ?? ch.username ?? ch.id;
-                  return (
-                    <button
-                      key={ch.id}
-                      type="button"
-                      role="tab"
-                      aria-selected={active}
-                      aria-label={name}
-                      onClick={() => setActiveTab(ch.id)}
-                      onMouseEnter={() => setPreviewPeek(ch.id)}
-                      onMouseLeave={() => setPreviewPeek(null)}
-                      title={name}
-                      className={cn(
-                        'bevel-surface relative flex size-10 shrink-0 items-center justify-center rounded-md border outline-none transition-[filter] duration-200',
-                        'hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
-                        active ? 'border-accent' : 'border-line',
-                      )}
-                    >
-                      <Avatar className="size-6">
-                        {ch.avatarUrl ? <AvatarImage src={ch.avatarUrl} alt="" /> : null}
-                        <AvatarFallback className="text-axis">{name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      {PROVIDER_ICONS[ch.provider] ? (
-                        <img
-                          src={PROVIDER_ICONS[ch.provider]}
-                          alt=""
-                          aria-hidden
-                          className="absolute -bottom-0.5 -right-0.5 size-3.5 rounded-sm border border-surface"
-                        />
-                      ) : null}
-                      {store.overrides[ch.id] !== undefined ? (
-                        <span
-                          aria-hidden
-                          title={t('customizedBadge')}
-                          className="absolute -right-1 -top-1 size-2 rounded-full border border-surface bg-accent"
-                        />
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <TabsContent value="global" className="flex flex-col gap-3">
-                {/* cartão do editor com toolbar embaixo */}
-                <div className="rounded-md border bevel-surface transition-colors duration-200 focus-within:border-accent">
-                  <ComposerEditor
-                    key={`global-${store.editorNonce}`}
-                    initialText={store.text}
-                    onChange={store.setText}
-                    placeholder={t('placeholder')}
-                    label={t('editorLabel')}
-                    autoFocus
-                    className="border-0 focus-within:border-0"
-                    onEditorReady={(ed) => setGlobalEditor((prev) => (prev === ed ? prev : ed))}
+                {canalDaAba ? (
+                  <ComposerChannelTab
+                    channel={canalDaAba}
+                    providerInfo={providers.data?.find((p) => p.id === canalDaAba.provider)}
                   />
-                  <div className="flex flex-wrap items-center gap-1 border-t border-line px-2 py-1.5">
-                    <MediaPicker
-                      selectedIds={store.mediaIds}
-                      onToggle={store.toggleMedia}
-                      {...(store.channelIds[0] ? { channelId: store.channelIds[0] } : {})}
-                    />
-                    <FormattingToolbar editor={globalEditor} />
-                    <AiActions
-                      editor={globalEditor}
-                      text={store.text}
-                      channelIds={store.channelIds}
-                      scope="global"
-                      onVariants={aplicarVariantesPorCanal}
-                      networkNameOf={networkNameOf}
-                    />
-                    {counterPill}
-                  </div>
-                </div>
-                <MediaStrip mediaIds={store.mediaIds} onRemove={store.removeMedia} />
-              </TabsContent>
-
-              {selected.map((ch) => {
-                const overridden = store.overrides[ch.id] !== undefined;
-                const counter = counters.find((c) => c.channel.id === ch.id);
-                const providerInfo = providerOf(ch.provider);
-                return (
-                  <TabsContent key={ch.id} value={ch.id} className="flex flex-col gap-3">
-                    {overridden ? (
-                      <div className="rounded-md border bevel-surface transition-colors duration-200 focus-within:border-accent">
-                        <div className="flex items-center justify-between border-b border-line bg-surface-2/60 px-3 py-1.5">
-                          <span className="flex items-center gap-1.5 text-xs font-semibold text-ink">
-                            <LockOpen className="size-3.5 text-accent" aria-hidden />
-                            Personalizando para {ch.name ?? ch.id}
-                          </span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => store.clearOverride(ch.id)}
-                            className="h-6 gap-1 px-2 text-meta font-semibold text-graphite hover:bg-surface hover:text-ink"
-                          >
-                            <Lock className="size-3" aria-hidden />
-                            Usar texto global
-                          </Button>
-                        </div>
-                        <ComposerEditor
-                          key={`${ch.id}-${store.editorNonce}`}
-                          initialText={store.overrides[ch.id] ?? ''}
-                          onChange={(text) => store.setOverride(ch.id, text)}
-                          placeholder={t('placeholder')}
-                          label={t('channelEditorLabel', { name: ch.name ?? ch.id })}
-                          className="border-0 focus-within:border-0"
-                          onEditorReady={(ed) => setChannelEditors((prev) => (prev[ch.id] === ed ? prev : { ...prev, [ch.id]: ed }))}
-                        />
-                        <div className="flex flex-wrap items-center justify-between gap-1 border-t border-line px-2 py-1.5">
-                          <div className="flex flex-wrap items-center gap-1">
-                            <FormattingToolbar editor={channelEditors[ch.id] ?? null} />
-                            <AiActions
-                              editor={channelEditors[ch.id] ?? null}
-                              text={store.overrides[ch.id] ?? store.text}
-                              channelIds={[ch.id]}
-                              scope="channel"
-                              networkNameOf={networkNameOf}
-                            />
-                          </div>
-                          <HoverPopover align="end" className="flex w-80 flex-col gap-2 p-3" content={validationContent}>
-                            <button
-                              type="button"
-                              className={cn(
-                                'flex cursor-pointer shrink-0 items-center gap-1.5 rounded-sm border px-2 py-1 text-meta font-semibold tabular-nums outline-none transition-colors duration-200',
-                                'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
-                                counter?.over || (store.overrides[ch.id] !== undefined && store.overrides[ch.id]?.trim().length === 0)
-                                  ? 'border-state-failed bg-state-failed-tint text-state-failed'
-                                  : 'border-line bg-surface text-graphite hover:border-ink',
-                              )}
-                            >
-                              {counter?.over || (store.overrides[ch.id] !== undefined && store.overrides[ch.id]?.trim().length === 0) ? (
-                                <CircleAlert className="size-3.5" aria-hidden />
-                              ) : null}
-                              {counter?.len}
-                              {counter?.max !== undefined ? `/${counter.max}` : ''}
-                            </button>
-                          </HoverPopover>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="bevel-surface flex min-h-[240px] flex-col items-center justify-center rounded-md border p-6 text-center transition-colors duration-200">
-                        <div className="bevel-surface mb-3 flex size-10 items-center justify-center rounded-full border text-ink">
-                          <Lock className="size-4" aria-hidden />
-                        </div>
-                        <p className="text-sm font-semibold text-ink">Edição global ativa</p>
-                        <p className="mt-1 max-w-sm text-xs leading-relaxed text-graphite">
-                          Clique no botão abaixo para sair da edição global e personalizar o texto exclusivamente para este canal.
-                        </p>
-                        <Button
-                          type="button"
-                          variant="primary"
-                          size="sm"
-                          onClick={() => store.setOverride(ch.id, store.text)}
-                          className="mt-4 gap-1.5 font-semibold"
-                        >
-                          <LockOpen className="size-3.5" aria-hidden />
-                          Personalizar conteúdo
-                        </Button>
-                      </div>
-                    )}
-                    {providerInfo ? (
-                      <ChannelSettingsCard
-                        channelId={ch.id}
-                        providerId={providerInfo.id}
-                        providerName={providerInfo.name}
-                        channelName={ch.name ?? ch.username ?? providerInfo.name}
-                        schema={providerInfo.settingsSchema}
-                        values={store.channelSettings[ch.id] ?? {}}
-                        onChange={(key, value) => store.setChannelSetting(ch.id, key, value)}
-                      />
-                    ) : null}
-                  </TabsContent>
-                );
-              })}
-            </Tabs>
-
-            {/* thread (réplicas encadeadas) */}
-            {selected.length > 0 && !threadSupported && store.thread.length === 0 ? null : (
-              <div className="flex flex-col gap-3">
-                {store.thread.map((item, i) => {
-                  const len = item.text.trim().length;
-                  const over = minMax !== undefined && len > minMax;
-                  return (
-                    <div key={item.key} className="relative pl-6">
-                      {/* conector vertical da thread */}
-                      <span aria-hidden className="absolute bottom-0 left-2.5 top-0 w-px bg-line" />
-                      <div className="rounded-md border bevel-surface transition-colors duration-200 focus-within:border-accent">
-                        <ComposerEditor
-                          key={`${item.key}-${store.editorNonce}`}
-                          initialText={item.text}
-                          onChange={(text) => store.setThreadText(item.key, text)}
-                          placeholder={t('threadPlaceholder')}
-                          label={t('threadItem', { index: i + 1 })}
-                          className="border-0 focus-within:border-0 [&_.tiptap]:min-h-16"
-                          onEditorReady={(ed) => setChannelEditors((prev) => (prev[item.key] === ed ? prev : { ...prev, [item.key]: ed }))}
-                        />
-                        <div className="flex flex-wrap items-center gap-1 border-t border-line px-2 py-1.5">
-                          <MediaPicker
-                            selectedIds={item.mediaIds}
-                            onToggle={(mediaId) => store.toggleThreadMedia(item.key, mediaId)}
-                          />
-                          <FormattingToolbar editor={channelEditors[item.key] ?? null} />
-                          {/* item de thread: texto compartilhado pelas redes que suportam thread.
-                              Não oferece "adaptar para a rede" — um item não pode ser adaptado a
-                              cinco redes ao mesmo tempo. O canal serve só para resolver hashtags. */}
-                          <AiActions
-                            editor={channelEditors[item.key] ?? null}
-                            text={item.text}
-                            channelIds={store.channelIds}
-                            scope="thread"
-                            networkNameOf={networkNameOf}
-                          />
-                          <div className="flex items-center gap-1.5">
-                            <Label htmlFor={`delay-${item.key}`} className="text-xs text-graphite">
-                              {t('threadDelay')}
-                            </Label>
-                            <Input
-                              id={`delay-${item.key}`}
-                              type="number"
-                              min={0}
-                              max={600}
-                              step={15}
-                              value={item.delaySec}
-                              onChange={(e) => store.setThreadDelay(item.key, Number(e.target.value))}
-                              className="h-7 w-18 text-xs"
-                            />
-                            <span className="text-xs text-mist">s</span>
-                          </div>
-                          <HoverPopover align="end" className="flex w-80 flex-col gap-2 p-3" content={validationContent}>
-                            <button
-                              type="button"
-                              className={cn(
-                                'ml-auto flex cursor-pointer shrink-0 items-center gap-1.5 rounded-sm border px-2 py-1 text-meta font-semibold tabular-nums outline-none transition-colors duration-200',
-                                'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
-                                over || len === 0
-                                  ? 'border-state-failed bg-state-failed-tint text-state-failed'
-                                  : 'border-line bg-surface text-graphite hover:border-ink',
-                              )}
-                            >
-                              {over || len === 0 ? <CircleAlert className="size-3.5" aria-hidden /> : null}
-                              {len}
-                              {minMax !== undefined ? `/${minMax}` : ''}
-                            </button>
-                          </HoverPopover>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={t('threadRemove')}
-                            className="text-graphite hover:text-state-failed"
-                            onClick={() => store.removeThreadItem(item.key)}
-                          >
-                            <Trash2 aria-hidden />
-                          </Button>
-                        </div>
-                        {item.mediaIds.length > 0 ? (
-                          <div className="border-t border-line p-2">
-                            <MediaStrip
-                              mediaIds={item.mediaIds}
-                              onRemove={(mediaId) => store.toggleThreadMedia(item.key, mediaId)}
-                              size="sm"
-                            />
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {threadSupported ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="bevel-accent w-fit gap-1.5 border-accent text-accent hover:text-accent-hover"
-                    disabled={store.thread.length >= 24}
-                    onClick={() => store.addThreadItem()}
-                  >
-                    <Plus aria-hidden />
-                    {t('threadAdd')}
-                  </Button>
-                ) : store.thread.length > 0 ? (
-                  <p className="text-compact leading-relaxed text-state-failed">
-                    {t('threadUnavailable', { channels: threadUnsupportedNames.join(', ') })}
-                  </p>
-                ) : null}
+                ) : (
+                  <ComposerGlobalTab />
+                )}
               </div>
-            )}
+
+              <ComposerThread />
             </section>
           </div>
 
-          {/* preview ao vivo */}
-          <aside className="flex flex-col self-start border-t border-line pt-6 lg:sticky lg:top-0 lg:border-l lg:border-t-0 lg:border-line lg:pl-6 lg:pt-0">
-            {/* no mobile o cabeçalho colapsa a prévia (fica no fim da coluna única); no desktop
-                é só rótulo — o botão vira inerte (lg:pointer-events-none) e a prévia fica sempre aberta */}
-            <button
-              type="button"
-              onClick={() => setPreviewOpen((v) => !v)}
-              aria-expanded={previewOpen}
-              className="mb-2.5 flex w-full items-center gap-2 rounded-sm outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:pointer-events-none"
-            >
-              <span className="text-meta font-semibold uppercase tracking-wide text-graphite">
-                {t('preview.title')}
-              </span>
-              {previewName ? (
-                <span className="min-w-0 flex-1 truncate text-left text-xs font-medium text-mist lg:flex-none">
-                  {previewName}
-                </span>
-              ) : null}
-              <ChevronDown
-                aria-hidden
-                className={cn(
-                  'ml-auto size-4 shrink-0 text-mist transition-transform duration-200 lg:hidden',
-                  previewOpen && 'rotate-180',
-                )}
-              />
-            </button>
-            <div className={cn('lg:block', !previewOpen && 'hidden')}>
-              <PostPreview
-                current={previewCurrent}
-                channels={selected}
-                globalText={store.text}
-                textFor={textFor}
-                settingsFor={(id) => store.channelSettings[id] ?? {}}
-                mediaIds={store.mediaIds}
-                thread={store.thread.map((item) => ({ text: item.text, mediaIds: item.mediaIds }))}
-                publishAt={publishAt}
-              />
-            </div>
-          </aside>
+          <ComposerPreviewPane />
         </div>
       </div>
 
-      {/* rodapé de ações mobile-first: no mobile empilha (CTA primário no topo);
-          no desktop vira uma linha com data, rascunho e CTA à direita */}
-      <footer className="bevel-surface shrink-0 border-t border-line px-4 py-3 sm:px-6 sm:py-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-2">
-          {/* no mobile "aprovar" e a data dividem uma linha; no desktop viram itens soltos da flex-row */}
-          <div className="flex items-center gap-3 sm:contents">
-            <div className="flex shrink-0 items-center gap-2">
-              <Checkbox
-                id="require-approval"
-                checked={store.requireApproval}
-                onCheckedChange={(checked) => store.setRequireApproval(checked === true)}
-              />
-              <Label htmlFor="require-approval">{t('approval')}</Label>
-            </div>
+      <ComposerFooter
+        onDone={onDone}
+        onDiscard={() => setConfirmarDescarte(true)}
+        overlayBloqueanteAberto={confirmarDescarte}
+      />
 
-            <DateTimePicker
-              value={store.publishAtLocal}
-              min={toLocalInput(new Date())}
-              onChange={store.setPublishAtLocal}
-              ariaLabel={t('modeSchedule')}
-              className="min-w-0 flex-1 sm:w-auto sm:flex-none"
-            />
-            <BestTimeHint
-              channelId={store.channelIds[0]}
-              onPick={store.setPublishAtLocal}
-            />
-          </div>
-
-          {uniqueIssues.length > 0 ? (
-            <span className="text-xs leading-relaxed text-graphite">{uniqueIssues[0]}</span>
-          ) : null}
-
-          {/* no mobile: descartar + publicar-agora dividem uma linha, o CTA principal ocupa a linha toda embaixo */}
-          <div className="grid grid-cols-2 gap-2 sm:ml-auto sm:flex sm:flex-row sm:items-center">
-            {/* descartar = mesmo padrão do "publicar agora" (outline), mas hover danger + confirmação */}
-            <Button
-              variant="outline"
-              className="w-full sm:w-auto hover:border-state-failed hover:bg-state-failed-tint hover:text-state-failed"
-              disabled={schedule.isPending}
-              onClick={() => setConfirmDiscard(true)}
-            >
-              {t('discard')}
-            </Button>
-            {!store.requireApproval ? (
-              <Button
-                variant="outline"
-                className="w-full sm:w-auto"
-                disabled={issues.length > 0}
-                isLoading={schedule.isPending}
-                onClick={() => submit(true)}
-              >
-                {t('submitNow')}
-              </Button>
-            ) : null}
-            <Button
-              className={cn('w-full sm:w-auto', store.requireApproval ? '' : 'col-span-2 sm:col-auto')}
-              disabled={issues.length > 0 || scheduleIssues.length > 0}
-              isLoading={schedule.isPending}
-              onClick={() => submit(false)}
-            >
-              {store.requireApproval ? t('submitDraft') : t('submitSchedule')}
-            </Button>
-          </div>
-        </div>
-      </footer>
-
-      {/* confirmação de descarte (pedido do owner: sempre perguntar) */}
-      <AlertDialog open={confirmDiscard} onOpenChange={setConfirmDiscard}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('discardConfirmTitle')}</AlertDialogTitle>
-            <AlertDialogDescription>{t('discardConfirmBody')}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('discardKeep')}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                store.reset();
-                setConfirmDiscard(false);
-                onDone();
-              }}
-            >
-              {t('discardConfirm')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ComposerDiscardDialog
+        open={confirmarDescarte}
+        onOpenChange={setConfirmarDescarte}
+        onDone={onDone}
+      />
     </div>
   );
 }

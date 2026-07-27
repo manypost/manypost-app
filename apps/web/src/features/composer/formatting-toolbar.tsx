@@ -1,23 +1,39 @@
 'use client';
 
-import { Bold, Italic, PenTool, Sparkles } from 'lucide-react';
+import { Bold, Italic, PenLine } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import type { Editor } from '@tiptap/react';
+import { useEditorState } from '@tiptap/react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { editorUtilizavel, toolbarMarks } from './editor-guards';
 
-interface FormattingToolbarProps {
-  editor: Editor | null;
-}
+/**
+ * Grupo de formatação da toolbar do editor.
+ *
+ * Duas regras que valem mais que o layout:
+ *  1. **Nenhum controle daqui tira o cursor do texto.** `preventDefault` no mousedown impede o
+ *     blur; o menu impede o `onCloseAutoFocus`, senão o Radix devolveria o foco ao gatilho e
+ *     desfaria o `.focus()` do comando.
+ *  2. **Só se oferece o que a plataforma entrega.** Os trechos entram literais, e o menu diz
+ *     isso — o menu de "variáveis dinâmicas" saiu porque nada substituía os marcadores antes de
+ *     publicar (eles iriam para a rede como `{nome_canal}`).
+ */
 
-function ToolbarIconButton({
+/** chaves dos trechos em `composer.toolbar.snippets` — o texto vive no arquivo de mensagens */
+const TRECHOS = ['signature', 'cta', 'engagement'] as const;
+
+function ToolbarButton({
   label,
   active,
   disabled,
@@ -35,165 +51,122 @@ function ToolbarIconButton({
       <TooltipTrigger asChild>
         <Button
           type="button"
-          variant="outline"
+          variant="ghost"
           size="icon-sm"
           aria-label={label}
+          aria-pressed={active}
           disabled={disabled}
+          // o mousedown é o que move o foco; sem isto o clique tira o cursor do texto
+          onMouseDown={(e) => e.preventDefault()}
           onClick={onClick}
           className={cn(
             'transition-colors duration-200',
-            active
-              ? 'border-ink bg-surface-2 font-semibold text-ink'
-              : 'text-graphite hover:border-ink hover:text-ink',
+            active ? 'bg-accent-tint text-accent' : 'text-graphite hover:text-ink',
           )}
         >
           {children}
         </Button>
       </TooltipTrigger>
-      <TooltipContent
-        side="top"
-        align="center"
-        sideOffset={6}
-        className="flex min-h-[26px] items-center justify-center text-center text-xs font-semibold"
-      >
+      <TooltipContent side="top" align="center" sideOffset={6} className="text-xs font-semibold">
         {label}
       </TooltipContent>
     </Tooltip>
   );
 }
 
-function ToolbarDropdown({
-  label,
-  disabled,
-  icon: Icon,
-  menuWidth = 'w-64',
-  children,
-}: {
-  label: string;
-  disabled?: boolean;
-  icon: React.ComponentType<{ className?: string }>;
-  menuWidth?: string;
-  children: React.ReactNode;
-}) {
-  const [dropdownOpen, setDropdownOpen] = React.useState(false);
+export function FormattingToolbar({ editor }: { editor: Editor | null }) {
+  const t = useTranslations('composer.toolbar');
+  const [trechosAbertos, setTrechosAbertos] = React.useState(false);
+
+  // assina a seleção: sem isto o estado das marcas ficava congelado no primeiro render
+  const marcas =
+    useEditorState({ editor, selector: ({ editor: e }) => toolbarMarks(e) }) ??
+    ({ bold: false, italic: false } as const);
+
+  const vivo = editorUtilizavel(editor);
+  const inserir = (texto: string) => {
+    if (!editorUtilizavel(editor)) return;
+    editor.chain().focus().insertContent(texto).run();
+  };
 
   return (
-    <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
-      <Tooltip open={dropdownOpen ? false : undefined}>
-        <TooltipTrigger asChild>
-          <DropdownMenuTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon-sm"
-              aria-label={label}
-              disabled={disabled}
-              className={cn(
-                'transition-colors duration-200 text-graphite hover:border-ink hover:text-ink',
-                dropdownOpen && 'border-ink bg-surface-2 text-ink',
-              )}
-            >
-              <Icon className="size-3.5" aria-hidden />
-            </Button>
-          </DropdownMenuTrigger>
-        </TooltipTrigger>
-        <TooltipContent
-          side="top"
-          align="center"
-          sideOffset={6}
-          className="flex min-h-[26px] items-center justify-center text-center text-xs font-semibold"
-        >
-          {label}
-        </TooltipContent>
-      </Tooltip>
-      <DropdownMenuContent align="start" className={menuWidth}>
-        {children}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
-export function FormattingToolbar({ editor }: FormattingToolbarProps) {
-  return (
+    // 150ms em vez dos 300ms globais: numa barra só de ícones a legenda precisa vir rápido
     <TooltipProvider delayDuration={150} skipDelayDuration={0}>
-      <div className="flex items-center gap-1">
-        <ToolbarIconButton
-          label="Negrito"
-          active={editor?.isActive('bold')}
-          disabled={!editor}
-          onClick={() => editor?.chain().focus().toggleBold().run()}
+      <div className="flex items-center gap-0.5">
+        <ToolbarButton
+          label={t('bold')}
+          active={marcas.bold}
+          disabled={!vivo}
+          onClick={() => editorUtilizavel(editor) && editor.chain().focus().toggleBold().run()}
         >
           <Bold className="size-3.5" aria-hidden />
-        </ToolbarIconButton>
+        </ToolbarButton>
 
-        <ToolbarIconButton
-          label="Itálico"
-          active={editor?.isActive('italic')}
-          disabled={!editor}
-          onClick={() => editor?.chain().focus().toggleItalic().run()}
+        <ToolbarButton
+          label={t('italic')}
+          active={marcas.italic}
+          disabled={!vivo}
+          onClick={() => editorUtilizavel(editor) && editor.chain().focus().toggleItalic().run()}
         >
           <Italic className="size-3.5" aria-hidden />
-        </ToolbarIconButton>
+        </ToolbarButton>
 
-        <ToolbarDropdown label="Inserir Assinatura" icon={PenTool} disabled={!editor} menuWidth="w-64">
-          <DropdownMenuItem
-            className="flex cursor-pointer flex-col items-start gap-0.5 py-2"
-            onClick={() =>
-              editor?.chain().focus().insertContent('\n\n— Equipe manypost\n🌐 www.manypost.com').run()
-            }
+        <DropdownMenu open={trechosAbertos} onOpenChange={setTrechosAbertos}>
+          <Tooltip open={trechosAbertos ? false : undefined}>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={t('snippet')}
+                  disabled={!vivo}
+                  onMouseDown={(e) => e.preventDefault()}
+                  className={cn(
+                    'text-graphite transition-colors duration-200 hover:text-ink',
+                    trechosAbertos && 'bg-accent-tint text-accent',
+                  )}
+                >
+                  <PenLine className="size-3.5" aria-hidden />
+                </Button>
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="top" align="center" sideOffset={6} className="text-xs font-semibold">
+              {t('snippet')}
+            </TooltipContent>
+          </Tooltip>
+          <DropdownMenuContent
+            align="start"
+            className="w-72"
+            // sem isto o Radix devolve o foco ao botão e o texto perde o cursor
+            onCloseAutoFocus={(e) => e.preventDefault()}
           >
-            <span className="text-xs font-semibold text-ink">Assinatura Padrão</span>
-            <span className="max-w-full truncate text-meta text-graphite">
-              — Equipe manypost | www.manypost.com
-            </span>
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="flex cursor-pointer flex-col items-start gap-0.5 py-2"
-            onClick={() =>
-              editor?.chain().focus().insertContent('\n\n👉 Confira o link na bio para saber mais!').run()
-            }
-          >
-            <span className="text-xs font-semibold text-ink">Chamada para Ação (CTA)</span>
-            <span className="max-w-full truncate text-meta text-graphite">
-              👉 Confira o link na bio...
-            </span>
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="flex cursor-pointer flex-col items-start gap-0.5 py-2"
-            onClick={() =>
-              editor?.chain().focus().insertContent('\n\n📌 Gostou? Salve este post e compartilhe com sua rede!').run()
-            }
-          >
-            <span className="text-xs font-semibold text-ink">Engajamento / Compartilhamento</span>
-            <span className="max-w-full truncate text-meta text-graphite">
-              📌 Gostou? Salve este post...
-            </span>
-          </DropdownMenuItem>
-        </ToolbarDropdown>
-
-        <ToolbarDropdown label="Variáveis dinâmicas" icon={Sparkles} disabled={!editor} menuWidth="w-56">
-          <DropdownMenuItem
-            className="cursor-pointer"
-            onClick={() => editor?.chain().focus().insertContent('{nome_canal}').run()}
-          >
-            <span className="mr-2 font-mono text-xs font-semibold">{'{nome_canal}'}</span>
-            <span className="text-xs text-graphite">Nome do canal</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="cursor-pointer"
-            onClick={() => editor?.chain().focus().insertContent('{data_atual}').run()}
-          >
-            <span className="mr-2 font-mono text-xs font-semibold">{'{data_atual}'}</span>
-            <span className="text-xs text-graphite">Data de publicação</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="cursor-pointer"
-            onClick={() => editor?.chain().focus().insertContent('{empresa}').run()}
-          >
-            <span className="mr-2 font-mono text-xs font-semibold">{'{empresa}'}</span>
-            <span className="text-xs text-graphite">Nome da empresa</span>
-          </DropdownMenuItem>
-        </ToolbarDropdown>
+            <DropdownMenuLabel className="flex flex-col gap-0.5">
+              <span>{t('snippet')}</span>
+              <span className="text-meta font-normal leading-relaxed text-graphite">
+                {t('snippetHint')}
+              </span>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {TRECHOS.map((chave) => {
+              const texto = t(`snippets.${chave}.text`);
+              return (
+                <DropdownMenuItem
+                  key={chave}
+                  className="flex cursor-pointer flex-col items-start gap-0.5 py-2"
+                  onSelect={() => inserir(`\n\n${texto}`)}
+                >
+                  <span className="text-xs font-semibold text-ink">
+                    {t(`snippets.${chave}.label`)}
+                  </span>
+                  <span className="max-w-full truncate text-meta text-graphite">
+                    {texto.split('\n')[0]}
+                  </span>
+                </DropdownMenuItem>
+              );
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </TooltipProvider>
   );

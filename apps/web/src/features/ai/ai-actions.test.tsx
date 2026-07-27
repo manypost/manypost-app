@@ -1,7 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 import type { Editor } from '@tiptap/react';
 import messages from '@/messages/pt-BR.json';
-import { editorUtilizavel, textoParaAplicar, variantesParaOverrides } from './ai-actions';
+import {
+  editorUtilizavel,
+  resolveAiScope,
+  textoParaAplicar,
+  variantesParaOverrides,
+} from './ai-actions';
 import {
   ASPECTOS,
   createImageIdempotencyTracker,
@@ -107,6 +112,29 @@ describe('distribuição das variantes pelos canais que as pediram', () => {
 
   test('resposta vazia não vira aplicação vazia', () => {
     expect(variantesParaOverrides([], ['ch-1'])).toEqual([]);
+  });
+});
+
+describe('escopo da ação de IA no composer modular', () => {
+  test('global reescreve sem inventar o primeiro canal e distribui variantes', () => {
+    expect(resolveAiScope('global', ['x', 'linkedin'])).toEqual({
+      rewriteChannelId: undefined,
+      canAdaptPerChannel: true,
+    });
+  });
+
+  test('canal usa somente o seu destino', () => {
+    expect(resolveAiScope('channel', ['linkedin'])).toEqual({
+      rewriteChannelId: 'linkedin',
+      canAdaptPerChannel: true,
+    });
+  });
+
+  test('thread pode receber dica de rede, mas não promete variantes incompatíveis', () => {
+    expect(resolveAiScope('thread', ['x', 'linkedin'])).toEqual({
+      rewriteChannelId: 'x',
+      canAdaptPerChannel: false,
+    });
   });
 });
 

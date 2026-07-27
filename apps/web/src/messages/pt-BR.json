@@ -273,22 +273,13 @@
   "composer": {
     "title": "Compor",
     "subtitle": "Escreva uma vez e publique em todos os canais selecionados.",
-    "channelsTitle": "Canais",
     "noChannels": "Nenhum canal conectado ainda — conecte um canal para publicar.",
     "goConnect": "Conectar canais",
-    "contentTitle": "Conteúdo",
-    "globalTab": "Todos os canais",
     "placeholder": "O que você quer publicar?",
     "editorLabel": "Texto do post",
     "channelEditorLabel": "Texto para {name}",
-    "customize": "Personalizar o texto para este canal",
-    "customizeHint": "Sem personalização, este canal publica o texto global — escreva na aba \"Todos os canais\".",
-    "scheduleTitle": "Agendamento",
-    "modeNow": "Publicar agora",
     "modeSchedule": "Agendar para",
-    "timezone": "Fuso horário: {tz}",
     "approval": "Exigir aprovação",
-    "approvalHint": "O post nasce como rascunho e só é agendado depois de aprovado pelo link público.",
     "submitNow": "Publicar agora",
     "submitSchedule": "Agendar",
     "submitDraft": "Salvar rascunho",
@@ -308,15 +299,11 @@
       "done": "{count, plural, =0 {Concluir} one {Concluir (# selecionada)} other {Concluir (# selecionadas)}}",
       "remove": "Remover mídia"
     },
-    "threadTitle": "Thread",
-    "threadCount": "{count, plural, one {# item extra} other {# itens extras}}",
     "threadItem": "Item {index}",
     "threadPlaceholder": "Continue a conversa…",
-    "threadStart": "Criar thread",
     "threadAdd": "Adicionar item",
     "threadRemove": "Remover item",
     "threadDelay": "Espera",
-    "threadHint": "Selecione canais primeiro — a thread é publicada como réplicas encadeadas.",
     "threadUnavailable": "Thread indisponível: {channels} não suporta réplicas encadeadas.",
     "preview": {
       "title": "Pré-visualização",
@@ -682,10 +669,113 @@
       }
     },
     "networksTablist": "Escolha a rede para editar e pré-visualizar",
-    "customizedBadge": "Texto personalizado para este canal",
     "sections": {
       "channels": "Canais",
-      "content": "Conteúdo do post"
+      "content": "Conteúdo do post",
+      "channelsCount": "{selected} de {total}"
+    },
+    "toolbar": {
+      "bold": "Negrito",
+      "italic": "Itálico",
+      "snippet": "Inserir trecho",
+      "snippetHint": "O texto entra no post exatamente como está escrito.",
+      "snippets": {
+        "signature": {
+          "label": "Assinatura",
+          "text": "— Equipe manypost\n🌐 www.manypost.com"
+        },
+        "cta": {
+          "label": "Chamada para ação",
+          "text": "👉 Confira o link na bio para saber mais!"
+        },
+        "engagement": {
+          "label": "Convite a compartilhar",
+          "text": "📌 Gostou? Salve este post e compartilhe com sua rede!"
+        }
+      }
+    },
+    "rail": {
+      "global": "Global",
+      "globalHint": "Texto que vale para todo canal sem texto próprio",
+      "capacity": "{name}: {len} de {max} caracteres",
+      "capacityNoLimit": "{name}: {len} caracteres",
+      "customized": "Tem texto próprio"
+    },
+    "validation": {
+      "ok": "Tudo certo",
+      "open": "Ver o que falta para agendar",
+      "channelsTitle": "Por rede",
+      "issuesTitle": "Para agendar",
+      "goToChannel": "Abrir {name}",
+      "noChannels": "Escolha um canal para ver os limites."
+    },
+    "globalTab": {
+      "unusedTitle": "O texto global não está em uso",
+      "unusedBody": "Cada canal selecionado tem o seu próprio texto. Escreva aqui se quiser um padrão para os próximos canais."
+    },
+    "channelTab": {
+      "inheriting": "Publica o texto global",
+      "inheritingEmpty": "Sem texto ainda. Escreva na aba Global ou crie um texto só para este canal.",
+      "customizing": "Texto próprio de {name}",
+      "customize": "Personalizar para este canal",
+      "useGlobal": "Voltar ao texto global",
+      "copyGlobal": "Copiar o texto global"
+    },
+    "delay": {
+      "none": "Sem espera",
+      "value": "Após {sec}s",
+      "label": "Espera antes desta réplica",
+      "hint": "Tempo entre a réplica anterior e esta, de 0 a 600 segundos."
+    },
+    "footer": {
+      "shortcut": "Ctrl + Enter agenda",
+      "saved": "Rascunho salvo",
+      "saveFailed": "Rascunho não salvo neste dispositivo",
+      "discardShort": "Descartar",
+      "blocked": "Resolva {count, plural, one {# ajuste} other {# ajustes}} para agendar"
+    },
+    "ai": {
+      "action": "Escrever com IA",
+      "credits": "{count} créditos",
+      "locked": "Recurso do plano Pro",
+      "exhausted": "Franquia de IA esgotada neste mês",
+      "seePlans": "Ver planos",
+      "adapt": "Adaptar para a rede",
+      "hashtags": "Sugerir hashtags",
+      "rewriteTitle": "Reescrever",
+      "needsChannel": "Escolha ao menos um canal para a IA saber o limite e o formato.",
+      "needsText": "Escreva algo para a IA trabalhar em cima.",
+      "failed": "Não foi possível gerar agora. Tente de novo.",
+      "rewrites": {
+        "shorten": {
+          "label": "Encurtar",
+          "instruction": "Encurte o texto mantendo a mensagem principal."
+        },
+        "expand": {
+          "label": "Alongar",
+          "instruction": "Desenvolva o texto com mais detalhe, sem inventar fatos."
+        },
+        "formal": {
+          "label": "Mais formal",
+          "instruction": "Deixe o texto mais formal e profissional."
+        },
+        "casual": {
+          "label": "Mais casual",
+          "instruction": "Deixe o texto mais leve e conversacional."
+        },
+        "withEmoji": {
+          "label": "Com emojis",
+          "instruction": "Acrescente emojis pertinentes, sem exagero."
+        },
+        "withoutEmoji": {
+          "label": "Sem emojis",
+          "instruction": "Remova todos os emojis, preservando o sentido."
+        },
+        "fix": {
+          "label": "Corrigir",
+          "instruction": "Corrija ortografia e gramática, sem mudar o estilo."
+        }
+      }
     }
   },
   "calendar": {

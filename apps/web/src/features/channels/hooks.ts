@@ -21,6 +21,9 @@ export function useProviders() {
     queryKey: ['providers'],
     queryFn: fetchProviders,
     staleTime: Number.POSITIVE_INFINITY, // catálogo muda só com env da instalação
+    // o composer vive num diálogo modal: um refetch ao voltar p/ a aba troca a referência dos
+    // dados e re-renderiza a árvore inteira enquanto a pessoa escreve, de graça
+    refetchOnWindowFocus: false,
   });
 }
 

@@ -10,6 +10,41 @@
 > **Como manter:** ao fechar uma fatia, adicione a onda nova **no topo** e atualize o STATUS.
 > Cada entrada é auto-contida: o que mudou, onde no código, e a prova de que funciona.
 
+## Onda 33 — 2026-07-27 — Composer modular sem regressões de IA ou agendamento
+
+**O ponto de integração.** O redesenho do Composer nasceu em paralelo às ondas 29–32. A separação
+do monólito em componentes menores resolvia foco e clareza, mas a primeira versão não carregava
+todos os contratos que haviam chegado à implementação anterior: escopo de IA, distribuição de
+variantes, validação de thread no rodapé, contexto de mídia e confirmação verificável do autosave.
+
+**O que ficou consolidado**
+
+- Cada aba e item de thread possui seu próprio TipTap; a toolbar nunca consulta uma instância
+  destruída, mantém o foco ao abrir menus e reflete as marcas na posição atual do cursor.
+- O trilho de canais navega entre abas e mede o limite real de cada rede. A aba global explica
+  quando cada rede já tem texto próprio; a aba herdada mostra o texto efetivo e oferece
+  personalização direta.
+- A validação é uma função pura e uma única superfície em popover. O rodapé consulta o escopo
+  completo, inclusive threads, sem montar mensagens que roubavam o foco.
+- IA respeita o destino do texto: global sem `channelId`, canal com seu id e thread sem adaptação
+  por rede. Todas as variantes pagas são aplicadas como overrides e instruções continuam
+  identificadas pelo catálogo controlado pelo servidor.
+- `Ctrl/Cmd + Enter` não repete submissão nem atravessa a confirmação de descarte. O indicador de
+  autosave acompanha a conclusão do storage e informa falha sem interromper a edição.
+- O seletor de mídia global recebe o primeiro canal selecionado; mídia de thread continua
+  compartilhada, sem um canal inventado.
+
+**Provas.** `bun run check:ci` verde: **997 testes passaram**, 18 integrações dependentes de
+PostgreSQL foram puladas na rodada sem `TEST_DATABASE_URL`, dependency-cruiser/IA/brand verdes,
+Drizzle válido, build de produção com **19 páginas** e OpenSpec **21/21** antes do arquivamento.
+Os 72 testes focados cobrem IA, validação, payload, atalho, autosave, selectors e ciclo de vida do
+editor. Smoke em stack descartável (PostgreSQL + Redis + Clerk assinado localmente + provider
+`fake`) passou em **1440×900 e 375×812**: seleção, digitação, contador, preview e autosave
+sincronizados; nenhuma falha de console ou API; `Ctrl/Cmd + Enter` atrás da confirmação de descarte
+não produziu `POST /v1/posts`. Mudança OpenSpec: `refine-composer-authoring`.
+
+---
+
 ## Onda 32 — 2026-07-27 — fechamento verificável de IA, home e imagem
 
 **Por que houve uma onda de fechamento.** As ondas 29–31 tinham o comportamento principal, mas

@@ -10,8 +10,15 @@
 > **Como manter:** ao fechar uma fatia, atualize as seções abaixo **e** abra uma entrada nova no
 > topo do changelog. Este arquivo é sobre o presente; o changelog é sobre o passado.
 >
+> **Atualização de integração — onda 33 (2026-07-27):** o Composer modular foi reconciliado com
+> IA multicanal, contexto de mídia, validação completa, atalho protegido por modal e confirmação
+> real do autosave. `check:ci` passou com **997 testes**, Drizzle válido, build de **19 páginas** e
+> OpenSpec 21/21; o smoke isolado passou em 1440×900 e 375×812 sem erro de console/API. Detalhes:
+> [Onda 33](CHANGELOG_ONDAS.md#onda-33--2026-07-27--composer-modular-sem-regressões-de-ia-ou-agendamento).
+>
 > **Atualização de fechamento — onda 32 (2026-07-27):** as lacunas de verificação descritas na
-> linha histórica de “Última entrega” abaixo foram fechadas. Estado atual: `bun run check:ci`
+> linha histórica de “Última entrega” abaixo foram fechadas. Estado então verificado:
+> `bun run check:ci`
 > verde com **965 testes**, build de **19 páginas**, OpenSpec **21/21**, `e2e-ai` **71 checks**
 > com Redis, `e2e-insights` **23 checks**, migration `0007` exercitada em banco vazio/upgrade e
 > smoke de browser desktop/mobile cobrindo home, reescrita longa e imagem. Detalhe e limites:

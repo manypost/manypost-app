@@ -6,6 +6,22 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ## [Unreleased]
 
+### Changed
+
+- **Composer modular integrado às superfícies de IA, mídia e persistência.** A refatoração
+  `refine-composer-authoring` mantém um editor TipTap por aba/item, trilho de redes com capacidade,
+  validação em popover, threads compactas e rodapé responsivo, sem regredir os contratos entregues
+  em paralelo.
+  - A ação de IA agora conhece o escopo global, de canal ou de thread: reescrita global não inventa
+    `channelId`, todas as variantes multicanal viram overrides e item compartilhado de thread não
+    oferece uma adaptação por rede que cobraria créditos sem destino correto.
+  - O rodapé considera também issues de thread; `Ctrl/Cmd + Enter` ignora repetição de tecla e não
+    agenda por trás da confirmação de descarte.
+  - O editor global encaminha o primeiro canal selecionado ao seletor de mídia; threads
+    compartilhadas continuam sem um destino artificial.
+  - “Rascunho salvo” passou a refletir a conclusão real do storage. Falhas de quota ou privacidade
+    preservam o estado em memória, não interrompem a edição e são informadas sem falso sucesso.
+
 ### Added
 
 - **`ai_image`: a IA passa a produzir a imagem, não só o texto.** A `SPEC_AI §3` listava
