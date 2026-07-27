@@ -1996,7 +1996,7 @@ export type paths = {
         put?: never;
         /**
          * Reescreve um texto seguindo uma instrução
-         * @description Requer a feature `ai_caption` (plano Pro).
+         * @description Requer a feature `ai_caption` (plano Pro). **Nunca encurta o texto**: reescrever é a única operação cuja entrada é o texto que a pessoa escreveu, e cortá-lo para caber num limite que ela não escolheu perderia trabalho. Quando um canal é informado e o resultado passa do limite dele, `overLimit` vem true e o texto vem inteiro — o limite continua sendo imposto no agendamento.
          */
         post: {
             parameters: {
@@ -2009,9 +2009,18 @@ export type paths = {
                 content: {
                     "application/json": {
                         text: string;
-                        instruction: string;
-                        /** Format: uuid */
-                        channelId: string;
+                        /**
+                         * @description instrução do catálogo do servidor
+                         * @enum {string}
+                         */
+                        instructionId?: "shorten" | "expand" | "formal" | "casual" | "with_emoji" | "without_emoji" | "fix_grammar";
+                        /** @description instrução em texto livre — alternativa a `instructionId` */
+                        instruction?: string;
+                        /**
+                         * Format: uuid
+                         * @description opcional: sem canal a reescrita roda e nenhum limite é imposto nem reportado
+                         */
+                        channelId?: string;
                         /** @description settings da publicação, mergeados com os do canal — mesma semântica do agendamento (uma conta verificada do X, por exemplo, valida contra o limite maior) */
                         settings?: {
                             [key: string]: unknown;
@@ -2026,7 +2035,7 @@ export type paths = {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["AiVariant"];
+                        "application/json": components["schemas"]["AiRewriteResult"];
                     };
                 };
                 /** @description requisição fora do contrato (problem+json) */
@@ -5297,6 +5306,14 @@ export type components = {
             /** @description true = o texto passou do limite do canal e foi cortado */
             shortened: boolean;
         };
+        AiRewriteResult: {
+            /** @description null = reescrita sem canal */
+            channelId: string | null;
+            text: string;
+            maxLength: number | null;
+            /** @description true = passou do limite do canal, e nada foi removido por isso */
+            overLimit: boolean;
+        };
         AiPlannedSlot: {
             channelId: string;
             topic: string;
@@ -5321,6 +5338,11 @@ export type components = {
             sampleSize: number;
             /** @description true = veio da linha de base da rede, sem histórico próprio */
             fromBaseline: boolean;
+            /**
+             * @description o que sustenta a resposta. `own_posting_history` = os horários que a organização MAIS USA neste canal, não uma medição de desempenho — enquanto for esse o sinal, `confidence` não passa de `medium`. `own_engagement` depende da coleta de métricas, que ainda não existe.
+             * @enum {string}
+             */
+            signal: "network_baseline" | "own_posting_history" | "own_engagement";
         };
         PlanCatalog: {
             currency: string;

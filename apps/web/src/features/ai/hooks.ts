@@ -64,18 +64,47 @@ export function useGenerateCaption() {
   });
 }
 
+/** ids do catálogo de instruções do servidor — o rótulo vem do catálogo de mensagens */
+export const REWRITE_IDS = [
+  'shorten',
+  'expand',
+  'formal',
+  'casual',
+  'with_emoji',
+  'without_emoji',
+  'fix_grammar',
+] as const;
+export type RewriteId = (typeof REWRITE_IDS)[number];
+
+/** as duas primeiras corrigem/ajustam; as outras mudam o tom — separadas no menu */
+export const REWRITE_TONE_IDS: RewriteId[] = ['formal', 'casual', 'with_emoji', 'without_emoji'];
+export const REWRITE_EDIT_IDS: RewriteId[] = ['fix_grammar', 'shorten', 'expand'];
+
+export interface RewriteResult {
+  channelId: string | null;
+  text: string;
+  maxLength: number | null;
+  /** true = passou do limite do canal, e NADA foi removido por isso */
+  overLimit: boolean;
+}
+
+/**
+ * Reescrita. `channelId` é **opcional** de propósito: na aba global o texto é compartilhado por
+ * várias redes e não existe canal único a resolver — mandar o primeiro impunha o limite de uma
+ * rede não relacionada e devolvia o texto cortado.
+ */
 export function useRewriteText() {
   const refresh = useInvalidateCredits();
   return useMutation({
     mutationFn: async (input: {
       text: string;
-      instruction: string;
-      channelId: string;
+      instructionId: RewriteId;
+      channelId?: string;
       settings?: Record<string, unknown>;
     }) => {
       const { data, error } = await api.POST('/v1/ai/rewrite', { body: input });
       if (error) throw error;
-      return data as AiVariant;
+      return data as RewriteResult;
     },
     onSettled: refresh,
   });
@@ -145,6 +174,12 @@ export function useBestTimes(channelId: string | undefined, enabled: boolean) {
         confidence: 'low' | 'medium' | 'high';
         sampleSize: number;
         fromBaseline: boolean;
+        /**
+         * O que sustenta a resposta. `own_posting_history` são os horários que a organização
+         * MAIS USA — não uma medição de desempenho. A frase da interface sai daqui, para não
+         * insinuar medição que a plataforma ainda não coleta.
+         */
+        signal: 'network_baseline' | 'own_posting_history' | 'own_engagement';
       };
     },
   });

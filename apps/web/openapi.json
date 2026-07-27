@@ -1232,6 +1232,37 @@
           "shortened"
         ]
       },
+      "AiRewriteResult": {
+        "type": "object",
+        "properties": {
+          "channelId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "null = reescrita sem canal"
+          },
+          "text": {
+            "type": "string"
+          },
+          "maxLength": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "overLimit": {
+            "type": "boolean",
+            "description": "true = passou do limite do canal, e nada foi removido por isso"
+          }
+        },
+        "required": [
+          "channelId",
+          "text",
+          "maxLength",
+          "overLimit"
+        ]
+      },
       "AiPlannedSlot": {
         "type": "object",
         "properties": {
@@ -1311,6 +1342,15 @@
           "fromBaseline": {
             "type": "boolean",
             "description": "true = veio da linha de base da rede, sem histórico próprio"
+          },
+          "signal": {
+            "type": "string",
+            "enum": [
+              "network_baseline",
+              "own_posting_history",
+              "own_engagement"
+            ],
+            "description": "o que sustenta a resposta. `own_posting_history` = os horários que a organização MAIS USA neste canal, não uma medição de desempenho — enquanto for esse o sinal, `confidence` não passa de `medium`. `own_engagement` depende da coleta de métricas, que ainda não existe."
           }
         },
         "required": [
@@ -1319,7 +1359,8 @@
           "slots",
           "confidence",
           "sampleSize",
-          "fromBaseline"
+          "fromBaseline",
+          "signal"
         ]
       },
       "PlanCatalog": {
@@ -4466,7 +4507,7 @@
           }
         ],
         "summary": "Reescreve um texto seguindo uma instrução",
-        "description": "Requer a feature `ai_caption` (plano Pro).",
+        "description": "Requer a feature `ai_caption` (plano Pro). **Nunca encurta o texto**: reescrever é a única operação cuja entrada é o texto que a pessoa escreveu, e cortá-lo para caber num limite que ela não escolheu perderia trabalho. Quando um canal é informado e o resultado passa do limite dele, `overLimit` vem true e o texto vem inteiro — o limite continua sendo imposto no agendamento.",
         "requestBody": {
           "required": true,
           "content": {
@@ -4479,14 +4520,29 @@
                     "minLength": 1,
                     "maxLength": 20000
                   },
+                  "instructionId": {
+                    "type": "string",
+                    "enum": [
+                      "shorten",
+                      "expand",
+                      "formal",
+                      "casual",
+                      "with_emoji",
+                      "without_emoji",
+                      "fix_grammar"
+                    ],
+                    "description": "instrução do catálogo do servidor"
+                  },
                   "instruction": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 500
+                    "maxLength": 500,
+                    "description": "instrução em texto livre — alternativa a `instructionId`"
                   },
                   "channelId": {
                     "type": "string",
-                    "format": "uuid"
+                    "format": "uuid",
+                    "description": "opcional: sem canal a reescrita roda e nenhum limite é imposto nem reportado"
                   },
                   "settings": {
                     "type": "object",
@@ -4495,9 +4551,7 @@
                   }
                 },
                 "required": [
-                  "text",
-                  "instruction",
-                  "channelId"
+                  "text"
                 ]
               }
             }
@@ -4509,7 +4563,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiVariant"
+                  "$ref": "#/components/schemas/AiRewriteResult"
                 }
               }
             }

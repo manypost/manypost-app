@@ -80,14 +80,50 @@ export const rewriteSystem = (): string =>
     REGRA_INJECAO,
   ].join(' ');
 
+/**
+ * Catálogo de instruções de reescrita. Vive AQUI, e não no componente, por dois motivos:
+ *
+ * 1. **É prompt, não rótulo.** A frase é enviada ao modelo em português. Traduzir a interface
+ *    sem mover isto produziria um menu em inglês pedindo, em português, para reescrever.
+ * 2. **Estreita a superfície de injeção.** Com o cliente mandando um id, o caminho de texto
+ *    livre deixa de ser a rota normal do navegador até o prompt.
+ *
+ * O rótulo que a pessoa lê continua no catálogo de mensagens do web, indexado pelo mesmo id.
+ */
+export const REWRITE_INSTRUCTIONS = {
+  shorten: 'Encurte o texto mantendo a mensagem principal.',
+  expand: 'Desenvolva o texto com mais detalhe, sem inventar fatos.',
+  formal: 'Deixe o texto mais formal e profissional.',
+  casual: 'Deixe o texto mais leve e conversacional.',
+  with_emoji: 'Acrescente emojis pertinentes, sem exagero.',
+  without_emoji: 'Remova todos os emojis, preservando o sentido.',
+  fix_grammar: 'Corrija ortografia e gramática, sem mudar o estilo.',
+} as const;
+
+export type RewriteInstructionId = keyof typeof REWRITE_INSTRUCTIONS;
+
+export const REWRITE_INSTRUCTION_IDS = Object.keys(REWRITE_INSTRUCTIONS) as RewriteInstructionId[];
+
+export const isRewriteInstructionId = (v: string): v is RewriteInstructionId =>
+  Object.hasOwn(REWRITE_INSTRUCTIONS, v);
+
+/**
+ * O canal é OPCIONAL: a aba global do composer edita um texto compartilhado por várias redes e
+ * não tem canal único a resolver. Escolher um arbitrariamente imporia o limite de uma rede não
+ * relacionada ao resultado — foi exatamente o que destruía texto (design D11).
+ */
 export const rewritePrompt = (input: {
   text: string;
   instruction: string;
-  channel: ChannelBrief;
+  channel?: ChannelBrief;
 }): string =>
   [
-    `Rede: ${input.channel.network}.`,
-    `Limite: ${input.channel.maxLength} caracteres — não ultrapasse.`,
+    ...(input.channel
+      ? [
+          `Rede: ${input.channel.network}.`,
+          `Procure não ultrapassar ${input.channel.maxLength} caracteres.`,
+        ]
+      : ['O texto vale para várias redes — mantenha um comprimento parecido com o original.']),
     '',
     'Instrução:',
     dataBlock('INSTRUCAO', input.instruction),

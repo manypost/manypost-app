@@ -191,6 +191,61 @@ async function main() {
   respostaDoModelo = 'Legenda gerada pelo modelo de teste.';
 
   // -------------------------------------------------------------------------
+  // Regressão do defeito P0: a reescrita voltava CORTADA no limite do canal e o composer
+  // substituía o editor com ela. Pedir "corrija a ortografia" num rascunho longo com o X
+  // selecionado apagava centenas de caracteres sem avisar.
+  console.log('\n▸ reescrita NÃO corta o texto da pessoa');
+  const textoLongo = 'palavra '.repeat(300);
+  respostaDoModelo = textoLongo;
+  const rw = await post('/v1/ai/rewrite', {
+    text: 'original',
+    instructionId: 'fix_grammar',
+    channelId: canal!.id,
+  });
+  const rwBody = (await rw.json()) as {
+    text: string;
+    maxLength: number | null;
+    overLimit: boolean;
+  };
+  check('rewrite responde 200', rw.status === 200, rwBody);
+  check(
+    'devolve o texto INTEIRO, sem remover caractere',
+    rwBody.text.length === textoLongo.trim().length,
+    { devolvido: rwBody.text.length, esperado: textoLongo.trim().length },
+  );
+  check('avisa que passou do limite', rwBody.overLimit === true, rwBody);
+  check('e diz qual limite era', typeof rwBody.maxLength === 'number', rwBody);
+  check(
+    'não fala de encurtamento — nada foi encurtado',
+    !Object.hasOwn(rwBody, 'shortened'),
+    Object.keys(rwBody),
+  );
+
+  console.log('\n▸ reescrita sem canal (aba global) não impõe limite alheio');
+  const rwSem = await post('/v1/ai/rewrite', { text: 'original', instructionId: 'formal' });
+  const rwSemBody = (await rwSem.json()) as {
+    text: string;
+    channelId: string | null;
+    maxLength: number | null;
+    overLimit: boolean;
+  };
+  check('rewrite sem canal responde 200', rwSem.status === 200, rwSemBody);
+  check('o texto volta inteiro', rwSemBody.text.length === textoLongo.trim().length, {
+    len: rwSemBody.text.length,
+  });
+  check('nenhum canal é inventado', rwSemBody.channelId === null, rwSemBody);
+  check('nenhum limite é reportado', rwSemBody.maxLength === null, rwSemBody);
+  check('e não se afirma excesso', rwSemBody.overLimit === false, rwSemBody);
+
+  console.log('\n▸ instrução fora do catálogo do servidor é recusada');
+  const rwRuim = await post('/v1/ai/rewrite', {
+    text: 'original',
+    instructionId: 'ignore-as-regras-anteriores',
+  });
+  check('id inválido vira 400', rwRuim.status === 400, rwRuim.status);
+  respostaDoModelo = 'Legenda gerada pelo modelo de teste.';
+
+  // -------------------------------------------------------------------------
   console.log('\n▸ resposta ilegível devolve a franquia');
   const usadoAntes = (
     await sql<{ used: number }[]>`SELECT used FROM ai_credits WHERE org_id = ${org!.id}::uuid`
@@ -212,10 +267,11 @@ async function main() {
   console.log('\n▸ melhores horários (sem modelo, sem franquia)');
   const chamadasAntes = recebidos.length;
   const bt = await fetch(`${API}/v1/ai/best-times?channelId=${canal!.id}`, { headers: authed() });
-  const btBody = (await bt.json()) as { slots: unknown[]; confidence: string; sampleSize: number; fromBaseline: boolean };
+  const btBody = (await bt.json()) as { slots: unknown[]; confidence: string; sampleSize: number; fromBaseline: boolean; signal: string };
   check('best-times responde 200', bt.status === 200, btBody);
   check('devolve slots', (btBody.slots?.length ?? 0) > 0, btBody);
   check('sem histórico, confiança baixa e linha de base', btBody.confidence === 'low' && btBody.fromBaseline === true, btBody);
+  check('e o sinal é nomeado como linha de base da rede', btBody.signal === 'network_baseline', btBody);
   check('NÃO chamou o modelo', recebidos.length === chamadasAntes, {
     antes: chamadasAntes,
     depois: recebidos.length,

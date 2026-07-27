@@ -1,6 +1,6 @@
 import { z } from '@hono/zod-openapi';
 import { ErrorCodes } from '@manypost/contracts';
-import { DomainError } from '@manypost/core';
+import { DomainError, aiPrompts } from '@manypost/core';
 import type { Container } from '../../container';
 import { requireAuth } from '../middleware/auth';
 import { AUTH_SECURITY, createApp, errorResponses, jsonBody, jsonResponse } from '../openapi';
@@ -13,6 +13,8 @@ import { AUTH_SECURITY, createApp, errorResponses, jsonBody, jsonResponse } from
  *  - `/best-times`: heurística estatística, sem modelo e sem franquia — por isso continua
  *    respondendo mesmo numa instalação com `AI_PROVIDER=none`.
  */
+
+const REWRITE_INSTRUCTION_IDS = aiPrompts.REWRITE_INSTRUCTION_IDS;
 
 const ChannelIds = z
   .array(z.string().uuid())
@@ -47,12 +49,58 @@ const CaptionBody = z.object({
   settings: Settings,
 });
 
-const RewriteBody = z.object({
-  text: z.string().min(1).max(20_000),
-  instruction: z.string().min(1).max(500),
-  channelId: z.string().uuid(),
-  settings: Settings,
-});
+/**
+ * Reescrita. Duas diferenças em relação às outras rotas, e as duas são o conserto de um defeito:
+ *
+ * - **`channelId` é opcional.** A aba global do composer edita um texto compartilhado por várias
+ *   redes; escolher um canal arbitrariamente impunha o limite de uma rede não relacionada e o
+ *   texto voltava cortado.
+ * - **a instrução normalmente vem por id.** O catálogo é prompt do servidor, não rótulo de UI;
+ *   o texto livre continua aceito para chamador de API/MCP.
+ */
+const RewriteBody = z
+  .object({
+    text: z.string().min(1).max(20_000),
+    instructionId: z
+      .enum(REWRITE_INSTRUCTION_IDS as [string, ...string[]])
+      .optional()
+      .openapi({ description: 'instrução do catálogo do servidor' }),
+    instruction: z
+      .string()
+      .min(1)
+      .max(500)
+      .optional()
+      .openapi({ description: 'instrução em texto livre — alternativa a `instructionId`' }),
+    channelId: z
+      .string()
+      .uuid()
+      .optional()
+      .openapi({
+        description:
+          'opcional: sem canal a reescrita roda e nenhum limite é imposto nem reportado',
+      }),
+    settings: Settings,
+  })
+  .refine((b) => (b.instructionId === undefined) !== (b.instruction === undefined), {
+    message: 'informe exatamente um entre `instructionId` e `instruction`',
+    path: ['instructionId'],
+  });
+
+/**
+ * O resultado de uma reescrita **não** é um `AiVariant`: não tem `shortened`, porque nada é
+ * cortado. `overLimit` avisa que passou do limite do canal para a interface poder confirmar
+ * antes de escrever no editor — o limite continua sendo imposto no agendamento.
+ */
+const RewriteOut = z
+  .object({
+    channelId: z.string().nullable().openapi({ description: 'null = reescrita sem canal' }),
+    text: z.string(),
+    maxLength: z.number().int().nullable(),
+    overLimit: z
+      .boolean()
+      .openapi({ description: 'true = passou do limite do canal, e nada foi removido por isso' }),
+  })
+  .openapi('AiRewriteResult');
 
 const HashtagsBody = z.object({
   text: z.string().min(1).max(20_000),
@@ -111,6 +159,12 @@ const BestTimes = z
     fromBaseline: z
       .boolean()
       .openapi({ description: 'true = veio da linha de base da rede, sem histórico próprio' }),
+    signal: z.enum(['network_baseline', 'own_posting_history', 'own_engagement']).openapi({
+      description:
+        'o que sustenta a resposta. `own_posting_history` = os horários que a organização MAIS ' +
+        'USA neste canal, não uma medição de desempenho — enquanto for esse o sinal, `confidence` ' +
+        'não passa de `medium`. `own_engagement` depende da coleta de métricas, que ainda não existe.',
+    }),
   })
   .openapi('AiBestTimes');
 
@@ -188,17 +242,25 @@ export function aiRoutes(ctn: Container) {
     tags: ['ai'],
     security: AUTH_SECURITY,
     summary: 'Reescreve um texto seguindo uma instrução',
-    description: 'Requer a feature `ai_caption` (plano Pro).',
+    description:
+      'Requer a feature `ai_caption` (plano Pro). **Nunca encurta o texto**: reescrever é a única ' +
+      'operação cuja entrada é o texto que a pessoa escreveu, e cortá-lo para caber num limite ' +
+      'que ela não escolheu perderia trabalho. Quando um canal é informado e o resultado passa do ' +
+      'limite dele, `overLimit` vem true e o texto vem inteiro — o limite continua sendo imposto ' +
+      'no agendamento.',
     request: jsonBody(RewriteBody),
-    responses: { 200: jsonResponse('texto reescrito', Variant), ...erros },
+    responses: { 200: jsonResponse('texto reescrito', RewriteOut), ...erros },
   });
   app.post('/rewrite', async (c) => {
     const body = RewriteBody.parse(await c.req.json());
     return c.json(
       await requireAi().rewrite(actor(c), {
         text: body.text,
-        instruction: body.instruction,
-        channelId: body.channelId,
+        ...(body.instructionId
+          ? { instructionId: body.instructionId as aiPrompts.RewriteInstructionId }
+          : {}),
+        ...(body.instruction ? { instruction: body.instruction } : {}),
+        ...(body.channelId ? { channelId: body.channelId } : {}),
         ...(body.settings ? { settings: body.settings } : {}),
       }),
     );

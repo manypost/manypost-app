@@ -6,6 +6,60 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A reescrita por IA destruía texto do usuário.** Na aba global do composer, a ação de
+  reescrever mandava apenas `channelIds[0]` e o caso de uso cortava a resposta no limite
+  **daquele** canal antes de o componente substituir o editor inteiro. Com X (280) e LinkedIn
+  (3000) selecionados nessa ordem, pedir "Corrigir" num rascunho de 1200 caracteres apagava cerca
+  de 920 — numa ação que qualquer pessoa leria como inofensiva. OpenSpec:
+  `fix-ai-composer-safety` → altera `ai-content-generation` e `posting-time-suggestions`.
+  - `POST /v1/ai/rewrite` **nunca mais encurta**. Reescrever é a única operação cuja *entrada* é
+    o texto que a pessoa escreveu; descartar parte dele para caber num limite que ela não
+    escolheu perde trabalho em vez de proteger algo. O limite continua imposto onde sempre foi:
+    no agendamento, que valida e mostra o excesso.
+  - `channelId` passou a ser **opcional** na reescrita — a aba global edita um texto compartilhado
+    por várias redes e não tem canal único a resolver. Sem canal, nenhum limite é imposto nem
+    reportado. A resposta troca `shortened` por `overLimit` + `maxLength` nulo, e a interface
+    **pergunta antes de escrever** quando o resultado passa do limite.
+  - O corte determinístico (`shortenTo`) permanece exatamente onde faz sentido: legenda, rascunho
+    multicanal e plano da semana, onde a saída é texto novo.
+- **A legenda multicanal cobrava por canal e jogava fora todos menos um.** A aba global mandava
+  todos os canais selecionados (a franquia debita **um crédito por canal**), o modelo era chamado
+  uma vez por canal, e a interface aplicava `variants[0]` ao texto compartilhado — as outras N-1
+  adaptações, já pagas, morriam antes de qualquer olho humano, sob um controle chamado "adaptar
+  para a rede". Agora cada legenda chega ao canal que a pediu, como override, pelo mesmo caminho
+  que o rascunho multicanal já usava; a aba ativa vai para o primeiro canal afetado e um aviso
+  diz quantas versões foram aplicadas.
+- **Item de thread deixou de oferecer "adaptar para a rede".** O texto de um item é compartilhado
+  pelas redes que suportam thread — ele cobrava N créditos e aplicava um. Restam reescrita e
+  hashtags, que fazem sentido para um texto compartilhado.
+- **`shortened` deixou de ser calculado e ignorado.** A flag existia, documentada como "para a UI
+  poder dizer ao usuário o que aconteceu", e nenhum componente a lia: o texto voltava cortado,
+  indistinguível de um texto que o modelo terminou. Legenda e rascunho agora dizem o que foi
+  encurtado e por qual limite.
+- **A sugestão de horário afirmava mais do que os dados sustentam.** O sinal disponível é a
+  **frequência com que a organização publica** — `channel_metrics` está vazia, ninguém coleta
+  desempenho —, e a interface rotulava confiança média e alta como "baseado no seu histórico", que
+  se lê como medição de resultado. `GET /v1/ai/best-times` passa a devolver `signal`
+  (`network_baseline` | `own_posting_history` | `own_engagement`), a confiança fica limitada a
+  `medium` enquanto o sinal for frequência, e a frase descreve o que existe: "os horários que você
+  mais usa neste canal". `own_engagement` — e só ele — libera `high`, quando a coleta existir.
+- **Acessibilidade e conformidade com o design system na superfície de IA.** O gatilho passou a
+  usar o `isLoading` do `Button` (que já entrega `aria-busy` e preserva o rótulo) em vez de um
+  spinner montado à mão sem estado anunciado; toda ação anuncia início e fim por região
+  `aria-live`; o botão de alt text explica-se por `Tooltip` em vez do `title` nativo, que um botão
+  desabilitado não anuncia de forma confiável — ironia num controle cuja razão de existir é
+  acessibilidade — e ganhou o caminho de upgrade que os outros três já tinham; spinners respeitam
+  `prefers-reduced-motion` (design.md §46.12); e os `text-[11px]` avulsos viraram a classe
+  `text-meta`, para o valor arbitrário não voltar por descuido (design.md §43.20).
+- **A superfície de IA contornava o i18n.** Cerca de quarenta strings literais foram para
+  `apps/web/src/messages/pt-BR.json`. As sete instruções de reescrita não eram rótulo e sim
+  **prompt em português enviado ao modelo**: mudaram para um catálogo em
+  `packages/core/src/application/prompts/`, selecionado por id. O cliente manda o id, o servidor
+  é dono da frase — o que também estreita a superfície de injeção, já que texto livre deixa de ser
+  a rota normal do navegador até o prompt (segue aceito para chamador de API/MCP).
+
 ### Added
 
 - **Fatia de IA: a plataforma passa a gerar conteúdo de verdade.** Até aqui as oito features

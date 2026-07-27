@@ -276,14 +276,78 @@ describe('ai_caption', () => {
 });
 
 describe('ai_caption — reescrever e hashtags', () => {
-  it('reescreve respeitando o limite do canal', async () => {
+  it('reescreve reportando o limite do canal', async () => {
     const { deps } = harness({ texto: 'reescrito' });
     const r = await makeRewriteText(deps)(ACTOR, {
       text: 'original',
       instruction: 'encurte',
       channelId: 'ch-1',
     });
-    expect(r).toMatchObject({ channelId: 'ch-1', text: 'reescrito', shortened: false });
+    expect(r).toMatchObject({ channelId: 'ch-1', text: 'reescrito', maxLength: 280, overLimit: false });
+  });
+
+  /**
+   * O defeito que originou esta mudança: o texto que a pessoa escreveu voltava CORTADO no limite
+   * do canal, e o componente substituía o editor com ele. Pedir "corrija a ortografia" num
+   * rascunho de 1200 caracteres com o X selecionado apagava ~920 caracteres sem aviso.
+   *
+   * Reescrita é a única operação cuja ENTRADA é o texto da pessoa. Encurtar aqui não protege
+   * nada — o agendamento já valida o limite e mostra o excesso —, só perde trabalho.
+   */
+  it('reescrita NÃO corta: devolve o texto inteiro e avisa que passou do limite', async () => {
+    const longo = 'a'.repeat(400);
+    const { deps } = harness({ texto: longo });
+    const r = await makeRewriteText(deps)(ACTOR, {
+      text: 'original',
+      instruction: 'alongue',
+      channelId: 'ch-1',
+    });
+
+    expect(r.text).toBe(longo); // nenhum caractere removido
+    expect(r.text).toHaveLength(400);
+    expect(r).toMatchObject({ maxLength: 280, overLimit: true });
+  });
+
+  it('reescrita sem canal roda, não consulta a rede e não reporta limite', async () => {
+    const { deps } = harness({
+      texto: 'reescrito',
+      registry: {
+        get: () => {
+          throw new Error('sem canal não se consulta o registry');
+        },
+        list: () => [],
+      } as unknown as AiDeps['registry'],
+    });
+
+    const r = await makeRewriteText(deps)(ACTOR, { text: 'original', instruction: 'formal' });
+    expect(r).toMatchObject({ channelId: null, text: 'reescrito', maxLength: null, overLimit: false });
+  });
+
+  it('instrução pode vir por id do catálogo do servidor', async () => {
+    const { deps, chamadas } = harness({ texto: 'reescrito' });
+    await makeRewriteText(deps)(ACTOR, { text: 'original', instructionId: 'formal' });
+    expect(chamadas[0]!.prompt).toContain('formal');
+  });
+
+  it('id de instrução desconhecido é recusado antes do modelo', async () => {
+    const { deps, chamadas } = harness();
+    const erro = (await makeRewriteText(deps)(ACTOR, {
+      text: 'original',
+      instructionId: 'nao-existe' as never,
+    }).catch((e: unknown) => e)) as DomainError;
+
+    expect(erro.code).toBe('post.invalid_settings');
+    expect(chamadas).toHaveLength(0);
+  });
+
+  it('legenda CONTINUA cortando — ali a saída é texto novo, não o do usuário', async () => {
+    const { deps } = harness({ texto: 'a'.repeat(400) });
+    const { variants } = await makeGenerateCaption(deps)(ACTOR, {
+      brief: 'um brief',
+      channelIds: ['ch-1'],
+    });
+    expect(variants[0]!.text.length).toBeLessThanOrEqual(280);
+    expect(variants[0]!.shortened).toBe(true);
   });
 
   it('texto vazio para reescrever é recusado antes do modelo', async () => {

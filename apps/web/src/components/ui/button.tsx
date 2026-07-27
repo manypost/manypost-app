@@ -63,7 +63,9 @@ function Button({
     >
       {isLoading ? (
         <>
-          <Loader2 className="animate-spin" aria-hidden />
+          {/* design.md §46.12: animação contínua respeita reduced-motion. Sob redução o ícone
+              fica parado e quem comunica o estado é o `aria-busy` + o label preservado. */}
+          <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden />
           {children}
         </>
       ) : (

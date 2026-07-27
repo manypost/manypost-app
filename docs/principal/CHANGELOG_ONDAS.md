@@ -10,6 +10,61 @@
 > **Como manter:** ao fechar uma fatia, adicione a onda nova **no topo** e atualize o STATUS.
 > Cada entrada é auto-contida: o que mudou, onde no código, e a prova de que funciona.
 
+## Onda 29 — 2026-07-27 — a revisão da onda 28, e o conserto do que ela destruía
+
+**O ponto de partida.** A onda 28 entregou um motor de IA melhor que o volante ligado nele. Duas
+revisões críticas pós-merge da [PR #52](https://github.com/manypost/manypost-app/pull/52) estão em
+[`docs/audits/2026-07-27-ai-slice-review-and-proposals.md`](../audits/2026-07-27-ai-slice-review-and-proposals.md)
+e [`docs/audits/2026-07-27-home-e-evolucao-do-app.md`](../audits/2026-07-27-home-e-evolucao-do-app.md):
+13 achados na fatia de IA, dois deles P0, e o inventário do que a plataforma já sabe e não mostra.
+Esta onda fecha os achados de comportamento da interface de IA.
+
+**O defeito que motivou tudo.** A reescrita perdia texto. Na aba global o componente mandava
+`channelIds[0]`, o caso de uso cortava a resposta no limite daquele canal, e o resultado
+substituía o editor inteiro. X (280) + LinkedIn (3000) selecionados nessa ordem, "Corrigir" num
+rascunho de 1200 caracteres: ~920 caracteres apagados, sem aviso, numa ação que se lê como
+inofensiva. O `shortened: true` voltava na resposta e nenhum componente lia esse campo.
+
+**O que mudou**
+
+- **Reescrita não corta mais.** É a única operação cuja *entrada* é o texto da pessoa. `channelId`
+  virou opcional (a aba global não tem canal único a resolver), a resposta troca `shortened` por
+  `overLimit` + `maxLength` nulo, e a interface pergunta antes de escrever quando passa do limite.
+  O `shortenTo` continua exatamente onde a saída é texto novo: legenda, rascunho e plano da semana.
+- **Nenhuma legenda paga é descartada.** A franquia cobra um crédito por canal; agora cada
+  variante chega ao seu canal como override, pelo caminho que o rascunho multicanal já usava, a
+  aba ativa vai para o primeiro canal afetado, e um aviso diz quantas versões foram aplicadas.
+- **Item de thread** perdeu "adaptar para a rede" — cobrava N e aplicava um, num texto que é
+  compartilhado por todas as redes que suportam thread.
+- **`shortened` passou a ser renderizado**, nomeando a rede e o limite. O rascunho multicanal
+  mantém o diálogo aberto listando quais redes foram cortadas, em vez de aplicar em silêncio.
+- **Melhor horário parou de insinuar medição.** O sinal é frequência de publicação, não
+  desempenho: a resposta ganhou `signal`, a confiança ficou limitada a `medium` enquanto for esse
+  o sinal, e a frase virou "os horários que você mais usa neste canal". `own_engagement` fica
+  reservado para quando a coleta de métricas existir — é o único valor que libera `high`.
+- **Instruções de reescrita saíram do cliente.** Não eram rótulo: eram prompt em português
+  enviado ao modelo. Vivem em `packages/core/src/application/prompts/` e são escolhidas por id.
+- **Acessibilidade:** `isLoading` do `Button` no gatilho (traz `aria-busy` e preserva o rótulo),
+  região `aria-live` em toda ação, `Tooltip` em vez de `title` no botão desabilitado de alt text
+  (um botão `disabled` não anuncia `title` de forma confiável), `motion-reduce` nos spinners.
+- **i18n:** ~40 strings foram para `messages/pt-BR.json`; a classe `text-meta` substituiu os
+  `text-[11px]` avulsos.
+
+**As provas**
+
+| Verificação | Resultado |
+| --- | --- |
+| `bun run check` | ✅ 847 testes, 0 falhas; fronteiras (512 módulos, 1547 dependências) sem violação; `check:ai-providers` e `check:brand` ok |
+| `bun run build:web` | ✅ compilado, 18 páginas |
+| `bun run spec:validate` | ✅ 19 passed, 0 failed |
+| `scripts/e2e-ai.ts` (API real + Postgres real + modelo falso) | ✅ **47 checks** — inclui a regressão do P0: reescrita acima do limite devolve o texto com **contagem de caracteres idêntica** à do modelo, `overLimit: true`, e a resposta não tem `shortened`; reescrita sem canal não inventa canal nem limite; id de instrução fora do catálogo é 400 |
+| Contrato OpenAPI | ✅ regenerado contra API de pé: 71 rotas antes e depois, **nenhuma perdida**, um schema novo (`AiRewriteResult`), `signal` adicionado a `AiBestTimes` |
+
+**O que esta onda NÃO fez** — e é registro, não desculpa: ninguém viu o fluxo corrigido num
+navegador. O repositório não tem harness de navegador (todo E2E é script de API), então a prova
+existe na camada de API e nos testes das funções puras do composer. É o achado 12 da revisão, e
+está na fila como portão da próxima onda de UI.
+
 ## Onda 28 — 2026-07-27 — a fatia de IA sai do papel (4 das 8 features prometidas)
 
 **O ponto de partida.** As oito features `ai_*` já estavam no catálogo de planos com o gate

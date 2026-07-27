@@ -137,6 +137,25 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
     return acc === undefined ? max : Math.min(acc, max);
   }, undefined);
 
+  /** rótulo da rede de um canal — o aviso da IA cita "X (280)", nunca um uuid */
+  const networkNameOf = (channelId: string) => {
+    const ch = selected.find((c) => c.id === channelId);
+    return (ch && providerOf(ch.provider)?.name) ?? ch?.name ?? channelId;
+  };
+
+  /**
+   * Aplica uma legenda por canal como override. É o mesmo caminho do rascunho multicanal — e é o
+   * conserto de um defeito: a aba global cobrava um crédito por canal, recebia N variantes e
+   * aplicava só a primeira, descartando trabalho já pago.
+   */
+  const aplicarVariantesPorCanal = (variants: Array<{ channelId: string; text: string }>) => {
+    for (const v of variants) store.setOverride(v.channelId, v.text);
+    store.bumpEditors();
+    // levar a pessoa para onde o resultado está: sem isto, N versões chegam invisíveis
+    const primeiro = variants[0];
+    if (primeiro) setActiveTab(primeiro.channelId);
+  };
+
   const threadSupported = selected.length > 0 && selected.every((ch) => providerOf(ch.provider)?.threads);
   const threadUnsupportedNames = selected
     .filter((ch) => !providerOf(ch.provider)?.threads)
@@ -343,10 +362,8 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
                   que `textByChannel` do agendamento já aceita — nada é agendado aqui */}
               <DraftFromIdea
                 channelIds={store.channelIds}
-                onDrafts={(drafts) => {
-                  for (const d of drafts) store.setOverride(d.channelId, d.text);
-                  store.bumpEditors();
-                }}
+                networkNameOf={networkNameOf}
+                onDrafts={aplicarVariantesPorCanal}
               />
             </div>
             <Tabs value={resolvedTab} onValueChange={setActiveTab}>
@@ -440,6 +457,9 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
                       editor={globalEditor}
                       text={store.text}
                       channelIds={store.channelIds}
+                      scope="global"
+                      onVariants={aplicarVariantesPorCanal}
+                      networkNameOf={networkNameOf}
                     />
                     {counterPill}
                   </div>
@@ -487,6 +507,8 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
                               editor={channelEditors[ch.id] ?? null}
                               text={store.overrides[ch.id] ?? store.text}
                               channelIds={[ch.id]}
+                              scope="channel"
+                              networkNameOf={networkNameOf}
                             />
                           </div>
                           <HoverPopover align="end" className="flex w-80 flex-col gap-2 p-3" content={validationContent}>
@@ -572,10 +594,15 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
                             onToggle={(mediaId) => store.toggleThreadMedia(item.key, mediaId)}
                           />
                           <FormattingToolbar editor={channelEditors[item.key] ?? null} />
+                          {/* item de thread: texto compartilhado pelas redes que suportam thread.
+                              Não oferece "adaptar para a rede" — um item não pode ser adaptado a
+                              cinco redes ao mesmo tempo. O canal serve só para resolver hashtags. */}
                           <AiActions
                             editor={channelEditors[item.key] ?? null}
                             text={item.text}
                             channelIds={store.channelIds}
+                            scope="thread"
+                            networkNameOf={networkNameOf}
                           />
                           <div className="flex items-center gap-1.5">
                             <Label htmlFor={`delay-${item.key}`} className="text-xs text-graphite">

@@ -151,6 +151,17 @@
  * permanecem flat (relevo = elemento elevado/clicável).
  */
 @layer components {
+  /*
+   * Metadado: o degrau tipográfico abaixo de `text-xs` (12px), para saldo, contagem, timestamp
+   * e nota auxiliar. Existe como classe porque `text-[11px]` avulso é valor arbitrário — o
+   * design.md §43.20 proíbe inventar valor fora dos tokens, e §6.4 fixa 11px como o PISO da
+   * interface compacta. Ter um nome também impede que o próximo componente escolha 10px.
+   */
+  .text-meta {
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
   .bevel-primary {
     background:
       linear-gradient(180deg, rgb(255 255 255 / var(--bevel-gloss)) 0, rgb(255 255 255 / 0) 3px),
