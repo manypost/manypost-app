@@ -80,17 +80,20 @@ const cropToAspect = async (
 
     const width = unitWidth * scale;
     const height = unitHeight * scale;
-    if (width === metadata.width && height === metadata.height) {
-      return { bytes, width, height };
-    }
-
-    const { data, info } = await sharp(bytes, { limitInputPixels: 8192 * 8192 })
-      .extract({
+    let output = sharp(bytes, { limitInputPixels: 8192 * 8192 });
+    if (width !== metadata.width || height !== metadata.height) {
+      output = output.extract({
         left: Math.floor((metadata.width - width) / 2),
         top: Math.floor((metadata.height - height) / 2),
         width,
         height,
-      })
+      });
+    }
+
+    // O port declara image/png; providers compatíveis podem responder JPEG/WebP mesmo usando
+    // b64_json. Sempre transcodificar evita persistir bytes com MIME incorreto quando não há crop.
+    const { data, info } = await output
+      .png()
       .toBuffer({ resolveWithObject: true });
     return { bytes: data, width: info.width, height: info.height };
   } catch {
