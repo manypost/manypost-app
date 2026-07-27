@@ -28,6 +28,9 @@ function makeFakes() {
         durationSec: null,
         thumbnailPath: null,
         blurhash: null,
+        source: 'upload',
+        generationPrompt: null,
+        generationModel: null,
         createdAt: new Date(),
         ...d,
       };

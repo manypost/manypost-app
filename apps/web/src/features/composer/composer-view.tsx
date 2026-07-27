@@ -451,7 +451,11 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
                     onEditorReady={(ed) => setGlobalEditor((prev) => (prev === ed ? prev : ed))}
                   />
                   <div className="flex flex-wrap items-center gap-1 border-t border-line px-2 py-1.5">
-                    <MediaPicker selectedIds={store.mediaIds} onToggle={store.toggleMedia} />
+                    <MediaPicker
+                      selectedIds={store.mediaIds}
+                      onToggle={store.toggleMedia}
+                      {...(store.channelIds[0] ? { channelId: store.channelIds[0] } : {})}
+                    />
                     <FormattingToolbar editor={globalEditor} />
                     <AiActions
                       editor={globalEditor}

@@ -334,6 +334,58 @@ export function buildMcpServer(ctn: Container, principal: McpPrincipal): McpServ
   );
 
   server.registerTool(
+    'generate_image',
+    {
+      title: 'Gerar imagem com IA',
+      description:
+        'Gera uma imagem a partir de uma descrição e a guarda na biblioteca de mídia da ' +
+        'organização, marcada como gerada por IA. A forma é uma PROPORÇÃO (1:1, 4:5, 9:16, 16:9, ' +
+        '1.91:1) ou o canal de destino, que decide a proporção da rede dele. Custa 5 créditos por ' +
+        'imagem. NÃO publica nada: a imagem fica na biblioteca para uma pessoa usar.',
+      inputSchema: {
+        prompt: z.string().min(1).max(2000).describe('o que a imagem deve mostrar'),
+        aspect: z
+          .enum(['1:1', '4:5', '9:16', '16:9', '1.91:1'])
+          .optional()
+          .describe('proporção; sem ela, o canal decide; sem os dois, 1:1'),
+        channelId: z.string().uuid().optional().describe('canal de destino, para escolher a forma'),
+        alt: z.string().max(1000).optional().describe('descrição para leitor de tela'),
+      },
+    },
+    async ({ prompt, aspect, channelId, alt }) => {
+      // escopo de ESCRITA mesmo sem mutar conteúdo do usuário: gerar imagem queima a franquia
+      // paga da organização, e credencial só-leitura não pode gastar crédito
+      if (!requireWrite()) return denyScope('write');
+      if (!ctn.ai) {
+        return fail(
+          new DomainError('capability.disabled', 'Esta instalação não tem IA configurada.'),
+        );
+      }
+      try {
+        const { media } = await ctn.ai.image(
+          { orgId, userId: credentialId, actorType: 'MCP' },
+          {
+            prompt,
+            ...(aspect ? { aspect } : {}),
+            ...(channelId ? { channelId } : {}),
+            ...(alt ? { alt } : {}),
+          },
+        );
+        return ok({
+          id: media.id,
+          url: ctn.storage.publicUrl(media.path),
+          mime: media.mime,
+          width: media.width,
+          height: media.height,
+          source: media.source,
+        });
+      } catch (err) {
+        return fail(err);
+      }
+    },
+  );
+
+  server.registerTool(
     'suggest_best_times',
     {
       title: 'Sugerir horários de publicação',

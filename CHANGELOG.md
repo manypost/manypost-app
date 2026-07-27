@@ -8,6 +8,46 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Added
 
+- **`ai_image`: a IA passa a produzir a imagem, não só o texto.** A `SPEC_AI §3` listava
+  `ai.image` — "prompt + tamanho → media na biblioteca", 5 créditos — e era o único item da família
+  de criação que existia como nada: o port guardava um slot `generateImage` sem implementação. Um
+  agendador cuja IA escreve a legenda e não produz a figura para um passo antes do trabalho, porque
+  a figura é a parte que falta. OpenSpec: `add-ai-image-generation` → capacidade nova
+  `ai-image-generation`; altera `ai-provider-runtime` e `ai-budget-control`. **Plano Premium**, por
+  custo unitário: uma imagem custa uma ordem de magnitude mais que uma legenda, e a franquia de 500
+  do Pro se esgotaria em cem imagens.
+  - **O slot antigo foi refeito antes de ser usado**, por duas razões que não são cosméticas. A
+    união de tamanhos (`'1024x1024' | '1792x1024' | '1024x1792'`) era o **catálogo de um fornecedor
+    dentro do port agnóstico** — o mesmo acoplamento que a regra 4 do `CLAUDE.md` proíbe, de roupa
+    nova —, e rede social nenhuma pensa em pixel: pensa em **proporção**. E devolver `{ url }`
+    estava errado para este produto: URL de provedor expira em horas, o que colocaria mídia com
+    prazo dentro de um post agendado para a semana que vem, e baixar uma URL escolhida pelo
+    provedor é a classe de requisição que a onda anti-SSRF endureceu. Agora o port pede
+    `aspect` (`1:1`, `4:5`, `9:16`, `16:9`, `1.91:1`) e devolve **bytes**; a tradução
+    proporção→resolução vive dentro do adapter, o único lugar autorizado a conhecer o vocabulário
+    do fornecedor.
+  - **Os bytes são validados como bytes.** O `content-type` que o provedor declara não é confiável:
+    a resposta passa pelo mesmo `sniffMedia` (magic bytes) de todo upload, e o teto de tamanho da
+    instalação vale igual. Um proxy no caminho devolvendo HTML de erro não vira mídia quebrada
+    esperando para falhar na publicação — vira `ai.invalid_response`, com a franquia **devolvida**.
+  - **Proveniência é requisito, não enfeite.** Migration `0007`, puramente aditiva, dá a `media`
+    um `source` (`upload` | `ai`), o `generation_prompt` e o `generation_model`. Várias plataformas
+    já exigem divulgação de conteúdo sintético; sem a coluna, o produto não teria como cumprir — nem
+    como responder um cliente que pergunte qual modelo produziu um material. A biblioteca marca o
+    que é gerado com um selo. O prompt fica com a mídia e **nunca** entra no `audit_log`.
+  - **Idempotente desde o primeiro commit.** A cinco créditos, duplo clique é caro demais para
+    deixar para depois — a rota reusa o middleware `Idempotency-Key` que a API pública já tinha.
+  - **Uma requisição, uma imagem** (`n: 1`), para o custo de uma chamada ficar previsível.
+  - Superfícies: diálogo na biblioteca de mídia, a mesma ação dentro do seletor de mídia do
+    composer (com a proporção da rede escolhida já pré-selecionada, que é o momento em que a pessoa
+    sabe para onde a imagem vai), e a tool MCP `generate_image` sob escopo de **escrita** — gerar
+    queima a franquia paga da organização, e credencial só-leitura não pode gastar crédito.
+  - `AI_IMAGE_MODEL`, opcional: sem ela a geração usa `AI_MODEL`. Existe para o operador cujo
+    modelo de texto não desenha não precisar de duas instalações.
+  - Sem provedor capaz de desenhar, `/v1/capabilities` reporta `ai.canGenerateImages: false`, a
+    rota responde `capability.disabled` e a interface **esconde a ação inteira** — o mesmo padrão
+    que `canDescribeImages` já usava.
+
 - **A home que não existia.** `apps/web/src/app/page.tsx` tinha seis linhas e redirecionava para
   `/calendario`, e o grupo autenticado não tinha página raiz: a primeira tela do produto era uma
   ferramenta, não um panorama. O calendário responde "o que está agendado nesta semana" — boa

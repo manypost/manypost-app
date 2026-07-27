@@ -205,3 +205,92 @@ describe('adapter de chat-completions', () => {
     expect(f.calls[0]!.url).toBe('https://g.example/v1/chat/completions');
   });
 });
+
+/** PNG mínimo válido (assinatura + IHDR) — o bastante para os magic bytes reconhecerem */
+const PNG_B64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==';
+
+describe('geração de imagem', () => {
+  const imagemOk = { data: [{ b64_json: PNG_B64, revised_prompt: 'um gato, iluminado' }] };
+
+  it('traduz PROPORÇÃO em resolução do fornecedor — o core nunca manda pixel', async () => {
+    const f = fakeFetch({ body: imagemOk });
+    const provider = makeChatCompletionsProvider({ ...config, imageModel: 'modelo-de-imagem' }, f);
+
+    await provider.generateImage!({ prompt: 'um gato', aspect: '9:16' });
+
+    expect(f.calls[0]!.url).toBe('https://gateway.example/v1/images/generations');
+    const enviado = body(f);
+    expect(enviado.size).toBe('1024x1792'); // 9:16 → retrato
+    expect(enviado.model).toBe('modelo-de-imagem');
+    expect(enviado.n).toBe(1); // uma requisição, uma imagem (custo previsível)
+  });
+
+  it('cada proporção suportada tem uma resolução própria', async () => {
+    const vistos = new Set<string>();
+    for (const aspect of ['1:1', '4:5', '9:16', '16:9', '1.91:1'] as const) {
+      const f = fakeFetch({ body: imagemOk });
+      const provider = makeChatCompletionsProvider(config, f);
+      await provider.generateImage!({ prompt: 'x', aspect });
+      vistos.add(String(body(f).size));
+    }
+    // 1:1 e 4:5 podem coincidir num fornecedor sem retrato próprio, mas retrato e paisagem não
+    expect(vistos.size).toBeGreaterThanOrEqual(3);
+  });
+
+  it('devolve BYTES, dimensões e o prompt revisado — nunca uma URL que expira', async () => {
+    const f = fakeFetch({ body: imagemOk });
+    const provider = makeChatCompletionsProvider(config, f);
+
+    const img = await provider.generateImage!({ prompt: 'um gato', aspect: '1:1' });
+
+    expect(img.bytes).toBeInstanceOf(Uint8Array);
+    expect(img.bytes.byteLength).toBeGreaterThan(8);
+    // assinatura PNG: os bytes chegaram decodificados, não em base64
+    expect([...img.bytes.slice(0, 4)]).toEqual([0x89, 0x50, 0x4e, 0x47]);
+    expect(img.width).toBe(1024);
+    expect(img.height).toBe(1024);
+    expect(img.revisedPrompt).toBe('um gato, iluminado');
+    expect(img).not.toHaveProperty('url');
+  });
+
+  it('sem o modelo de imagem configurado, usa o modelo geral', async () => {
+    const f = fakeFetch({ body: imagemOk });
+    const provider = makeChatCompletionsProvider(config, f);
+    await provider.generateImage!({ prompt: 'x', aspect: '1:1' });
+    expect(body(f).model).toBe('modelo-de-teste');
+  });
+
+  it('resposta sem imagem vira ai.invalid_response, não um objeto vazio', async () => {
+    const f = fakeFetch({ body: { data: [] } });
+    const provider = makeChatCompletionsProvider(config, f);
+
+    const erro = (await provider
+      .generateImage!({ prompt: 'x', aspect: '1:1' })
+      .catch((e: unknown) => e)) as DomainError;
+    expect(erro.code).toBe('ai.invalid_response');
+  });
+
+  it('base64 inválido também vira ai.invalid_response', async () => {
+    const f = fakeFetch({ body: { data: [{ b64_json: '!!!nao-e-base64!!!' }] } });
+    const provider = makeChatCompletionsProvider(config, f);
+
+    const erro = (await provider
+      .generateImage!({ prompt: 'x', aspect: '1:1' })
+      .catch((e: unknown) => e)) as DomainError;
+    expect(erro.code).toBe('ai.invalid_response');
+  });
+
+  it('falha do provedor não vaza chave nem endereço', async () => {
+    const f = fakeFetch({ status: 500, body: { error: 'nao-e-uma-chave-real vazou' } });
+    const provider = makeChatCompletionsProvider(config, f);
+
+    const erro = (await provider
+      .generateImage!({ prompt: 'x', aspect: '1:1' })
+      .catch((e: unknown) => e)) as DomainError;
+
+    const serializado = JSON.stringify({ m: erro.message, d: erro.detail });
+    expect(serializado).not.toContain('nao-e-uma-chave-real');
+    expect(serializado).not.toContain('gateway.example');
+  });
+});

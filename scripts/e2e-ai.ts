@@ -41,11 +41,24 @@ function check(nome: string, condicao: boolean, detalhe?: unknown) {
 const recebidos: { path: string; body: Record<string, unknown> }[] = [];
 let respostaDoModelo = 'Legenda gerada pelo modelo de teste.';
 
+/** PNG 1x1 real — o caso de uso valida por magic bytes, então precisa ser uma imagem de verdade */
+const PNG_B64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==';
+/** trocável pelo teste: o que o "provedor" devolve como imagem */
+let respostaDeImagem: string | null = PNG_B64;
+
 const modelo = Bun.serve({
   port: MODEL_PORT,
   fetch: async (req) => {
+    const path = new URL(req.url).pathname;
     const body = (await req.json()) as Record<string, unknown>;
-    recebidos.push({ path: new URL(req.url).pathname, body });
+    recebidos.push({ path, body });
+
+    if (path === '/images/generations') {
+      return Response.json({
+        data: [{ b64_json: respostaDeImagem, revised_prompt: 'um gato, luz quente' }],
+      });
+    }
     return Response.json({
       choices: [{ message: { content: respostaDoModelo } }],
       usage: { prompt_tokens: 123, completion_tokens: 45 },
@@ -281,6 +294,114 @@ async function main() {
   check('e não consumiu franquia', semCobranca!.used === usadoAntes, semCobranca);
 
   // -------------------------------------------------------------------------
+  console.log('\n▸ geração de imagem: bytes validados, proveniência e custo próprio');
+  const usadoAntesDaImagem = (
+    await sql<{ used: number }[]>`SELECT used FROM ai_credits WHERE org_id = ${org!.id}::uuid`
+  )[0]!.used;
+
+  const img = await post('/v1/ai/image', { prompt: 'um gato no sofá', aspect: '9:16' });
+  const imgBody = (await img.json()) as { media?: Record<string, unknown> };
+  check('image responde 200', img.status === 200, imgBody);
+  check('a mídia volta marcada como gerada', imgBody.media?.source === 'ai', imgBody.media);
+  check('com mime real de imagem', String(imgBody.media?.mime).startsWith('image/'), imgBody.media);
+
+  const pedidoDeImagem = recebidos.at(-1)!;
+  check('falou o dialeto de imagens', pedidoDeImagem.path === '/images/generations', pedidoDeImagem.path);
+  check('pediu UMA imagem só', pedidoDeImagem.body.n === 1, pedidoDeImagem.body);
+  check(
+    'a PROPORÇÃO virou resolução no adapter (o core não manda pixel)',
+    pedidoDeImagem.body.size === '1024x1792',
+    pedidoDeImagem.body,
+  );
+
+  const [linhaMidia] = await sql<{ source: string; generation_prompt: string; generation_model: string }[]>`
+    SELECT source, generation_prompt, generation_model FROM media WHERE id = ${String(imgBody.media?.id)}::uuid`;
+  check('a proveniência foi gravada', linhaMidia?.source === 'ai', linhaMidia);
+  check(
+    'o prompt REVISADO é o guardado (foi ele que produziu a imagem)',
+    linhaMidia?.generation_prompt === 'um gato, luz quente',
+    linhaMidia,
+  );
+  check('e o modelo que a produziu', Boolean(linhaMidia?.generation_model), linhaMidia);
+
+  const [aposImagem] = await sql<{ used: number }[]>`
+    SELECT used FROM ai_credits WHERE org_id = ${org!.id}::uuid`;
+  check(
+    'uma imagem custa 5 créditos (classe própria, não a de texto)',
+    aposImagem!.used === usadoAntesDaImagem + 5,
+    { antes: usadoAntesDaImagem, depois: aposImagem!.used },
+  );
+
+  const auditoriaImg = await sql<{ detail: unknown }[]>`
+    SELECT detail FROM audit_log WHERE org_id = ${org!.id}::uuid AND action = 'ai.image'`;
+  check('a geração foi auditada', auditoriaImg.length === 1, auditoriaImg);
+  check(
+    'sem o prompt na auditoria',
+    !JSON.stringify(auditoriaImg).includes('um gato'),
+    auditoriaImg,
+  );
+
+  console.log('\n▸ a mesma Idempotency-Key não cobra duas vezes');
+  const chave = `e2e-img-${marca}`;
+  const idem = () =>
+    fetch(`${API}/v1/ai/image`, {
+      method: 'POST',
+      headers: { ...authed(), 'idempotency-key': chave },
+      body: JSON.stringify({ prompt: 'mesmo pedido', aspect: '1:1' }),
+    });
+  const chamadasAntesIdem = recebidos.length;
+  const usadoAntesIdem = (
+    await sql<{ used: number }[]>`SELECT used FROM ai_credits WHERE org_id = ${org!.id}::uuid`
+  )[0]!.used;
+
+  const primeira = await idem();
+  const primeiraBody = (await primeira.json()) as { media?: { id?: string } };
+  const segunda = await idem();
+  const segundaBody = (await segunda.json()) as { media?: { id?: string } };
+
+  // A idempotência é guardada no Redis e FALHA ABERTO sem ele (mesma política do resto da
+  // plataforma). Sem store, repetir gera de novo — que é o comportamento correto, não um defeito;
+  // então o bloco declara que não pôde provar, em vez de fingir que provou.
+  if (segunda.headers.get('idempotency-replayed') === 'true') {
+    check('a repetição responde 200', segunda.status === 200, segundaBody);
+    check(
+      'e devolve a MESMA mídia',
+      Boolean(primeiraBody.media?.id) && primeiraBody.media?.id === segundaBody.media?.id,
+      { primeira: primeiraBody.media?.id, segunda: segundaBody.media?.id },
+    );
+    check('o provedor foi chamado uma vez só', recebidos.length === chamadasAntesIdem + 1, {
+      chamadas: recebidos.length - chamadasAntesIdem,
+    });
+    const [aposIdem] = await sql<{ used: number }[]>`
+      SELECT used FROM ai_credits WHERE org_id = ${org!.id}::uuid`;
+    check('e cobrou 5 créditos uma vez só', aposIdem!.used === usadoAntesIdem + 5, {
+      antes: usadoAntesIdem,
+      depois: aposIdem!.used,
+    });
+  } else {
+    console.log(
+      '  · sem store de idempotência (Redis ausente): falha aberto por desenho — NÃO verificado',
+    );
+  }
+
+  console.log('\n▸ bytes que não são imagem falham e devolvem a franquia');
+  respostaDeImagem = btoa('<html>erro do proxy</html>');
+  const usadoAntesDoLixo = (
+    await sql<{ used: number }[]>`SELECT used FROM ai_credits WHERE org_id = ${org!.id}::uuid`
+  )[0]!.used;
+  const lixo = await post('/v1/ai/image', { prompt: 'x', aspect: '1:1' });
+  const lixoBody = (await lixo.json()) as { title: string };
+  check('resposta que não é imagem vira ai.invalid_response', lixoBody.title === 'ai.invalid_response', {
+    status: lixo.status,
+    body: lixoBody,
+  });
+  const [aposLixo] = await sql<{ used: number; reserved: number }[]>`
+    SELECT used, reserved FROM ai_credits WHERE org_id = ${org!.id}::uuid`;
+  check('a franquia NÃO foi cobrada', aposLixo!.used === usadoAntesDoLixo, aposLixo);
+  check('e nada ficou reservado', aposLixo!.reserved === 0, aposLixo);
+  respostaDeImagem = PNG_B64;
+
+  // -------------------------------------------------------------------------
   console.log('\n▸ escopo por organização');
   const outroCanal = randomUUID();
   const alheio = await post('/v1/ai/caption', { brief: 'x', channelIds: [outroCanal] });
@@ -300,6 +421,8 @@ async function main() {
   await sql`DELETE FROM ai_grants WHERE org_id = ${org!.id}::uuid`;
   await sql`DELETE FROM ai_credits WHERE org_id = ${org!.id}::uuid`;
   await sql`DELETE FROM audit_log WHERE org_id = ${org!.id}::uuid`;
+  // a geração de imagem cria mídia: sem apagá-la, a FK barra a remoção da organização
+  await sql`DELETE FROM media WHERE org_id = ${org!.id}::uuid`;
   await sql`DELETE FROM channels WHERE org_id = ${org!.id}::uuid`;
   await sql`DELETE FROM subscriptions WHERE org_id = ${org!.id}::uuid`;
   await sql`DELETE FROM memberships WHERE org_id = ${org!.id}::uuid`;

@@ -860,6 +860,10 @@
             "type": "string",
             "example": "image/png"
           },
+          "source": {
+            "type": "string",
+            "description": "`ai` = gerada por IA; `upload` = enviada por alguém"
+          },
           "byteSize": {
             "type": "integer"
           },
@@ -890,6 +894,7 @@
           "id",
           "url",
           "mime",
+          "source",
           "byteSize",
           "width",
           "height",
@@ -1139,6 +1144,9 @@
               "canDescribeImages": {
                 "type": "boolean"
               },
+              "canGenerateImages": {
+                "type": "boolean"
+              },
               "credits": {
                 "type": [
                   "object",
@@ -1179,6 +1187,7 @@
             "required": [
               "enabled",
               "canDescribeImages",
+              "canGenerateImages",
               "credits"
             ]
           },
@@ -1423,6 +1432,55 @@
           "publishAt",
           "maxLength",
           "shortened"
+        ]
+      },
+      "AiGeneratedMedia": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "mime": {
+            "type": "string"
+          },
+          "byteSize": {
+            "type": "integer"
+          },
+          "width": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "height": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "alt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "description": "`ai` = gerada; `upload` = enviada por alguém"
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "mime",
+          "byteSize",
+          "width",
+          "height",
+          "alt",
+          "source"
         ]
       },
       "AiBestTimes": {
@@ -5298,6 +5356,158 @@
           },
           "429": {
             "description": "rate limit — aguarde e tente de novo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/ai/image": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "security": [
+          {
+            "clerkAuth": []
+          }
+        ],
+        "summary": "Gera uma imagem e guarda na biblioteca de mídia",
+        "description": "Requer a feature `ai_image` (plano Premium) **e** um provedor que gere imagem; sem essa capacidade responde 501 `ai.capability_unavailable`. Custa 5 créditos — uma requisição, uma imagem. A forma pedida é **proporção**, nunca resolução: quem traduz é o adapter. Os bytes devolvidos pelo provedor são validados por assinatura de arquivo (o `content-type` declarado não é confiável) e entram na biblioteca marcados como gerados, com o prompt e o modelo. Aceita `Idempotency-Key`: a cinco créditos, duplo clique é caro.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  "aspect": {
+                    "type": "string",
+                    "enum": [
+                      "1:1",
+                      "4:5",
+                      "9:16",
+                      "16:9",
+                      "1.91:1"
+                    ],
+                    "description": "proporção; sem ela, `channelId` decide; sem os dois, 1:1"
+                  },
+                  "channelId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "a proporção vira a que a rede deste canal trata melhor no feed"
+                  },
+                  "quality": {
+                    "type": "string",
+                    "enum": [
+                      "draft",
+                      "standard"
+                    ]
+                  },
+                  "alt": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "description": "descrição para leitor de tela"
+                  }
+                },
+                "required": [
+                  "prompt"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "mídia gerada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "media": {
+                      "$ref": "#/components/schemas/AiGeneratedMedia"
+                    }
+                  },
+                  "required": [
+                    "media"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "requisição fora do contrato (problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "plano atual não inclui — `extra.requiredTier` diz o plano mínimo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "não encontrado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "conflito",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate limit — aguarde e tente de novo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "capacidade não disponível nesta instalação",
             "content": {
               "application/problem+json": {
                 "schema": {

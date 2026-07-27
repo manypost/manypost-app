@@ -183,6 +183,18 @@ export const media = pgTable(
     thumbnailPath: text('thumbnail_path'),
     alt: text('alt'),
     blurhash: text('blurhash'),
+    /**
+     * Proveniência (SPEC ai-image-generation). NÃO é enfeite: várias plataformas já exigem
+     * divulgação de conteúdo sintético, e sem esta coluna o produto não tem como cumprir — nem
+     * como responder um cliente que pergunte qual modelo produziu um material.
+     *
+     * `upload` como default deixa a migration aditiva e diz a verdade sobre as linhas antigas.
+     */
+    source: text('source').notNull().default('upload'),
+    /** o prompt que gerou (conteúdo do próprio usuário) — reproduzir e iterar depende disto */
+    generationPrompt: text('generation_prompt'),
+    /** qual modelo produziu — indispensável para o operador comparar custo e qualidade */
+    generationModel: text('generation_model'),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
     ...timestamps,
   },

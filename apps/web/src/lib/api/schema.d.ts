@@ -2552,6 +2552,130 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/v1/ai/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Gera uma imagem e guarda na biblioteca de mídia
+         * @description Requer a feature `ai_image` (plano Premium) **e** um provedor que gere imagem; sem essa capacidade responde 501 `ai.capability_unavailable`. Custa 5 créditos — uma requisição, uma imagem. A forma pedida é **proporção**, nunca resolução: quem traduz é o adapter. Os bytes devolvidos pelo provedor são validados por assinatura de arquivo (o `content-type` declarado não é confiável) e entram na biblioteca marcados como gerados, com o prompt e o modelo. Aceita `Idempotency-Key`: a cinco créditos, duplo clique é caro.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        prompt: string;
+                        /**
+                         * @description proporção; sem ela, `channelId` decide; sem os dois, 1:1
+                         * @enum {string}
+                         */
+                        aspect?: "1:1" | "4:5" | "9:16" | "16:9" | "1.91:1";
+                        /**
+                         * Format: uuid
+                         * @description a proporção vira a que a rede deste canal trata melhor no feed
+                         */
+                        channelId?: string;
+                        /** @enum {string} */
+                        quality?: "draft" | "standard";
+                        /** @description descrição para leitor de tela */
+                        alt?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description mídia gerada */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            media: components["schemas"]["AiGeneratedMedia"];
+                        };
+                    };
+                };
+                /** @description requisição fora do contrato (problem+json) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description não autenticado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description plano atual não inclui — `extra.requiredTier` diz o plano mínimo */
+                402: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description não encontrado */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description conflito */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description rate limit — aguarde e tente de novo */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description capacidade não disponível nesta instalação */
+                501: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/ai/best-times": {
         parameters: {
             query?: never;
@@ -5274,6 +5398,8 @@ export type components = {
             url: string;
             /** @example image/png */
             mime: string;
+            /** @description `ai` = gerada por IA; `upload` = enviada por alguém */
+            source: string;
             byteSize: number;
             width: number | null;
             height: number | null;
@@ -5340,6 +5466,7 @@ export type components = {
             ai: {
                 enabled: boolean;
                 canDescribeImages: boolean;
+                canGenerateImages: boolean;
                 credits: {
                     granted: number;
                     used: number;
@@ -5419,6 +5546,17 @@ export type components = {
             publishAt: string;
             maxLength: number;
             shortened: boolean;
+        };
+        AiGeneratedMedia: {
+            id: string;
+            url: string;
+            mime: string;
+            byteSize: number;
+            width: number | null;
+            height: number | null;
+            alt: string | null;
+            /** @description `ai` = gerada; `upload` = enviada por alguém */
+            source: string;
         };
         AiBestTimes: {
             channelId: string;

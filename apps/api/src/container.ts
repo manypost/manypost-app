@@ -33,6 +33,7 @@ import {
   makeGenerateCaption,
   makePlanWeek,
   makeRewriteText,
+  makeGenerateImage,
   makeSuggestBestTimes,
   makeSummarizeInsights,
   makeSuggestHashtags,
@@ -252,8 +253,24 @@ export async function buildContainer(env: Env) {
           altText: makeGenerateAltText(deps),
           draft: makeDraftMultichannel(deps),
           weekPlan: makePlanWeek(deps),
+          image: makeGenerateImage({
+            provider: aiProvider,
+            budget,
+            plan,
+            media: repos.media,
+            storage,
+            channels: repos.channels,
+            registry: providerRegistry,
+            audit: repos.audit,
+            // o mesmo teto de bytes que vale para upload: imagem gerada não ganha exceção
+            imageMaxBytes: env.MEDIA_MAX_IMAGE_MB * 1024 * 1024,
+            // só rótulo de proveniência — o caso de uso não escolhe modelo
+            modelLabel: env.AI_IMAGE_MODEL ?? env.AI_MODEL ?? 'desconhecido',
+          }),
           /** o adapter vê imagem? define se o alt-text aparece na UI */
           canDescribeImages: Boolean(aiProvider.describeImage),
+          /** o adapter DESENHA? define se a geração de imagem aparece na UI */
+          canGenerateImages: Boolean(aiProvider.generateImage),
         };
       })()
     : null;

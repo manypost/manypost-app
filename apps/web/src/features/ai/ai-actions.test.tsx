@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import type { Editor } from '@tiptap/react';
 import messages from '@/messages/pt-BR.json';
 import { editorUtilizavel, textoParaAplicar, variantesParaOverrides } from './ai-actions';
-import { REWRITE_EDIT_IDS, REWRITE_IDS, REWRITE_TONE_IDS } from './hooks';
+import { ASPECTOS, REWRITE_EDIT_IDS, REWRITE_IDS, REWRITE_TONE_IDS } from './hooks';
 
 const ai = messages.ai as Record<string, string>;
 
@@ -194,5 +194,35 @@ describe('cobertura de tradução da superfície de IA', () => {
 
   test('o aviso de excesso deixa claro que nada foi cortado', () => {
     expect(ai.overLimitNotice!.toLowerCase()).toContain('nada foi cortado');
+  });
+});
+
+/**
+ * Geração de imagem: as chaves de mensagem e as proporções oferecidas.
+ *
+ * A superfície some inteira quando a instalação não desenha (`canGenerateImages`), então o que dá
+ * para prender aqui sem navegador é o contrato de rótulos — que é justamente onde um id sem
+ * tradução apareceria cru para o usuário.
+ */
+describe('geração de imagem', () => {
+  test('toda proporção oferecida tem rótulo humano', () => {
+    for (const a of ASPECTOS) {
+      expect(ai[a.labelKey], `falta a chave ai.${a.labelKey}`).toBeTruthy();
+      // rótulo humano, não a razão crua: quem escreve post pensa em "formato", não em 4:5
+      expect(ai[a.labelKey]).not.toContain(':');
+    }
+  });
+
+  test('as proporções são exatamente as que o contrato aceita', () => {
+    expect(ASPECTOS.map((a) => a.id)).toEqual(['1:1', '4:5', '9:16', '16:9', '1.91:1']);
+  });
+
+  test('o custo é declarado antes do clique', () => {
+    expect(ai.imageCost).toContain('{count');
+  });
+
+  test('a interface diz que a imagem é marcada como gerada', () => {
+    expect(ai.imageDescription!.toLowerCase()).toContain('gerada por ia');
+    expect(ai.imageBadgeTitle!.toLowerCase()).toContain('gerada por ia');
   });
 });

@@ -10,6 +10,46 @@
 > **Como manter:** ao fechar uma fatia, adicione a onda nova **no topo** e atualize o STATUS.
 > Cada entrada é auto-contida: o que mudou, onde no código, e a prova de que funciona.
 
+## Onda 31 — 2026-07-27 — a IA passa a produzir a imagem
+
+**O ponto de partida.** A `SPEC_AI §3` lista `ai.image` (5 créditos) e ele era o único item da
+família de criação entregue como nada: o port guardava o slot `generateImage` sem implementação.
+A revisão da onda 29 apontou que o slot precisava ser **refeito antes de usado**.
+
+**O que mudou**
+
+- **O port fala em proporção, não em pixel.** A união `'1024x1024' | '1792x1024' | '1024x1792'`
+  era o catálogo de um fornecedor dentro do contrato agnóstico — o acoplamento que a regra 4 do
+  `CLAUDE.md` proíbe, de roupa nova. E rede social nenhuma pensa em pixel. Agora: `1:1`, `4:5`,
+  `9:16`, `16:9`, `1.91:1`, com a tradução para resolução dentro do adapter.
+- **Bytes, não URL.** URL de provedor expira em horas; guardá-la colocaria mídia com prazo dentro
+  de um post agendado para a semana que vem, e baixá-la é a classe de requisição que a onda 30 de
+  segurança endureceu.
+- **Os bytes são validados como bytes** pelo mesmo `sniffMedia` de todo upload — o `content-type`
+  declarado não é confiável. Lixo vira `ai.invalid_response` com a franquia devolvida.
+- **Proveniência** (`source`, `generation_prompt`, `generation_model`, migration 0007 aditiva):
+  plataformas já exigem divulgar conteúdo sintético, e sem a coluna o produto não teria como
+  cumprir. A biblioteca marca com selo; o prompt nunca entra no `audit_log`.
+- **Idempotente desde o primeiro commit** — a cinco créditos, duplo clique é caro.
+- Superfícies: biblioteca de mídia, seletor do composer (com a proporção da rede já escolhida) e
+  tool MCP sob escopo de escrita.
+
+**As provas**
+
+| Verificação | Resultado |
+| --- | --- |
+| `bun run check` | ✅ 930 testes, 0 falhas; fronteiras sem violação; brand ok |
+| `bun run db:check` | ✅ `Everything's fine` — migration 0007 gerada pelo CLI, nunca à mão |
+| `bun run build:web` | ✅ compilado |
+| `bun run spec:validate` | ✅ 21 passed, 0 failed |
+| `scripts/e2e-ai.ts` | ✅ **62 checks** contra API real: a proporção vira resolução no adapter, uma imagem por requisição, proveniência gravada com o prompt **revisado**, custo de 5 créditos (classe própria), auditoria sem o prompt, e bytes que não são imagem devolvendo a franquia |
+| Teste não vazio | ✅ mutation check: remover a validação por magic bytes faz o teste do "HTML como imagem" falhar |
+
+**O que esta onda NÃO provou.** A idempotência não foi verificada localmente: ela vive no Redis e
+**falha aberto** sem ele (por desenho, como o resto da plataforma), e não há Redis nesta máquina. O
+E2E detecta a ausência e **diz que não provou**, em vez de fingir; o CI tem Redis e roda a
+asserção completa. Nada foi verificado em navegador — segue o achado 12.
+
 ## Onda 30 — 2026-07-27 — a home que não existia, e o design system reconciliado
 
 **O ponto de partida.** `apps/web/src/app/page.tsx` tinha seis linhas e redirecionava para

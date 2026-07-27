@@ -1,8 +1,9 @@
 import { z } from '@hono/zod-openapi';
 import { ErrorCodes } from '@manypost/contracts';
-import { DomainError, aiPrompts } from '@manypost/core';
+import { DomainError, IMAGE_ASPECTS, aiPrompts } from '@manypost/core';
 import type { Container } from '../../container';
 import { requireAuth } from '../middleware/auth';
+import { idempotency } from '../middleware/public-api';
 import { AUTH_SECURITY, createApp, errorResponses, jsonBody, jsonResponse } from '../openapi';
 
 /**
@@ -139,6 +140,34 @@ const PlannedSlot = z
     shortened: z.boolean(),
   })
   .openapi('AiPlannedSlot');
+
+const ImageBody = z.object({
+  prompt: z.string().min(1).max(2000),
+  aspect: z
+    .enum(IMAGE_ASPECTS as unknown as [string, ...string[]])
+    .optional()
+    .openapi({ description: 'proporção; sem ela, `channelId` decide; sem os dois, 1:1' }),
+  channelId: z
+    .string()
+    .uuid()
+    .optional()
+    .openapi({ description: 'a proporção vira a que a rede deste canal trata melhor no feed' }),
+  quality: z.enum(['draft', 'standard']).optional(),
+  alt: z.string().max(1000).optional().openapi({ description: 'descrição para leitor de tela' }),
+});
+
+const MediaOut = z
+  .object({
+    id: z.string(),
+    url: z.string(),
+    mime: z.string(),
+    byteSize: z.number().int(),
+    width: z.number().int().nullable(),
+    height: z.number().int().nullable(),
+    alt: z.string().nullable(),
+    source: z.string().openapi({ description: "`ai` = gerada; `upload` = enviada por alguém" }),
+  })
+  .openapi('AiGeneratedMedia');
 
 const BestTimes = z
   .object({
@@ -368,6 +397,48 @@ export function aiRoutes(ctn: Container) {
         ...(body.settings ? { settings: body.settings } : {}),
       }),
     );
+  });
+
+  app.openAPIRegistry.registerPath({
+    method: 'post',
+    path: '/image',
+    tags: ['ai'],
+    security: AUTH_SECURITY,
+    summary: 'Gera uma imagem e guarda na biblioteca de mídia',
+    description:
+      'Requer a feature `ai_image` (plano Premium) **e** um provedor que gere imagem; sem essa ' +
+      'capacidade responde 501 `ai.capability_unavailable`. Custa 5 créditos — uma requisição, ' +
+      'uma imagem. A forma pedida é **proporção**, nunca resolução: quem traduz é o adapter. ' +
+      'Os bytes devolvidos pelo provedor são validados por assinatura de arquivo (o `content-type` ' +
+      'declarado não é confiável) e entram na biblioteca marcados como gerados, com o prompt e o ' +
+      'modelo. Aceita `Idempotency-Key`: a cinco créditos, duplo clique é caro.',
+    request: jsonBody(ImageBody),
+    responses: {
+      200: jsonResponse('mídia gerada', z.object({ media: MediaOut })),
+      ...errorResponses(400, 401, 402, 404, 409, 429, 501),
+    },
+  });
+  app.post('/image', idempotency(ctn.runtime.idempotency), async (c) => {
+    const body = ImageBody.parse(await c.req.json());
+    const { media } = await requireAi().image(actor(c), {
+      prompt: body.prompt,
+      ...(body.aspect ? { aspect: body.aspect } : {}),
+      ...(body.channelId ? { channelId: body.channelId } : {}),
+      ...(body.quality ? { quality: body.quality } : {}),
+      ...(body.alt ? { alt: body.alt } : {}),
+    });
+    return c.json({
+      media: {
+        id: media.id,
+        url: ctn.storage.publicUrl(media.path),
+        mime: media.mime,
+        byteSize: media.byteSize,
+        width: media.width,
+        height: media.height,
+        alt: media.alt,
+        source: media.source,
+      },
+    });
   });
 
   const BestTimesQuery = z.object({

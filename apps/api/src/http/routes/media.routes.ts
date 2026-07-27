@@ -9,6 +9,8 @@ const serialize = (ctn: Container, m: MediaRecord) => ({
   id: m.id,
   url: ctn.storage.publicUrl(m.path),
   mime: m.mime,
+  // a biblioteca marca o que é sintético (SPEC ai-image-generation)
+  source: m.source,
   byteSize: m.byteSize,
   width: m.width,
   height: m.height,
@@ -21,6 +23,9 @@ const MediaOut = z
     id: z.string(),
     url: z.string().openapi({ description: 'URL pública (as redes baixam por aqui)' }),
     mime: z.string().openapi({ example: 'image/png' }),
+    source: z
+      .string()
+      .openapi({ description: "`ai` = gerada por IA; `upload` = enviada por alguém" }),
     byteSize: z.number().int(),
     width: z.number().int().nullable(),
     height: z.number().int().nullable(),

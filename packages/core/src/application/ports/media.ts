@@ -13,12 +13,29 @@ export interface MediaRecord {
   thumbnailPath: string | null;
   alt: string | null;
   blurhash: string | null;
+  /** `upload` | `ai` — a biblioteca marca o que é sintético (SPEC ai-image-generation) */
+  source: 'upload' | 'ai';
+  /** prompt que gerou, quando `source === 'ai'` */
+  generationPrompt: string | null;
+  /** modelo que produziu, quando `source === 'ai'` */
+  generationModel: string | null;
   createdAt: Date;
 }
 
 export interface MediaRepository {
   create(
-    d: Omit<MediaRecord, 'id' | 'createdAt' | 'durationSec' | 'thumbnailPath' | 'blurhash'>,
+    d: Omit<
+      MediaRecord,
+      | 'id'
+      | 'createdAt'
+      | 'durationSec'
+      | 'thumbnailPath'
+      | 'blurhash'
+      | 'source'
+      | 'generationPrompt'
+      | 'generationModel'
+    > &
+      Partial<Pick<MediaRecord, 'source' | 'generationPrompt' | 'generationModel'>>,
   ): Promise<MediaRecord>;
   list(orgId: string, opts?: { limit?: number }): Promise<MediaRecord[]>;
   findMany(orgId: string, ids: string[]): Promise<MediaRecord[]>;

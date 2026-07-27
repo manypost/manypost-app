@@ -24,6 +24,8 @@ export function useAiAvailability() {
     enabled: ai?.enabled ?? false,
     /** o modelo configurado enxerga imagem (alt-text automático) */
     canDescribeImages: ai?.canDescribeImages ?? false,
+    /** o provedor configurado DESENHA — sem isto a geração de imagem some da interface */
+    canGenerateImages: ai?.canGenerateImages ?? false,
     credits: ai?.credits ?? null,
     /** franquia esgotada — a UI avisa antes do clique em vez de deixar dar 402 */
     exhausted: Boolean(ai?.credits?.enforced && (ai.credits.remaining ?? 0) <= 0),
@@ -31,6 +33,7 @@ export function useAiAvailability() {
     hasBestTime: plan.has('ai_best_time'),
     hasDraft: plan.has('ai_multichannel_draft'),
     hasCalendar: plan.has('ai_calendar'),
+    hasImage: plan.has('ai_image'),
   };
 }
 
@@ -181,6 +184,56 @@ export function useBestTimes(channelId: string | undefined, enabled: boolean) {
          */
         signal: 'network_baseline' | 'own_posting_history' | 'own_engagement';
       };
+    },
+  });
+}
+
+/**
+ * Proporções oferecidas — as mesmas do contrato. O rótulo é humano ("Retrato"), não a razão crua:
+ * quem escreve um post pensa em "formato do feed", não em 4:5.
+ */
+export const ASPECTOS = [
+  { id: '1:1', labelKey: 'aspect1x1' },
+  { id: '4:5', labelKey: 'aspect4x5' },
+  { id: '9:16', labelKey: 'aspect9x16' },
+  { id: '16:9', labelKey: 'aspect16x9' },
+  { id: '1.91:1', labelKey: 'aspect191x1' },
+] as const;
+
+export type AspectId = (typeof ASPECTOS)[number]['id'];
+
+export interface GeneratedMedia {
+  id: string;
+  url: string;
+  mime: string;
+  width: number | null;
+  height: number | null;
+  alt: string | null;
+  source: string;
+}
+
+/**
+ * Geração de imagem (`ai_image`, Premium — 5 créditos).
+ *
+ * Invalida a biblioteca de mídia junto com a franquia: a imagem nasce lá dentro, e a lista
+ * precisa mostrá-la sem um F5.
+ */
+export function useGenerateImage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      prompt: string;
+      aspect?: AspectId;
+      channelId?: string;
+      alt?: string;
+    }) => {
+      const { data, error } = await api.POST('/v1/ai/image', { body: input });
+      if (error) throw error;
+      return data.media as GeneratedMedia;
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ['capabilities'] });
+      void queryClient.invalidateQueries({ queryKey: ['media'] });
     },
   });
 }

@@ -163,6 +163,12 @@ const EnvSchema = z
      * nomeando esta variável — nunca é entregue como se estivesse pronta.
      */
     AI_MAX_OUTPUT_TOKENS: z.coerce.number().int().min(64).max(32_000).default(4000),
+    /**
+     * Modelo de IMAGEM, quando o de texto não desenha. Opcional: sem ele, a geração de imagem usa
+     * `AI_MODEL`. Existe para o operador não precisar de duas instalações só porque o modelo de
+     * texto que ele escolheu não produz imagem.
+     */
+    AI_IMAGE_MODEL: z.string().optional(),
 
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
     OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
@@ -381,6 +387,7 @@ export function aiConfigFromEnv(env: Env): AiConfig | null {
     model: env.AI_MODEL!,
     timeoutMs: env.AI_TIMEOUT_MS,
     maxOutputTokens: env.AI_MAX_OUTPUT_TOKENS,
+    ...(env.AI_IMAGE_MODEL ? { imageModel: env.AI_IMAGE_MODEL } : {}),
   };
 }
 

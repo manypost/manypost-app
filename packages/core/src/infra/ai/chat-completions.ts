@@ -3,10 +3,11 @@
  * locais (self-host) implementam. Trocar de fornecedor é mudar `AI_BASE_URL`/`AI_MODEL`, não
  * código: nenhum caso de uso sabe que este arquivo existe.
  */
-import type { AiProvider, GeneratedText } from '../../application/ports/ai-provider';
+import type { AiProvider, GeneratedText, ImageAspect } from '../../application/ports/ai-provider';
 import {
   authHeaders,
   cappedTokens,
+  decodeBase64,
   invalidResponse,
   postJson,
   truncatedByCap,
@@ -21,6 +22,28 @@ type ChatReply = {
 
 /** conteúdo de uma mensagem: texto puro ou partes (texto + imagem) */
 type Content = string | ({ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } })[];
+
+type ImageReply = { data?: { b64_json?: string; revised_prompt?: string }[] };
+
+/**
+ * Proporção → resolução deste dialeto. **Único lugar** do monorepo onde uma dimensão em pixel
+ * aparece, e é aqui de propósito: o port fala em proporção para que trocar de fornecedor (que
+ * oferece outras dimensões) não vaze para o contrato agnóstico.
+ *
+ * `4:5` e `1.91:1` não têm resolução própria neste dialeto — caem na mais próxima que ele aceita,
+ * e o corte fino para a proporção exata é problema da rede, não nosso. Melhor uma aproximação
+ * declarada aqui do que uma requisição recusada pelo fornecedor.
+ */
+const RESOLUCAO_POR_PROPORCAO: Record<
+  ImageAspect,
+  { size: string; width: number; height: number }
+> = {
+  '1:1': { size: '1024x1024', width: 1024, height: 1024 },
+  '4:5': { size: '1024x1792', width: 1024, height: 1792 },
+  '9:16': { size: '1024x1792', width: 1024, height: 1792 },
+  '16:9': { size: '1792x1024', width: 1792, height: 1024 },
+  '1.91:1': { size: '1792x1024', width: 1792, height: 1024 },
+};
 
 const readReply = (raw: unknown, cap: number): GeneratedText => {
   const reply = raw as ChatReply;
@@ -84,5 +107,48 @@ export function makeChatCompletionsProvider(
         ],
         maxTokens,
       ),
+
+    /**
+     * Geração de imagem. Este é o único lugar do monorepo que sabe traduzir proporção em
+     * resolução — o port fala em `aspect` justamente para a lista de dimensões não vazar para o
+     * contrato agnóstico.
+     *
+     * Pede `b64_json` em vez de URL: URL de provedor expira em horas, e guardá-la colocaria mídia
+     * com prazo dentro de um post agendado para a semana que vem. Com bytes, a mídia é nossa desde
+     * o primeiro instante.
+     */
+    async generateImage({ prompt, aspect, quality, signal }) {
+      const { size, width, height } = RESOLUCAO_POR_PROPORCAO[aspect];
+      const raw = await postJson(
+        config,
+        fetchImpl,
+        'images/generations',
+        {
+          model: config.imageModel ?? config.model,
+          prompt,
+          size,
+          // uma requisição, uma imagem: o custo de uma chamada fica previsível e a franquia é
+          // debitada por unidade (SPEC ai-budget-control)
+          n: 1,
+          response_format: 'b64_json',
+          ...(quality ? { quality: quality === 'draft' ? 'low' : 'standard' } : {}),
+        },
+        authHeaders(config.apiKey, (key) => ({ authorization: `Bearer ${key}` })),
+        signal,
+      );
+
+      const reply = raw as ImageReply;
+      const primeira = reply.data?.[0];
+      if (!primeira?.b64_json) throw invalidResponse();
+
+      return {
+        bytes: decodeBase64(primeira.b64_json),
+        // declarado; quem valida de verdade é o caso de uso, por magic bytes
+        mime: 'image/png',
+        width,
+        height,
+        ...(primeira.revised_prompt ? { revisedPrompt: primeira.revised_prompt } : {}),
+      };
+    },
   };
 }
