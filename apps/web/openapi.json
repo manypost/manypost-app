@@ -5379,6 +5379,18 @@
         ],
         "summary": "Gera uma imagem e guarda na biblioteca de mídia",
         "description": "Requer a feature `ai_image` (plano Premium) **e** um provedor que gere imagem; sem essa capacidade responde 501 `ai.capability_unavailable`. Custa 5 créditos — uma requisição, uma imagem. A forma pedida é **proporção**, nunca resolução: quem traduz é o adapter. Os bytes devolvidos pelo provedor são validados por assinatura de arquivo (o `content-type` declarado não é confiável) e entram na biblioteca marcados como gerados, com o prompt e o modelo. Aceita `Idempotency-Key`: a cinco créditos, duplo clique é caro.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Identifica a tentativa lógica. Repetir a mesma chave e o mesmo corpo devolve a resposta original sem nova cobrança.",
+              "example": "0198f0d8-5038-7c4e-a46f-243c2495f949"
+            },
+            "required": false,
+            "name": "Idempotency-Key",
+            "in": "header"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {

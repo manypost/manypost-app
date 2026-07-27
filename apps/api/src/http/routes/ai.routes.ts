@@ -412,7 +412,16 @@ export function aiRoutes(ctn: Container) {
       'Os bytes devolvidos pelo provedor são validados por assinatura de arquivo (o `content-type` ' +
       'declarado não é confiável) e entram na biblioteca marcados como gerados, com o prompt e o ' +
       'modelo. Aceita `Idempotency-Key`: a cinco créditos, duplo clique é caro.',
-    request: jsonBody(ImageBody),
+    request: {
+      ...jsonBody(ImageBody),
+      headers: z.object({
+        'Idempotency-Key': z.string().optional().openapi({
+          description:
+            'Identifica a tentativa lógica. Repetir a mesma chave e o mesmo corpo devolve a resposta original sem nova cobrança.',
+          example: '0198f0d8-5038-7c4e-a46f-243c2495f949',
+        }),
+      }),
+    },
     responses: {
       200: jsonResponse('mídia gerada', z.object({ media: MediaOut })),
       ...errorResponses(400, 401, 402, 404, 409, 429, 501),

@@ -90,6 +90,21 @@ async function main() {
     fetch(`${API}${path}`, { method: 'POST', headers: authed(), body: JSON.stringify(body) });
 
   // -------------------------------------------------------------------------
+  console.log('\n▸ contrato OpenAPI');
+  const openapi = (await (await fetch(`${API}/openapi.json`)).json()) as {
+    paths?: Record<string, { post?: { parameters?: { in?: string; name?: string }[] } }>;
+  };
+  const imageParameters = openapi.paths?.['/v1/ai/image']?.post?.parameters ?? [];
+  check(
+    'Idempotency-Key é um header explícito no contrato',
+    imageParameters.some(
+      (parameter) =>
+        parameter.in === 'header' && parameter.name?.toLowerCase() === 'idempotency-key',
+    ),
+    imageParameters,
+  );
+
+  // -------------------------------------------------------------------------
   // A IA é feature PAGA no gerenciado (`ai_caption` = Pro, `ai_multichannel_draft` = Premium)
   // e a franquia do Grátis é zero. A CI sobe esta fase com IS_SELF_HOSTED=false de propósito —
   // é o único modo em que o BudgetGuard é realmente imposto —, então a org de teste precisa
