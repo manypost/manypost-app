@@ -68,7 +68,7 @@ Cada item abaixo tem testes unitários e/ou E2E reais (Postgres 17 + Redis + wor
 2. **Fencing duplo** no handler: por estado (UPDATE condicional `WHERE state IN (...)`) e por `job_version` (payload `{publicationId, v}`; job de versão antiga = no-op). É isso que torna cancel/edit seguros.
 3. **AAD da criptografia** de canal = `orgId:provider:externalId` (chave natural — id não existe antes do insert); de webhook = `webhook:orgId`.
 4. **Settings de publish** = merge `{...channel.settings, ...publication.settings}` — é assim que o Mastodon recebe a `instance`.
-5. **maxConcurrent** dos providers ainda NÃO é aplicado (só janelas). Semáforo Redis é pendência (§4).
+5. **maxConcurrent** dos providers **é aplicado** no runner de publish: com Redis e `rateDefaults.maxConcurrent > 0`, o worker chama `acquireSlot`/`releaseSlot` (semáforo por provider) **antes** de publicar; sem o método no limiter (ou `maxConcurrent` 0) o caminho segue só com as janelas de taxa. Entregue na onda 7; a linha “pendência” antiga desta lista estava desatualizada.
 6. Retry de fila (pg-boss `retryLimit`) = 0 de propósito: retry de negócio é da máquina de estados.
 7. Composition root em `apps/api/src/container.ts` (sem framework de DI); worker dedicado espelha em `apps/worker/src/main.ts`; `MODE=all` roda api+worker num processo.
 8. `cancelBySingletonKey` toca `pgboss.job` via SQL (best-effort; higiene) — se o schema do pg-boss mudar, só perde a higiene, nunca a corretude.
