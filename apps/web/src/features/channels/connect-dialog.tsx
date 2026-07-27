@@ -98,7 +98,7 @@ export function ConnectDialog({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
-            <div className="rounded-md border border-line bg-surface-2 px-3 py-2.5 text-[13px] leading-relaxed">
+            <div className="rounded-md border border-line bg-surface-2 px-3 py-2.5 text-compact leading-relaxed">
               <p className="text-ink">{note.what}</p>
               {note.setup ? (
                 <p className="mt-1.5 text-graphite">

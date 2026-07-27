@@ -42,7 +42,7 @@ export function FlowSlide() {
                 className={cn('auth-cell-dot size-1.5 shrink-0 rounded-sm', column.dot)}
                 aria-hidden
               />
-              <span className="truncate text-[10px] font-semibold uppercase tracking-wide text-paper/55">
+              <span className="truncate text-axis font-semibold uppercase tracking-wide text-paper/55">
                 {column.label}
               </span>
             </div>

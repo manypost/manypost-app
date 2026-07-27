@@ -95,7 +95,7 @@ export function CalendarChip({
         <span className="relative shrink-0">
           <Avatar className="size-4">
             {item.channel.avatarUrl ? <AvatarImage src={item.channel.avatarUrl} alt="" /> : null}
-            <AvatarFallback className="text-[9px]">
+            <AvatarFallback className="text-meta">
               {(item.channel.name ?? item.channel.provider).charAt(0)}
             </AvatarFallback>
           </Avatar>
@@ -108,9 +108,9 @@ export function CalendarChip({
             />
           ) : null}
         </span>
-        <span className="shrink-0 text-[11px] font-semibold tabular-nums text-ink">{time}</span>
+        <span className="shrink-0 text-meta font-semibold tabular-nums text-ink">{time}</span>
         {!compact ? (
-          <span className="min-w-0 flex-1 truncate text-[11px] text-graphite">{item.text}</span>
+          <span className="min-w-0 flex-1 truncate text-meta text-graphite">{item.text}</span>
         ) : null}
       </button>
 
@@ -258,7 +258,7 @@ export function MonthGrid({
           {days.slice(0, 7).map((d) => (
             <span
               key={dayKey(d)}
-              className="border-r border-line px-2 py-1.5 text-center text-[11px] font-semibold uppercase tracking-wide text-graphite last:border-r-0"
+              className="border-r border-line px-2 py-1.5 text-center text-meta font-semibold uppercase tracking-wide text-graphite last:border-r-0"
             >
               {weekdayFmt.format(d)}
             </span>
@@ -284,7 +284,7 @@ export function MonthGrid({
                 header={
                   <span
                     className={cn(
-                      'self-end text-[11px] font-semibold tabular-nums',
+                      'self-end text-meta font-semibold tabular-nums',
                       isToday
                         ? 'grid size-5 place-items-center rounded-full bevel-primary border text-paper'
                         : inMonth
@@ -311,7 +311,7 @@ export function MonthGrid({
                     <PopoverTrigger asChild>
                       <button
                         type="button"
-                        className="rounded-sm px-1 text-left text-[11px] font-semibold text-accent outline-none transition-colors duration-200 hover:text-accent-hover focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
+                        className="cursor-pointer rounded-sm px-1 text-left text-meta font-semibold text-accent outline-none transition-colors duration-200 hover:text-accent-hover focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
                       >
                         {t('more', { count: overflow })}
                       </button>
@@ -343,7 +343,7 @@ export function MonthGrid({
             {days.slice(0, 7).map((d) => (
               <span
                 key={dayKey(d)}
-                className="text-center text-[11px] font-semibold uppercase tracking-wide text-graphite"
+                className="text-center text-meta font-semibold uppercase tracking-wide text-graphite"
               >
                 {weekdayFmt.format(d)}
               </span>
@@ -407,7 +407,7 @@ export function MonthGrid({
               );
             })}
           </div>
-          <p className="text-[11px] text-center text-mist mt-2 pt-1.5 border-t border-line">
+          <p className="text-meta text-center text-mist mt-2 pt-1.5 border-t border-line">
             {t.has('selectedDayHint') ? t('selectedDayHint') : 'Toque em um dia no calendário para ver sua agenda'}
           </p>
         </div>
@@ -593,12 +593,12 @@ export function TimeGrid({
                   key={dayKey(date)}
                   className="flex items-baseline justify-center gap-1.5 border-r border-line px-2 py-2 last:border-r-0"
                 >
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-graphite">
+                  <span className="text-meta font-semibold uppercase tracking-wide text-graphite">
                     {weekdayFmt.format(date)}
                   </span>
                   <span
                     className={cn(
-                      'text-[13px] font-semibold tabular-nums',
+                      'text-compact font-semibold tabular-nums',
                       isToday
                         ? 'grid size-6 -translate-y-0.5 place-items-center rounded-full bevel-primary border text-paper'
                         : 'text-ink',
@@ -621,7 +621,7 @@ export function TimeGrid({
               <div key={hour} className="grid" style={{ gridTemplateColumns: colsDesktop }}>
                 <span
                   className={cn(
-                    '-mt-2 border-r border-line px-2 pt-2 text-right text-[11px] tabular-nums text-mist transition-colors',
+                    '-mt-2 border-r border-line px-2 pt-2 text-right text-meta tabular-nums text-mist transition-colors',
                     isPastRow && 'cal-past opacity-80',
                   )}
                 >
@@ -677,7 +677,7 @@ export function TimeGrid({
                       !isSelected && 'hover:bg-surface-2',
                     )}
                   >
-                    <span className="text-[11px] font-semibold uppercase tracking-wide text-graphite mb-0.5">
+                    <span className="text-meta font-semibold uppercase tracking-wide text-graphite mb-0.5">
                       {weekdayFmt.format(date)}
                     </span>
                     <span

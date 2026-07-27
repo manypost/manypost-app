@@ -74,7 +74,7 @@ export function ProviderNoteHelp({
             // O glifo é texto, não `CircleHelp`: o ícone traz o próprio círculo e desenharia um
             // segundo anel dentro da pastilha.
             'bevel-primary grid size-5 cursor-pointer place-items-center rounded-full border',
-            'text-[11px] font-bold leading-none text-paper outline-none',
+            'text-meta font-bold leading-none text-paper outline-none',
             'transition duration-200 hover:brightness-95',
             'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
             className,

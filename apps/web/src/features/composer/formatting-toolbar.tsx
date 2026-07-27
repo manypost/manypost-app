@@ -143,7 +143,7 @@ export function FormattingToolbar({ editor }: FormattingToolbarProps) {
             }
           >
             <span className="text-xs font-semibold text-ink">Assinatura Padrão</span>
-            <span className="max-w-full truncate text-[11px] text-graphite">
+            <span className="max-w-full truncate text-meta text-graphite">
               — Equipe manypost | www.manypost.com
             </span>
           </DropdownMenuItem>
@@ -154,7 +154,7 @@ export function FormattingToolbar({ editor }: FormattingToolbarProps) {
             }
           >
             <span className="text-xs font-semibold text-ink">Chamada para Ação (CTA)</span>
-            <span className="max-w-full truncate text-[11px] text-graphite">
+            <span className="max-w-full truncate text-meta text-graphite">
               👉 Confira o link na bio...
             </span>
           </DropdownMenuItem>
@@ -165,7 +165,7 @@ export function FormattingToolbar({ editor }: FormattingToolbarProps) {
             }
           >
             <span className="text-xs font-semibold text-ink">Engajamento / Compartilhamento</span>
-            <span className="max-w-full truncate text-[11px] text-graphite">
+            <span className="max-w-full truncate text-meta text-graphite">
               📌 Gostou? Salve este post...
             </span>
           </DropdownMenuItem>

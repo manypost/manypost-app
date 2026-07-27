@@ -110,7 +110,7 @@ export function DraftFromIdea({
               className="flex items-start gap-2 rounded-md border border-line bg-surface-2 px-3 py-2.5"
             >
               <CircleAlert className="mt-0.5 size-4 shrink-0 text-graphite" aria-hidden />
-              <p className="text-[13px] leading-relaxed text-graphite">
+              <p className="text-compact leading-relaxed text-graphite">
                 {t('draftShortened', { count: encurtados.length, networks: encurtados.join(', ') })}
               </p>
             </div>

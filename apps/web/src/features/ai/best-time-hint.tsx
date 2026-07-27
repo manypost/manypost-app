@@ -114,7 +114,7 @@ export function BestTimeHint({
                   className="cursor-pointer justify-between gap-3"
                   onSelect={() => onPick(toLocalInput(quando))}
                 >
-                  <span className="text-[13px]">
+                  <span className="text-compact">
                     {DIAS[slot.weekday]}, {String(slot.hour).padStart(2, '0')}:00
                   </span>
                   <span className="text-meta tabular-nums text-graphite">

@@ -66,7 +66,7 @@ export function Calendar({
       </div>
       <div className="mt-2 grid grid-cols-7 text-center">
         {cells.slice(0, 7).map((d, i) => (
-          <span key={i} className="py-1 text-[11px] font-semibold uppercase text-mist">
+          <span key={i} className="py-1 text-meta font-semibold uppercase text-mist">
             {weekdayFmt.format(d).replace('.', '').slice(0, 3)}
           </span>
         ))}
@@ -86,7 +86,7 @@ export function Calendar({
               aria-label={new Intl.DateTimeFormat(locale, { dateStyle: 'long' }).format(date)}
               onClick={() => onSelect?.(date)}
               className={cn(
-                'mx-auto my-0.5 grid size-8 place-items-center rounded-md text-[13px] tabular-nums outline-none transition-colors duration-200',
+                'mx-auto my-0.5 grid size-8 place-items-center rounded-md text-compact tabular-nums outline-none transition-colors duration-200',
                 'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
                 isSelected
                   ? 'bevel-primary border font-semibold text-paper'

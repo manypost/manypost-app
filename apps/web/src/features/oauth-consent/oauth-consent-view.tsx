@@ -98,7 +98,7 @@ export function OAuthConsentView() {
     return (
       <div className="w-full max-w-md rounded-lg border border-line bg-surface p-6">
         <h1 className="font-display text-xl font-semibold text-ink">{t('expiredTitle')}</h1>
-        <p className="mt-2 text-[13px] leading-relaxed text-graphite">{t('expiredBody')}</p>
+        <p className="mt-2 text-compact leading-relaxed text-graphite">{t('expiredBody')}</p>
       </div>
     );
   }
@@ -111,12 +111,12 @@ export function OAuthConsentView() {
   return (
     <div className="w-full max-w-md rounded-lg border border-line bg-surface p-6">
       <h1 className="font-display text-xl font-semibold text-ink">{t('title')}</h1>
-      <p className="mt-2 text-[13px] leading-relaxed text-graphite">
+      <p className="mt-2 text-compact leading-relaxed text-graphite">
         {t('subtitle', { clientId: data.clientId })}
       </p>
 
       {redirectHost ? (
-        <div className="mt-4 rounded-md border border-line bg-canvas px-3 py-2 text-[13px] text-graphite">
+        <div className="mt-4 rounded-md border border-line bg-canvas px-3 py-2 text-compact text-graphite">
           <p>
             {t('redirectHost', { hostname: redirectHost })}
           </p>
@@ -127,13 +127,13 @@ export function OAuthConsentView() {
       ) : null}
 
       <div className="mt-5 space-y-2">
-        <p className="text-[13px] font-semibold text-ink">{t('scopesTitle')}</p>
-        <ul className="list-inside list-disc text-[13px] text-graphite">
+        <p className="text-compact font-semibold text-ink">{t('scopesTitle')}</p>
+        <ul className="list-inside list-disc text-compact text-graphite">
           {scopes.includes('mcp:read') ? <li>{t('scopeRead')}</li> : null}
           {scopes.includes('mcp:write') ? <li>{t('scopeWrite')}</li> : null}
         </ul>
         <div className="flex flex-wrap gap-3 pt-1">
-          <label className="flex items-center gap-2 text-[13px] text-ink">
+          <label className="flex items-center gap-2 text-compact text-ink">
             <input
               type="checkbox"
               className="accent-accent"
@@ -148,7 +148,7 @@ export function OAuthConsentView() {
             />
             mcp:read
           </label>
-          <label className="flex items-center gap-2 text-[13px] text-ink">
+          <label className="flex items-center gap-2 text-compact text-ink">
             <input
               type="checkbox"
               className="accent-accent"
@@ -169,11 +169,11 @@ export function OAuthConsentView() {
       <div className="mt-5 space-y-2">
         <Label htmlFor="oauth-org">{t('orgTitle')}</Label>
         {noOrgs ? (
-          <p className="text-[13px] text-danger">{t('noOrgs')}</p>
+          <p className="text-compact text-danger">{t('noOrgs')}</p>
         ) : (
           <select
             id="oauth-org"
-            className="inset-field w-full rounded-md border border-line bg-surface px-3 py-2 text-[13px] text-ink"
+            className="inset-field w-full rounded-md border border-line bg-surface px-3 py-2 text-compact text-ink"
             value={orgId}
             onChange={(e) => setOrgId(e.target.value)}
           >
@@ -187,7 +187,7 @@ export function OAuthConsentView() {
       </div>
 
       {(approve.isError || deny.isError) && (
-        <p className="mt-3 text-[13px] text-danger">
+        <p className="mt-3 text-compact text-danger">
           {errorMessage(approve.error ?? deny.error)}
         </p>
       )}

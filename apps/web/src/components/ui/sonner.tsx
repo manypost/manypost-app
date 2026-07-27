@@ -10,7 +10,7 @@ function Toaster(props: ToasterProps) {
       toastOptions={{
         classNames: {
           toast:
-            '!rounded-lg !border !border-line !bg-surface !text-ink !text-[13px] !shadow-none',
+            '!rounded-lg !border !border-line !bg-surface !text-ink !text-compact !shadow-none',
           description: '!text-graphite',
           success: '!border-state-published/40 !bg-state-published-tint !text-state-published',
           error: '!border-state-failed/40 !bg-state-failed-tint !text-state-failed',

@@ -95,7 +95,7 @@ function ClerkLoginForm({ nextPath }: { nextPath?: string }) {
         }}
       >
         <div className="flex flex-col gap-2">
-          <label htmlFor="clerk-mfa-code" className="text-[13px] font-medium text-ink">
+          <label htmlFor="clerk-mfa-code" className="text-compact font-medium text-ink">
             {t('verificationCode')}
           </label>
           <Input

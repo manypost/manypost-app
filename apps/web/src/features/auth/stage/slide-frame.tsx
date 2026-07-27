@@ -22,7 +22,7 @@ export function SlideFrame({
       {/* zona de título — reservada para 3 linhas de display, a maior do conjunto */}
       <div className="flex min-h-[13.5rem] max-w-xl flex-col justify-center gap-3.5">
         <p
-          className="auth-enter text-[12px] font-bold uppercase tracking-[0.14em] text-accent-on-dark"
+          className="auth-enter text-xs font-bold uppercase tracking-[0.14em] text-accent-on-dark"
           style={{ '--i': 0 } as React.CSSProperties}
         >
           {kicker}
@@ -42,7 +42,7 @@ export function SlideFrame({
           ))}
         </h2>
         <p
-          className="auth-enter max-w-md text-[14px] leading-relaxed text-paper/70"
+          className="auth-enter max-w-md text-sm leading-relaxed text-paper/70"
           style={{ '--i': lines.length + 1 } as React.CSSProperties}
         >
           {sub}

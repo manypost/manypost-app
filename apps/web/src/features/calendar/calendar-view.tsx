@@ -301,19 +301,19 @@ export function CalendarView() {
             {view === 'lista' ? (
               <Tabs value={listFilter} onValueChange={(v) => setParams({ estado: v === 'todos' ? null : v })} className="w-full sm:w-auto">
                 <TabsList className="grid w-full grid-cols-4 sm:flex sm:w-auto h-11 sm:h-10 p-1">
-                  <TabsTrigger value="todos" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-[13px] font-semibold truncate">{t('filter.all')}</TabsTrigger>
-                  <TabsTrigger value="agendados" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-[13px] font-semibold truncate">{t('filter.scheduled')}</TabsTrigger>
-                  <TabsTrigger value="rascunhos" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-[13px] font-semibold truncate">{t('filter.drafts')}</TabsTrigger>
-                  <TabsTrigger value="publicados" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-[13px] font-semibold truncate">{t('filter.published')}</TabsTrigger>
+                  <TabsTrigger value="todos" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-compact font-semibold truncate">{t('filter.all')}</TabsTrigger>
+                  <TabsTrigger value="agendados" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-compact font-semibold truncate">{t('filter.scheduled')}</TabsTrigger>
+                  <TabsTrigger value="rascunhos" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-compact font-semibold truncate">{t('filter.drafts')}</TabsTrigger>
+                  <TabsTrigger value="publicados" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-compact font-semibold truncate">{t('filter.published')}</TabsTrigger>
                 </TabsList>
               </Tabs>
             ) : null}
             <Tabs value={view} onValueChange={(v) => setParams({ visao: v === 'semana' ? null : v })} className="w-full sm:w-auto">
               <TabsList className="grid w-full grid-cols-4 sm:flex sm:w-auto h-11 sm:h-10 p-1">
-                <TabsTrigger value="dia" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-[13px] font-semibold truncate">{t('viewDay')}</TabsTrigger>
-                <TabsTrigger value="semana" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-[13px] font-semibold truncate">{t('viewWeek')}</TabsTrigger>
-                <TabsTrigger value="mes" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-[13px] font-semibold truncate">{t('viewMonth')}</TabsTrigger>
-                <TabsTrigger value="lista" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-[13px] font-semibold truncate">{t('viewList')}</TabsTrigger>
+                <TabsTrigger value="dia" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-compact font-semibold truncate">{t('viewDay')}</TabsTrigger>
+                <TabsTrigger value="semana" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-compact font-semibold truncate">{t('viewWeek')}</TabsTrigger>
+                <TabsTrigger value="mes" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-compact font-semibold truncate">{t('viewMonth')}</TabsTrigger>
+                <TabsTrigger value="lista" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-compact font-semibold truncate">{t('viewList')}</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -457,7 +457,7 @@ function ListView({
                       <span className="relative shrink-0">
                         <Avatar className="size-7">
                           {item.channel.avatarUrl ? <AvatarImage src={item.channel.avatarUrl} alt="" /> : null}
-                          <AvatarFallback className="text-[11px]">
+                          <AvatarFallback className="text-meta">
                             {(item.channel.name ?? item.channel.provider).charAt(0)}
                           </AvatarFallback>
                         </Avatar>
@@ -475,9 +475,9 @@ function ListView({
 
                     <div className="flex shrink-0 items-center gap-1.5 sm:hidden">
                       {item.group.awaitingApproval ? (
-                        <Badge variant="review" className="text-[10px] px-1.5 py-0">{t('awaitingApproval')}</Badge>
+                        <Badge variant="review" className="text-axis px-1.5 py-0">{t('awaitingApproval')}</Badge>
                       ) : null}
-                      <Badge variant={stateBadgeVariant(item.state)} className="text-[10px] px-1.5 py-0">
+                      <Badge variant={stateBadgeVariant(item.state)} className="text-axis px-1.5 py-0">
                         {t.has(`state.${item.state}`) ? t(`state.${item.state}`) : item.state}
                       </Badge>
                       <span className="text-xs font-semibold tabular-nums text-ink ml-1">
@@ -504,7 +504,7 @@ function ListView({
                     <Badge variant={stateBadgeVariant(item.state)}>
                       {t.has(`state.${item.state}`) ? t(`state.${item.state}`) : item.state}
                     </Badge>
-                    <span className="w-12 text-right text-[13px] font-semibold tabular-nums text-ink">
+                    <span className="w-12 text-right text-compact font-semibold tabular-nums text-ink">
                       {item.publishAt ? timeLabel.format(new Date(item.publishAt)) : '—'}
                     </span>
                   </span>

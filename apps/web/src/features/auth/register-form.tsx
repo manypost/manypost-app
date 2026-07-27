@@ -78,7 +78,7 @@ function ClerkRegisterForm() {
         }}
       >
         <div className="flex flex-col gap-2">
-          <label htmlFor="clerk-signup-code" className="text-[13px] font-medium text-ink">
+          <label htmlFor="clerk-signup-code" className="text-compact font-medium text-ink">
             {t('verificationCode')}
           </label>
           <Input

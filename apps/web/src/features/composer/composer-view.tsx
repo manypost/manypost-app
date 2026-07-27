@@ -48,7 +48,7 @@ import { useComposerStore } from './store';
 function SectionHeader({ label, children }: { label: string; children?: ReactNode }) {
   return (
     <div className="mb-2.5 flex items-center gap-2">
-      <h2 className="text-[11px] font-semibold uppercase tracking-wide text-graphite">{label}</h2>
+      <h2 className="text-meta font-semibold uppercase tracking-wide text-graphite">{label}</h2>
       {children ? <div className="ml-auto flex items-center gap-2">{children}</div> : null}
     </div>
   );
@@ -329,7 +329,7 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
       <button
         type="button"
         className={cn(
-          'ml-auto flex shrink-0 items-center gap-1.5 rounded-sm border px-2 py-1 text-[11px] font-semibold tabular-nums outline-none transition-colors duration-200',
+          'ml-auto flex cursor-pointer shrink-0 items-center gap-1.5 rounded-sm border px-2 py-1 text-meta font-semibold tabular-nums outline-none transition-colors duration-200',
           'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
           counterInvalid
             ? 'border-state-failed bg-state-failed-tint text-state-failed'
@@ -415,7 +415,7 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
                     >
                       <Avatar className="size-6">
                         {ch.avatarUrl ? <AvatarImage src={ch.avatarUrl} alt="" /> : null}
-                        <AvatarFallback className="text-[10px]">{name.charAt(0)}</AvatarFallback>
+                        <AvatarFallback className="text-axis">{name.charAt(0)}</AvatarFallback>
                       </Avatar>
                       {PROVIDER_ICONS[ch.provider] ? (
                         <img
@@ -485,7 +485,7 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
                             variant="ghost"
                             size="sm"
                             onClick={() => store.clearOverride(ch.id)}
-                            className="h-6 gap-1 px-2 text-[11px] font-semibold text-graphite hover:bg-surface hover:text-ink"
+                            className="h-6 gap-1 px-2 text-meta font-semibold text-graphite hover:bg-surface hover:text-ink"
                           >
                             <Lock className="size-3" aria-hidden />
                             Usar texto global
@@ -515,7 +515,7 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
                             <button
                               type="button"
                               className={cn(
-                                'flex shrink-0 items-center gap-1.5 rounded-sm border px-2 py-1 text-[11px] font-semibold tabular-nums outline-none transition-colors duration-200',
+                                'flex cursor-pointer shrink-0 items-center gap-1.5 rounded-sm border px-2 py-1 text-meta font-semibold tabular-nums outline-none transition-colors duration-200',
                                 'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
                                 counter?.over || (store.overrides[ch.id] !== undefined && store.overrides[ch.id]?.trim().length === 0)
                                   ? 'border-state-failed bg-state-failed-tint text-state-failed'
@@ -624,7 +624,7 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
                             <button
                               type="button"
                               className={cn(
-                                'ml-auto flex shrink-0 items-center gap-1.5 rounded-sm border px-2 py-1 text-[11px] font-semibold tabular-nums outline-none transition-colors duration-200',
+                                'ml-auto flex cursor-pointer shrink-0 items-center gap-1.5 rounded-sm border px-2 py-1 text-meta font-semibold tabular-nums outline-none transition-colors duration-200',
                                 'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
                                 over || len === 0
                                   ? 'border-state-failed bg-state-failed-tint text-state-failed'
@@ -672,7 +672,7 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
                     {t('threadAdd')}
                   </Button>
                 ) : store.thread.length > 0 ? (
-                  <p className="text-[13px] leading-relaxed text-state-failed">
+                  <p className="text-compact leading-relaxed text-state-failed">
                     {t('threadUnavailable', { channels: threadUnsupportedNames.join(', ') })}
                   </p>
                 ) : null}
@@ -691,7 +691,7 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
               aria-expanded={previewOpen}
               className="mb-2.5 flex w-full items-center gap-2 rounded-sm outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:pointer-events-none"
             >
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-graphite">
+              <span className="text-meta font-semibold uppercase tracking-wide text-graphite">
                 {t('preview.title')}
               </span>
               {previewName ? (

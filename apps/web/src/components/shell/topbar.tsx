@@ -101,7 +101,7 @@ export function Topbar() {
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="rounded-full outline-none transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className="cursor-pointer rounded-full outline-none transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               aria-label={user?.name ?? user?.email ?? 'menu do usuário'}
             >
               <Avatar>
@@ -112,7 +112,7 @@ export function Topbar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-52">
             <DropdownMenuLabel className="flex flex-col gap-0.5">
-              <span className="text-[13px] font-semibold text-ink">{user?.name}</span>
+              <span className="text-compact font-semibold text-ink">{user?.name}</span>
               <span className="font-normal">{user?.email}</span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />

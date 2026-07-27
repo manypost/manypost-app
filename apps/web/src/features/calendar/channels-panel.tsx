@@ -71,7 +71,7 @@ export function ChannelsPanel({
                 <button
                   type="button"
                   onClick={onClear}
-                  className="text-xs font-semibold text-accent hover:underline transition-colors"
+                  className="cursor-pointer text-xs font-semibold text-accent hover:underline transition-colors"
                 >
                   {t('clearFilter')} ({selectedIds.length})
                 </button>
@@ -99,7 +99,7 @@ export function ChannelsPanel({
                     <span className="relative shrink-0">
                       <Avatar className="size-6">
                         {ch.avatarUrl ? <AvatarImage src={ch.avatarUrl} alt="" /> : null}
-                        <AvatarFallback className="text-[11px] font-semibold">
+                        <AvatarFallback className="text-meta font-semibold">
                           {(ch.name ?? ch.username ?? '?').charAt(0)}
                         </AvatarFallback>
                       </Avatar>
@@ -176,7 +176,7 @@ export function ChannelsPanel({
                     <span className="relative shrink-0">
                       <Avatar className="size-7">
                         {ch.avatarUrl ? <AvatarImage src={ch.avatarUrl} alt="" /> : null}
-                        <AvatarFallback className="text-[11px]">
+                        <AvatarFallback className="text-meta">
                           {(ch.name ?? ch.username ?? '?').charAt(0)}
                         </AvatarFallback>
                       </Avatar>
@@ -190,11 +190,11 @@ export function ChannelsPanel({
                       ) : null}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[13px] font-semibold text-ink">
+                      <span className="block truncate text-compact font-semibold text-ink">
                         {ch.name ?? ch.username ?? ch.id}
                       </span>
                       {needsAttention ? (
-                        <span className="block truncate text-[11px] text-state-review">
+                        <span className="block truncate text-meta text-state-review">
                           {tConn.has(`status.${ch.status}`) ? tConn(`status.${ch.status}`) : ch.status}
                         </span>
                       ) : null}
@@ -211,7 +211,7 @@ export function ChannelsPanel({
             {t('clearFilter')}
           </Button>
         ) : (
-          <p className="text-[11px] leading-relaxed text-mist">{t('filterHint')}</p>
+          <p className="text-meta leading-relaxed text-mist">{t('filterHint')}</p>
         )}
       </aside>
     </>

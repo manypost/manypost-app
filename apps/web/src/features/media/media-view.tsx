@@ -133,7 +133,7 @@ export function MediaView() {
                   <span className="block truncate text-xs text-graphite">
                     {item.alt ? item.alt : t('noAlt')}
                   </span>
-                  <span className="block text-[11px] text-mist">
+                  <span className="block text-meta text-mist">
                     {formatBytes(item.byteSize, locale)}
                     {item.width && item.height ? ` · ${item.width}×${item.height}` : ''}
                   </span>

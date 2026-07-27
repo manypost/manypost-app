@@ -259,7 +259,7 @@ export function AiActions({
         void reescrever(id);
       }}
     >
-      <span className="text-[13px]">{t(`rewrite.${id}`)}</span>
+      <span className="text-compact">{t(`rewrite.${id}`)}</span>
     </DropdownMenuItem>
   );
 
@@ -323,7 +323,7 @@ export function AiActions({
                     void gerarLegenda();
                   }}
                 >
-                  <span className="text-[13px]">
+                  <span className="text-compact">
                     {scope === 'global' && channelIds.length > 1
                       ? t('adaptToNetwork')
                       : t('adaptToNetworkOne')}
@@ -344,7 +344,7 @@ export function AiActions({
                   void sugerirHashtags();
                 }}
               >
-                <span className="text-[13px]">{t('suggestHashtags')}</span>
+                <span className="text-compact">{t('suggestHashtags')}</span>
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />

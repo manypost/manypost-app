@@ -2639,3 +2639,141 @@ Antes de publicar esta versão como oficial, a equipe deve validar:
 8. aprovação final de marca.
 
 Decisões ainda não validadas devem permanecer marcadas como proposta e não devem ser tratadas como implementação concluída.
+
+---
+
+## 51. Adendo de reconciliação com o brand system (2026-07-27)
+
+### 51.1 Por que este adendo existe
+
+O §0 declara este documento uma **proposta** que se torna fonte de verdade após aprovação. Entre
+a redação dele e hoje, o aplicativo já implementou uma linguagem visual — `docs/brand/BRAND_SYSTEM.md`,
+os tokens de `apps/web/src/app/globals.css` e o `scripts/check-brand.ts` que reprova o CI — e em
+três pontos as duas discordam de frente. Enquanto isso não estivesse resolvido, "conforme o
+`design.md`" era ambíguo: dava para escrever um componente que passasse nesta especificação e
+**reprovasse o CI**.
+
+Decisão tomada: **onde há conflito, o brand system vence.** As seções abaixo ficam sobrescritas.
+O resto do documento continua valendo integralmente — inclusive, e principalmente, as partes que o
+aplicativo ainda não implementou (§13 cabeçalho de página, §20 KPI, §24.3 command palette, §29
+gráficos, §30 painel direito).
+
+### 51.2 Sombra: proibida, sem exceção de componente flutuante
+
+| Seção sobrescrita | O que dizia | O que vale |
+| --- | --- | --- |
+| §24.1 | `box-shadow: var(--mp-shadow-floating)` no dropdown | nenhuma sombra |
+| §25.1, §25.2 | sombra permitida em tooltip e popover | nenhuma sombra |
+| §26.1 | overlay com elevação | nenhuma sombra |
+| §27.2 | "toast é flutuante, portanto pode usar sombra" | nenhuma sombra |
+| §24.3 | "sombra floating permitida" na command palette | nenhuma sombra |
+| §46.3 | "permitir sombra apenas em Tooltip, Dropdown, Popover, Toast e CommandPalette" | **regra removida**: `box-shadow` é proibido em todo componente |
+| §8.4 | "Elevação" como eixo de hierarquia | substituído por §51.4 |
+
+Motivo: zero sombra não é preferência, é o pilar de identidade da marca (BRAND §2.2) e a regra
+que o `check-brand.ts` verifica arquivo por arquivo. Um flutuante se separa do fundo por **borda +
+mudança de superfície + relevo por gradiente**, que é suficiente e já está implementado.
+
+### 51.3 Raio: somente 4, 6 e 8px
+
+| Seção sobrescrita | O que dizia | O que vale |
+| --- | --- | --- |
+| §8.1, §46.5 | escala 4/6/8/10/12/16/999px | **4/6/8px**; `999px` (`rounded-full`) apenas em avatar |
+| §47.2 | card 10px, analytics 12px | 8px |
+| §47.3 | KPI 12px | 8px |
+| §20.1 | `--mp-radius-xl` no card de KPI | 8px (`rounded-lg`) |
+
+O `check-brand.ts` reprova qualquer coisa fora disso, incluindo valor arbitrário (`rounded-[10px]`).
+
+### 51.4 Profundidade: gradiente, não elevação
+
+O §8.4 fala de elevação; o brand v1.3 resolve profundidade por **gradiente de preenchimento +
+cor de borda por lado**, e a direção codifica a função:
+
+| Intenção | Classe | Direção |
+| --- | --- | --- |
+| Superfície/controle que sobe (botão, card, overlay, sidebar, aba ativa) | `.bevel-surface`, `.bevel-primary`, `.bevel-outline` | topo claro, base escura |
+| Badge, chip, caixa de tint, **card de KPI** | `.bevel-chip` | brilho sobre a cor de fundo que o elemento já tem |
+| Campo de entrada | `.inset-field` | invertida (afunda) |
+| Estado selecionado em acento | `.bevel-accent` | contorno de acento com bevel na borda |
+
+Só o fundo da página e o texto puro ficam sem volume. Hover de relevo é `filter: brightness()`,
+nunca `translate`/`scale` (§34.2 e §43.13 já concordam com isso).
+
+**Card de KPI (§20) na linguagem do brand:** não precisa de classe nova. É
+`bg-<tint> bevel-chip rounded-lg border border-line`, com o tint escolhido conforme §51.6.
+
+### 51.5 Mapa de nomes: `--mp-*` → tokens reais
+
+Este documento usa um namespace que o aplicativo não tem. A tradução é esta, e é a única
+autorizada:
+
+| `design.md` | Token real | Utility |
+| --- | --- | --- |
+| `--mp-bg-canvas` | `--canvas` | `bg-canvas` |
+| `--mp-bg-surface` | `--surface` | `bg-surface` |
+| `--mp-bg-subtle`, `--mp-bg-muted` | `--surface-2` | `bg-surface-2` |
+| `--mp-text-primary` | `--ink` | `text-ink` |
+| `--mp-text-secondary` | `--ink-soft` | `text-ink-soft` |
+| `--mp-text-tertiary` | `--graphite` | `text-graphite` |
+| `--mp-border-subtle`, `--mp-border-default` | `--line` | `border-line` |
+| `--mp-accent`, roxo `#7C3AED` | `--accent` | `text-accent`, `bg-accent` |
+| `--mp-accent-soft` | `--accent-tint` | `bg-accent-tint` |
+| `--mp-radius-xs`/`sm` | `--radius-sm` (4px) | `rounded-sm` |
+| `--mp-radius-md` | `--radius-md` (6px) | `rounded-md` |
+| `--mp-radius-lg`/`xl` | `--radius-lg` (8px) | `rounded-lg` |
+| `--mp-duration-fast`/`base` | — | `duration-200` (transição de cor) |
+| série primária de gráfico | `--data-1` | `text-data-1`, `bg-data-1` |
+| série secundária de gráfico | `--data-2` | `text-data-2`, `bg-data-2` |
+| trilha de medidor/barra | `--data-track` | `bg-data-track` |
+
+### 51.6 Tokens novos registrados (exceção sob §46.15)
+
+O §20.3 pede três tints de KPI (lilás, azul, neutro) e o §47.3 pede duas séries analíticas. O
+aplicativo tinha o lilás (`--accent-tint`) e o neutro (`--surface-2`); faltava a segunda série.
+Foram adicionados a `globals.css`:
+
+| Token | Valor | Justificativa |
+| --- | --- | --- |
+| `--data-1` / `--data-1-tint` | `#7c3aed` / `#ede9fe` | apelido semântico do acento, para o gráfico não referenciar "cor de marca" |
+| `--data-2` / `--data-2-tint` | `#0f766e` / `#ccfbf1` | ver abaixo |
+| `--data-track` | `#eeeeef` | o "vazio" de medidor e barra |
+
+**Sobre o teal:** o §47.3 sugere `#14B8A6`. Ele **não foi adotado**. Contra branco esse tom dá
+**2,49:1**, abaixo do 3:1 que a WCAG 1.4.11 exige para objeto gráfico não textual — e a §2.1
+deste documento coloca acessibilidade **acima** de preferência visual, então a troca é obrigatória,
+não opcional. `#0f766e` dá **5,47:1**, praticamente igual ao roxo (5,70:1), o que também equilibra
+o peso das duas séries. Teal foi mantido como matiz porque é o único distante do roxo que não
+colide com a semântica dos estados de publicação (âmbar = publicando, verde = publicado, vermelho
+= falhou, amarelo = revisão): uma série verde leria como "publicado".
+
+**Sobre o azul de KPI (§20.1, `#EEF5FD`):** não foi adotado e não deve ser usado. Uma fileira de
+três KPIs usa `--accent-tint`, `--data-2-tint` e `--surface-2` — três tons suaves, dois deles já
+com significado no produto, sem introduzir um matiz que a marca não tem.
+
+### 51.7 Tipografia: o piso de 11px ganhou nome
+
+O §6.4 fixa 11px como piso da interface compacta e o §43.20 proíbe valor arbitrário fora dos
+tokens. As duas regras juntas condenam o `text-[11px]` avulso, que já havia se espalhado. Existe
+agora a classe **`.text-meta`** (11px/1.4) para o papel "Metadado" da tabela §6.3. Nenhum
+componente novo deve escrever tamanho de fonte arbitrário; se um papel novo aparecer, ele ganha
+classe e entra nesta tabela.
+
+### 51.8 O que o `check-brand.ts` verifica hoje
+
+Para a especificação não ser confundida com o portão, o que o CI realmente impõe:
+
+| Verifica | Não verifica |
+| --- | --- |
+| hex fora de `globals.css` | contraste real |
+| `box-shadow` e utilities de sombra | ordem de foco e navegação por teclado |
+| `translate`/`scale`/`rotate` em `:hover` | densidade e espaçamento |
+| raio fora de 4/6/8 | uso correto de token semântico |
+| wordmark `manypost` minúsculo | string literal fora do i18n |
+| tamanho de fonte arbitrário (`text-[Npx]`) | — |
+| `<button>` sem `cursor-pointer` | — |
+| `animate-*` sem `motion-reduce` | — |
+
+As três últimas linhas entraram com este adendo. O resto do checklist do §44 continua sendo
+**revisão humana** — dizer "verificado por `check:brand`" cobre estas oito regras, não as vinte
+do §43.

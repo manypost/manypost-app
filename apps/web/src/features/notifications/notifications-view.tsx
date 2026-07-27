@@ -62,7 +62,7 @@ export function NotificationsView() {
     <div className="flex flex-col gap-4">
       {unread > 0 ? (
         <div className="bevel-chip flex items-center justify-between rounded-lg border border-line bg-accent-tint px-4 py-2.5">
-          <span className="text-[13px] font-semibold text-accent">
+          <span className="text-compact font-semibold text-accent">
             {t('unreadCount', { count: unread })}
           </span>
           <Button
@@ -100,7 +100,7 @@ export function NotificationsView() {
                   {n.title}
                 </span>
                 {n.body ? (
-                  <span className="mt-0.5 block text-[13px] leading-relaxed text-graphite">{n.body}</span>
+                  <span className="mt-0.5 block text-compact leading-relaxed text-graphite">{n.body}</span>
                 ) : null}
               </span>
               <span className="shrink-0 text-xs text-mist">{relativeTime(n.createdAt, locale)}</span>

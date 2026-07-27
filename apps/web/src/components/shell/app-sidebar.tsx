@@ -69,7 +69,7 @@ function RailItem({
     >
       <Icon className="size-4 shrink-0" aria-hidden />
       {!collapsed ? (
-        <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{label}</span>
+        <span className="min-w-0 flex-1 truncate text-compact font-medium">{label}</span>
       ) : null}
       {dot ? (
         <span

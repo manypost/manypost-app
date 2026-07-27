@@ -24,9 +24,9 @@ const buttonVariants = cva(
         destructive: 'bevel-destructive text-paper hover:brightness-95',
       },
       size: {
-        sm: 'h-8 px-3.5 text-[11px]',
-        md: 'h-[38px] px-5 text-[13px]',
-        lg: 'h-11 px-7 text-[15px] font-bold',
+        sm: 'h-8 px-3.5 text-meta',
+        md: 'h-[38px] px-5 text-compact',
+        lg: 'h-11 px-7 text-panel font-bold',
         icon: 'size-[38px]',
         'icon-sm': 'size-8',
       },

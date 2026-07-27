@@ -23,7 +23,7 @@ export function PlanLockNotice({
   if (!billingEnabled || has(feature)) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-md border border-accent bg-accent-tint px-3 py-2 text-[13px] text-accent">
+    <div className="flex flex-wrap items-center gap-2 rounded-md border border-accent bg-accent-tint px-3 py-2 text-compact text-accent">
       <Lock className="size-4 shrink-0" aria-hidden />
       <span className="min-w-0 flex-1">
         {t('lockedFeature', { plan: PLAN_LABEL[requiredTier] ?? requiredTier })}

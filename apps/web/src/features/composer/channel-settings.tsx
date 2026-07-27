@@ -263,11 +263,11 @@ function ChipField({
         />
       </div>
       {budget !== undefined ? (
-        <span className={cn('self-end text-[11px]', over ? 'text-state-failed' : 'text-mist')}>
+        <span className={cn('self-end text-meta', over ? 'text-state-failed' : 'text-mist')}>
           {used}/{budget}
         </span>
       ) : max !== undefined ? (
-        <span className="self-end text-[11px] text-mist">
+        <span className="self-end text-meta text-mist">
           {items.length}/{max}
         </span>
       ) : null}

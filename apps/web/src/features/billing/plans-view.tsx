@@ -129,7 +129,7 @@ export function PlansView() {
         <h1 className="font-display text-base font-bold tracking-[-0.2px] text-ink">
           {t('selfHostedTitle')}
         </h1>
-        <p className="text-[13px] leading-relaxed text-graphite">{t('selfHostedBody')}</p>
+        <p className="text-compact leading-relaxed text-graphite">{t('selfHostedBody')}</p>
       </div>
     );
   }
@@ -243,7 +243,7 @@ export function PlansView() {
       </section>
 
       {subscription?.status === 'PAST_DUE' ? (
-        <p className="rounded-md border border-state-failed bg-state-failed-tint px-3 py-2 text-[13px] text-state-failed">
+        <p className="rounded-md border border-state-failed bg-state-failed-tint px-3 py-2 text-compact text-state-failed">
           {t('pastDueHint')}
         </p>
       ) : null}
@@ -251,7 +251,7 @@ export function PlansView() {
       {/* escolha do plano — mesma leitura do onboarding */}
       <section className="flex flex-col gap-5 rounded-lg border border-line bg-surface p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="max-w-xl text-[13px] leading-relaxed text-graphite">{t('subheadline')}</p>
+          <p className="max-w-xl text-compact leading-relaxed text-graphite">{t('subheadline')}</p>
           <PeriodToggle value={period} onChange={setPeriod} />
         </div>
 
@@ -281,7 +281,7 @@ export function PlansView() {
           <PlanIncludes tier={selected} />
 
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-[13px] text-graphite">
+            <p className="text-compact text-graphite">
               {isCurrent
                 ? t('currentPlanHint')
                 : selected === 'FREE'
@@ -313,7 +313,7 @@ export function PlansView() {
         {invoices.isPending ? (
           <Skeleton className="m-4 h-10 rounded-md" />
         ) : (invoices.data ?? []).length === 0 ? (
-          <p className="px-5 py-3.5 text-[13px] text-graphite">{t('noInvoices')}</p>
+          <p className="px-5 py-3.5 text-compact text-graphite">{t('noInvoices')}</p>
         ) : (
           <ul>
             {invoices.data!.map((invoice) => (
@@ -321,10 +321,10 @@ export function PlansView() {
                 key={invoice.id}
                 className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-2.5 last:border-b-0"
               >
-                <span className="min-w-0 flex-1 text-[13px] text-graphite">
+                <span className="min-w-0 flex-1 text-compact text-graphite">
                   {shortDate(invoice.createdAt, locale)}
                 </span>
-                <span className="text-[13px] font-semibold tabular-nums text-ink">
+                <span className="text-compact font-semibold tabular-nums text-ink">
                   {brl(invoice.amountPaid)}
                 </span>
                 {invoice.invoiceUrl ? (
@@ -332,7 +332,7 @@ export function PlansView() {
                     href={invoice.invoiceUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center gap-1 text-[13px] text-accent underline-offset-4 transition-colors duration-200 hover:text-accent-hover hover:underline"
+                    className="flex items-center gap-1 text-compact text-accent underline-offset-4 transition-colors duration-200 hover:text-accent-hover hover:underline"
                   >
                     {t('invoiceReceipt')}
                     <ExternalLink className="size-3.5" aria-hidden />
