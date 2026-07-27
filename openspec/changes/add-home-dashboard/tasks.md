@@ -39,6 +39,8 @@
       screen names itself
 - [x] 3.4 Consolidate the two `PageHeader` implementations; prove `/midia` and `/conexoes` render
       one page-level heading, and adopt the primitive on the remaining application screens
+- [x] 3.5 Keep the persistent desktop topbar label visually unchanged but out of the heading
+      hierarchy, so the screen's canonical `PageHeader` is its only semantic `h1`
 
 ## 4. Home
 

@@ -95,6 +95,9 @@
 - [x] 8.3 Failing test asserting every `ai.*` key referenced by the components
       exists in the catalogue (the pattern in
       `features/auth/auth-placeholders.test.tsx` already does this for auth)
+- [x] 8.4 Keep rewrite labels as a nested `ai.rewrite` namespace rather than
+      literal dotted keys, and assert the catalogue is valid for `next-intl`
+      before a browser can fail at runtime
 
 ## 9. Verification
 

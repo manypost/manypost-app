@@ -50,8 +50,9 @@
 - [x] 6.2 Media library: the action plus an "IA" badge on generated assets
 - [x] 6.3 Composer media picker: same action with the aspect preselected from the chosen channels
 - [x] 6.4 Strings in `messages/pt-BR.json`; hidden entirely when the installation cannot generate
-- [ ] 6.5 Browser sends one stable `Idempotency-Key` for retries of the same logical request and a
-      new key after prompt/aspect/channel changes
+- [x] 6.5 Browser sends one stable `Idempotency-Key` for retries of the same logical request and a
+      new key after prompt/aspect/channel changes; verified in Playwright with two failed attempts
+      of one prompt followed by a changed prompt
 
 ## 7. Verification
 
