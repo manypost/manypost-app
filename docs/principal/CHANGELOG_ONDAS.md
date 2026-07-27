@@ -10,6 +10,63 @@
 > **Como manter:** ao fechar uma fatia, adicione a onda nova **no topo** e atualize o STATUS.
 > Cada entrada é auto-contida: o que mudou, onde no código, e a prova de que funciona.
 
+## Onda 30 — 2026-07-27 — a home que não existia, e o design system reconciliado
+
+**O ponto de partida.** `apps/web/src/app/page.tsx` tinha seis linhas e redirecionava para
+`/calendario`. Não havia home: a primeira tela do produto era uma ferramenta. E a plataforma já
+sabia tudo o que uma home precisaria — `/v1/capabilities` entregava plano, limites e uso; o feed de
+publicações filtrava por janela, estado e canal; `FAILED`, `NEEDS_REVIEW`, `PARTIAL`,
+`REFRESH_REQUIRED` e `awaitingApproval` existiam no contrato. Faltava **uma leitura agregada e uma
+tela que montasse isso**.
+
+**O que mudou**
+
+- **`GET /v1/insights/summary`** — contagens, não documentos. Fronteiras de dia resolvidas no fuso
+  do usuário por `Intl` (offset fixo erraria no horário de verão, e uma hora de erro move um post
+  do "hoje" para o "amanhã" na tela que existe para conferir o dia). `org_id` em toda ramificação.
+- **`/inicio`**, com quatro blocos que **desaparecem quando não têm o que dizer**: atenção (só
+  quando algo está errado), hoje, plano (só onde o limite é imposto) e semana. Primeiro uso troca
+  tudo por próximos passos.
+- **Nenhuma métrica de desempenho** — `channel_metrics` está vazia, então todo número vem do nosso
+  registro do que foi pedido e entregue. Há teste que reprova mensagem que fale de alcance ou
+  engajamento.
+- **`PageHeader` (design.md §13)** em cinco telas. Nenhuma tela do app tinha cabeçalho: o título
+  vivia só na topbar e nenhuma delas dizia o que era.
+- **Adendo `design.md §51`** — o documento se declarava proposta e contradizia o brand system em
+  sombra (§24.1/§27.2/§46.3), raio (§47.2/§47.3 pediam 10 e 12px) e namespace de token. Decisão:
+  onde há conflito, **o brand vence**; as seções ficam sobrescritas e há mapa `--mp-*` → tokens
+  reais. Sem isso, "conforme o design.md" era ambíguo — dava para escrever componente que passasse
+  na spec e **reprovasse o CI**.
+- **Escala tipográfica do §6.3 virou utility.** O Tailwind dá 12/14/16/18px; faltavam 10, 11, 13 e
+  15px, então cada componente escrevia o valor à mão (102× `text-[13px]`, 57× 11px, 18× 10px, mais
+  9 e 10.5px — **abaixo do piso de 11px** que o §6.4 fixa). Agora há `text-axis/meta/compact/panel`
+  e as 192 ocorrências migraram, pixel a pixel.
+- **Tokens de série analítica** (`--data-1/-2/-track`). O teal do §47.3 (`#14B8A6`) **não** foi
+  adotado: 2,49:1 contra branco, abaixo do 3:1 da WCAG 1.4.11 para objeto gráfico — e o §2.1 do
+  próprio documento põe acessibilidade acima de preferência visual. `#0f766e` dá 5,47:1.
+- **`check:brand` ganhou três regras** (fonte arbitrária no regime compacto, `motion-reduce`,
+  `cursor-pointer` em `<button>`), que acusaram 12 violações já existentes — entre elas o Skeleton
+  do app inteiro pulsando sob `prefers-reduced-motion`, que o §28.2 proíbe.
+
+**As provas**
+
+| Verificação | Resultado |
+| --- | --- |
+| `bun run check` | ✅ 904 testes, 0 falhas; fronteiras (525 módulos, 1601 dependências) sem violação; brand ok com as três regras novas |
+| `bun run build:web` | ✅ compilado, 19 páginas (`/inicio` incluída) |
+| `bun run db:check` | ✅ `Everything's fine` |
+| `bun run spec:validate` | ✅ 20 passed, 0 failed |
+| `scripts/e2e-insights.ts` | ✅ **23 checks** contra API real + Postgres descartável, cenário escrito à mão: cada contagem conferida, **duas organizações** provando que o agregado não mistura inquilinos (as 9 falhas da segunda não contaminam as 2 da primeira), e nenhum texto de publicação no payload |
+| Renderização dos blocos | ✅ `home-blocks.test.tsx` com `renderToStaticMarkup` (molde do `auth-placeholders.test.tsx`, zero dependência nova) |
+| Testes não vazios | ✅ **dois mutation checks**: remover o `return null` do bloco de atenção quebra o teste de "o bloco desaparece"; trocar `rounded-lg` por `rounded-3xl` quebra o teste de escala de raio |
+| Contrato OpenAPI | ✅ 71 → 72 rotas, **nenhuma perdida**, dois schemas novos |
+
+**O que esta onda NÃO fez.** Ninguém abriu a home num navegador — o repositório continua sem
+harness de navegador, e a prova existe na camada de API (E2E com dados semeados) e na marcação
+renderizada. Segue sendo o achado 12 da revisão e o portão pendente. O cache de 30s no Redis
+previsto na proposta foi **descartado com motivo**: num painel de "está tudo bem?", meia janela de
+cache esconde falha nova e mantém falha resolvida na tela.
+
 ## Onda 29 — 2026-07-27 — a revisão da onda 28, e o conserto do que ela destruía
 
 **O ponto de partida.** A onda 28 entregou um motor de IA melhor que o volante ligado nele. Duas

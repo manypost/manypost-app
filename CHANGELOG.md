@@ -6,6 +6,42 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ## [Unreleased]
 
+### Added
+
+- **A home que não existia.** `apps/web/src/app/page.tsx` tinha seis linhas e redirecionava para
+  `/calendario`, e o grupo autenticado não tinha página raiz: a primeira tela do produto era uma
+  ferramenta, não um panorama. O calendário responde "o que está agendado nesta semana" — boa
+  pergunta, mas não a **primeira**. A primeira é "está tudo bem?", e a plataforma sabia a resposta
+  sem nunca oferecê-la: uma publicação que falhava de madrugada era um cartão vermelho no kanban
+  *se* a pessoa pensasse em ir lá, e um canal com token expirado só aparecia em `/conexoes` — então
+  o jeito normal de descobrir era um post falhando. OpenSpec: `add-home-dashboard` → capacidade
+  nova `home-operational-overview`.
+  - **`GET /v1/insights/summary?tz=<IANA>`** — contagens agregadas, não documentos: o que precisa
+    de atenção (falhas, revisão, aprovação, entrega parcial, canais a reconectar), o que sai hoje e
+    a semana por dia. As fronteiras de dia são resolvidas **no fuso do usuário** por `Intl`, nunca
+    por offset fixo (um erro de uma hora aqui move um post do "hoje" para o "amanhã" na tela que a
+    pessoa usa para conferir o dia). Filtro por `org_id` em toda ramificação, inclusive dentro de
+    cada subconsulta — agregado é exatamente onde um vazamento passa despercebido, porque ninguém
+    vê a linha, só um número plausível.
+  - **Tela `/inicio`**, e `/` passa a levar até lá. O calendário continua onde estava, a um clique.
+  - **Bloco sem conteúdo não existe.** "Precisa de atenção" **desaparece** quando nada está errado
+    — não vira um cartão verde de "tudo em ordem" (design.md §3.3: silêncio também é sinal). Os
+    medidores de plano desaparecem em self-hosted, onde o limite nunca é aplicado.
+  - **Nenhuma métrica de desempenho.** `channel_metrics` está vazia porque nada escreve nela, então
+    todo número da home vem do nosso próprio registro do que foi pedido e do que foi entregue —
+    e é verdadeiro hoje. Um gráfico de engajamento aqui seria dado inventado. Há teste que reprova
+    qualquer mensagem da home que fale de alcance, engajamento ou curtida.
+  - **Primeiro uso é onboarding**, não uma grade de zeros: sem canal conectado, a home é o passo de
+    conectar um.
+  - **`PageHeader` (design.md §13)**, adotado em `/inicio`, `/calendario`, `/kanban`, `/midia` e
+    `/conexoes` — nenhuma tela do app tinha cabeçalho, o título vivia só na topbar e **nenhuma tela
+    dizia o que era**. Cada uma ganhou uma linha de descrição.
+  - **"Início" na sidebar** e o wordmark apontando para lá: antes ele levava ao calendário, então
+    nem o gesto universal de voltar ao começo existia.
+  - `scripts/e2e-insights.ts` — 23 checks contra API real e Postgres descartável, com cenário
+    esperado escrito à mão e **duas organizações**, para provar que o agregado não mistura
+    inquilinos. Roda no job de E2E do CI.
+
 ### Fixed
 
 - **A reescrita por IA destruía texto do usuário.** Na aba global do composer, a ação de

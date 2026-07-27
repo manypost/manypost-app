@@ -1886,6 +1886,65 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/v1/insights/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resumo operacional da organização (tela inicial)
+         * @description Contagens agregadas: o que precisa de atenção (falhas, revisão, aprovação, entrega parcial, canais a reconectar), o que sai hoje e a semana por dia. **Não traz métrica de desempenho** — a plataforma não coleta engajamento, então todo número aqui vem do registro do que ela mesma pediu e entregou. As fronteiras de dia são resolvidas no fuso informado em `tz`.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    tz?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description resumo */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InsightsSummary"];
+                    };
+                };
+                /** @description requisição fora do contrato (problem+json) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description não autenticado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/ai/caption": {
         parameters: {
             query?: never;
@@ -5298,6 +5357,44 @@ export type components = {
                 /** @example https://mcp.manypost.com.br */
                 mcpUrl: string;
             };
+        };
+        ChannelNeedingAction: {
+            channelId: string;
+            provider: string;
+            name: string | null;
+            /** @description REFRESH_REQUIRED | PENDING_ACCOUNT_SELECTION | DISABLED */
+            status: string;
+        };
+        InsightsSummary: {
+            /** @description fuso em que as fronteiras de dia foram resolvidas — a resposta diz qual usou */
+            timezone: string;
+            attention: {
+                failed: number;
+                /** @description desfecho incerto: nunca retentado sozinho, espera decisão humana */
+                needsReview: number;
+                /** @description por GRUPO, não por publicação */
+                awaitingApproval: number;
+                /** @description saiu em algumas redes e não em outras */
+                partial: number;
+                channels: components["schemas"]["ChannelNeedingAction"][];
+                /** @description 0 = a interface esconde o bloco inteiro */
+                total: number;
+            };
+            today: {
+                scheduled: number;
+                published: number;
+                failed: number;
+            };
+            week: {
+                scheduled: number;
+                /** @description 7 posições, índice 0 = hoje no fuso pedido */
+                byDay: number[];
+            };
+            /**
+             * @description organização sem o que operar. A interface troca os blocos operacionais por próximos passos em vez de mostrar uma grade de zeros. null = já está operando.
+             * @enum {string|null}
+             */
+            firstRun: "no_channels" | "no_posts" | null;
         };
         AiVariant: {
             channelId: string;

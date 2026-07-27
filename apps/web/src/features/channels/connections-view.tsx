@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import { Card } from '@/components/ui/card';
 import {
   Dialog,
@@ -104,6 +105,7 @@ export function ConnectionsView() {
 
   return (
     <div className="flex flex-col gap-8">
+      <PageHeader title={t('title')} description={t('pageDescription')} />
       <section aria-labelledby="channels-title" className="flex flex-col gap-4">
         <h2 id="channels-title" className="text-base font-semibold tracking-[-0.2px] text-ink">
           {t('channelsTitle')}

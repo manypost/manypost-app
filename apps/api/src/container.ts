@@ -34,6 +34,7 @@ import {
   makePlanWeek,
   makeRewriteText,
   makeSuggestBestTimes,
+  makeSummarizeInsights,
   makeSuggestHashtags,
   type AiDeps,
   makeApplyRemoteSubscription,
@@ -263,6 +264,12 @@ export async function buildContainer(env: Env) {
     repos,
     budget,
     ai,
+    // resumo operacional da home: contagens agregadas do nosso próprio registro (sem métrica
+    // de desempenho — `channel_metrics` está vazia porque nada escreve nela)
+    insights: makeSummarizeInsights({
+      publishing: repos.publishing,
+      channels: repos.channels,
+    }),
     // heurística, não modelo: existe mesmo sem AI_PROVIDER e não consome franquia (SPEC_AI §3)
     bestTimes: makeSuggestBestTimes({
       publishing: repos.publishing,

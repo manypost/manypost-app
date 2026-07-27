@@ -17,6 +17,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PROVIDER_ICONS } from '@/features/channels/provider-icon';
 import { useComposerModal } from '@/features/composer/use-composer-modal';
@@ -184,7 +185,22 @@ function KanbanColumn({
  * Arrastar Falhou → Agendado dispara o retry; transições inválidas explicam
  * no toast. Card abre o mesmo painel de detalhe do calendário.
  */
+/**
+ * Envolve o quadro com o cabeçalho da tela (design.md §13). Existe porque o quadro tem quatro
+ * saídas (carregando, erro, vazio e o quadro em si) e o cabeçalho pertence à TELA, não a cada
+ * estado dela — repetir em quatro lugares convidaria a divergirem.
+ */
 export function KanbanView() {
+  const t = useTranslations('kanban');
+  return (
+    <div className="flex flex-col gap-4">
+      <PageHeader title={t('title')} description={t('pageDescription')} />
+      <KanbanBoard />
+    </div>
+  );
+}
+
+function KanbanBoard() {
   const t = useTranslations('kanban');
   const errorMessage = useApiErrorMessage();
   const retry = useRetryPost();

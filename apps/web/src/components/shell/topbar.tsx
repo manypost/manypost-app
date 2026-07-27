@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, CalendarDays, CreditCard, Image as ImageIcon, LogOut, Menu, PenSquare, Plug, Settings, SquareKanban } from 'lucide-react';
+import { Bell, CalendarDays, CreditCard, House, Image as ImageIcon, LogOut, Menu, PenSquare, Plug, Settings, SquareKanban } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -22,6 +22,7 @@ import { useComposerModal } from '@/features/composer/use-composer-modal';
 import { NotificationsMenu } from '@/features/notifications/notifications-menu';
 
 const MOBILE_NAV = [
+  { href: '/inicio', key: 'home', icon: House },
   { href: '/calendario', key: 'calendar', icon: CalendarDays },
   { href: '/kanban', key: 'kanban', icon: SquareKanban },
   { href: '/conexoes', key: 'connections', icon: Plug },
@@ -31,6 +32,7 @@ const MOBILE_NAV = [
 ] as const;
 
 const TITLE_BY_PATH: Array<{ prefix: string; key: string }> = [
+  { prefix: '/inicio', key: 'nav.home' },
   { prefix: '/calendario', key: 'nav.calendar' },
   { prefix: '/kanban', key: 'nav.kanban' },
   { prefix: '/conexoes', key: 'nav.connections' },

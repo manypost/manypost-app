@@ -1208,6 +1208,136 @@
           "endpoints"
         ]
       },
+      "ChannelNeedingAction": {
+        "type": "object",
+        "properties": {
+          "channelId": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "description": "REFRESH_REQUIRED | PENDING_ACCOUNT_SELECTION | DISABLED"
+          }
+        },
+        "required": [
+          "channelId",
+          "provider",
+          "name",
+          "status"
+        ]
+      },
+      "InsightsSummary": {
+        "type": "object",
+        "properties": {
+          "timezone": {
+            "type": "string",
+            "description": "fuso em que as fronteiras de dia foram resolvidas — a resposta diz qual usou"
+          },
+          "attention": {
+            "type": "object",
+            "properties": {
+              "failed": {
+                "type": "integer"
+              },
+              "needsReview": {
+                "type": "integer",
+                "description": "desfecho incerto: nunca retentado sozinho, espera decisão humana"
+              },
+              "awaitingApproval": {
+                "type": "integer",
+                "description": "por GRUPO, não por publicação"
+              },
+              "partial": {
+                "type": "integer",
+                "description": "saiu em algumas redes e não em outras"
+              },
+              "channels": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ChannelNeedingAction"
+                }
+              },
+              "total": {
+                "type": "integer",
+                "description": "0 = a interface esconde o bloco inteiro"
+              }
+            },
+            "required": [
+              "failed",
+              "needsReview",
+              "awaitingApproval",
+              "partial",
+              "channels",
+              "total"
+            ]
+          },
+          "today": {
+            "type": "object",
+            "properties": {
+              "scheduled": {
+                "type": "integer"
+              },
+              "published": {
+                "type": "integer"
+              },
+              "failed": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "scheduled",
+              "published",
+              "failed"
+            ]
+          },
+          "week": {
+            "type": "object",
+            "properties": {
+              "scheduled": {
+                "type": "integer"
+              },
+              "byDay": {
+                "type": "array",
+                "items": {
+                  "type": "integer"
+                },
+                "description": "7 posições, índice 0 = hoje no fuso pedido"
+              }
+            },
+            "required": [
+              "scheduled",
+              "byDay"
+            ]
+          },
+          "firstRun": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "no_channels",
+              "no_posts"
+            ],
+            "description": "organização sem o que operar. A interface troca os blocos operacionais por próximos passos em vez de mostrar uma grade de zeros. null = já está operando."
+          }
+        },
+        "required": [
+          "timezone",
+          "attention",
+          "today",
+          "week",
+          "firstRun"
+        ]
+      },
       "AiVariant": {
         "type": "object",
         "properties": {
@@ -4352,6 +4482,64 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Capabilities"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/insights/summary": {
+      "get": {
+        "tags": [
+          "insights"
+        ],
+        "security": [
+          {
+            "clerkAuth": []
+          }
+        ],
+        "summary": "Resumo operacional da organização (tela inicial)",
+        "description": "Contagens agregadas: o que precisa de atenção (falhas, revisão, aprovação, entrega parcial, canais a reconectar), o que sai hoje e a semana por dia. **Não traz métrica de desempenho** — a plataforma não coleta engajamento, então todo número aqui vem do registro do que ela mesma pediu e entregou. As fronteiras de dia são resolvidas no fuso informado em `tz`.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "IANA; inválido responde 400",
+              "example": "America/Sao_Paulo"
+            },
+            "required": false,
+            "name": "tz",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "resumo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InsightsSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "requisição fora do contrato (problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }

@@ -27,6 +27,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PageHeader } from '@/components/ui/page-header';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PROVIDER_ICONS } from '@/features/channels/provider-icon';
 import { useComposerStore } from '@/features/composer/store';
@@ -269,7 +270,9 @@ export function CalendarView() {
   );
 
   return (
-    <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+    <div className="flex flex-col gap-4">
+      <PageHeader title={t('title')} description={t('pageDescription')} />
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
       <ChannelsPanel
         selectedIds={channelFilter}
         onToggle={toggleChannel}
@@ -384,6 +387,7 @@ export function CalendarView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   );
 }

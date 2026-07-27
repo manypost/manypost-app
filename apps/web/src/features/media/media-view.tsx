@@ -16,6 +16,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import {
   Dialog,
   DialogContent,
@@ -88,6 +89,7 @@ export function MediaView() {
 
   return (
     <div className="flex flex-col gap-6">
+      <PageHeader title={t('title')} description={t('pageDescription')} />
       <div className="flex flex-col gap-3">
         <UploadZone />
         <div className="flex items-center justify-between">
