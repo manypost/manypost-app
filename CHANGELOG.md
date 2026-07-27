@@ -73,6 +73,12 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
     `scripts/live-ai.ts` faz um smoke opt-in contra o provedor configurado, sem tocar no banco
     e sem imprimir a credencial (precedente `live-telegram.ts`/`live-r2.ts`). Franquia por plano
     no catálogo: Grátis 0 / Pro 500 / Premium 2000.
+  - **`scripts/e2e-ai.ts` roda em modo gerenciado** (`IS_SELF_HOSTED=false`), o único em que a
+    franquia é imposta de verdade — então a org de teste assina o Premium como qualquer cliente,
+    e o script passa a provar também o outro lado do gate: sem assinatura, `/v1/ai/caption`
+    responde 402 `plan.feature_locked` com `requiredTier: PRO`. Em self-hosted o bloco é pulado.
+    O teto conferido no corpo enviado ao provedor é o **da instalação** (`AI_MAX_OUTPUT_TOKENS`,
+    fixado em 900 no job da CI para não coincidir com o default), não um derivado do canal.
   - Migration `0006_ai_budget` (aditiva): `ai_credits.reserved` e a tabela `ai_grants`.
 
 ### Changed

@@ -73,6 +73,33 @@ async function main() {
     fetch(`${API}${path}`, { method: 'POST', headers: authed(), body: JSON.stringify(body) });
 
   // -------------------------------------------------------------------------
+  // A IA é feature PAGA no gerenciado (`ai_caption` = Pro, `ai_multichannel_draft` = Premium)
+  // e a franquia do Grátis é zero. A CI sobe esta fase com IS_SELF_HOSTED=false de propósito —
+  // é o único modo em que o BudgetGuard é realmente imposto —, então a org de teste precisa
+  // assinar como qualquer cliente. Antes de assinar ela prova o gate; em self-hosted não há
+  // gate nenhum (DECISIONS §15) e o bloco é pulado.
+  console.log('\n▸ IA é feature paga no gerenciado');
+  const capPlano = (await (await fetch(`${API}/v1/capabilities`, { headers: authed() })).json()) as {
+    plan: { enforced: boolean };
+  };
+  if (capPlano.plan?.enforced) {
+    const barrado = await post('/v1/ai/caption', { brief: 'x', channelIds: [canal!.id] });
+    const barradoBody = (await barrado.json()) as { title: string; extra?: { requiredTier?: string } };
+    check('sem assinatura, caption responde 402', barrado.status === 402, barrado.status);
+    check('com plan.feature_locked', barradoBody.title === 'plan.feature_locked', barradoBody);
+    check('e diz qual plano libera', barradoBody.extra?.requiredTier === 'PRO', barradoBody);
+  } else {
+    console.log('  · self-hosted: nada é barrado por plano');
+  }
+
+  // assinatura Premium espelhada "como se" a Stripe tivesse mandado — nenhuma chamada externa;
+  // o enforcement lê esta linha (subscriptions_org_ux garante 1 por org)
+  await sql`
+    INSERT INTO subscriptions (id, org_id, customer_id, subscription_id, tier, period, status, current_period_end)
+    VALUES (gen_random_uuid(), ${org.id}, ${`cus_e2e_${marca}`}, ${`sub_e2e_${marca}`},
+            'PREMIUM', 'MONTHLY', 'ACTIVE', now() + interval '30 days')`;
+
+  // -------------------------------------------------------------------------
   console.log('\n▸ capacidades');
   const capRes = await fetch(`${API}/v1/capabilities`, { headers: authed() });
   const cap = (await capRes.json()) as {
@@ -102,10 +129,14 @@ async function main() {
     'o brief do usuário foi delimitado como DADO',
     String((enviado.body.messages as { content: string }[])[1]!.content).includes('<<<BRIEF'),
   );
+  // o `max_tokens` que sai é o DA INSTALAÇÃO (`AI_MAX_OUTPUT_TOKENS`), nunca um teto derivado do
+  // limite do canal: apertar por requisição corta modelo de raciocínio no meio da palavra, e o
+  // tamanho por canal é garantido depois pelo `shortenTo` (design D7 — cenário mais abaixo).
+  const tetoDaInstalacao = Number(process.env.AI_MAX_OUTPUT_TOKENS ?? 4000);
   check(
     'o teto de saída da instalação foi aplicado',
-    Number(enviado.body.max_tokens) <= 1500,
-    enviado.body.max_tokens,
+    Number(enviado.body.max_tokens) === tetoDaInstalacao,
+    { enviado: enviado.body.max_tokens, esperado: tetoDaInstalacao },
   );
 
   // -------------------------------------------------------------------------
@@ -214,6 +245,7 @@ async function main() {
   await sql`DELETE FROM ai_credits WHERE org_id = ${org!.id}::uuid`;
   await sql`DELETE FROM audit_log WHERE org_id = ${org!.id}::uuid`;
   await sql`DELETE FROM channels WHERE org_id = ${org!.id}::uuid`;
+  await sql`DELETE FROM subscriptions WHERE org_id = ${org!.id}::uuid`;
   await sql`DELETE FROM memberships WHERE org_id = ${org!.id}::uuid`;
   await sql`DELETE FROM auth_identities WHERE user_id = ${user!.id}::uuid`;
   await sql`DELETE FROM users WHERE id = ${user!.id}::uuid`;

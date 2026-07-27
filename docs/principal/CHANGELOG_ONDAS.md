@@ -64,12 +64,17 @@ de mídia gerada e classe de custo própria.
   critério da SPEC_AI §5.3 — **dez reservas simultâneas contra franquia de cinco concedem
   exatamente cinco**, e `used + reserved` nunca passa de `granted`. Verificado por mutação:
   removendo a condição do `UPDATE`, três testes quebram (dez concessões em vez de cinco).
-- **`scripts/e2e-ai.ts`, 32 checks** com API real, Postgres descartável e um "modelo" falso que
+- **`scripts/e2e-ai.ts`, 35 checks** com API real, Postgres descartável e um "modelo" falso que
   fala o protocolo: franquia debitada e refletida no `/v1/capabilities`, tokens reais gravados no
   grant, brief delimitado como dado no corpo enviado, limite do canal imposto sobre resposta
   longa, resposta ilegível devolvendo a franquia, best-times sem tocar no modelo, canal de outra
   org em 404 e **nenhuma credencial ou endpoint vazando** na falha do provedor. No CI como job
-  próprio, com banco próprio.
+  próprio, com banco próprio, em modo **gerenciado** (`IS_SELF_HOSTED=false`) — o único em que a
+  franquia é realmente imposta. Consequência que a primeira versão do script não tinha: a org de
+  teste **assina o Premium** como qualquer cliente, e antes de assinar prova o outro lado do
+  gate (sem assinatura, `/v1/ai/caption` responde 402 `plan.feature_locked` com
+  `requiredTier: PRO` e franquia 0). Rodando em self-hosted o bloco do gate é pulado e os
+  outros 32 checks seguem valendo.
 - **Smoke real opcional** (`scripts/live-ai.ts`, nunca no CI): geração de verdade contra o
   provedor configurado, sem tocar no banco e sem imprimir a credencial. Foi ele que revelou o
   comportamento de **modelo de raciocínio** — gasta tokens de saída pensando antes de escrever,

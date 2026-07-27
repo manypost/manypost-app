@@ -147,6 +147,9 @@ jobs:
           AI_BASE_URL: http://127.0.0.1:3199
           AI_API_KEY: nao-e-uma-chave-real
           AI_MODEL: modelo-de-teste
+          # valor distinto do default (4000) de propósito: o E2E confere que o teto que chega
+          # ao provedor é ESTE, e não um derivado do limite de caracteres do canal
+          AI_MAX_OUTPUT_TOKENS: '900'
         run: |
           E2E_KEY_DIR="$(mktemp -d)"
           openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out "$E2E_KEY_DIR/private.pem" 2>/dev/null
