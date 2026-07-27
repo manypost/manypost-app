@@ -30,7 +30,7 @@ export interface ComposerPrefill {
   requireApproval: boolean;
 }
 
-interface ComposerState {
+export interface ComposerState {
   text: string;
   channelIds: string[];
   /** override do texto por canal (chave = channelId) — só os personalizados */

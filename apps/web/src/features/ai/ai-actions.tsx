@@ -1,6 +1,7 @@
 'use client';
 
 import { Loader2, WandSparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import * as React from 'react';
 import type { Editor } from '@tiptap/react';
@@ -14,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { editorUtilizavel } from '@/features/composer/editor-guards';
 import { textToHtml } from '@/features/composer/editor';
 import { cn } from '@/lib/utils';
 import {
@@ -36,15 +38,19 @@ import {
  *     a pessoa revisar. É o mesmo princípio de "nunca publicar em incerteza".
  */
 
-/** instruções de reescrita oferecidas — texto do usuário nunca vira instrução (o back delimita) */
+/**
+ * Reescritas oferecidas. Só as CHAVES moram aqui: rótulo e instrução vêm de
+ * `composer.ai.rewrites.*` no arquivo de mensagens — o texto do usuário nunca vira instrução
+ * (o back delimita), e a instrução é conteúdo de produto, não constante de componente.
+ */
 const REESCRITAS = [
-  { label: 'Encurtar', instruction: 'Encurte o texto mantendo a mensagem principal.' },
-  { label: 'Alongar', instruction: 'Desenvolva o texto com mais detalhe, sem inventar fatos.' },
-  { label: 'Mais formal', instruction: 'Deixe o texto mais formal e profissional.' },
-  { label: 'Mais casual', instruction: 'Deixe o texto mais leve e conversacional.' },
-  { label: 'Com emojis', instruction: 'Acrescente emojis pertinentes, sem exagero.' },
-  { label: 'Sem emojis', instruction: 'Remova todos os emojis, preservando o sentido.' },
-  { label: 'Corrigir', instruction: 'Corrija ortografia e gramática, sem mudar o estilo.' },
+  'shorten',
+  'expand',
+  'formal',
+  'casual',
+  'withEmoji',
+  'withoutEmoji',
+  'fix',
 ] as const;
 
 export interface AiActionsProps {
@@ -63,9 +69,11 @@ export interface AiActionsProps {
   disabled?: boolean;
 }
 
-/** instância utilizável: existe E não foi destruída pelo remount do `editorNonce` */
-export const editorUtilizavel = (editor: Editor | null): editor is Editor =>
-  Boolean(editor && !editor.isDestroyed);
+/**
+ * Reexportado de `composer/editor-guards`: a guarda passou a ser compartilhada com a toolbar e
+ * com o cartão do editor. Fica aqui porque o teste de regressão desta tela importa daqui.
+ */
+export { editorUtilizavel };
 
 /**
  * Texto de trabalho das ações. Vem do STORE e **nunca** de uma leitura do editor — é
@@ -76,6 +84,7 @@ export const textoParaAplicar = (textoDoStore: string, _editor: Editor | null): 
   textoDoStore;
 
 export function AiActions({ editor, text, channelIds, disabled }: AiActionsProps) {
+  const t = useTranslations('composer.ai');
   const ai = useAiAvailability();
   const [open, setOpen] = React.useState(false);
   const [erro, setErro] = React.useState<string | null>(null);
@@ -101,11 +110,7 @@ export function AiActions({ editor, text, channelIds, disabled }: AiActionsProps
   const semTexto = text.trim().length === 0;
 
   const travado = !ai.hasCaption;
-  const motivoBloqueio = travado
-    ? 'Recurso do plano Pro'
-    : ai.exhausted
-      ? 'Franquia de IA esgotada neste mês'
-      : null;
+  const motivoBloqueio = travado ? t('locked') : ai.exhausted ? t('exhausted') : null;
 
   const executar = async (acao: () => Promise<void>) => {
     setErro(null);
@@ -115,7 +120,7 @@ export function AiActions({ editor, text, channelIds, disabled }: AiActionsProps
     } catch (e) {
       // problem+json: o `detail` já vem em pt-BR e explica plano/franquia/indisponibilidade
       const problema = e as { detail?: string; title?: string };
-      setErro(problema.detail ?? 'Não foi possível gerar agora. Tente de novo.');
+      setErro(problema.detail ?? t('failed'));
     }
   };
 
@@ -147,8 +152,10 @@ export function AiActions({ editor, text, channelIds, disabled }: AiActionsProps
               type="button"
               variant="outline"
               size="icon-sm"
-              aria-label="Escrever com IA"
+              aria-label={t('action')}
               disabled={disabled}
+              // o mousedown é o que move o foco: sem isto, abrir o menu tira o cursor do texto
+              onMouseDown={(e) => e.preventDefault()}
               className={cn(
                 'cursor-pointer text-graphite transition-colors duration-200',
                 'hover:border-ink hover:text-ink',
@@ -164,16 +171,22 @@ export function AiActions({ editor, text, channelIds, disabled }: AiActionsProps
           </DropdownMenuTrigger>
         </TooltipTrigger>
         <TooltipContent side="top" sideOffset={6} className="text-xs font-semibold">
-          Escrever com IA
+          {t('action')}
         </TooltipContent>
       </Tooltip>
 
-      <DropdownMenuContent align="start" className="w-72">
+      <DropdownMenuContent
+        align="start"
+        className="w-72"
+        // sem isto o Radix devolve o foco ao gatilho ao fechar e desfaz o `.focus()` que a ação
+        // acabou de dar no editor — a pessoa aplicaria a IA e perderia o cursor
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
         <DropdownMenuLabel className="flex items-center justify-between gap-2">
-          <span>Escrever com IA</span>
+          <span>{t('action')}</span>
           {ai.credits?.enforced ? (
             <span className="bevel-chip rounded-sm px-1.5 py-0.5 text-[11px] font-semibold text-graphite">
-              {ai.credits.remaining} créditos
+              {t('credits', { count: ai.credits.remaining })}
             </span>
           ) : null}
         </DropdownMenuLabel>
@@ -184,7 +197,7 @@ export function AiActions({ editor, text, channelIds, disabled }: AiActionsProps
             <p className="text-xs text-graphite">{motivoBloqueio}.</p>
             {travado ? (
               <Button asChild size="sm" className="mt-2 w-full cursor-pointer">
-                <Link href="/planos">Ver planos</Link>
+                <Link href="/planos">{t('seePlans')}</Link>
               </Button>
             ) : null}
           </div>
@@ -198,7 +211,7 @@ export function AiActions({ editor, text, channelIds, disabled }: AiActionsProps
                 void gerarLegenda();
               }}
             >
-              <span className="text-sm">Adaptar para a rede</span>
+              <span className="text-sm">{t('adapt')}</span>
             </DropdownMenuItem>
 
             <DropdownMenuItem
@@ -209,32 +222,32 @@ export function AiActions({ editor, text, channelIds, disabled }: AiActionsProps
                 void sugerirHashtags();
               }}
             >
-              <span className="text-sm">Sugerir hashtags</span>
+              <span className="text-sm">{t('hashtags')}</span>
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />
             <DropdownMenuLabel className="text-[11px] font-semibold uppercase tracking-wide text-graphite">
-              Reescrever
+              {t('rewriteTitle')}
             </DropdownMenuLabel>
-            {REESCRITAS.map((r) => (
+            {REESCRITAS.map((chave) => (
               <DropdownMenuItem
-                key={r.label}
+                key={chave}
                 className="cursor-pointer"
                 disabled={semCanal || semTexto || carregando}
                 onSelect={(e) => {
                   e.preventDefault();
-                  void reescrever(r.instruction);
+                  void reescrever(t(`rewrites.${chave}.instruction`));
                 }}
               >
-                <span className="text-sm">{r.label}</span>
+                <span className="text-sm">{t(`rewrites.${chave}.label`)}</span>
               </DropdownMenuItem>
             ))}
           </>
         )}
 
-        {semCanal && !motivoBloqueio ? (
-          <p className="px-2 pb-2 pt-1 text-[11px] text-graphite">
-            Escolha ao menos um canal para a IA saber o limite e o formato.
+        {!motivoBloqueio && (semCanal || semTexto) ? (
+          <p className="px-2 pb-2 pt-1 text-[11px] leading-relaxed text-graphite">
+            {semCanal ? t('needsChannel') : t('needsText')}
           </p>
         ) : null}
         {erro ? (

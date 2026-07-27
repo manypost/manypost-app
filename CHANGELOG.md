@@ -6,9 +6,19 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ## [Unreleased]
 
-### Added
+### Changed
 
-- **Fatia de IA: a plataforma passa a gerar conteúdo de verdade.** Até aqui as oito features
+- **Composer redesenhado e estabilizado.** A interface de autoria de post ganhou uma estrutura fixa que resolve três problemas de uma vez: a aba em foco, a confusão de avatares e o foco do editor. Mudança OpenSpec: `refine-composer-authoring`.
+  - **Trilho de redes com medidor de capacidade:** a fileira de avatares de canais agora exibe o avatar de navegação em abas, com uma barra de capacidade de caracteres exclusiva por rede embaixo do ícone.
+  - **Aba global esclarecedora:** em vez de um campo vazio quando não utilizada, agora a aba informa explicitamente que está inativa porque cada canal tem texto próprio, removendo a dúvida se faltou algo.
+  - **Edição em aba de rede herdada:** a aba de canal antes mostrava um bloco de 240px avisando que a edição global estava ativa. Agora mostra o texto global em leitura (para prever como sai na rede) e opções diretas para copiar ou sobrescrever o texto global.
+  - **Validação consolidada:** o sumário de validação (issues) que pipocava no rodapé migrou para um popover atrelado ao contador de caracteres, que se acende para pendências locais e serve de alvo global para o CTA do rodapé. 
+  - **Instâncias independentes de editor:** cada aba, e cada item da thread, é dona de seu próprio editor TipTap, acabando com referências "fantasmas" das instâncias e o bug em que botões tentavam acionar instâncias destruídas.
+  - **Threads mais compactas e precisas:** o fluxo de thread teve seus cartões reduzidos, a contagem numérica movida para o conector à esquerda, e o campo bruto numérico de atraso (0 a 600) virou um combo enxuto de pausas (em segundos).
+  - **Formatação em 3 grupos e trechos literais:** a barra de ferramentas do editor dividida em formatação (ghost), mídia e IA (outline), e validação à direita. O menu de variáveis dinâmicas foi trocado por snippets de texto literais que o usuário já insere expandidos.
+  - **Agendamento por atalho:** o rodapé passa a responder a Ctrl/Cmd + Enter para agendar o rascunho de forma rápida, e também exibe um discreto aviso se o rascunho for gravado.
+
+
   `ai_*` existiam só no catálogo de planos — o gate funcionava, mas atrás dele não havia nada.
   Esta entrega liga quatro delas ponta a ponta. OpenSpec: `add-ai-content-assistance` →
   capacidades `ai-provider-runtime`, `ai-budget-control`, `ai-content-generation`,
