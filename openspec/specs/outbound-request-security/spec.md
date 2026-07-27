@@ -1,7 +1,7 @@
 # outbound-request-security Specification
 
 ## Purpose
-TBD - created by archiving change harden-outbound-request-security. Update Purpose after archive.
+Server-side HTTP egress policy: normalize forbidden addresses, pin validated public IPs through connect/TLS SNI, revalidate redirects, and bound time/bytes without logging secrets.
 ## Requirements
 ### Requirement: Validation and connection use the same resolution
 The outbound HTTP adapter MUST connect only to a public IP address from the DNS
