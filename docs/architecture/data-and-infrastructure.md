@@ -1,6 +1,6 @@
 # Dados e infraestrutura
 
-Este documento descreve o estado operacional confirmado em 2026-07-26. Não
+Este documento descreve o estado operacional confirmado em 2026-07-27. Não
 contém valores de ambiente, credenciais ou connection strings reais.
 
 ## Modelo de dados
@@ -33,7 +33,7 @@ erDiagram
   ORGANIZATIONS ||--o{ OAUTH_GRANTS : issues
 ```
 
-O diagrama mostra relações principais. **28 tabelas** no schema Drizzle
+O diagrama mostra relações principais. **29 tabelas** no schema Drizzle
 (`packages/db/src/schema/`); auxiliares (`tags`, `signatures`, `ai_credits`,
 `idempotency_keys`, `audit_log`, `channel_metrics`, `channel_sets`, etc.)
 existem no schema mesmo quando o consumidor de produto ainda é parcial.
@@ -71,7 +71,7 @@ associados a `token_key_version` e AAD derivado do tenant/provider/identidade.
 | `publication_items` | itens ordenados de thread/reply e cursor externo |
 | `publication_events` | transições de estado append-only |
 | `publication_attempts` | posse durável por item lógico (`job_version` + `position`): lease, `owner_token`, `idempotency_key` e estado `CLAIMED`/`CONFIRMED`/`FAILED_SAFE`/`INDETERMINATE` |
-| `media` | metadata/path de asset por organização |
+| `media` | metadata/path de asset por organização; `source` e proveniência da geração por IA |
 | `tags`, `post_group_tags` | classificação de grupos |
 | `channel_sets` | coleções de IDs de canal |
 | `signatures` | conteúdo auto-adicionado |
@@ -93,15 +93,17 @@ avança com o `owner_token` da posse.
 | `notifications` | caixa in-app por organização/usuário |
 | `audit_log` | ator, ação, alvo, IP e detalhe |
 | `ai_credits` | janela de franquia de IA |
+| `ai_grants` | reserva/commit/reembolso por geração, sem guardar prompt ou conteúdo |
 | `oauth_apps`, `oauth_grants` | authorization server OAuth 2.1 do MCP (DCR, static client, grants `mpo_*`; `org_id` opcional em apps públicos) |
 | `idempotency_keys` | modelo PostgreSQL de idempotência |
 | `subscriptions` | espelho da assinatura Stripe por organização |
 
 `oauth_apps`/`oauth_grants` **têm** consumidor no runtime MCP OAuth 2.1.
-`ai_credits`, idempotência PostgreSQL (a API pública usa Redis quando há
-`REDIS_URL`), `channel_sets`, `signatures` e `channel_metrics` ainda não
-possuem consumidor funcional completo confirmado. Não remova: são
-dados/roadmap e exigem decisão/migration.
+`ai_credits`/`ai_grants` sustentam o BudgetGuard transacional das rotas de IA.
+A API pública e a geração paga de imagem usam a coordenação de idempotência em
+Redis quando disponível. `channel_sets`, `signatures`, `idempotency_keys`
+(modelo PostgreSQL) e `channel_metrics` ainda não possuem consumidor funcional
+completo confirmado. Não remova: são dados/roadmap e exigem decisão/migration.
 
 ## Isolamento por organização
 
@@ -138,6 +140,8 @@ Arquivos vigentes (append-only; ordem do journal):
 - `0003_billing.sql` — `subscriptions`;
 - `0004_mcp-oauth-as.sql` — colunas AS (client público, refresh anterior, resource);
 - `0005_typical_kulan_gath.sql` — `publication_attempts` + enum `attempt_state`;
+- `0006_ai_budget.sql` — ledger transacional `ai_grants` e campos do BudgetGuard;
+- `0007_ai_image_provenance.sql` — `source`, prompt e modelo de geração em `media`;
 - snapshots e `_journal.json` em `migrations/meta/`.
 
 `runMigrations` usa Drizzle migrator e advisory lock `72019001`, limitando
@@ -222,21 +226,25 @@ coordenação e realtime; perda do PostgreSQL afeta negócio e fila.
 
 ## Storage e mídia
 
-Implementação ativa: `apps/api/src/infra/storage/local.storage.ts`.
+Implementações ativas em `packages/core/src/infra/storage/`: driver local e
+driver S3-compatível (AWS S3, R2 ou MinIO), selecionados por `STORAGE_PROVIDER`.
 
 - raiz configurada por `UPLOAD_DIR`;
 - path separado por organização;
-- URL pública baseada em `PUBLIC_URL`;
+- URL pública baseada em `MEDIA_PUBLIC_URL` ou, no driver local, em `PUBLIC_URL/uploads`;
 - volume Railway montado em `/app/uploads`;
 - soft delete de metadata não é garantia de política de retenção/backup.
 
-`STORAGE_PROVIDER` aceita `local`/`s3`, mas `container.ts` lança erro para
-qualquer valor diferente de `local`. Não existe adapter S3/R2. Uma réplica nova
-sem volume compartilhado não verá arquivos da outra.
+O driver `s3` falha fechado no boot sem bucket, credenciais e
+`MEDIA_PUBLIC_URL`. O driver local exige volume compartilhado entre réplicas;
+o driver S3 remove essa dependência. Nenhum dos dois transforma soft delete de
+metadata em política de retenção do objeto.
 
 Tamanho é controlado por `MEDIA_MAX_IMAGE_MB` e `MEDIA_MAX_VIDEO_MB`; MIME é
-detectado pelo conteúdo. Importação remota possui limites/redirects, com risco
-SSRF residual documentado.
+detectado pelo conteúdo. Importação remota usa o cliente anti-SSRF com IP
+validado/pinado. Imagem gerada por IA passa pela mesma detecção e pelo mesmo
+teto; se a persistência da metadata falhar depois do upload, o objeto é
+removido em compensação best-effort sem esconder o erro primário.
 
 ## Catálogo de ambiente
 
@@ -333,8 +341,12 @@ valor, mesmo de sandbox.
 
 | Nome | Obrigatório/default | Formato e finalidade |
 | --- | --- | --- |
-| `STORAGE_PROVIDER` | default `local` | enum `local`/`s3`; apenas local implementado |
+| `STORAGE_PROVIDER` | default `local` | enum `local`/`s3`; ambos implementados |
 | `UPLOAD_DIR` | default path local | diretório gravável/persistente |
+| `MEDIA_PUBLIC_URL` | opcional no local, obrigatório no `s3` | base pública dos objetos |
+| `S3_BUCKET` | obrigatório no `s3` | nome do bucket |
+| `S3_REGION`, `S3_ENDPOINT` | opcionais | região e endpoint S3-compatível |
+| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | obrigatórios no `s3` | credenciais server-only |
 | `MEDIA_MAX_IMAGE_MB` | default numérico >=1 | limite de imagem |
 | `MEDIA_MAX_VIDEO_MB` | default numérico >=1 | limite de vídeo |
 
@@ -342,15 +354,20 @@ valor, mesmo de sandbox.
 
 | Nome | Obrigatório/default | Formato e estado |
 | --- | --- | --- |
-| `AI_PROVIDER` | default `none` | enum aceita compatible/anthropic, sem fluxo funcional completo confirmado |
-| `AI_BASE_URL` | opcional | URL de endpoint compatible |
+| `AI_PROVIDER` | default `none` | `openai-compatible`/`anthropic`; `none` desmonta a capacidade |
+| `AI_BASE_URL` | obrigatório quando IA ativa | URL do endpoint do protocolo escolhido |
 | `AI_API_KEY` | opcional | segredo, nunca logar |
-| `AI_MODEL` | opcional | identificador de modelo |
+| `AI_MODEL` | obrigatório quando IA ativa | identificador do modelo de texto |
+| `AI_IMAGE_MODEL` | opcional, opt-in | modelo declarado capaz de gerar imagens; ausente desabilita `ai_image` |
+| `AI_TIMEOUT_MS` | default `45000` | timeout por chamada, entre 1s e 300s |
+| `AI_MAX_OUTPUT_TOKENS` | default `4000` | teto de saída por chamada, entre 64 e 32000 |
 | `LOG_LEVEL` | default `info` | `debug`, `info`, `warn`, `error` |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | opcional | URL aceita no env; wiring OTel não confirmado |
 
-Variável aceita não prova feature implementada. IA/OTel permanecem backlog até
-adapter/use case/exporter e testes.
+Os adapters, BudgetGuard, casos de uso, rotas, UI e E2E de IA estão
+implementados. `AI_IMAGE_MODEL` é propositalmente separado: falar o mesmo
+protocolo não prova que `AI_MODEL` desenha. O exporter OTel permanece sem wiring
+confirmado.
 
 ### Scripts locais/E2E
 
