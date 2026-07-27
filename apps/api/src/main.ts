@@ -12,6 +12,7 @@ import { apiKeyRoutes } from './http/routes/api-keys.routes';
 import { approvalPublicRoutes } from './http/routes/approvals-public.routes';
 import { authRoutes } from './http/routes/auth.routes';
 import { billingRoutes } from './http/routes/billing.routes';
+import { aiRoutes } from './http/routes/ai.routes';
 import { capabilityRoutes } from './http/routes/capabilities.routes';
 import { channelRoutes } from './http/routes/channels.routes';
 import { eventRoutes } from './http/routes/events.routes';
@@ -106,6 +107,9 @@ app.route('/v1/media', mediaRoutes(ctn));
 app.route('/v1/webhooks', webhookRoutes(ctn));
 app.route('/v1/notifications', notificationRoutes(ctn));
 app.route('/v1/capabilities', capabilityRoutes(ctn)); // plano/features desta org (sempre existe)
+// IA: as rotas existem sempre; sem AI_PROVIDER elas respondem `capability.disabled` (404), e
+// /best-times segue funcionando porque é heurística, não modelo (SPEC_AI §3)
+app.route('/v1/ai', aiRoutes(ctn));
 if (ctn.billing) {
   // gerenciado apenas (IS_SELF_HOSTED=false + Stripe): em self-hosted estas rotas não existem
   app.route('/v1/billing', billingRoutes(ctn));
@@ -150,6 +154,7 @@ const OPENAPI_DOC = {
     { name: 'notifications', description: 'notificações da organização' },
     { name: 'events', description: 'stream SSE em tempo real' },
     { name: 'capabilities', description: 'plano, features e limites da organização' },
+    { name: 'ai', description: 'geração de conteúdo e sugestão de horários (SPEC_AI)' },
     { name: 'billing', description: 'assinatura e cobrança (só no serviço gerenciado)' },
     { name: 'approvals', description: 'superfície pública de aprovação por token' },
     { name: 'public-posts', description: 'API pública /public/v1 — posts (escopos posts:*)' },

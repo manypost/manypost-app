@@ -43,6 +43,9 @@ const ERROR_DESC: Record<number, string> = {
   404: 'não encontrado',
   409: 'conflito',
   429: 'rate limit — aguarde e tente de novo',
+  // o pedido é válido; esta instalação é que não tem a capacidade (ex.: modelo sem visão)
+  501: 'capacidade não disponível nesta instalação',
+  502: 'provedor externo falhou — o pedido pode ser repetido',
   503: 'provedor externo temporariamente indisponível',
 };
 
