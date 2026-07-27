@@ -24,6 +24,20 @@ if (!DB) {
 const API = process.env.BASE_URL ?? 'http://127.0.0.1:3198';
 const sql = postgres(DB, { max: 4, onnotice: () => {} });
 
+interface InsightsSummary {
+  timezone: string;
+  attention: {
+    failed: number;
+    needsReview: number;
+    partial: number;
+    total: number;
+    channels: Array<{ name: string; status: string }>;
+  };
+  today: { scheduled: number; published: number };
+  week: { scheduled: number; byDay: number[] };
+  firstRun: 'no_channels' | 'no_posts' | null;
+}
+
 let falhas = 0;
 let total = 0;
 const check = (nome: string, ok: boolean, detalhe?: unknown) => {
@@ -96,7 +110,7 @@ async function main() {
   const res = await fetch(`${API}/v1/insights/summary?tz=${encodeURIComponent(tz)}`, {
     headers: a.auth,
   });
-  const s = (await res.json()) as Record<string, any>;
+  const s = (await res.json()) as InsightsSummary;
 
   console.log('\n▸ contagens da organização alfa');
   check('responde 200', res.status === 200, s);
@@ -135,7 +149,7 @@ async function main() {
   const resB = await fetch(`${API}/v1/insights/summary?tz=${encodeURIComponent(tz)}`, {
     headers: b.auth,
   });
-  const sb = (await resB.json()) as Record<string, any>;
+  const sb = (await resB.json()) as InsightsSummary;
   check('a beta vê as suas 9 falhas', sb.attention.failed === 9, sb.attention);
   check('e nenhuma revisão (que é da alfa)', sb.attention.needsReview === 0, sb.attention);
 
