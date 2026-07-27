@@ -140,11 +140,29 @@ const EnvSchema = z
       .default('false')
       .transform((v) => v === 'true'),
 
-    // IA agnóstica de provedor (SPEC_AI §2 / DECISIONS §8)
+    // IA agnóstica de provedor (SPEC_AI §2 / DECISIONS §8). Os valores abaixo nomeiam
+    // PROTOCOLO, não fornecedor — é por isso que este arquivo está na allowlist do
+    // scripts/check-ai-providers.ts. Fora daqui e de core/src/infra/ai, nome nenhum.
     AI_PROVIDER: z.enum(['none', 'openai-compatible', 'anthropic']).default('none'),
     AI_BASE_URL: z.string().url().optional(),
+    /**
+     * Opcional de propósito: runtime de modelo local (na mesma máquina/rede) costuma não pedir
+     * credencial, e exigir uma forçaria todo self-hoster a inventar um valor falso. Ausente,
+     * o adapter simplesmente não manda header de autorização.
+     */
     AI_API_KEY: z.string().optional(),
     AI_MODEL: z.string().optional(),
+    /** teto de tempo de UMA chamada ao modelo — impede que o upstream segure a requisição HTTP */
+    AI_TIMEOUT_MS: z.coerce.number().int().min(1000).max(300_000).default(45_000),
+    /**
+     * Teto de tokens de saída por chamada — impede custo sem limite numa resposta desgovernada.
+     *
+     * O default é folgado de propósito: **modelo de raciocínio gasta tokens de saída pensando**
+     * antes de escrever a primeira letra, então um teto apertado o corta no meio da palavra
+     * (verificado contra um provedor real). Resposta cortada vira `ai.invalid_response`
+     * nomeando esta variável — nunca é entregue como se estivesse pronta.
+     */
+    AI_MAX_OUTPUT_TOKENS: z.coerce.number().int().min(64).max(32_000).default(4000),
 
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
     OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
@@ -178,6 +196,21 @@ const EnvSchema = z
           code: 'custom',
           path: [nome],
           message: `${nome} é obrigatória com STORAGE_PROVIDER=s3`,
+        });
+      }
+    }
+  })
+  // IA também falha FECHADO no boot: um AI_PROVIDER selecionado sem endereço ou sem modelo
+  // só descobriria o problema na primeira geração do usuário, já com a franquia reservada.
+  // AI_API_KEY fica de fora de propósito (runtime local sem credencial é caso legítimo).
+  .superRefine((env, ctx) => {
+    if (env.AI_PROVIDER === 'none') return;
+    for (const nome of ['AI_BASE_URL', 'AI_MODEL'] as const) {
+      if (!env[nome]) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [nome],
+          message: `${nome} é obrigatória com AI_PROVIDER=${env.AI_PROVIDER}`,
         });
       }
     }
@@ -317,6 +350,37 @@ export function mediaStorageConfigFromEnv(env: Env): MediaStorageConfig {
     // sem MEDIA_PUBLIC_URL, a mídia continua saindo pela rota /uploads da própria origem —
     // é a forma das URLs já materializadas dentro de publications.content
     publicBase: env.MEDIA_PUBLIC_URL ?? `${env.PUBLIC_URL.replace(/\/+$/, '')}/uploads`,
+  };
+}
+
+/**
+ * Configuração resolvida de IA — fonte única para a api E o worker dedicado (mesmo precedente
+ * do `mediaStorageConfigFromEnv`). `null` = instalação sem IA: o container não monta o adapter
+ * e as rotas respondem `capability.disabled` (SPEC_AI §5.2), nunca 500.
+ *
+ * `protocol` nomeia o DIALETO HTTP falado, não o fornecedor: qualquer gateway ou runtime local
+ * que fale um dos dois serve, e trocar de fornecedor é mudar `AI_BASE_URL`, não código.
+ */
+export type AiConfig = {
+  protocol: 'openai-compatible' | 'anthropic';
+  baseUrl: string;
+  /** ausente = sem header de autorização (runtime local) */
+  apiKey?: string;
+  model: string;
+  timeoutMs: number;
+  maxOutputTokens: number;
+};
+
+export function aiConfigFromEnv(env: Env): AiConfig | null {
+  if (env.AI_PROVIDER === 'none') return null;
+  // o schema já reprovou o boot sem estas duas; o `!` aqui é a consequência disso
+  return {
+    protocol: env.AI_PROVIDER,
+    baseUrl: env.AI_BASE_URL!,
+    ...(env.AI_API_KEY ? { apiKey: env.AI_API_KEY } : {}),
+    model: env.AI_MODEL!,
+    timeoutMs: env.AI_TIMEOUT_MS,
+    maxOutputTokens: env.AI_MAX_OUTPUT_TOKENS,
   };
 }
 

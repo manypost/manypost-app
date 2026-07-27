@@ -35,6 +35,16 @@ module.exports = {
       to: { path: '^(apps/(api|worker)|packages/(core|db|providers|queue|config))' },
     },
     {
+      name: 'ia-so-pelo-port',
+      severity: 'error',
+      comment:
+        'domain/application chegam à IA SÓ pelo port AiProvider (SPEC_AI §2). Quem escolhe e ' +
+        'constrói o adapter é o composition root — um use-case importando infra/ai amarraria o ' +
+        'domínio a um protocolo, que é exatamente o que o check:ai-providers não consegue ver',
+      from: { path: '^packages/core/src/(domain|application)' },
+      to: { path: '^packages/core/src/infra/ai' },
+    },
+    {
       name: 'domain-puro',
       severity: 'error',
       comment: 'domain só enxerga contratos (shared kernel de tipos) e tipos do runtime',

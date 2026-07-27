@@ -21,6 +21,11 @@ const STATUS: Record<string, ContentfulStatusCode> = {
   'plan.feature_locked': 402,
   'plan.provider_locked': 402,
   'ai.budget_exceeded': 402,
+  // o modelo/gateway falhou, não o pedido do cliente — mesmo raciocínio de media.store_failed
+  'ai.provider_failed': 502,
+  'ai.invalid_response': 502,
+  // o pedido é válido, esta instalação é que não tem a capacidade (ex.: modelo sem visão)
+  'ai.capability_unavailable': 501,
   'capability.disabled': 404,
   'billing.disabled': 404,
   'billing.no_subscription': 404,
