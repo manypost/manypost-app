@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, asc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import { uuidv7 } from '../uuid';
 import type { MediaRef, PublicationState } from '@manypost/contracts';
 import type { PublicationView, PublishingRepository, TransitionPatch } from '@manypost/core';
@@ -544,6 +544,27 @@ export function makePublishingRepository(db: Db): PublishingRepository {
         .from(postGroups)
         .where(and(eq(postGroups.orgId, orgId), gte(postGroups.createdAt, since)));
       return row?.n ?? 0;
+    },
+
+    async listDeliveredTimes(orgId, channelId, since, limit) {
+      // Só o que REALMENTE saiu (PUBLISHED): agendado-e-cancelado ou falho não diz nada sobre
+      // horário bom. Usa `published_at` (quando chegou à rede), não `publish_at` (quando foi
+      // pedido) — é o instante que de fato aconteceu. O filtro por org é explícito ALÉM do
+      // canal: canal de outra org não pode contribuir nem por engano (multi-tenant, AGENTS.md).
+      const rows = await db
+        .select({ publishedAt: publications.publishedAt })
+        .from(publications)
+        .where(
+          and(
+            eq(publications.orgId, orgId),
+            eq(publications.channelId, channelId),
+            eq(publications.state, 'PUBLISHED'),
+            gte(publications.publishedAt, since),
+          ),
+        )
+        .orderBy(desc(publications.publishedAt))
+        .limit(limit);
+      return rows.map((r) => r.publishedAt).filter((d): d is Date => d !== null);
     },
   };
 }
