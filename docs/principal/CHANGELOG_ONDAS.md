@@ -10,6 +10,21 @@
 > **Como manter:** ao fechar uma fatia, adicione a onda nova **no topo** e atualize o STATUS.
 > Cada entrada é auto-contida: o que mudou, onde no código, e a prova de que funciona.
 
+## Onda 27 — 2026-07-27 — alinhamento docs/OpenSpec + anti-SSRF pinado + Postman
+
+**O que mudou**
+
+- Documentação factual: STATUS (28 tabelas, migrations `0000..0005`, `maxConcurrent`
+  entregue), `data-and-infrastructure`, `repository-map`, SPEC_API_MCP Clerk-only,
+  BRAND_SYSTEM wordmark `manypost`, banners de verdade em SPECs legados.
+- OpenSpec: living `publication-delivery-safety` e `outbound-request-security`
+  (archives das changes harden).
+- Código: `infra/net` (classificador IP + outbound pinado) em mídia, webhooks e CIMD;
+  worker de webhook relança erro inesperado.
+- `postman/manypost.collection.json` + environments + gerador.
+
+**Prova:** `bun test` 656 pass / 0 fail; `bun run spec:validate` 14 itens OK.
+
 ## Índice
 
 | Onda | Data | Entrega |

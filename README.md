@@ -206,6 +206,7 @@ packages/contracts Tipos, schemas e o catálogo de planos — zero lógica
 packages/queue     pg-boss, rate-limiter e idempotência em Redis
 packages/config    Validação tipada do ambiente (falha rápido no boot)
 docs/              Toda a documentação — specs, decisões, status, marca
+postman/           Coleção Postman + environments (ver postman/README.md)
 ```
 
 Detalhe de cada fronteira: [SPEC_ARCHITECTURE §4](docs/specs/SPEC_ARCHITECTURE.md).
@@ -251,7 +252,8 @@ usar, quem vai contribuir, quem integra por API).
 
 **Código vigente** — [arquitetura](docs/architecture/README.md) ·
 [mapa do repositório](docs/architecture/repository-map.md) ·
-[OpenSpec](docs/openspec.md) · [`AGENTS.md`](AGENTS.md)
+[OpenSpec](docs/openspec.md) · [`AGENTS.md`](AGENTS.md) ·
+[Postman](postman/README.md)
 
 **Estado e planejamento** — [docs/principal/](docs/README.md#principal--estado-decisões-e-planejamento)
 
