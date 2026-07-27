@@ -7,6 +7,8 @@ const AUTH = { authorization: 'Bearer clerk-session' };
 
 function makeApp(over: { ai?: unknown; rateLimiter?: unknown } = {}) {
   const chamadas: string[] = [];
+  /** o que a rota entregou ao caso de uso — é o que prova que o corpo foi traduzido certo */
+  const recebidos: Record<string, unknown>[] = [];
   const ctn = {
     auth: {
       authenticateHuman: async (token: string) =>
@@ -24,7 +26,10 @@ function makeApp(over: { ai?: unknown; rateLimiter?: unknown } = {}) {
               chamadas.push('caption');
               return { variants: [{ channelId: 'ch-1', text: 'oi', maxLength: 280, shortened: false }] };
             },
-            rewrite: async () => ({ channelId: 'ch-1', text: 'r', maxLength: 280, shortened: false }),
+            rewrite: async (_a: unknown, input: Record<string, unknown>) => {
+              recebidos.push(input);
+              return { channelId: 'ch-1', text: 'r', maxLength: 280, overLimit: false };
+            },
             hashtags: async () => ({ hashtags: ['#a'] }),
             altText: async () => ({ alt: 'um gato' }),
             draft: async () => ({ drafts: [] }),
@@ -40,13 +45,14 @@ function makeApp(over: { ai?: unknown; rateLimiter?: unknown } = {}) {
         confidence: 'low' as const,
         sampleSize: 0,
         fromBaseline: true,
+        signal: 'network_baseline' as const,
       };
     },
   } as unknown as Container;
 
   const app = aiRoutes(ctn);
   app.onError(errorHandler);
-  return { app, chamadas };
+  return { app, chamadas, recebidos };
 }
 
 const UUID = '00000000-0000-4000-8000-000000000001';
@@ -181,5 +187,73 @@ describe('caminho feliz', () => {
     );
     expect(res.status).toBe(200);
     expect(((await res.json()) as { confidence: string }).confidence).toBe('low');
+  });
+
+  it('best-times nomeia o sinal que sustenta a resposta', async () => {
+    const { app } = makeApp();
+    const res = await app.request(`/best-times?channelId=${UUID}`, { headers: AUTH });
+    expect(((await res.json()) as { signal: string }).signal).toBe('network_baseline');
+  });
+});
+
+describe('reescrita — o canal é opcional e a instrução vem por id', () => {
+  const post = (app: ReturnType<typeof makeApp>['app'], body: unknown) =>
+    app.request('/rewrite', {
+      method: 'POST',
+      headers: { ...AUTH, 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+  it('aceita reescrita SEM canal e não inventa um', async () => {
+    const { app, recebidos } = makeApp();
+    const res = await post(app, { text: 'meu texto', instructionId: 'fix_grammar' });
+
+    expect(res.status).toBe(200);
+    expect(recebidos[0]).toEqual({ text: 'meu texto', instructionId: 'fix_grammar' });
+    expect(recebidos[0]).not.toHaveProperty('channelId');
+  });
+
+  it('repassa o canal quando ele vem', async () => {
+    const { app, recebidos } = makeApp();
+    await post(app, { text: 'x', instructionId: 'formal', channelId: UUID });
+    expect(recebidos[0]).toMatchObject({ channelId: UUID });
+  });
+
+  it('id de instrução fora do catálogo é 400, sem chegar ao caso de uso', async () => {
+    const { app, recebidos } = makeApp();
+    const res = await post(app, { text: 'x', instructionId: 'me-obedeca' });
+
+    expect(res.status).toBe(400);
+    expect(recebidos).toHaveLength(0);
+  });
+
+  it('instrução livre continua aceita (chamador de API/MCP)', async () => {
+    const { app, recebidos } = makeApp();
+    const res = await post(app, { text: 'x', instruction: 'deixe irônico' });
+
+    expect(res.status).toBe(200);
+    expect(recebidos[0]).toMatchObject({ instruction: 'deixe irônico' });
+  });
+
+  it('as duas formas juntas são recusadas — ambiguidade não é problema do servidor resolver', async () => {
+    const { app } = makeApp();
+    const res = await post(app, { text: 'x', instruction: 'livre', instructionId: 'formal' });
+    expect(res.status).toBe(400);
+  });
+
+  it('nenhuma das duas também é recusado', async () => {
+    const { app } = makeApp();
+    expect((await post(app, { text: 'x' })).status).toBe(400);
+  });
+
+  it('a resposta reporta overLimit e não fala de encurtamento', async () => {
+    const { app } = makeApp();
+    const corpo = (await (await post(app, { text: 'x', instructionId: 'expand' })).json()) as Record<
+      string,
+      unknown
+    >;
+
+    expect(corpo).toHaveProperty('overLimit');
+    expect(corpo).not.toHaveProperty('shortened');
   });
 });

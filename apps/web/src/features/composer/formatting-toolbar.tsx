@@ -143,7 +143,7 @@ export function FormattingToolbar({ editor }: { editor: Editor | null }) {
           >
             <DropdownMenuLabel className="flex flex-col gap-0.5">
               <span>{t('snippet')}</span>
-              <span className="text-[11px] font-normal leading-relaxed text-graphite">
+              <span className="text-meta font-normal leading-relaxed text-graphite">
                 {t('snippetHint')}
               </span>
             </DropdownMenuLabel>
@@ -159,7 +159,7 @@ export function FormattingToolbar({ editor }: { editor: Editor | null }) {
                   <span className="text-xs font-semibold text-ink">
                     {t(`snippets.${chave}.label`)}
                   </span>
-                  <span className="max-w-full truncate text-[11px] text-graphite">
+                  <span className="max-w-full truncate text-meta text-graphite">
                     {texto.split('\n')[0]}
                   </span>
                 </DropdownMenuItem>

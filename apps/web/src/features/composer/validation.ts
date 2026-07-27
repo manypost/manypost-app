@@ -34,6 +34,7 @@ export interface ComposerIssue {
 
 /** qual editor está perguntando; cada popover mostra só o que lhe diz respeito */
 export type IssueScope =
+  | { kind: 'all' }
   | { kind: 'global' }
   | { kind: 'channel'; channelId: string }
   | { kind: 'thread'; threadKey: string };
@@ -243,6 +244,7 @@ export function computeScheduleIssues(publishAt: Date | null, t: Traduz): Compos
 /** o que este editor deve mostrar: o que é do post inteiro mais o que é dele */
 export function issuesDoEscopo(issues: ComposerIssue[], escopo: IssueScope): ComposerIssue[] {
   const cabe = ({ origin }: ComposerIssue) => {
+    if (escopo.kind === 'all') return true;
     if (origin.kind === 'post') return true;
     // a caixa global alimenta todo canal que herda dela, então responde por todos
     if (escopo.kind === 'global') return origin.kind === 'channel';

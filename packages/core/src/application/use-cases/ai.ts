@@ -184,39 +184,88 @@ export const makeGenerateCaption =
     return { variants };
   };
 
+/**
+ * Resultado de uma reescrita. **Não tem `shortened`** — e a ausência é o ponto: reescrever é a
+ * única operação cuja ENTRADA é o texto que a pessoa escreveu, e cortá-lo para caber num limite
+ * que ela não escolheu perde trabalho em vez de proteger algo.
+ *
+ * O limite continua sendo respeitado onde sempre foi: no agendamento, que valida e mostra o
+ * excesso. Aqui apenas avisamos (`overLimit`) para a interface poder confirmar antes de escrever
+ * no editor.
+ */
+export interface RewriteResult {
+  /** null = reescrita sem canal (aba global do composer) */
+  channelId: string | null;
+  text: string;
+  /** null quando não houve canal — não há limite a reportar */
+  maxLength: number | null;
+  /** true = passou do limite do canal, e NADA foi removido por isso */
+  overLimit: boolean;
+}
+
+/** a instrução vem por id do catálogo do servidor ou como texto livre (API/MCP) — exatamente uma */
+const resolverInstrucao = (input: {
+  instruction?: string;
+  instructionId?: string;
+}): string => {
+  if (input.instructionId !== undefined) {
+    if (!prompts.isRewriteInstructionId(input.instructionId)) {
+      throw new DomainError(
+        ErrorCodes.PostInvalidSettings,
+        `instrução desconhecida: ${input.instructionId}`,
+        { allowed: prompts.REWRITE_INSTRUCTION_IDS },
+      );
+    }
+    return prompts.REWRITE_INSTRUCTIONS[input.instructionId];
+  }
+  return textoObrigatorio(input.instruction ?? '', 'a instrução');
+};
+
 export const makeRewriteText =
   (deps: AiDeps) =>
   async (
     actor: AiActor,
     input: {
       text: string;
-      instruction: string;
-      channelId: string;
+      /** texto livre (API/MCP) — alternativa a `instructionId` */
+      instruction?: string;
+      /** id do catálogo do servidor (caminho normal do navegador) */
+      instructionId?: prompts.RewriteInstructionId;
+      /** opcional: sem canal, a reescrita roda e nenhum limite é imposto nem reportado */
+      channelId?: string;
       settings?: Record<string, unknown>;
     },
-  ): Promise<CaptionVariant> => {
+  ): Promise<RewriteResult> => {
     await deps.plan.assert(actor.orgId, { kind: 'feature', feature: 'ai_caption' });
     const texto = textoObrigatorio(input.text, 'o texto');
-    const instrucao = textoObrigatorio(input.instruction, 'a instrução');
-    const [canal] = await carregarCanais(deps.channels, actor.orgId, [input.channelId]);
-    const brief = briefDoCanal(deps.registry, canal!, input.settings);
+    const instrucao = resolverInstrucao(input);
 
-    const variante = await withBudget(
+    const canal = input.channelId
+      ? (await carregarCanais(deps.channels, actor.orgId, [input.channelId]))[0]!
+      : null;
+    const brief = canal ? briefDoCanal(deps.registry, canal, input.settings) : null;
+
+    const resultado = await withBudget(
       deps.budget,
       { orgId: actor.orgId, operation: 'ai.rewrite', credits: CUSTO.rewrite },
       async () => {
         const { text, usage } = await deps.provider.generateText({
           system: prompts.rewriteSystem(),
-          prompt: prompts.rewritePrompt({ text: texto, instruction: instrucao, channel: brief }),
-          maxTokens: tokensParaCaracteres(brief.maxLength),
+          prompt: prompts.rewritePrompt({
+            text: texto,
+            instruction: instrucao,
+            ...(brief ? { channel: brief } : {}),
+          }),
+          maxTokens: tokensParaCaracteres(brief?.maxLength ?? texto.length + 400),
         });
-        const cortado = shortenTo(text, brief.maxLength);
+        const limpo = text.trim();
         return {
           result: {
-            channelId: canal!.id,
-            text: cortado.text,
-            maxLength: brief.maxLength,
-            shortened: cortado.shortened,
+            channelId: canal?.id ?? null,
+            text: limpo,
+            maxLength: brief?.maxLength ?? null,
+            // conta por CARACTERE, como o usuário conta e como o contador do composer conta
+            overLimit: brief ? [...limpo].length > brief.maxLength : false,
           },
           usage,
         };
@@ -224,7 +273,7 @@ export const makeRewriteText =
     );
 
     void auditar(deps, { ...actor, operation: 'ai.rewrite' });
-    return variante;
+    return resultado;
   };
 
 export const makeSuggestHashtags =

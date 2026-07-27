@@ -11,7 +11,7 @@ export default async function RegistroPage() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <p className="mb-2 text-[12px] font-bold uppercase tracking-[0.12em] text-accent">
+        <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-accent">
           {t('registerKicker')}
         </p>
         <h1 className="font-display text-[26px] font-semibold tracking-[-0.5px] text-ink">
@@ -21,7 +21,7 @@ export default async function RegistroPage() {
       </header>
       <SocialButtons mode="sign-up" />
       <RegisterForm />
-      <p className="text-center text-[13px] text-graphite">
+      <p className="text-center text-compact text-graphite">
         {t('hasAccount')}{' '}
         <Link
           href="/login"

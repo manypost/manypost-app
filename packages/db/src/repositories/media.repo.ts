@@ -15,6 +15,10 @@ const toRecord = (row: typeof media.$inferSelect): MediaRecord => ({
   thumbnailPath: row.thumbnailPath,
   alt: row.alt,
   blurhash: row.blurhash,
+  // a coluna é `text` com default 'upload'; o domínio trabalha com a união fechada
+  source: row.source === 'ai' ? 'ai' : 'upload',
+  generationPrompt: row.generationPrompt,
+  generationModel: row.generationModel,
   createdAt: row.createdAt,
 });
 

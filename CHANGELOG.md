@@ -8,17 +8,164 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Changed
 
-- **Composer redesenhado e estabilizado.** A interface de autoria de post ganhou uma estrutura fixa que resolve três problemas de uma vez: a aba em foco, a confusão de avatares e o foco do editor. Mudança OpenSpec: `refine-composer-authoring`.
-  - **Trilho de redes com medidor de capacidade:** a fileira de avatares de canais agora exibe o avatar de navegação em abas, com uma barra de capacidade de caracteres exclusiva por rede embaixo do ícone.
-  - **Aba global esclarecedora:** em vez de um campo vazio quando não utilizada, agora a aba informa explicitamente que está inativa porque cada canal tem texto próprio, removendo a dúvida se faltou algo.
-  - **Edição em aba de rede herdada:** a aba de canal antes mostrava um bloco de 240px avisando que a edição global estava ativa. Agora mostra o texto global em leitura (para prever como sai na rede) e opções diretas para copiar ou sobrescrever o texto global.
-  - **Validação consolidada:** o sumário de validação (issues) que pipocava no rodapé migrou para um popover atrelado ao contador de caracteres, que se acende para pendências locais e serve de alvo global para o CTA do rodapé. 
-  - **Instâncias independentes de editor:** cada aba, e cada item da thread, é dona de seu próprio editor TipTap, acabando com referências "fantasmas" das instâncias e o bug em que botões tentavam acionar instâncias destruídas.
-  - **Threads mais compactas e precisas:** o fluxo de thread teve seus cartões reduzidos, a contagem numérica movida para o conector à esquerda, e o campo bruto numérico de atraso (0 a 600) virou um combo enxuto de pausas (em segundos).
-  - **Formatação em 3 grupos e trechos literais:** a barra de ferramentas do editor dividida em formatação (ghost), mídia e IA (outline), e validação à direita. O menu de variáveis dinâmicas foi trocado por snippets de texto literais que o usuário já insere expandidos.
-  - **Agendamento por atalho:** o rodapé passa a responder a Ctrl/Cmd + Enter para agendar o rascunho de forma rápida, e também exibe um discreto aviso se o rascunho for gravado.
+- **Composer modular integrado às superfícies de IA, mídia e persistência.** A refatoração
+  `refine-composer-authoring` mantém um editor TipTap por aba/item, trilho de redes com capacidade,
+  validação em popover, threads compactas e rodapé responsivo, sem regredir os contratos entregues
+  em paralelo.
+  - A ação de IA agora conhece o escopo global, de canal ou de thread: reescrita global não inventa
+    `channelId`, todas as variantes multicanal viram overrides e item compartilhado de thread não
+    oferece uma adaptação por rede que cobraria créditos sem destino correto.
+  - O rodapé considera também issues de thread; `Ctrl/Cmd + Enter` ignora repetição de tecla e não
+    agenda por trás da confirmação de descarte.
+  - O editor global encaminha o primeiro canal selecionado ao seletor de mídia; threads
+    compartilhadas continuam sem um destino artificial.
+  - “Rascunho salvo” passou a refletir a conclusão real do storage. Falhas de quota ou privacidade
+    preservam o estado em memória, não interrompem a edição e são informadas sem falso sucesso.
 
+### Added
 
+- **`ai_image`: a IA passa a produzir a imagem, não só o texto.** A `SPEC_AI §3` listava
+  `ai.image` — "prompt + tamanho → media na biblioteca", 5 créditos — e era o único item da família
+  de criação que existia como nada: o port guardava um slot `generateImage` sem implementação. Um
+  agendador cuja IA escreve a legenda e não produz a figura para um passo antes do trabalho, porque
+  a figura é a parte que falta. OpenSpec: `add-ai-image-generation` → capacidade nova
+  `ai-image-generation`; altera `ai-provider-runtime` e `ai-budget-control`. **Plano Premium**, por
+  custo unitário: uma imagem custa uma ordem de magnitude mais que uma legenda, e a franquia de 500
+  do Pro se esgotaria em cem imagens.
+  - **O slot antigo foi refeito antes de ser usado**, por duas razões que não são cosméticas. A
+    união de tamanhos (`'1024x1024' | '1792x1024' | '1024x1792'`) era o **catálogo de um fornecedor
+    dentro do port agnóstico** — o mesmo acoplamento que a regra 4 do `CLAUDE.md` proíbe, de roupa
+    nova —, e rede social nenhuma pensa em pixel: pensa em **proporção**. E devolver `{ url }`
+    estava errado para este produto: URL de provedor expira em horas, o que colocaria mídia com
+    prazo dentro de um post agendado para a semana que vem, e baixar uma URL escolhida pelo
+    provedor é a classe de requisição que a onda anti-SSRF endureceu. Agora o port pede
+    `aspect` (`1:1`, `4:5`, `9:16`, `16:9`, `1.91:1`) e devolve **bytes**; a tradução
+    proporção→resolução vive dentro do adapter, o único lugar autorizado a conhecer o vocabulário
+    do fornecedor.
+  - **Os bytes são validados como bytes.** O `content-type` que o provedor declara não é confiável:
+    a resposta passa pelo mesmo `sniffMedia` (magic bytes) de todo upload, e o teto de tamanho da
+    instalação vale igual. Um proxy no caminho devolvendo HTML de erro não vira mídia quebrada
+    esperando para falhar na publicação — vira `ai.invalid_response`, com a franquia **devolvida**.
+    O adapter normaliza a saída com `sharp` para a proporção exata solicitada, sem ultrapassar
+    8192×8192; dimensões incompatíveis do provedor não vazam para a biblioteca.
+  - **Proveniência é requisito, não enfeite.** Migration `0007`, puramente aditiva, dá a `media`
+    um `source` (`upload` | `ai`), o `generation_prompt` e o `generation_model`. Várias plataformas
+    já exigem divulgação de conteúdo sintético; sem a coluna, o produto não teria como cumprir — nem
+    como responder um cliente que pergunte qual modelo produziu um material. A biblioteca marca o
+    que é gerado com um selo. O prompt fica com a mídia e **nunca** entra no `audit_log`.
+  - **Idempotente desde o primeiro commit.** A cinco créditos, duplo clique é caro demais para
+    deixar para depois — a rota reusa o middleware `Idempotency-Key` que a API pública já tinha.
+    O contrato OpenAPI declara o header e o browser preserva a mesma chave após falha ambígua,
+    trocando-a apenas quando a entrada muda ou a geração conclui; replay/conflito/cobrança única
+    são exercitados contra Redis real.
+  - **Upload e metadata formam uma unidade recuperável.** Se o objeto foi gravado mas a criação da
+    linha `media` falha, o storage recebe uma compensação best-effort; falha da limpeza nunca
+    mascara o erro primário.
+  - **Uma requisição, uma imagem** (`n: 1`), para o custo de uma chamada ficar previsível.
+  - Superfícies: diálogo na biblioteca de mídia, a mesma ação dentro do seletor de mídia do
+    composer (com a proporção da rede escolhida já pré-selecionada, que é o momento em que a pessoa
+    sabe para onde a imagem vai), e a tool MCP `generate_image` sob escopo de **escrita** — gerar
+    queima a franquia paga da organização, e credencial só-leitura não pode gastar crédito.
+  - `AI_IMAGE_MODEL` é o **opt-in explícito** da capacidade. Sem ela, `AI_MODEL` nunca é presumido
+    como modelo de imagem e a geração permanece desabilitada.
+  - Sem provedor capaz de desenhar, `/v1/capabilities` reporta `ai.canGenerateImages: false`, a
+    rota responde `capability.disabled` e a interface **esconde a ação inteira** — o mesmo padrão
+    que `canDescribeImages` já usava.
+
+- **A home que não existia.** `apps/web/src/app/page.tsx` tinha seis linhas e redirecionava para
+  `/calendario`, e o grupo autenticado não tinha página raiz: a primeira tela do produto era uma
+  ferramenta, não um panorama. O calendário responde "o que está agendado nesta semana" — boa
+  pergunta, mas não a **primeira**. A primeira é "está tudo bem?", e a plataforma sabia a resposta
+  sem nunca oferecê-la: uma publicação que falhava de madrugada era um cartão vermelho no kanban
+  *se* a pessoa pensasse em ir lá, e um canal com token expirado só aparecia em `/conexoes` — então
+  o jeito normal de descobrir era um post falhando. OpenSpec: `add-home-dashboard` → capacidade
+  nova `home-operational-overview`.
+  - **`GET /v1/insights/summary?tz=<IANA>`** — contagens agregadas, não documentos: o que precisa
+    de atenção (falhas, revisão, aprovação, entrega parcial, canais a reconectar), o que sai hoje e
+    a semana por dia. As fronteiras de dia são resolvidas **no fuso do usuário** por `Intl`, nunca
+    por offset fixo (um erro de uma hora aqui move um post do "hoje" para o "amanhã" na tela que a
+    pessoa usa para conferir o dia). Início e fim de cada dia civil são limites explícitos:
+    semanas com transição de horário de verão aceitam dias UTC de 23/25 horas sem derivar o fim
+    por `interval '1 day'`. Filtro por `org_id` em toda ramificação, inclusive dentro de cada
+    subconsulta — agregado é exatamente onde um vazamento passa despercebido, porque ninguém vê
+    a linha, só um número plausível.
+  - **Tela `/inicio`**, e `/` passa a levar até lá. O calendário continua onde estava, a um clique.
+  - **Bloco sem conteúdo não existe.** "Precisa de atenção" **desaparece** quando nada está errado
+    — não vira um cartão verde de "tudo em ordem" (design.md §3.3: silêncio também é sinal). Os
+    medidores de plano desaparecem em self-hosted, onde o limite nunca é aplicado.
+  - **Nenhuma métrica de desempenho.** `channel_metrics` está vazia porque nada escreve nela, então
+    todo número da home vem do nosso próprio registro do que foi pedido e do que foi entregue —
+    e é verdadeiro hoje. Um gráfico de engajamento aqui seria dado inventado. Há teste que reprova
+    qualquer mensagem da home que fale de alcance, engajamento ou curtida.
+  - **Primeiro uso é onboarding**, não uma grade de zeros: sem canal conectado, a home é o passo de
+    conectar um.
+  - **`PageHeader` (design.md §13)**, adotado em `/inicio`, `/calendario`, `/kanban`, `/midia` e
+    `/conexoes` — nenhuma tela do app tinha cabeçalho, o título vivia só na topbar e **nenhuma tela
+    dizia o que era**. Cada uma ganhou uma linha de descrição; a topbar passou a ser contexto
+    visual, não um segundo `h1`, preservando um único título principal por página.
+  - **"Início" na sidebar** e o wordmark apontando para lá: antes ele levava ao calendário, então
+    nem o gesto universal de voltar ao começo existia.
+  - `scripts/e2e-insights.ts` — 23 checks contra API real e Postgres descartável, com cenário
+    esperado escrito à mão e **duas organizações**, para provar que o agregado não mistura
+    inquilinos. Roda no job de E2E do CI.
+
+### Fixed
+
+- **A reescrita por IA destruía texto do usuário.** Na aba global do composer, a ação de
+  reescrever mandava apenas `channelIds[0]` e o caso de uso cortava a resposta no limite
+  **daquele** canal antes de o componente substituir o editor inteiro. Com X (280) e LinkedIn
+  (3000) selecionados nessa ordem, pedir "Corrigir" num rascunho de 1200 caracteres apagava cerca
+  de 920 — numa ação que qualquer pessoa leria como inofensiva. OpenSpec:
+  `fix-ai-composer-safety` → altera `ai-content-generation` e `posting-time-suggestions`.
+  - `POST /v1/ai/rewrite` **nunca mais encurta**. Reescrever é a única operação cuja *entrada* é
+    o texto que a pessoa escreveu; descartar parte dele para caber num limite que ela não
+    escolheu perde trabalho em vez de proteger algo. O limite continua imposto onde sempre foi:
+    no agendamento, que valida e mostra o excesso.
+  - `channelId` passou a ser **opcional** na reescrita — a aba global edita um texto compartilhado
+    por várias redes e não tem canal único a resolver. Sem canal, nenhum limite é imposto nem
+    reportado. A resposta troca `shortened` por `overLimit` + `maxLength` nulo, e a interface
+    **pergunta antes de escrever** quando o resultado passa do limite.
+  - O corte determinístico (`shortenTo`) permanece exatamente onde faz sentido: legenda, rascunho
+    multicanal e plano da semana, onde a saída é texto novo.
+- **A legenda multicanal cobrava por canal e jogava fora todos menos um.** A aba global mandava
+  todos os canais selecionados (a franquia debita **um crédito por canal**), o modelo era chamado
+  uma vez por canal, e a interface aplicava `variants[0]` ao texto compartilhado — as outras N-1
+  adaptações, já pagas, morriam antes de qualquer olho humano, sob um controle chamado "adaptar
+  para a rede". Agora cada legenda chega ao canal que a pediu, como override, pelo mesmo caminho
+  que o rascunho multicanal já usava; a aba ativa vai para o primeiro canal afetado e um aviso
+  diz quantas versões foram aplicadas.
+- **Item de thread deixou de oferecer "adaptar para a rede".** O texto de um item é compartilhado
+  pelas redes que suportam thread — ele cobrava N créditos e aplicava um. Restam reescrita e
+  hashtags, que fazem sentido para um texto compartilhado.
+- **`shortened` deixou de ser calculado e ignorado.** A flag existia, documentada como "para a UI
+  poder dizer ao usuário o que aconteceu", e nenhum componente a lia: o texto voltava cortado,
+  indistinguível de um texto que o modelo terminou. Legenda e rascunho agora dizem o que foi
+  encurtado e por qual limite.
+- **A sugestão de horário afirmava mais do que os dados sustentam.** O sinal disponível é a
+  **frequência com que a organização publica** — `channel_metrics` está vazia, ninguém coleta
+  desempenho —, e a interface rotulava confiança média e alta como "baseado no seu histórico", que
+  se lê como medição de resultado. `GET /v1/ai/best-times` passa a devolver `signal`
+  (`network_baseline` | `own_posting_history` | `own_engagement`), a confiança fica limitada a
+  `medium` enquanto o sinal for frequência, e a frase descreve o que existe: "os horários que você
+  mais usa neste canal". `own_engagement` — e só ele — libera `high`, quando a coleta existir.
+- **Acessibilidade e conformidade com o design system na superfície de IA.** O gatilho passou a
+  usar o `isLoading` do `Button` (que já entrega `aria-busy` e preserva o rótulo) em vez de um
+  spinner montado à mão sem estado anunciado; toda ação anuncia início e fim por região
+  `aria-live`; o botão de alt text explica-se por `Tooltip` em vez do `title` nativo, que um botão
+  desabilitado não anuncia de forma confiável — ironia num controle cuja razão de existir é
+  acessibilidade — e ganhou o caminho de upgrade que os outros três já tinham; spinners respeitam
+  `prefers-reduced-motion` (design.md §46.12); e os `text-[11px]` avulsos viraram a classe
+  `text-meta`, para o valor arbitrário não voltar por descuido (design.md §43.20).
+- **A superfície de IA contornava o i18n.** Cerca de quarenta strings literais foram para
+  `apps/web/src/messages/pt-BR.json`. As sete instruções de reescrita não eram rótulo e sim
+  **prompt em português enviado ao modelo**: mudaram para um catálogo em
+  `packages/core/src/application/prompts/`, selecionado por id. O cliente manda o id, o servidor
+  é dono da frase — o que também estreita a superfície de injeção, já que texto livre deixa de ser
+  a rota normal do navegador até o prompt (segue aceito para chamador de API/MCP).
+
+### Added
+
+- **Fatia de IA: a plataforma passa a gerar conteúdo de verdade.** Até aqui as oito features
   `ai_*` existiam só no catálogo de planos — o gate funcionava, mas atrás dele não havia nada.
   Esta entrega liga quatro delas ponta a ponta. OpenSpec: `add-ai-content-assistance` →
   capacidades `ai-provider-runtime`, `ai-budget-control`, `ai-content-generation`,

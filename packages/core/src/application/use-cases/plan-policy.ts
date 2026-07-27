@@ -35,6 +35,7 @@ const FEATURE_LABEL: Record<PlanFeature, string> = {
   workspaces: 'workspaces, permissões e auditoria',
   ai_multichannel_draft: 'IA de rascunho multicanal',
   ai_calendar: 'IA que monta o calendário da semana',
+  ai_image: 'IA que gera imagem para o post',
   ai_inbox: 'IA que responde comentários e DMs',
   ai_triage: 'IA que classifica e direciona mensagens',
   ai_campaign_reports: 'IA que acompanha campanhas e gera relatórios',

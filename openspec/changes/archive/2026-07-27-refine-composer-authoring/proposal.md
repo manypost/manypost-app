@@ -26,6 +26,23 @@ Investigating turned up a fourth problem nobody reported: the "dynamic variables
 substitutes them**. They would be published literally to the social network. It is a control that
 promises something the platform does not do.
 
+The change was implemented in parallel with `fix-ai-composer-safety` and
+`add-ai-image-generation`. Reviewing the combined tree exposed four integration defects that do not
+exist when either branch is considered alone:
+
+- the modular editor card did not tell `AiActions` whether it represented global, channel or thread
+  content, so a global rewrite could again inherit the first channel's limit and paid per-channel
+  variants could be discarded;
+- the footer used the global-editor validation scope, which excludes thread-item issues even though
+  those issues disable the footer actions;
+- the document-level scheduling shortcut remained live while the discard confirmation was open;
+- the new media picker contract accepted a destination channel, but the modular global editor did
+  not forward it, losing the network-aware aspect suggestion for generated images.
+
+The review also found that the "draft saved" indicator observed an in-memory Zustand mutation, not
+the completion of the corresponding storage write. It could therefore claim success when browser
+storage rejected the draft.
+
 ## What Changes
 
 - **Focus belongs to the editor.** Clicking the editor card's padding places the caret instead of
@@ -38,6 +55,17 @@ promises something the platform does not do.
 - **Per-network capacity is stated on the surface.** Each network chip carries a capacity meter
   against that network's own limit, so the answer is legible without opening anything.
 - **The dynamic-variables menu is removed**, along with the placeholders it inserted.
+- **AI actions are explicitly scoped.** Global rewrites carry no arbitrary channel limit; global
+  caption variants are distributed to their channels; channel actions remain channel-specific; and
+  thread items do not offer a per-network adaptation that cannot be represented.
+- **Every footer block has an explanation.** The footer validation scope includes post, channel and
+  thread issues, while editor-local popovers remain scoped.
+- **Shortcuts stop behind blocking surfaces.** Ctrl/Cmd + Enter is ignored while discard confirmation
+  is open and for repeated keydown events.
+- **Saved means persisted.** The status is driven by completion or failure of the browser-storage
+  write rather than by any store mutation.
+- **Generated-image aspect remains network-aware.** The modular global editor forwards the first
+  selected channel as a suggestion; multichannel thread items do not invent a single destination.
 
 **Behavior change to an existing rule:** the global text is required **only when at least one
 selected channel still inherits it**. When every selected channel carries its own non-empty text,
@@ -54,8 +82,9 @@ first channel's text as the group's base text and every override explicitly in `
 
 ### Modified Capabilities
 
-None. `composer-channel-settings` states rules about how a settings field chooses its control; this
-change states nothing that contradicts it and does not rewrite it.
+None. `ai-content-generation` and `ai-image-generation` remain the normative sources for their API
+contracts; this change makes the composer preserve those existing contracts while specifying only
+the authoring experience. `composer-channel-settings` is likewise unchanged.
 
 ## Goals
 
@@ -75,6 +104,8 @@ change states nothing that contradicts it and does not rewrite it.
 - No substitution engine for dynamic variables. Removing the menu is the correction; building the
   feature is a separate slice.
 - No change to the per-network preview cards or to `channel-settings.tsx`.
+- No new AI operation, plan entitlement, provider call or credit cost. The integration only preserves
+  the behavior already specified by the parallel AI changes.
 
 ## Compatibility
 
@@ -99,8 +130,9 @@ Revert the branch. Nothing is persisted in a new shape and no migration runs.
 - `apps/web/src/messages/pt-BR.json` — strings that were hardcoded in TSX move here
 - `CHANGELOG.md`, `docs/principal/STATUS.md`, `docs/principal/CHANGELOG_ONDAS.md`
 
-**Security impact:** none. No new network call, no new stored field, no change to what is sent to a
-provider.
+**Security impact:** the change keeps rewrite instructions server-owned and prevents a client-side
+merge resolution from restoring free-form instruction text. No auth, tenant boundary, secret or
+provider request is added.
 
 **Data impact:** none. No schema, no migration.
 

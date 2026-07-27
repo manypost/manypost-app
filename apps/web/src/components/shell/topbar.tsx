@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, CalendarDays, CreditCard, Image as ImageIcon, LogOut, Menu, PenSquare, Plug, Settings, SquareKanban } from 'lucide-react';
+import { Bell, CalendarDays, CreditCard, House, Image as ImageIcon, LogOut, Menu, PenSquare, Plug, Settings, SquareKanban } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -22,6 +22,7 @@ import { useComposerModal } from '@/features/composer/use-composer-modal';
 import { NotificationsMenu } from '@/features/notifications/notifications-menu';
 
 const MOBILE_NAV = [
+  { href: '/inicio', key: 'home', icon: House },
   { href: '/calendario', key: 'calendar', icon: CalendarDays },
   { href: '/kanban', key: 'kanban', icon: SquareKanban },
   { href: '/conexoes', key: 'connections', icon: Plug },
@@ -31,6 +32,7 @@ const MOBILE_NAV = [
 ] as const;
 
 const TITLE_BY_PATH: Array<{ prefix: string; key: string }> = [
+  { prefix: '/inicio', key: 'nav.home' },
   { prefix: '/calendario', key: 'nav.calendar' },
   { prefix: '/kanban', key: 'nav.kanban' },
   { prefix: '/conexoes', key: 'nav.connections' },
@@ -87,10 +89,10 @@ export function Topbar() {
         </DropdownMenu>
         <Wordmark />
       </div>
-      {/* o título da página vive na topbar */}
-      <h1 className="hidden text-lg font-semibold tracking-[-0.3px] text-ink md:block">
+      {/* contexto persistente; o h1 semântico pertence ao PageHeader da tela */}
+      <p className="hidden text-lg font-semibold tracking-[-0.3px] text-ink md:block">
         {title ? t(title.key) : ''}
-      </h1>
+      </p>
 
       <div className="flex items-center gap-2">
       <NotificationsMenu />
@@ -101,7 +103,7 @@ export function Topbar() {
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="rounded-full outline-none transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className="cursor-pointer rounded-full outline-none transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               aria-label={user?.name ?? user?.email ?? 'menu do usuário'}
             >
               <Avatar>
@@ -112,7 +114,7 @@ export function Topbar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-52">
             <DropdownMenuLabel className="flex flex-col gap-0.5">
-              <span className="text-[13px] font-semibold text-ink">{user?.name}</span>
+              <span className="text-compact font-semibold text-ink">{user?.name}</span>
               <span className="font-normal">{user?.email}</span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />

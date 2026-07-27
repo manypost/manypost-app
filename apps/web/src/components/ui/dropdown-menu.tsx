@@ -37,7 +37,7 @@ function DropdownMenuItem({
     <DropdownMenuPrimitive.Item
       data-slot="dropdown-menu-item"
       className={cn(
-        'relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-[13px] outline-none transition-colors duration-200',
+        'relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-compact outline-none transition-colors duration-200',
         'focus:bg-surface-2 focus:text-ink data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
         '[&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-graphite',
         className,

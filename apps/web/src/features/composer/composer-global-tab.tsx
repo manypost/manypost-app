@@ -2,6 +2,7 @@
 
 import { Info } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useProviders } from '@/features/channels/hooks';
 import {
   useComposerActions,
   useComposerChannelIds,
@@ -9,6 +10,7 @@ import {
   useComposerMediaIds,
 } from './composer-selectors';
 import { ComposerEditorCard } from './composer-editor-card';
+import { useComposerUiStore } from './composer-ui-store';
 import { useComposerStore } from './store';
 import { MediaStrip } from './media-picker';
 import { canaisHerdandoGlobal } from './validation';
@@ -24,11 +26,13 @@ import { useCanaisSelecionados } from './use-composer-validation';
  */
 export function ComposerGlobalTab() {
   const t = useTranslations('composer');
-  const { setText, toggleMedia, removeMedia } = useComposerActions();
+  const { setText, setOverride, toggleMedia, removeMedia, bumpEditors } = useComposerActions();
   const mediaIds = useComposerMediaIds();
   const channelIds = useComposerChannelIds();
   const editorNonce = useComposerEditorNonce();
   const selected = useCanaisSelecionados();
+  const providers = useProviders();
+  const setActiveTab = useComposerUiStore((s) => s.setActiveTab);
 
   // seletores BOOLEANO/NUMÉRICO de propósito: assinar `text` faria esta aba (e o editor dentro
   // dela) re-renderizar a cada tecla, que é exatamente o que a decomposição veio evitar
@@ -48,13 +52,33 @@ export function ComposerGlobalTab() {
         onChange={setText}
         label={t('editorLabel')}
         autoFocus
-        aiChannelIds={channelIds}
-        media={{ selectedIds: mediaIds, onToggle: toggleMedia }}
+        ai={{
+          channelIds,
+          scope: 'global',
+          networkNameOf: (channelId) => {
+            const channel = selected.find((item) => item.id === channelId);
+            return (
+              (channel && providers.data?.find((provider) => provider.id === channel.provider)?.name) ??
+              channel?.name ??
+              channelId
+            );
+          },
+          onVariants: (variants) => {
+            for (const variant of variants) setOverride(variant.channelId, variant.text);
+            bumpEditors();
+            if (variants[0]) setActiveTab(variants[0].channelId);
+          },
+        }}
+        media={{
+          selectedIds: mediaIds,
+          onToggle: toggleMedia,
+          ...(channelIds[0] ? { channelId: channelIds[0] } : {}),
+        }}
         cabecalho={
           naoUsado ? (
             <div className="flex items-start gap-2 border-b border-line bg-surface-2/60 px-3 py-2">
               <Info className="mt-0.5 size-3.5 shrink-0 text-graphite" aria-hidden />
-              <p className="text-[11px] leading-relaxed text-graphite">
+              <p className="text-meta leading-relaxed text-graphite">
                 <span className="font-semibold text-ink">{t('globalTab.unusedTitle')}</span>{' '}
                 {t('globalTab.unusedBody')}
               </p>

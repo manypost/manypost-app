@@ -76,7 +76,7 @@ function ChannelAvatar({
     <span className="relative z-10 shrink-0 self-start">
       <Avatar className={className}>
         {avatarUrl ? <AvatarImage src={avatarUrl} alt="" /> : null}
-        <AvatarFallback className="text-[11px]">{name.charAt(0)}</AvatarFallback>
+        <AvatarFallback className="text-meta">{name.charAt(0)}</AvatarFallback>
       </Avatar>
       {badge && PROVIDER_ICONS[provider] ? (
         <img
@@ -146,7 +146,7 @@ function MicroblogPreview({ p, actions }: { p: NetworkProps; actions?: Icon[] })
             <ChannelAvatar name={p.name} avatarUrl={p.avatarUrl} provider={p.provider} className="size-9" />
             <div className="min-w-0 flex-1">
               <p className="flex flex-wrap items-baseline gap-x-1.5">
-                <span className="text-[13px] font-semibold text-ink">{p.name}</span>
+                <span className="text-compact font-semibold text-ink">{p.name}</span>
                 {p.username ? (
                   <span className="text-xs text-graphite">@{p.username.replace(/^@/, '')}</span>
                 ) : null}
@@ -194,7 +194,7 @@ function ChatPreview({ p }: { p: NetworkProps }) {
   const handle = p.username?.replace(/^@/, '') ?? p.name;
   return (
     <article className="overflow-hidden rounded-lg border border-line bg-surface">
-      <p className="flex items-center gap-2 border-b border-line bg-surface-2 px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-graphite">
+      <p className="flex items-center gap-2 border-b border-line bg-surface-2 px-3 py-2 text-meta font-semibold uppercase tracking-wider text-graphite">
         <MessageCircle className="size-3.5" aria-hidden />
         {t('title', { network: p.name })}
       </p>
@@ -216,7 +216,7 @@ function ChatPreview({ p }: { p: NetworkProps }) {
           </li>
         ))}
       </ul>
-      <p className="border-t border-line px-3 py-2 text-[11px] leading-relaxed text-mist">
+      <p className="border-t border-line px-3 py-2 text-meta leading-relaxed text-mist">
         {t('hint')}
       </p>
     </article>
@@ -238,8 +238,8 @@ function InstagramPreview({ p }: { p: NetworkProps }) {
       <div className="flex items-center gap-2.5 px-3 py-2.5">
         <ChannelAvatar name={p.name} avatarUrl={p.avatarUrl} provider={p.provider} className="size-8" badge={false} />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] font-semibold leading-tight text-ink">{handle}</p>
-          <p className="text-[11px] leading-tight text-mist">{p.timeLabel}</p>
+          <p className="truncate text-compact font-semibold leading-tight text-ink">{handle}</p>
+          <p className="text-meta leading-tight text-mist">{p.timeLabel}</p>
         </div>
       </div>
       {main.media.length > 0 ? (
@@ -253,7 +253,7 @@ function InstagramPreview({ p }: { p: NetworkProps }) {
           {main.media.length > 1 ? (
             <span
               aria-hidden
-              className="absolute right-2 top-2 rounded-full bg-ink/80 px-2 py-0.5 text-[10px] font-semibold text-paper"
+              className="absolute right-2 top-2 rounded-full bg-ink/80 px-2 py-0.5 text-axis font-semibold text-paper"
             >
               1/{main.media.length}
             </span>
@@ -277,7 +277,7 @@ function InstagramPreview({ p }: { p: NetworkProps }) {
       {replies.length > 0 ? (
         <div className="flex flex-col gap-2 border-t border-line px-3 py-2.5">
           {replies.map((reply, i) => (
-            <p key={i} className="whitespace-pre-wrap break-words text-[13px] leading-relaxed text-ink">
+            <p key={i} className="whitespace-pre-wrap break-words text-compact leading-relaxed text-ink">
               <span className="mr-1.5 font-semibold">{handle}</span>
               {reply.text}
             </p>
@@ -303,7 +303,7 @@ function FacebookPreview({ p }: { p: NetworkProps }) {
       <div className="flex gap-2.5">
         <ChannelAvatar name={p.name} avatarUrl={p.avatarUrl} provider={p.provider} className="size-10" />
         <div className="min-w-0">
-          <p className="text-[13px] font-semibold leading-tight text-ink">{p.name}</p>
+          <p className="text-compact font-semibold leading-tight text-ink">{p.name}</p>
           <p className="mt-0.5 flex items-center gap-1 text-xs leading-tight text-mist">
             {p.timeLabel} · <Globe className="size-3" aria-hidden />
           </p>
@@ -330,7 +330,7 @@ function FacebookPreview({ p }: { p: NetworkProps }) {
       ) : null}
       <div
         aria-hidden
-        className="mt-3 grid grid-cols-3 gap-1 border-t border-line pt-2.5 text-[11px] font-semibold text-graphite"
+        className="mt-3 grid grid-cols-3 gap-1 border-t border-line pt-2.5 text-meta font-semibold text-graphite"
       >
         <span className="flex items-center justify-center gap-1">
           <ThumbsUp className="size-3.5" /> {t('like')}
@@ -357,7 +357,7 @@ function FacebookPreview({ p }: { p: NetworkProps }) {
               <div className="min-w-0 flex-1 rounded-lg bg-surface-2 px-3 py-2">
                 <p className="text-xs font-semibold text-ink">{p.name}</p>
                 {reply.text ? (
-                  <p className="mt-0.5 whitespace-pre-wrap break-words text-[13px] leading-relaxed text-ink">
+                  <p className="mt-0.5 whitespace-pre-wrap break-words text-compact leading-relaxed text-ink">
                     {reply.text}
                   </p>
                 ) : null}
@@ -386,7 +386,7 @@ function LinkedinPreview({ p }: { p: NetworkProps }) {
       <div className="flex gap-2.5">
         <ChannelAvatar name={p.name} avatarUrl={p.avatarUrl} provider={p.provider} className="size-10" />
         <div className="min-w-0">
-          <p className="text-[13px] font-semibold leading-tight text-ink">{p.name}</p>
+          <p className="text-compact font-semibold leading-tight text-ink">{p.name}</p>
           {p.username ? (
             <p className="text-xs leading-tight text-graphite">@{p.username.replace(/^@/, '')}</p>
           ) : null}
@@ -416,7 +416,7 @@ function LinkedinPreview({ p }: { p: NetworkProps }) {
       ) : null}
       <div
         aria-hidden
-        className="mt-3 grid grid-cols-4 gap-1 border-t border-line pt-2.5 text-[11px] font-semibold text-graphite"
+        className="mt-3 grid grid-cols-4 gap-1 border-t border-line pt-2.5 text-meta font-semibold text-graphite"
       >
         <span className="flex items-center justify-center gap-1">
           <ThumbsUp className="size-3.5" /> {t('like')}
@@ -446,7 +446,7 @@ function LinkedinPreview({ p }: { p: NetworkProps }) {
               <div className="min-w-0 flex-1 rounded-md bg-surface-2 px-2.5 py-2">
                 <p className="text-xs font-semibold text-ink">{p.name}</p>
                 {reply.text ? (
-                  <p className="mt-0.5 whitespace-pre-wrap break-words text-[13px] leading-relaxed text-ink">
+                  <p className="mt-0.5 whitespace-pre-wrap break-words text-compact leading-relaxed text-ink">
                     {reply.text}
                   </p>
                 ) : null}
@@ -482,14 +482,14 @@ function TelegramPreview({ p }: { p: NetworkProps }) {
             ) : null}
             <div className="px-3 py-2">
               {i === 0 ? (
-                <p className="text-[13px] font-semibold leading-snug text-accent">{p.name}</p>
+                <p className="text-compact font-semibold leading-snug text-accent">{p.name}</p>
               ) : null}
               {entry.text ? (
                 <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-ink">
                   {entry.text}
                 </p>
               ) : null}
-              <p aria-hidden className="mt-1 flex items-center justify-end gap-1 text-[11px] text-mist">
+              <p aria-hidden className="mt-1 flex items-center justify-end gap-1 text-meta text-mist">
                 <Eye className="size-3" /> {p.timeLabel}
               </p>
             </div>
@@ -510,10 +510,10 @@ function DiscordPreview({ p }: { p: NetworkProps }) {
         <ChannelAvatar name={p.name} avatarUrl={p.avatarUrl} provider={p.provider} className="size-9" />
         <div className="min-w-0 flex-1">
           <p className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[13px] font-semibold text-ink">{p.name}</span>
+            <span className="text-compact font-semibold text-ink">{p.name}</span>
             <span
               aria-hidden
-              className="rounded-sm bg-accent px-1 text-[9px] font-bold leading-4 text-paper"
+              className="rounded-sm bg-accent px-1 text-meta font-bold leading-4 text-paper"
             >
               APP
             </span>
@@ -573,7 +573,7 @@ function TiktokPreview({ p }: { p: NetworkProps }) {
           <ChannelAvatar name={p.name} avatarUrl={p.avatarUrl} provider={p.provider} className="size-6" />
           <span className="truncate text-xs font-semibold text-ink">{p.name}</span>
         </div>
-        <span className="shrink-0 text-[11px] font-medium text-mist">{p.timeLabel}</span>
+        <span className="shrink-0 text-meta font-medium text-mist">{p.timeLabel}</span>
       </div>
 
       {/* Tela 9:16 estilo celular do TikTok */}
@@ -589,10 +589,10 @@ function TiktokPreview({ p }: { p: NetworkProps }) {
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 px-4 text-center bg-surface-2/10">
             <div className="flex size-12 items-center justify-center rounded-full border border-paper/10 bg-paper/5 text-paper/80">
-              <Music className="size-6 animate-pulse" />
+              <Music className="size-6 animate-pulse motion-reduce:animate-none" />
             </div>
             <span className="text-xs font-semibold text-paper/90">{t('media')}</span>
-            <span className="text-[11px] text-paper/60 leading-tight">{t('mediaHint')}</span>
+            <span className="text-meta text-paper/60 leading-tight">{t('mediaHint')}</span>
           </div>
         )}
 
@@ -600,7 +600,7 @@ function TiktokPreview({ p }: { p: NetworkProps }) {
         {media.length > 1 ? (
           <span
             aria-hidden
-            className="absolute right-2 top-2 z-20 rounded-sm bg-ink/80 px-2 py-0.5 text-[10px] font-semibold text-paper border border-paper/10"
+            className="absolute right-2 top-2 z-20 rounded-sm bg-ink/80 px-2 py-0.5 text-axis font-semibold text-paper border border-paper/10"
           >
             1/{media.length}
           </span>
@@ -618,7 +618,7 @@ function TiktokPreview({ p }: { p: NetworkProps }) {
           <div className="relative mb-1">
             <Avatar className="size-10 border border-paper/30">
               {p.avatarUrl ? <AvatarImage src={p.avatarUrl} alt="" /> : null}
-              <AvatarFallback className="bg-ink text-[11px] text-paper">{p.name.charAt(0)}</AvatarFallback>
+              <AvatarFallback className="bg-ink text-meta text-paper">{p.name.charAt(0)}</AvatarFallback>
             </Avatar>
             <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 flex size-4 items-center justify-center rounded-full bg-accent text-paper">
               <Plus className="size-3 stroke-[3]" />
@@ -627,33 +627,33 @@ function TiktokPreview({ p }: { p: NetworkProps }) {
 
           <div className="flex flex-col items-center gap-0.5">
             <Heart className="size-6 stroke-[1.8]" />
-            <span className="text-[10px] font-semibold tabular-nums">{t('likes')}</span>
+            <span className="text-axis font-semibold tabular-nums">{t('likes')}</span>
           </div>
 
           <div className="flex flex-col items-center gap-0.5">
             <MessageCircle className="size-6 stroke-[1.8]" />
-            <span className="text-[10px] font-semibold tabular-nums">{t('comments')}</span>
+            <span className="text-axis font-semibold tabular-nums">{t('comments')}</span>
           </div>
 
           <div className="flex flex-col items-center gap-0.5">
             <Bookmark className="size-6 stroke-[1.8]" />
-            <span className="text-[10px] font-semibold tabular-nums">{t('bookmarks')}</span>
+            <span className="text-axis font-semibold tabular-nums">{t('bookmarks')}</span>
           </div>
 
           <div className="flex flex-col items-center gap-0.5">
             <Share className="size-6 stroke-[1.8]" />
-            <span className="text-[10px] font-semibold tabular-nums">{t('shares')}</span>
+            <span className="text-axis font-semibold tabular-nums">{t('shares')}</span>
           </div>
 
           {/* Disco de música giratório no rodapé direito */}
           <div className="mt-1 flex size-8 items-center justify-center rounded-full border border-paper/30 bg-ink/80 p-1">
-            <Music className="size-4 animate-pulse text-paper/90" />
+            <Music className="size-4 animate-pulse text-paper/90 motion-reduce:animate-none" />
           </div>
         </div>
 
         {/* Overlay inferior: @handle, legenda e som original */}
         <div className="absolute bottom-5 left-3 right-14 z-10 flex flex-col gap-1.5 text-paper">
-          <p className="flex items-center gap-1 text-[13px] font-bold leading-tight">
+          <p className="flex items-center gap-1 text-compact font-bold leading-tight">
             <span className="truncate">@{cleanUsername}</span>
           </p>
 
@@ -665,7 +665,7 @@ function TiktokPreview({ p }: { p: NetworkProps }) {
             <p className="italic text-xs text-paper/50">{t('captionPlaceholder')}</p>
           )}
 
-          <div aria-hidden className="mt-0.5 flex w-fit max-w-full items-center gap-1.5 rounded-full border border-paper/10 bg-ink/40 px-2 py-0.5 text-[11px] font-medium text-paper/90">
+          <div aria-hidden className="mt-0.5 flex w-fit max-w-full items-center gap-1.5 rounded-full border border-paper/10 bg-ink/40 px-2 py-0.5 text-meta font-medium text-paper/90">
             <Music className="size-3 shrink-0" />
             <span className="truncate">{t('sound')} - @{cleanUsername}</span>
           </div>
@@ -702,7 +702,7 @@ function DevtoPreview({ p }: { p: NetworkProps }) {
           <ChannelAvatar name={p.name} avatarUrl={p.avatarUrl} provider={p.provider} className="size-6" />
           <div className="flex min-w-0 flex-col leading-tight">
             <span className="truncate text-xs font-semibold text-ink">{p.name}</span>
-            <span className="text-[11px] text-mist">{p.timeLabel}</span>
+            <span className="text-meta text-mist">{p.timeLabel}</span>
           </div>
         </div>
 
@@ -715,7 +715,7 @@ function DevtoPreview({ p }: { p: NetworkProps }) {
         {tags.length > 0 ? (
           <ul className="flex flex-wrap gap-1.5">
             {tags.map((tag) => (
-              <li key={tag} className="bevel-chip rounded-sm px-1.5 py-0.5 text-[11px] text-graphite">
+              <li key={tag} className="bevel-chip rounded-sm px-1.5 py-0.5 text-meta text-graphite">
                 #{tag}
               </li>
             ))}
@@ -730,7 +730,7 @@ function DevtoPreview({ p }: { p: NetworkProps }) {
 
         <div className="flex items-center justify-between">
           <ActionRow icons={[Heart, MessageCircle, Bookmark]} className="max-w-20" />
-          <span className="text-[11px] text-mist">{t('readTime', { minutes })}</span>
+          <span className="text-meta text-mist">{t('readTime', { minutes })}</span>
         </div>
       </div>
     </article>
@@ -773,12 +773,12 @@ function YoutubePreview({ p }: { p: NetworkProps }) {
               <Play className="size-5" />
             </div>
             <span className="text-xs font-semibold text-paper/90">{t('media')}</span>
-            <span className="text-[11px] leading-tight text-paper/60">{t('mediaHint')}</span>
+            <span className="text-meta leading-tight text-paper/60">{t('mediaHint')}</span>
           </div>
         )}
 
         {isShort ? (
-          <span className="absolute left-2 top-2 rounded-sm bg-ink/70 px-1.5 py-0.5 text-[10px] font-semibold text-paper">
+          <span className="absolute left-2 top-2 rounded-sm bg-ink/70 px-1.5 py-0.5 text-axis font-semibold text-paper">
             {t('short')}
           </span>
         ) : null}
@@ -792,8 +792,8 @@ function YoutubePreview({ p }: { p: NetworkProps }) {
           ) : (
             <p className="text-sm font-semibold italic leading-snug text-mist">{t('titlePlaceholder')}</p>
           )}
-          <span className="truncate text-[11px] text-mist">{p.name}</span>
-          <span className="text-[11px] text-mist" aria-hidden>
+          <span className="truncate text-meta text-mist">{p.name}</span>
+          <span className="text-meta text-mist" aria-hidden>
             {t('views')} &middot; {p.timeLabel}
           </span>
         </div>

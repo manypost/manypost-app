@@ -17,6 +17,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PROVIDER_ICONS } from '@/features/channels/provider-icon';
 import { useComposerModal } from '@/features/composer/use-composer-modal';
@@ -104,7 +105,7 @@ function KanbanCard({ card, onOpen }: { card: GroupCard; onOpen: (groupId: strin
         isDragging && 'opacity-40',
       )}
     >
-      <p className="line-clamp-3 text-[13px] leading-relaxed text-ink">{card.text || '…'}</p>
+      <p className="line-clamp-3 text-compact leading-relaxed text-ink">{card.text || '…'}</p>
       {card.errorMessage ? (
         <p className="line-clamp-2 text-xs leading-relaxed text-state-failed">{card.errorMessage}</p>
       ) : null}
@@ -115,7 +116,7 @@ function KanbanCard({ card, onOpen }: { card: GroupCard; onOpen: (groupId: strin
             <span key={item.id} className="relative">
               <Avatar className="size-6 border border-surface">
                 {item.channel.avatarUrl ? <AvatarImage src={item.channel.avatarUrl} alt="" /> : null}
-                <AvatarFallback className="text-[10px]">
+                <AvatarFallback className="text-axis">
                   {(item.channel.name ?? item.channel.provider).charAt(0)}
                 </AvatarFallback>
               </Avatar>
@@ -130,14 +131,14 @@ function KanbanCard({ card, onOpen }: { card: GroupCard; onOpen: (groupId: strin
             </span>
           ))}
           {card.items.length > 4 ? (
-            <span className="grid size-6 place-items-center rounded-full border border-surface bg-surface-2 text-[10px] font-semibold text-graphite">
+            <span className="grid size-6 place-items-center rounded-full border border-surface bg-surface-2 text-axis font-semibold text-graphite">
               +{card.items.length - 4}
             </span>
           ) : null}
         </span>
         <span className="ml-auto flex items-center gap-1.5">
           {card.origin !== 'WEB' ? <Badge className="px-1.5 py-0.5">{card.origin}</Badge> : null}
-          {when ? <span className="text-[11px] tabular-nums text-graphite">{when}</span> : null}
+          {when ? <span className="text-meta tabular-nums text-graphite">{when}</span> : null}
         </span>
       </div>
     </button>
@@ -168,7 +169,7 @@ function KanbanColumn({
         isOver && 'bg-accent-tint',
       )}
     >
-      <h2 className="flex items-center justify-between px-1 pt-1 text-[11px] font-semibold uppercase tracking-wide text-graphite">
+      <h2 className="flex items-center justify-between px-1 pt-1 text-meta font-semibold uppercase tracking-wide text-graphite">
         {title}
         <span className="rounded-sm border border-line bg-surface px-1.5 tabular-nums">{cards.length}</span>
       </h2>
@@ -184,7 +185,22 @@ function KanbanColumn({
  * Arrastar Falhou → Agendado dispara o retry; transições inválidas explicam
  * no toast. Card abre o mesmo painel de detalhe do calendário.
  */
+/**
+ * Envolve o quadro com o cabeçalho da tela (design.md §13). Existe porque o quadro tem quatro
+ * saídas (carregando, erro, vazio e o quadro em si) e o cabeçalho pertence à TELA, não a cada
+ * estado dela — repetir em quatro lugares convidaria a divergirem.
+ */
 export function KanbanView() {
+  const t = useTranslations('kanban');
+  return (
+    <div className="flex flex-col gap-4">
+      <PageHeader title={t('title')} description={t('pageDescription')} />
+      <KanbanBoard />
+    </div>
+  );
+}
+
+function KanbanBoard() {
   const t = useTranslations('kanban');
   const errorMessage = useApiErrorMessage();
   const retry = useRetryPost();

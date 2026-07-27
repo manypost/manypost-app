@@ -45,6 +45,8 @@ const Capabilities = z
       enabled: z.boolean(),
       /** false = o modelo configurado não enxerga imagem; a UI some com o alt-text automático */
       canDescribeImages: z.boolean(),
+      /** false = o provedor configurado não desenha; a UI some com a geração de imagem */
+      canGenerateImages: z.boolean(),
       /** null quando não há IA — não há franquia a mostrar */
       credits: z
         .object({
@@ -111,6 +113,7 @@ export function capabilityRoutes(ctn: Container) {
           ai: {
             enabled: Boolean(ctn.ai),
             canDescribeImages: ctn.ai?.canDescribeImages ?? false,
+            canGenerateImages: ctn.ai?.canGenerateImages ?? false,
             credits: credits
               ? { ...credits, periodEnd: credits.periodEnd.toISOString() }
               : null,

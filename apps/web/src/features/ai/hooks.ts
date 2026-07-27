@@ -1,6 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRef } from 'react';
 import { api } from '@/lib/api/client';
 import { useCapabilities, usePlanFeatures } from '@/features/billing/hooks';
 
@@ -24,6 +25,8 @@ export function useAiAvailability() {
     enabled: ai?.enabled ?? false,
     /** o modelo configurado enxerga imagem (alt-text automático) */
     canDescribeImages: ai?.canDescribeImages ?? false,
+    /** o provedor configurado DESENHA — sem isto a geração de imagem some da interface */
+    canGenerateImages: ai?.canGenerateImages ?? false,
     credits: ai?.credits ?? null,
     /** franquia esgotada — a UI avisa antes do clique em vez de deixar dar 402 */
     exhausted: Boolean(ai?.credits?.enforced && (ai.credits.remaining ?? 0) <= 0),
@@ -31,6 +34,7 @@ export function useAiAvailability() {
     hasBestTime: plan.has('ai_best_time'),
     hasDraft: plan.has('ai_multichannel_draft'),
     hasCalendar: plan.has('ai_calendar'),
+    hasImage: plan.has('ai_image'),
   };
 }
 
@@ -64,18 +68,47 @@ export function useGenerateCaption() {
   });
 }
 
+/** ids do catálogo de instruções do servidor — o rótulo vem do catálogo de mensagens */
+export const REWRITE_IDS = [
+  'shorten',
+  'expand',
+  'formal',
+  'casual',
+  'with_emoji',
+  'without_emoji',
+  'fix_grammar',
+] as const;
+export type RewriteId = (typeof REWRITE_IDS)[number];
+
+/** as duas primeiras corrigem/ajustam; as outras mudam o tom — separadas no menu */
+export const REWRITE_TONE_IDS: RewriteId[] = ['formal', 'casual', 'with_emoji', 'without_emoji'];
+export const REWRITE_EDIT_IDS: RewriteId[] = ['fix_grammar', 'shorten', 'expand'];
+
+export interface RewriteResult {
+  channelId: string | null;
+  text: string;
+  maxLength: number | null;
+  /** true = passou do limite do canal, e NADA foi removido por isso */
+  overLimit: boolean;
+}
+
+/**
+ * Reescrita. `channelId` é **opcional** de propósito: na aba global o texto é compartilhado por
+ * várias redes e não existe canal único a resolver — mandar o primeiro impunha o limite de uma
+ * rede não relacionada e devolvia o texto cortado.
+ */
 export function useRewriteText() {
   const refresh = useInvalidateCredits();
   return useMutation({
     mutationFn: async (input: {
       text: string;
-      instruction: string;
-      channelId: string;
+      instructionId: RewriteId;
+      channelId?: string;
       settings?: Record<string, unknown>;
     }) => {
       const { data, error } = await api.POST('/v1/ai/rewrite', { body: input });
       if (error) throw error;
-      return data as AiVariant;
+      return data as RewriteResult;
     },
     onSettled: refresh,
   });
@@ -145,7 +178,115 @@ export function useBestTimes(channelId: string | undefined, enabled: boolean) {
         confidence: 'low' | 'medium' | 'high';
         sampleSize: number;
         fromBaseline: boolean;
+        /**
+         * O que sustenta a resposta. `own_posting_history` são os horários que a organização
+         * MAIS USA — não uma medição de desempenho. A frase da interface sai daqui, para não
+         * insinuar medição que a plataforma ainda não coleta.
+         */
+        signal: 'network_baseline' | 'own_posting_history' | 'own_engagement';
       };
+    },
+  });
+}
+
+/**
+ * Proporções oferecidas — as mesmas do contrato. O rótulo é humano ("Retrato"), não a razão crua:
+ * quem escreve um post pensa em "formato do feed", não em 4:5.
+ */
+export const ASPECTOS = [
+  { id: '1:1', labelKey: 'aspect1x1' },
+  { id: '4:5', labelKey: 'aspect4x5' },
+  { id: '9:16', labelKey: 'aspect9x16' },
+  { id: '16:9', labelKey: 'aspect16x9' },
+  { id: '1.91:1', labelKey: 'aspect191x1' },
+] as const;
+
+export type AspectId = (typeof ASPECTOS)[number]['id'];
+
+export interface GeneratedMedia {
+  id: string;
+  url: string;
+  mime: string;
+  width: number | null;
+  height: number | null;
+  alt: string | null;
+  source: string;
+}
+
+export interface GenerateImageInput {
+  prompt: string;
+  aspect?: AspectId;
+  channelId?: string;
+  alt?: string;
+}
+
+const imageRequestFingerprint = (input: GenerateImageInput) =>
+  JSON.stringify([
+    input.prompt.trim(),
+    input.aspect ?? null,
+    input.channelId ?? null,
+    input.alt?.trim() || null,
+  ]);
+
+export interface ImageIdempotencyTracker {
+  keyFor(input: GenerateImageInput): string;
+  complete(input: GenerateImageInput): void;
+}
+
+/**
+ * Mantém a chave depois de erro: se o servidor concluiu e só a resposta se perdeu, "tentar de
+ * novo" precisa obter o replay. Sucesso limpa a chave para "gerar outra" ser uma ação nova.
+ */
+export function createImageIdempotencyTracker(
+  makeKey: () => string = () => crypto.randomUUID(),
+): ImageIdempotencyTracker {
+  let current: { fingerprint: string; key: string } | undefined;
+  return {
+    keyFor(input) {
+      const fingerprint = imageRequestFingerprint(input);
+      if (current?.fingerprint !== fingerprint) {
+        current = { fingerprint, key: makeKey() };
+      }
+      return current.key;
+    },
+    complete(input) {
+      if (current?.fingerprint === imageRequestFingerprint(input)) current = undefined;
+    },
+  };
+}
+
+export const imageGenerationRequest = (
+  input: GenerateImageInput,
+  tracker: ImageIdempotencyTracker,
+) => ({
+  body: input,
+  headers: { 'Idempotency-Key': tracker.keyFor(input) },
+});
+
+/**
+ * Geração de imagem (`ai_image`, Premium — 5 créditos).
+ *
+ * Invalida a biblioteca de mídia junto com a franquia: a imagem nasce lá dentro, e a lista
+ * precisa mostrá-la sem um F5.
+ */
+export function useGenerateImage() {
+  const queryClient = useQueryClient();
+  const trackerRef = useRef<ImageIdempotencyTracker | null>(null);
+  if (!trackerRef.current) trackerRef.current = createImageIdempotencyTracker();
+  const tracker = trackerRef.current;
+  return useMutation({
+    mutationFn: async (input: GenerateImageInput) => {
+      const { data, error } = await api.POST(
+        '/v1/ai/image',
+        imageGenerationRequest(input, tracker),
+      );
+      if (error) throw error;
+      return data.media as GeneratedMedia;
+    },
+    onSuccess: (_data, input) => tracker.complete(input),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ['capabilities'] });
+      void queryClient.invalidateQueries({ queryKey: ['media'] });
     },
   });
 }

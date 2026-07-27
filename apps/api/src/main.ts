@@ -14,6 +14,7 @@ import { authRoutes } from './http/routes/auth.routes';
 import { billingRoutes } from './http/routes/billing.routes';
 import { aiRoutes } from './http/routes/ai.routes';
 import { capabilityRoutes } from './http/routes/capabilities.routes';
+import { insightsRoutes } from './http/routes/insights.routes';
 import { channelRoutes } from './http/routes/channels.routes';
 import { eventRoutes } from './http/routes/events.routes';
 import { mcpRoutes } from './http/routes/mcp.routes';
@@ -107,6 +108,7 @@ app.route('/v1/media', mediaRoutes(ctn));
 app.route('/v1/webhooks', webhookRoutes(ctn));
 app.route('/v1/notifications', notificationRoutes(ctn));
 app.route('/v1/capabilities', capabilityRoutes(ctn)); // plano/features desta org (sempre existe)
+app.route('/v1/insights', insightsRoutes(ctn)); // contagens da tela inicial
 // IA: as rotas existem sempre; sem AI_PROVIDER elas respondem `capability.disabled` (404), e
 // /best-times segue funcionando porque é heurística, não modelo (SPEC_AI §3)
 app.route('/v1/ai', aiRoutes(ctn));

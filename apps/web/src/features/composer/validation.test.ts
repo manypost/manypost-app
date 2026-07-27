@@ -296,4 +296,15 @@ describe('cada editor mostra só o que lhe diz respeito', () => {
     const repetida = { message: 'igual', origin: { kind: 'post' } } as const;
     expect(issuesDoEscopo([repetida, repetida], { kind: 'global' })).toHaveLength(1);
   });
+
+  test('o rodapé inclui uma issue quando apenas uma réplica bloqueia o post', () => {
+    const issues = [
+      {
+        message: 'A réplica 1 está vazia',
+        origin: { kind: 'thread' as const, threadKey: 'thread-1' },
+      },
+    ];
+
+    expect(issuesDoEscopo(issues, { kind: 'all' })).toEqual(issues);
+  });
 });

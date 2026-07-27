@@ -41,7 +41,7 @@ export function PasswordStrength({ value }: { value: string }) {
           />
         ))}
       </div>
-      <span className={cn('text-[11px] font-semibold tabular-nums', meta.text)}>
+      <span className={cn('text-meta font-semibold tabular-nums', meta.text)}>
         {t('strengthLabel')}: {t(meta.key)}
       </span>
     </div>

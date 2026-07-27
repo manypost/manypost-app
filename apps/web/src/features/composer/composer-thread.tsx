@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useProviders } from '@/features/channels/hooks';
 import { ComposerEditorCard } from './composer-editor-card';
 import {
   useComposerActions,
@@ -20,7 +21,7 @@ import {
 } from './composer-selectors';
 import { MediaStrip } from './media-picker';
 import { useComposerStore } from './store';
-import { useSuporteAThread } from './use-composer-validation';
+import { useCanaisSelecionados, useSuporteAThread } from './use-composer-validation';
 
 /** esperas oferecidas, em segundos — o cru de 0 a 600 virava um campo numérico sem sentido */
 const ESPERAS = [0, 15, 30, 60, 120, 300, 600] as const;
@@ -39,6 +40,8 @@ export function ComposerThread() {
   const thread = useComposerThread();
   const channelIds = useComposerChannelIds();
   const editorNonce = useComposerEditorNonce();
+  const selected = useCanaisSelecionados();
+  const providers = useProviders();
   const { threadSuportada, threadNaoSuportada } = useSuporteAThread();
   const {
     setThreadText,
@@ -61,7 +64,7 @@ export function ComposerThread() {
             <span aria-hidden className="absolute bottom-0 left-2.5 top-0 w-px bg-line" />
             <span
               aria-hidden
-              className="bevel-surface absolute left-0 top-2 grid size-5 place-items-center rounded-full border text-[10px] font-semibold tabular-nums text-graphite"
+              className="bevel-surface absolute left-0 top-2 grid size-5 place-items-center rounded-full border text-axis font-semibold tabular-nums text-graphite"
             >
               {i + 1}
             </span>
@@ -74,7 +77,19 @@ export function ComposerThread() {
               onChange={(text) => setThreadText(item.key, text)}
               label={t('threadItem', { index: i + 1 })}
               placeholder={t('threadPlaceholder')}
-              aiChannelIds={channelIds}
+              ai={{
+                channelIds,
+                scope: 'thread',
+                networkNameOf: (channelId) => {
+                  const channel = selected.find((selectedChannel) => selectedChannel.id === channelId);
+                  return (
+                    (channel &&
+                      providers.data?.find((provider) => provider.id === channel.provider)?.name) ??
+                    channel?.name ??
+                    channelId
+                  );
+                },
+              }}
               media={{
                 selectedIds: item.mediaIds,
                 onToggle: (mediaId) => toggleThreadMedia(item.key, mediaId),
@@ -130,7 +145,7 @@ export function ComposerThread() {
           {t('threadAdd')}
         </Button>
       ) : (
-        <p className="text-[13px] leading-relaxed text-state-failed">
+        <p className="text-compact leading-relaxed text-state-failed">
           {t('threadUnavailable', { channels: threadNaoSuportada.join(', ') })}
         </p>
       )}
@@ -152,7 +167,7 @@ function EsperaSelect({ valor, onChange }: { valor: number; onChange: (sec: numb
         <TooltipTrigger asChild>
           <SelectTrigger
             aria-label={t('label')}
-            className="h-8 w-auto gap-1 border-line px-2 text-[11px] font-semibold text-graphite"
+            className="h-8 w-auto gap-1 border-line px-2 text-meta font-semibold text-graphite"
           >
             <Timer className="size-3.5 shrink-0" aria-hidden />
             <SelectValue />

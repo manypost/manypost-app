@@ -16,6 +16,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import {
   Dialog,
   DialogContent,
@@ -37,6 +38,7 @@ import {
   useUpdateMediaAlt,
 } from './hooks';
 import { AltTextButton } from '@/features/ai/alt-text-button';
+import { GenerateImageDialog } from '@/features/ai/generate-image-dialog';
 import { MediaThumb, formatBytes } from './media-thumb';
 import { UploadZone } from './upload-zone';
 
@@ -45,6 +47,7 @@ type Media = components['schemas']['Media'];
 /** Biblioteca de mídia (SPEC_FRONTEND §2): upload, importar por URL, alt, excluir. */
 export function MediaView() {
   const t = useTranslations('media');
+  const tAi = useTranslations('ai');
   const locale = useLocale();
   const errorMessage = useApiErrorMessage();
   const media = useMediaList();
@@ -88,14 +91,20 @@ export function MediaView() {
 
   return (
     <div className="flex flex-col gap-6">
+      <PageHeader title={t('title')} description={t('pageDescription')} />
       <div className="flex flex-col gap-3">
         <UploadZone />
         <div className="flex items-center justify-between">
           <span className="text-xs text-graphite">{t('urlHint')}</span>
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setImportOpen(true)}>
-            <Link2 aria-hidden />
-            {t('importUrl')}
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* some inteiro quando a instalação não desenha — botão que responderia 501 é pior
+                que botão nenhum */}
+            <GenerateImageDialog />
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setImportOpen(true)}>
+              <Link2 aria-hidden />
+              {t('importUrl')}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -127,13 +136,25 @@ export function MediaView() {
               key={item.id}
               className="group overflow-hidden rounded-lg border border-line bg-surface transition-colors duration-200 hover:border-accent"
             >
-              <MediaThumb url={item.url} mime={item.mime} alt={item.alt} className="aspect-square" />
+              <div className="relative">
+                <MediaThumb url={item.url} mime={item.mime} alt={item.alt} className="aspect-square" />
+                {/* proveniência à vista: várias plataformas já exigem divulgar conteúdo sintético,
+                    e quem revisa a biblioteca precisa distinguir sem abrir cada item */}
+                {item.source === 'ai' ? (
+                  <span
+                    title={tAi('imageBadgeTitle')}
+                    className="bevel-chip absolute left-1.5 top-1.5 rounded-sm bg-accent-tint px-1.5 py-0.5 text-meta font-semibold text-accent"
+                  >
+                    {tAi('imageBadge')}
+                  </span>
+                ) : null}
+              </div>
               <div className="flex items-center justify-between gap-1 border-t border-line px-2.5 py-1.5">
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-xs text-graphite">
                     {item.alt ? item.alt : t('noAlt')}
                   </span>
-                  <span className="block text-[11px] text-mist">
+                  <span className="block text-meta text-mist">
                     {formatBytes(item.byteSize, locale)}
                     {item.width && item.height ? ` · ${item.width}×${item.height}` : ''}
                   </span>

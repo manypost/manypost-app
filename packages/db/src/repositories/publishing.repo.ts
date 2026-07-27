@@ -536,6 +536,92 @@ export function makePublishingRepository(db: Db): PublishingRepository {
       await db.update(postGroups).set({ state }).where(eq(postGroups.id, groupId));
     },
 
+    /**
+     * Contagens da tela inicial numa ida só ao banco (SPEC home-operational-overview).
+     *
+     * Três decisões que valem registro:
+     *
+     * 1. **Uma consulta, não sete.** Tudo sai de agregações condicionais sobre `publications` mais
+     *    dois `exists`, porque a home abre a cada visita. Contar percorrendo o feed paginado
+     *    custaria uma varredura por página.
+     * 2. **`org_id` em TODA ramificação** (AGENTS.md, multi-tenant): o filtro está no `where` da
+     *    consulta principal e repetido dentro de cada subconsulta — agregado é exatamente o lugar
+     *    onde um vazamento passaria despercebido, porque ninguém vê a linha, só o número.
+     * 3. **O corte por dia acontece no Postgres, no fuso do usuário** (`at time zone`). Fatiar em
+     *    JS exigiria trazer todas as publicações da semana só para contá-las.
+     */
+    async summarize(orgId, w) {
+      const [linha] = await db.execute<{
+        failed: number;
+        needs_review: number;
+        partial: number;
+        today_scheduled: number;
+        today_published: number;
+        today_failed: number;
+        ever_scheduled: boolean;
+      }>(sql`
+        select
+          count(*) filter (where p.state = 'FAILED')::int                        as failed,
+          count(*) filter (where p.state = 'NEEDS_REVIEW')::int                  as needs_review,
+          count(distinct g.id) filter (where g.state = 'PARTIAL')::int           as partial,
+          count(*) filter (
+            where p.state = ${'SCHEDULED'} and p.publish_at >= ${w.dayStart.toISOString()}::timestamptz
+              and p.publish_at < ${w.dayEnd.toISOString()}::timestamptz
+          )::int                                                                 as today_scheduled,
+          count(*) filter (
+            where p.state = 'PUBLISHED' and p.published_at >= ${w.dayStart.toISOString()}::timestamptz
+              and p.published_at < ${w.dayEnd.toISOString()}::timestamptz
+          )::int                                                                 as today_published,
+          count(*) filter (
+            where p.state = 'FAILED' and p.updated_at >= ${w.dayStart.toISOString()}::timestamptz
+              and p.updated_at < ${w.dayEnd.toISOString()}::timestamptz
+          )::int                                                                 as today_failed,
+          (count(*) > 0)                                                         as ever_scheduled
+        from ${publications} p
+        join ${postGroups} g on g.id = p.group_id and g.org_id = ${orgId}::uuid
+        where p.org_id = ${orgId}::uuid
+      `);
+
+      // aguardando aprovação: um link PENDENTE por GRUPO, não por publicação
+      const [aprovacao] = await db.execute<{ n: number }>(sql`
+        select count(distinct al.group_id)::int as n
+        from ${approvalLinks} al
+        join ${postGroups} g on g.id = al.group_id
+        where g.org_id = ${orgId}::uuid and al.status = 'PENDING' and al.expires_at > now()
+      `);
+
+      // próximos 7 dias, um bucket por dia CIVIL do fuso pedido
+      const porDia = await db.execute<{ dia: number; n: number }>(sql`
+        select
+          extract(day from date_trunc('day', p.publish_at at time zone ${w.timezone})
+                         - date_trunc('day', ${w.dayStart.toISOString()}::timestamptz at time zone ${w.timezone}))::int as dia,
+          count(*)::int as n
+        from ${publications} p
+        where p.org_id = ${orgId}::uuid
+          and p.state = 'SCHEDULED'
+          and p.publish_at >= ${w.dayStart.toISOString()}::timestamptz
+          and p.publish_at < ${w.weekEnd.toISOString()}::timestamptz
+        group by 1
+      `);
+
+      const weekByDay = Array.from({ length: 7 }, () => 0);
+      for (const r of porDia) {
+        if (r.dia >= 0 && r.dia < 7) weekByDay[r.dia] = r.n;
+      }
+
+      return {
+        failed: linha?.failed ?? 0,
+        needsReview: linha?.needs_review ?? 0,
+        awaitingApproval: aprovacao?.n ?? 0,
+        partial: linha?.partial ?? 0,
+        todayScheduled: linha?.today_scheduled ?? 0,
+        todayPublished: linha?.today_published ?? 0,
+        todayFailed: linha?.today_failed ?? 0,
+        weekByDay,
+        everScheduled: linha?.ever_scheduled ?? false,
+      };
+    },
+
     async countGroupsSince(orgId, since) {
       // conta POSTS (grupos), não publicações: "15 posts por mês" no Grátis é por post,
       // independente de quantas redes ele saiu. Cancelado continua contando (consumiu a cota).

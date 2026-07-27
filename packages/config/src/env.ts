@@ -163,6 +163,11 @@ const EnvSchema = z
      * nomeando esta variável — nunca é entregue como se estivesse pronta.
      */
     AI_MAX_OUTPUT_TOKENS: z.coerce.number().int().min(64).max(32_000).default(4000),
+    /**
+     * Opt-in explícito para geração de imagem. Sem ele, o adapter não expõe `generateImage`:
+     * falar o mesmo protocolo não prova que `AI_MODEL` sabe desenhar.
+     */
+    AI_IMAGE_MODEL: z.string().optional(),
 
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
     OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
@@ -367,6 +372,8 @@ export type AiConfig = {
   /** ausente = sem header de autorização (runtime local) */
   apiKey?: string;
   model: string;
+  /** presente = operador declarou um modelo capaz de gerar imagens */
+  imageModel?: string;
   timeoutMs: number;
   maxOutputTokens: number;
 };
@@ -381,6 +388,7 @@ export function aiConfigFromEnv(env: Env): AiConfig | null {
     model: env.AI_MODEL!,
     timeoutMs: env.AI_TIMEOUT_MS,
     maxOutputTokens: env.AI_MAX_OUTPUT_TOKENS,
+    ...(env.AI_IMAGE_MODEL ? { imageModel: env.AI_IMAGE_MODEL } : {}),
   };
 }
 

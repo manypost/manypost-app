@@ -86,7 +86,7 @@ export function DateTimePicker({
           type="button"
           aria-label={ariaLabel ?? t('pick')}
           className={cn(
-            'flex h-9 items-center gap-2 rounded-md border border-line bg-surface px-3 text-sm text-ink outline-none transition-colors duration-200',
+            'flex h-9 cursor-pointer items-center gap-2 rounded-md border border-line bg-surface px-3 text-sm text-ink outline-none transition-colors duration-200',
             'hover:border-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
             !date && 'text-graphite',
             className,

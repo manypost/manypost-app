@@ -78,7 +78,7 @@ export function DiagramSlide() {
                 className="size-[52px]"
               />
             </div>
-            <p className="mb-3 text-center text-[12.5px] font-medium leading-[16px] tracking-[-0.2px] text-paper">
+            <p className="mb-3 text-center text-xs font-medium leading-[16px] tracking-[-0.2px] text-paper">
               {t('diagramHubTitle')} <span className="font-semibold text-accent-on-dark">+</span>{' '}
               {t('diagramHubTitleApi')}
             </p>
@@ -94,7 +94,7 @@ export function DiagramSlide() {
           {AUTH_NETWORKS.map((network, i) => (
             <span
               key={network.id}
-              className="auth-enter flex h-8 items-center gap-2 rounded-md border border-paper/15 bg-paper/[0.05] px-2.5 text-[11.5px] font-medium text-paper/85"
+              className="auth-enter flex h-8 items-center gap-2 rounded-md border border-paper/15 bg-paper/[0.05] px-2.5 text-meta font-medium text-paper/85"
               style={{ '--i': i } as React.CSSProperties}
             >
               <ProviderIcon provider={network.id} name={network.name} className="size-4" />
@@ -102,7 +102,7 @@ export function DiagramSlide() {
             </span>
           ))}
           <span
-            className="auth-enter flex h-8 items-center rounded-md border border-accent-on-dark/50 px-2.5 text-[11.5px] font-medium text-accent-on-dark"
+            className="auth-enter flex h-8 items-center rounded-md border border-accent-on-dark/50 px-2.5 text-meta font-medium text-accent-on-dark"
             style={{ '--i': AUTH_NETWORKS.length } as React.CSSProperties}
           >
             {t('diagramAllNetworks')}
@@ -116,12 +116,12 @@ export function DiagramSlide() {
 function SourceGroup({ label, items, from }: { label: string; items: string[]; from: number }) {
   return (
     <div>
-      <p className="mb-1.5 text-[10.5px] font-medium text-paper/45">{label}</p>
+      <p className="mb-1.5 text-axis font-medium text-paper/45">{label}</p>
       <div className="flex flex-col gap-1.5">
         {items.map((item, i) => (
           <span
             key={item}
-            className="auth-enter flex h-8 items-center rounded-md border border-paper/15 bg-paper/[0.05] px-2.5 text-[11.5px] font-medium text-paper/85"
+            className="auth-enter flex h-8 items-center rounded-md border border-paper/15 bg-paper/[0.05] px-2.5 text-meta font-medium text-paper/85"
             style={{ '--i': from + i } as React.CSSProperties}
           >
             <span className="truncate">{item}</span>

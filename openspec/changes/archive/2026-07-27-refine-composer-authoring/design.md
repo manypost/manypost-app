@@ -110,3 +110,52 @@ selection (large avatars, "where it goes") versus navigation (a tab rail, "what 
 
 Meter states use existing tokens only: `--graphite` empty, `--accent` within, `--state-review` at or
 above 90% (read as "worth a look"), `--state-failed` over. No new token is introduced.
+
+## 6. Parallel-change integration
+
+The modular card is a transport boundary, not the owner of AI semantics. It receives an explicit
+`scope` (`global`, `channel` or `thread`) plus optional `onVariants` and `networkNameOf` callbacks and
+forwards them unchanged to `AiActions`.
+
+- `global`: rewrite omits `channelId`; caption variants are written as per-channel overrides.
+- `channel`: rewrite and caption use exactly that channel.
+- `thread`: rewrite may use the first selected channel for a network hint, but "adapt to each
+  network" is hidden because one shared thread item cannot store several channel versions.
+
+This preserves the server-owned `instructionId` catalogue and the non-truncating rewrite response
+from `fix-ai-composer-safety`. The PR version's translated instruction strings are not restored.
+
+The same boundary carries `media.channelId`. The global editor supplies the first selected channel
+only as an aspect-ratio suggestion. A thread spanning several channels supplies no hint, because
+choosing one silently would misrepresent the destination.
+
+## 7. Footer-wide validation and shortcut ownership
+
+Editor popovers keep their local scopes. The footer is different: it represents the whole draft and
+therefore uses an `all` scope that includes post, channel and thread origins. A disabled footer action
+always has a mounted description target.
+
+The Ctrl/Cmd + Enter listener remains document-level while the modal is mounted, but the pure
+eligibility decision rejects:
+
+- a draft with blocking or scheduling issues;
+- a mutation already in flight;
+- a repeated keydown;
+- any blocking overlay owned by the composer, beginning with discard confirmation.
+
+This keeps the shortcut available from TipTap and the date control without allowing an action behind
+another decision surface.
+
+## 8. Persistence acknowledgement
+
+Zustand persistence still owns the draft shape and localStorage key. The UI no longer equates a store
+subscription with durable storage. A small adapter reports the lifecycle of the actual `setItem`
+operation using a monotonically increasing write version:
+
+- a new mutation enters `saving`;
+- only the latest completed write may enter `saved`;
+- a rejected/throwing latest write enters `failed`;
+- an older completion cannot overwrite the state of a newer write.
+
+The failure state leaves the in-memory draft untouched and communicates that the browser did not
+confirm local saving.

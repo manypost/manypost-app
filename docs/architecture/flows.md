@@ -210,6 +210,54 @@ O cliente recebe o grupo antes da publicação externa. Erro de validação não
 efeito. Falha de enqueue posterior ao commit é recuperável pelo scanner; por
 isso grupo e publicação são a fonte de verdade.
 
+## Home e resumo operacional
+
+**Entrada:** `GET /v1/insights/summary?tz=<IANA>`; UI em
+`apps/web/src/features/home/`.
+
+1. A route valida o fuso IANA e calcula início/fim dos dias civis com
+   `Intl.DateTimeFormat`; nunca soma 24 horas para avançar o calendário.
+2. O caso de uso monta os limites explícitos de hoje e dos sete dias seguintes.
+   Uma transição de horário de verão pode produzir um intervalo UTC de 23 ou
+   25 horas sem mover publicação para o dia errado.
+3. O repository agrega atenção, entregas do dia e semana com `org_id` explícito
+   em cada ramificação e join. Não retorna texto ou payload de publicação.
+4. A UI mostra onboarding quando não há canal/post; no estado operacional,
+   blocos vazios desaparecem e falhas de hoje continuam visíveis.
+
+Os índices `publications_org_state_date_ix` e `post_groups_org_state_ix`
+sustentam as agregações. O isolamento é provado com duas organizações no E2E e
+com casos de fronteira/DST na integração real do repository.
+
+## Assistência e geração por IA
+
+**Entradas:** `/v1/ai/*`, ações do composer/biblioteca e tools MCP.
+
+1. `AI_PROVIDER=none` desmonta a capacidade. Texto exige
+   `AI_BASE_URL` + `AI_MODEL`; imagem exige também o opt-in
+   `AI_IMAGE_MODEL`.
+2. O PlanPolicy autoriza a feature e o BudgetGuard reserva créditos numa
+   operação condicional. Sucesso confirma; falha interna/provedor devolve.
+3. Prompts delimitam conteúdo do usuário como dado. Reescrita nunca corta a
+   resposta: sem canal não impõe limite; com canal retorna `overLimit` para a
+   pessoa decidir antes de substituir o editor.
+4. Legendas/rascunhos multicanal continuam aplicando o limite determinístico
+   depois do modelo e preservam uma variante por canal.
+5. Geração de imagem pede proporção agnóstica. O adapter normaliza os bytes com
+   `sharp` para a razão exata, dentro do teto de 8192×8192, e o caso de uso
+   valida magic bytes/tamanho antes de persistir no storage.
+6. O upload é seguido pela criação da metadata com proveniência. Falha nessa
+   segunda etapa remove o objeto em compensação best-effort e preserva o erro
+   primário.
+7. A rota de imagem exige `Idempotency-Key`. O browser reutiliza a chave após
+   falha ambígua da mesma entrada e só a troca quando prompt/proporção/canal
+   mudam ou uma resposta é concluída com sucesso.
+
+Auditoria e ledger registram ator, operação, custo e contagem de tokens, nunca
+prompt, conteúdo gerado, bytes ou credencial. Redis ausente mantém a política
+geral de falha aberta da coordenação; o E2E pago exige Redis para provar replay,
+conflito e cobrança única.
+
 ## Edição, reagendamento, cancelamento e retry
 
 **Entradas:** `GET/PATCH /v1/posts/:groupId`,

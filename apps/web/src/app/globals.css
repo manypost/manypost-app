@@ -34,6 +34,27 @@
   --state-review-tint: #fef9c3;
 
   /*
+   * SÉRIES ANALÍTICAS (design.md §29/§47.3, adotadas pelo adendo §51 — 2026-07-27).
+   *
+   * Duas séries fortes no máximo por gráfico (design.md §43.4). A primária é o roxo da marca;
+   * a secundária é teal porque é o único matiz distante do roxo que NÃO colide com a semântica
+   * dos estados de publicação (âmbar = publicando, verde = publicado, vermelho = falhou,
+   * amarelo = revisão) — usar verde como "segunda série" leria como "publicado".
+   *
+   * O tom NÃO é o `#14B8A6` que o design.md §47.3 sugere: contra branco ele dá **2,49:1**, abaixo
+   * do 3:1 que a WCAG 1.4.11 pede para objeto gráfico não textual. Este dá **5,47:1**, quase
+   * igual ao roxo (5,70:1), então as duas séries têm o mesmo peso visual. A precedência do
+   * próprio design.md (§2.1: acessibilidade antes de preferência visual) obriga essa troca, e
+   * ela fica registrada aqui e no §51 como exceção (§46.15).
+   */
+  --data-1: #7c3aed;
+  --data-1-tint: #ede9fe;
+  --data-2: #0f766e;
+  --data-2-tint: #ccfbf1;
+  /* trilha de medidor/barra: o "vazio" atrás do preenchimento */
+  --data-track: #eeeeef;
+
+  /*
    * Profundidade sem sombra (brand v1.3 — 2026-07-23): relevo por
    * gradiente de preenchimento + cor de borda por lado (topo claro, base
    * escura). NENHUM box-shadow — mantém o pilar "zero sombras" (BRAND §2.2).
@@ -103,11 +124,40 @@
   --color-state-review: var(--state-review);
   --color-state-review-tint: var(--state-review-tint);
 
+  /* séries analíticas — duas fortes por gráfico, no máximo (design.md §43.4) */
+  --color-data-1: var(--data-1);
+  --color-data-1-tint: var(--data-1-tint);
+  --color-data-2: var(--data-2);
+  --color-data-2-tint: var(--data-2-tint);
+  --color-data-track: var(--data-track);
+
   --radius-*: initial;
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
   --radius-xl: 8px;
+
+  /*
+   * ESCALA DE PRODUTO (design.md §6.3) como utilities de verdade.
+   *
+   * O Tailwind entrega 12px (`text-xs`), 14px (`text-sm`), 16px (`text-base`) e 18px
+   * (`text-lg`) — e a escala do §6.3 também precisa de 10, 11, 13 e 15px. Sem nome, cada
+   * componente escrevia `text-[13px]`: 102 ocorrências de 13px, 57 de 11px e 18 de 10px,
+   * mais um punhado de 9, 10.5, 11.5 e 12.5px que ninguém decidiu — inclusive tamanhos
+   * ABAIXO do piso de 11px que o §6.4 fixa para interface compacta.
+   *
+   * Com nome, o `check:brand` pode proibir valor arbitrário no regime compacto (< 16px) e o
+   * próximo componente não escolhe 9px por descuido. Acima de 16px vale o regime editorial do
+   * §6.2, onde `clamp()` e valor explícito são a forma documentada.
+   */
+  --text-axis: 10px; /* eixo de gráfico (§6.3) — o único papel autorizado abaixo de 11px */
+  --text-axis--line-height: 14px;
+  --text-meta: 11px; /* metadado, badge (§6.3); piso da interface compacta (§6.4) */
+  --text-meta--line-height: 1.4;
+  --text-compact: 13px; /* navegação, label de campo, corpo de produto (§6.3) */
+  --text-compact--line-height: 18px;
+  --text-panel: 15px; /* título de painel (§6.3: 15–16px) */
+  --text-panel--line-height: 1.35;
 
   --shadow-*: initial;
   --inset-shadow-*: initial;

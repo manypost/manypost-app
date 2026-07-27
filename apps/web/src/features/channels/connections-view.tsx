@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import { Card } from '@/components/ui/card';
 import {
   Dialog,
@@ -104,6 +105,7 @@ export function ConnectionsView() {
 
   return (
     <div className="flex flex-col gap-8">
+      <PageHeader title={t('title')} description={t('pageDescription')} />
       <section aria-labelledby="channels-title" className="flex flex-col gap-4">
         <h2 id="channels-title" className="text-base font-semibold tracking-[-0.2px] text-ink">
           {t('channelsTitle')}
@@ -155,14 +157,14 @@ export function ConnectionsView() {
                     
                     <div className="flex min-w-0 flex-1 flex-col justify-center">
                       <div className="flex items-center gap-2">
-                        <p className="truncate text-[13px] font-medium text-ink">
+                        <p className="truncate text-compact font-medium text-ink">
                           {ch.name ?? ch.username ?? ch.id}
                         </p>
-                        <Badge variant={STATUS_VARIANT[ch.status] ?? 'neutral'} className="h-4 px-1 text-[9px] uppercase tracking-wider">
+                        <Badge variant={STATUS_VARIANT[ch.status] ?? 'neutral'} className="h-4 px-1 text-meta uppercase tracking-wider">
                           {t.has(`status.${ch.status}`) ? t(`status.${ch.status}`) : ch.status}
                         </Badge>
                       </div>
-                      <p className="mt-0.5 truncate text-[11px] text-graphite">
+                      <p className="mt-0.5 truncate text-meta text-graphite">
                         {provider?.name ?? ch.provider}
                         {ch.username ? ` · @${ch.username.replace(/^@/, '')}` : ''}
                       </p>
@@ -170,7 +172,7 @@ export function ConnectionsView() {
 
                     <div className="flex shrink-0 items-center gap-1">
                       {ch.status === 'REFRESH_REQUIRED' ? (
-                        <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => reconnect(ch)}>
+                        <Button variant="outline" size="sm" className="h-7 text-meta px-2" onClick={() => reconnect(ch)}>
                           {t('reconnect')}
                         </Button>
                       ) : null}
@@ -246,7 +248,7 @@ export function ConnectionsView() {
                       <ProviderIcon provider={p.id} name={p.name} className="size-5" />
                     </div>
                     <div className="flex flex-1 flex-col overflow-hidden">
-                      <span className="flex items-center gap-1.5 truncate text-[13px] font-medium text-ink">
+                      <span className="flex items-center gap-1.5 truncate text-compact font-medium text-ink">
                         {p.name}
                         {locked ? (
                           <Lock className="size-3 shrink-0 text-accent" aria-hidden />
@@ -323,7 +325,7 @@ function NeedsSetupSection({
                 <ProviderIcon provider={p.id} name={p.name} className="size-5" />
               </div>
               <div className="flex flex-1 flex-col overflow-hidden">
-                <span className="truncate text-[13px] font-medium text-ink">{p.name}</span>
+                <span className="truncate text-compact font-medium text-ink">{p.name}</span>
                 <span className="truncate text-xs text-graphite" title={p.setupEnv?.join(', ')}>
                   {t('setupHint', { vars: (p.setupEnv ?? []).join(', ') })}
                 </span>
@@ -377,8 +379,8 @@ function UpcomingSection({
                 <ProviderIcon provider={p.id} name={p.name} className="size-5 opacity-60 grayscale" />
               </div>
               <div className="flex flex-1 flex-col overflow-hidden">
-                <span className="truncate text-[13px] font-medium text-graphite">{p.name}</span>
-                <Badge variant="neutral" className="mt-1 h-4 w-fit px-1 text-[9px] uppercase tracking-wider">
+                <span className="truncate text-compact font-medium text-graphite">{p.name}</span>
+                <Badge variant="neutral" className="mt-1 h-4 w-fit px-1 text-meta uppercase tracking-wider">
                   {t('upcomingBadge')}
                 </Badge>
               </div>
