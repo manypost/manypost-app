@@ -348,7 +348,9 @@ resolução contra rebinding e a regex não modela todos os CIDRs.
 **Configuração:** rotas em `webhooks.routes.ts`; regra em `webhooks.ts`.
 
 1. Usuário/API com permissão informa nome, eventos, canais e URL.
-2. `assertPublicUrl` valida protocolo/resolução pública.
+2. `assertPublicDestination` valida protocolo, porta e DNS público (IPv4/IPv6
+   normalizados). A entrega usa `outboundRequest`, que **pina** o IP validado
+   na conexão (Host/SNI do hostname original) e revalida cada redirect.
 3. `makeCreateWebhook` gera `whsec_...`, cifra para persistência e devolve o
    segredo uma única vez.
 

@@ -77,7 +77,7 @@ um, está no [STATUS.md](docs/principal/STATUS.md#2-o-que-já-está-pronto-e-ver
 
 | Área | Estado |
 |---|---|
-| Conta, login social, JWT com rotação de refresh, API keys com escopo | ✅ |
+| Conta e login (Clerk-only), API keys `mp_live_` com escopo, OAuth MCP `mpo_` | ✅ |
 | Conexão de canais por OAuth ou credenciais, tokens cifrados | ✅ |
 | Composer multicanal: texto por canal, mídia, threads, preview por rede | ✅ |
 | Calendário, kanban, arrastar para reagendar, retry manual | ✅ |
@@ -186,6 +186,8 @@ regra de negócio duplicada. → [SPEC_API_MCP](docs/specs/SPEC_API_MCP.md)
 - **MCP** (Model Context Protocol) por Streamable HTTP: `list_channels`, `list_posts`, `get_post`,
   `schedule_post`, `update_post`, `cancel_post`, `upload_media_from_url` — com limite anti-loop de
   agente e auditoria de origem em cada mutação.
+- **Postman** — coleção completa (humano, público, OAuth AS, MCP) em
+  [`postman/`](postman/README.md), regenerável com `python3 scripts/generate-postman.py`.
 
 Em produção elas podem ganhar hosts dedicados (`api.seudominio` e `mcp.seudominio`) apontando para o
 mesmo serviço; num self-host de um domínio só, ficam em `/public/v1` e `/mcp`. A tela de
