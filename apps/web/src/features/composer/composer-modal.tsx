@@ -17,7 +17,9 @@ export function ComposerModal() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent size="panel">
+      {/* o Radix foca o primeiro tabbable ao abrir — que aqui é um avatar do seletor de canais,
+          competindo com o `autofocus` do editor. Prevenir deixa o composer abrir pronto p/ escrever */}
+      <DialogContent size="panel" onOpenAutoFocus={(e) => e.preventDefault()}>
         <header className="flex shrink-0 flex-col gap-0.5 border-b border-line px-4 py-3 pr-12 sm:px-6 sm:py-4">
           <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">{t('subtitle')}</DialogDescription>

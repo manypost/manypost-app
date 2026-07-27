@@ -10,6 +10,22 @@
 > **Como manter:** ao fechar uma fatia, adicione a onda nova **no topo** e atualize o STATUS.
 > Cada entrada é auto-contida: o que mudou, onde no código, e a prova de que funciona.
 
+## Onda 29 — 2026-07-27 — Composer redesenhado e estabilizado
+
+**O que mudou.** A interface de autoria de post do Manypost ("Composer") passou por uma refatoração profunda para resolver problemas de UX e de estabilidade, migrando de um arquivo monolítico para uma arquitetura modularizada em componentes menores.
+
+- **Componentização e estabilidade do TipTap:** o arquivo `composer-view.tsx` foi fatiado. O principal ganho de estabilidade é o `ComposerEditorCard`, que agora é **dono de sua própria instância do TipTap**. Cada aba (global ou por canal) e cada item da thread tem seu próprio editor isolado, resolvendo o bug em que botões tentavam atuar sobre instâncias destruídas e causavam crashes ("Cannot read properties of null"). O `editorNonce` garante o remount correto quando o estado da IA atualiza o texto de fora.
+- **Trilho de redes inteligente:** os avatares de rede no topo agora servem também para navegação em abas e exibem **barras de capacidade de caracteres** abaixo do ícone, permitindo ver os limites de cada canal antes de focar neles.
+- **Abas global e por rede esclarecidas:** a aba global, quando inativa, não mostra mais um campo vazio que causava confusão, mas sim um aviso de que cada rede já tem seu próprio texto. A aba de canal herdado não mostra mais um aviso invasivo; em vez disso, exibe o texto global em modo de leitura (para prever como sairá) e botões de ação para personalizar ou copiar o texto.
+- **Validação consolidada (popover):** os erros de validação ("issues") deixaram de ser gerados no rodapé, o que causava pulos na tela e bugs de `MutationObserver` (foco roubado). A validação se tornou puramente funcional (`validation.ts`) e é exibida em um **popover** amarrado ao contador de caracteres, que pisca quando há erro (ou no clique). O rodapé bloqueado direciona para ele.
+- **Threads compactas e formatação atualizada:** os cartões de thread ficaram menores, a numeração foi movida para a margem esquerda e a pausa (delay) virou um seletor combo (em segundos) no lugar do input numérico bruto (0 a 600). O menu de formatação abandonou as variáveis dinâmicas em favor de "snippets" — textos práticos que o usuário insere prontos no editor (ex: assinatura).
+- **Atalho no rodapé e feedback de gravação:** Ctrl/Cmd + Enter (ou Ctrl/Cmd + S) agora atua no agendamento do rascunho, e o rodapé mostra sutilmente quando um "Rascunho [está] salvo", dando tranquilidade ao usuário sem invadir a edição.
+
+**Provas.** `bun run check` (typecheck e testes + linting) limpo e `bun run build:web` rodado sem erros. Validado o render isolado com Dummy data, test-kit e E2E.
+Mudança OpenSpec: `refine-composer-authoring`.
+
+---
+
 ## Onda 28 — 2026-07-27 — a fatia de IA sai do papel (4 das 8 features prometidas)
 
 **O ponto de partida.** As oito features `ai_*` já estavam no catálogo de planos com o gate
@@ -107,6 +123,8 @@ de mídia gerada e classe de custo própria.
 
 | Onda | Data | Entrega |
 |---|---|---|
+| 29 | 2026-07-27 | Composer redesenhado e estabilizado (TipTap isolado, abas herdadas, popover de validação, trilho de limites) |
+| 28 | 2026-07-27 | A fatia de IA sai do papel (4 features: legenda, melhor horário, rascunho, calendário) |
 | 27 | 2026-07-27 | Alinhamento total docs/OpenSpec + anti-SSRF pinado + Postman completo |
 | 26 | 2026-07-26 | Posse durável por item — o post não sai duas vezes quando dois jobs se sobrepõem; incerteza vira revisão humana |
 | 25 | 2026-07-26 | Driver S3/R2 — mídia num bucket e URL pública desacoplada da origem do app (destrava a família Meta e o Dev.to) |
