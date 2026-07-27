@@ -3,6 +3,8 @@
 [← Índice da documentação](../README.md) · [STATUS do projeto](../principal/STATUS.md) · [Decisões](../principal/DECISIONS.md) · [README do projeto](../../README.md)
 
 > **Escopo:** sequenciamento de MVP → v2 → v3, com critérios de saída por fase. As fases respeitam o controle de portas comerciais (SPEC_ARCHITECTURE) e os gates de plataforma (SPEC_INTEGRATIONS §4), que têm lead time próprio e devem ser iniciados **no dia 1**.
+>
+> **Estado de verdade (2026-07-27):** este ROADMAP é em grande parte **histórico/planejado**. O MVP atual (Clerk-only, posse por item, S3/R2, YouTube/Dev.to, MCP OAuth, anti-SSRF pinado) está no [STATUS.md](../principal/STATUS.md) e em `openspec/specs/`. Não use as bullets de “fase 0” abaixo como inventário do que falta.
 
 ```mermaid
 gantt
@@ -23,7 +25,7 @@ gantt
 
 ## Fase 0 — Fundação (Monorepo AGPL)
 
-Repo `manypost` com estrutura da SPEC_ARCHITECTURE §4, `NOTICE`/`ATTRIBUTION.md`, CI completo (lint de fronteiras, testes, migrations, OpenAPI snapshot), schema inicial (SPEC_DATA), auth JWT access/refresh + API keys, env tipada (`IS_SELF_HOSTED`, `HIDE_BILLING`), compose self-host, provider **fake** (rede social simulada para dev/testes E2E).
+Repo `manypost` com estrutura da SPEC_ARCHITECTURE §4, `NOTICE`/`ATTRIBUTION.md`, CI completo (lint de fronteiras, testes, migrations, OpenAPI snapshot), schema inicial (SPEC_DATA), **auth humana Clerk-only** + API keys `mp_live_`, env tipada (`IS_SELF_HOSTED`, `HIDE_BILLING`), compose self-host, provider **fake** (rede social simulada para dev/testes E2E). *(A redação antiga “JWT access/refresh Manypost” foi superada.)*
 
 Tarefas não-código da fase 0 (caminho crítico externo):
 - Abrir App Review Meta, auditoria TikTok, portal do X, quota YouTube (SPEC_INTEGRATIONS §4).

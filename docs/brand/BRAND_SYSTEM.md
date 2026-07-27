@@ -5,28 +5,28 @@
 > **Documento de Referência para Agentes de IA e Engenheiros de Frontend**
 > Este arquivo estabelece as regras de identidade visual, estrutura de interface, tokens de cor, escala tipográfica e anatomia de componentes do **manypost**. Toda nova página, componente ou interface gerada por IA ou humanos DEVE seguir estes padrões, inspirados na clareza, solidez e maturidade de plataformas como **Zapier** e **Cloudflare**.
 >
-> **Wordmark canônico:** sempre **`manypost`** em caixa baixa (UI, `<title>`, e-mails, docs de produto). A forma `ManyPost` é **histórica** neste arquivo e não deve ser reintroduzida. Fonte: [docs/brand/README.md](README.md), `CLAUDE.md`, `check:brand`.
+> **Wordmark canônico:** sempre **`manypost`** em caixa baixa (UI, `<title>`, e-mails, docs de produto). A forma ManyPost é **histórica** neste arquivo e não deve ser reintroduzida. Fonte: [docs/brand/README.md](README.md), `CLAUDE.md`, `check:brand`.
 
 ---
 
 ## 1. Contexto da Aplicação, Posicionamento & Ecossistema (Branding)
 
-O **ManyPost** é uma plataforma de gestão inteligente de canais sociais, agendamento multicanal, automação de fluxo de trabalho e análise de dados. Desenvolvida com tecnologia **100% brasileira (BR)** para atender agências, criadores, marcas e desenvolvedores em escala global e nacional, a plataforma elimina o trabalho manual e fragmentado da gestão de conteúdo, oferecendo um ambiente seguro, profissional e fácil de usar.
+O **manypost** é uma plataforma de gestão inteligente de canais sociais, agendamento multicanal, automação de fluxo de trabalho e análise de dados. Desenvolvida com tecnologia **100% brasileira (BR)** para atender agências, criadores, marcas e desenvolvedores em escala global e nacional, a plataforma elimina o trabalho manual e fragmentado da gestão de conteúdo, oferecendo um ambiente seguro, profissional e fácil de usar.
 
 ### A. O Foco Duplo · Agências + Desenvolvedores
-O ManyPost preenche a lacuna entre o design visual e a engenharia de software, unindo os dois mundos em uma única plataforma prática e integrada:
+O manypost preenche a lacuna entre o design visual e a engenharia de software, unindo os dois mundos em uma única plataforma prática e integrada:
 * **Para Agências & Gestores (Dashboard Completo):** Uma interface limpa, intuitiva e sem distrações ("zero sombras") onde equipes de marketing, atendimento e criadores gerenciam todo o ciclo de vida do conteúdo em um único painel, sem trinta abas abertas e com zero necessidade de conhecimento técnico em código.
 * **Para Desenvolvedores & IA (API RESTful + Protocolo MCP):** Para equipes de tecnologia e automação avançada, disponibilizamos uma **API oficial completa** e servidores nativos **MCP (Model Context Protocol)**. Isso permite que assistentes de IA (como Claude, ChatGPT e agentes autônomos) e scripts em qualquer linguagem consultem métricas, criem rascunhos, agendem e gerenciem postagens diretamente pelo pipeline oficial e autenticado da plataforma.
 
 ### B. Funcionalidades Centrais de Publicação & Multicanalidade
 * **Kanban de Postagens:** Quadro visual interativo para gestão ágil do pipeline de conteúdo (colunas de Ideação, Rascunho, Em Revisão, Aprovado pelo Cliente, Agendado e Publicado), com suporte a drag-and-drop e filtros por canal ou responsável.
 * **Criação de Rascunhos & Timeline de Agendamento:** Elaboração e teste de formatos com visualização cronológica precisa. O calendário interativo permite agendar posts em múltiplos fusos horários com prevenção de conflitos.
-* **Conexões Multicanal & Publicação Automática:** Integração nativa, confiável e segura com as principais redes sociais do mercado: **Instagram, Facebook, Telegram, X (Twitter), LinkedIn, TikTok, YouTube e Pinterest**. Após o agendamento, o ManyPost assume o disparo e realiza a publicação automática nas redes através das **APIs oficiais**, garantindo conformidade total e eliminando riscos de bloqueio ou banimento (shadowban).
+* **Conexões Multicanal & Publicação Automática:** Integração nativa, confiável e segura com as principais redes sociais do mercado: **Instagram, Facebook, Telegram, X (Twitter), LinkedIn, TikTok, YouTube e Pinterest**. Após o agendamento, o manypost assume o disparo e realiza a publicação automática nas redes através das **APIs oficiais**, garantindo conformidade total e eliminando riscos de bloqueio ou banimento (shadowban).
 
 ### C. Inteligência Analítica & Análise de Concorrentes (Competitive Intelligence)
 * **Criação e Otimização com IA:** Motores de Inteligência Artificial integrados ao fluxo de trabalho para simplificar a criação de posts, otimizar legendas, sugerir variações de tom de voz (adaptando o texto para a linguagem de cada rede social), indicar hashtags relevantes e prever o engajamento antes da publicação.
 * **Relatórios Avançados e Dashboards de Marketing & Mídias Sociais:** Gráficos e métricas aprofundadas de alcance, impressões, taxa de engajamento, conversão, crescimento de seguidores e ROI de mídia social em tempo real.
-* **Análise de Concorrentes (Benchmarking Avançado):** O ManyPost analisa, rastrea e compara o crescimento e a performance dos principais concorrentes do usuário. A plataforma revela insights estratégicos como:
+* **Análise de Concorrentes (Benchmarking Avançado):** O manypost analisa, rastrea e compara o crescimento e a performance dos principais concorrentes do usuário. A plataforma revela insights estratégicos como:
   * **Frequência de postagens e curvas de crescimento** do concorrente.
   * **Horários e dias de maior publicação** e engajamento da concorrência.
   * **Formatos de conteúdo utilizados** (proporção entre Vídeos/Reels, Carrosséis, Imagens estáticas e Textos).
@@ -35,14 +35,14 @@ O ManyPost preenche a lacuna entre o design visual e a engenharia de software, u
 
 ### D. Gestão de Times, Workflow & Aprovação Externa (Links Públicos)
 * **Gestão de Equipes e Fluxo de Trabalho (Workflow):** Organização colaborativa com controle de permissões e papéis (Criador, Revisor, Gestor de Mídia e Admin). Cada alteração gera um **histórico de entregas e ajustes**, permitindo acompanhar quem criou, quem comentou, o que foi alterado e quando foi aprovado.
-* **Links Públicos para Aprovação de Clientes:** Para simplificar a validação com clientes finais ou gestores externos, o ManyPost gera **links públicos de preview interativo**. O cliente visualiza a postagem exatamente como ela será renderizada na rede social (com imagens, vídeos e carrosséis) e pode aprovar ou solicitar ajustes com apenas 1 clique — **sem precisar fazer login, criar conta ou enfrentar burocracia no sistema**.
+* **Links Públicos para Aprovação de Clientes:** Para simplificar a validação com clientes finais ou gestores externos, o manypost gera **links públicos de preview interativo**. O cliente visualiza a postagem exatamente como ela será renderizada na rede social (com imagens, vídeos e carrosséis) e pode aprovar ou solicitar ajustes com apenas 1 clique — **sem precisar fazer login, criar conta ou enfrentar burocracia no sistema**.
 
 ---
 
 ## 2. Princípios Fundamentais de Design & Experiência
 
 1. **Estética Limpa, Profissional e Acolhedora:**
-   O ManyPost é uma plataforma de gestão de redes sociais e automação de IA para quem valoriza seu tempo. Elementos decorativos em excesso (como globos 3D giratórios, **sombras flutuantes** ou animações exageradas) são evitados para manter o foco no conteúdo. Profundidade é permitida, mas **assentada na superfície** (relevo por gradiente, ver princípio 2) — nunca uma sombra pairando sob o elemento.
+   O manypost é uma plataforma de gestão de redes sociais e automação de IA para quem valoriza seu tempo. Elementos decorativos em excesso (como globos 3D giratórios, **sombras flutuantes** ou animações exageradas) são evitados para manter o foco no conteúdo. Profundidade é permitida, mas **assentada na superfície** (relevo por gradiente, ver princípio 2) — nunca uma sombra pairando sob o elemento.
 2. **Regra do Zero Sombras + Profundidade por Gradiente (`box-shadow` continua proibido):** *(brand v1.3 — 2026-07-23)*
    Inspirado no padrão visual da Zapier, **abolimos todas as sombras artificiais (`box-shadow`)** — a proibição de `box-shadow` é inviolável e vale para o app inteiro. A separação de blocos continua vindo de **bordas** e **sobreposição de cores de fundo** (ex: `--surface-2` sobre `--surface`). O que mudou: a profundidade agora é **linguagem pervasiva — nada de superfície flat**, construída por **gradiente de preenchimento** e **cor de borda por lado** + brilho fino sob o topo, sempre sem `box-shadow`. A **direção** codifica a função: superfícies e controles **sobem** (topo claro, base escura); campos **afundam** (topo escuro, base clara). Quatro tratamentos:
    - **Relevo forte (controle elevado):** botões preenchidos (`primary`/`enterprise`/`outline`/`destructive`), aba ativa dos seletores, pílula do dia atual/selecionado. Classes `.bevel-primary|enterprise|outline|destructive`.
@@ -117,7 +117,7 @@ Regra de contraste: no `primary`, a face vai de `--accent` (topo) a `--accent-ho
 
 ## 4. Estrutura Visual & Cantos Suaves (Border Radius)
 
-O ManyPost evita formatos pílula (`border-radius: 9999px`) em botões, cards ou containers, exceto em avatares circulares. O arredondamento dos cantos segue uma escala simples e natural em 3 níveis:
+O manypost evita formatos pílula (`border-radius: 9999px`) em botões, cards ou containers, exceto em avatares circulares. O arredondamento dos cantos segue uma escala simples e natural em 3 níveis:
 
 * **`4px` (Small Radius):** Badges, tags, tooltips, toolbars, pequenas pílulas de status e ícones de marca.
 * **`6px` (Medium Radius):** Botões padrão (todas as variações), campos de formulário (inputs, selects, textareas) e modais pequenos.
@@ -146,7 +146,7 @@ Utilizamos um sistema tipográfico duplo de alta precisão que combina a persona
 ```
 
 ### A. Degular Display (`var(--font-display)`) · Títulos de Impacto & Grandes Formatos
-A fonte proprietária **Degular Display** (da fundição OH no Type Co.) é a assinatura visual do ManyPost e quem dá vida à manchete do Hero (*"Vários posts. Várias redes. Um clique."*). Com proporções singulares e geometria "regular mas nem tão regular", ela cria memória visual imediata.
+A fonte proprietária **Degular Display** (da fundição OH no Type Co.) é a assinatura visual do manypost e quem dá vida à manchete do Hero (*"Vários posts. Várias redes. Um clique."*). Com proporções singulares e geometria "regular mas nem tão regular", ela cria memória visual imediata.
 
 > [!IMPORTANT]
 > **Regra Tipográfica Inegociável (`Degular Display` apenas $\ge 26\text{px}$):**
@@ -220,7 +220,7 @@ Cards estruturais devem ter altura igualizada (`height: 100%` em grids com `alig
 ### C. Logo Oficial (`/images/logo.png`)
 * A logo oficial do manypost está em `public/images/logo.png` (ou `logo.png` se carregado diretamente na raiz do componente de branding) — um mark quadrado roxo.
 * **No Header:** Utilizar `<img src="/images/logo.png" alt="Logo do manypost" width="28" height="28" />` (com fallback `onerror` na documentação HTML), acompanhada do wordmark **`manypost`** em fonte Display (Plus Jakarta Sans no app; Degular na landing legada quando disponível).
-* **Grafia da Marca:** A grafia oficial é sempre **`manypost`** (tudo minúsculo), inclusive em títulos, textos e `<title>`. Nunca escrever `ManyPost` ou `Manypost` em superfícies de produto.
+* **Grafia da Marca:** A grafia oficial é sempre **`manypost`** (tudo minúsculo), inclusive em títulos, textos e `<title>`. Nunca escrever ManyPost ou `Manypost` em superfícies de produto.
 
 ---
 

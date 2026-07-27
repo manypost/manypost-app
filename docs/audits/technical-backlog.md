@@ -37,41 +37,33 @@ uma observação de baixo risco sobre o runtime de uma action.
 
 ## Prioridade 1 — segurança e efeitos externos
 
-### H-01 — duplicidade em continuação de thread
+### H-01 — duplicidade em continuação de thread — **resolvido**
 
-- Evidência: `packages/core/src/application/use-cases/publishing.ts` verifica
-  cursor/versão em leitura antes da chamada externa; o cursor só é persistido
-  depois do provider.
-- Impacto: dois workers podem publicar o mesmo item; crash após sucesso externo
-  deixa resultado incerto.
-- Recomendação: implementar lease/fencing por item, idempotency key do provider
-  e estado indeterminado conforme
-  [`harden-publishing-idempotency`](../../openspec/changes/harden-publishing-idempotency/).
-- Decisão humana: definir owner, prazo e tratamento operacional de publicações
-  indeterminadas.
+- Entrega: `publication_attempts` com `claimItem` antes de qualquer chamada à
+  rede, `confirmItem` fenceado por `owner_token`, desfecho `INDETERMINATE` →
+  `NEEDS_REVIEW` sem retry automático.
+- Spec viva: [`publication-delivery-safety`](../../openspec/specs/publication-delivery-safety/spec.md).
+- Archive: [`2026-07-27-harden-publishing-idempotency`](../../openspec/changes/archive/2026-07-27-harden-publishing-idempotency/).
 
-### H-02 — DNS rebinding em mídia/webhook
+### H-02 — DNS rebinding em mídia/webhook — **resolvido** (phase 1)
 
-- Evidência: `assertPublicUrl` resolve DNS, mas `fetch` abre outra conexão e a
-  classificação atual é regex parcial.
-- Impacto: hostname controlado pode trocar resolução e alcançar rede interna ou
-  metadata.
-- Recomendação: resolver e fixar o endereço da conexão, normalizar IPv4/IPv6,
-  revalidar redirects e limitar recursos conforme
-  [`harden-outbound-request-security`](../../openspec/changes/harden-outbound-request-security/).
-- Decisão humana: política de destinos/portas privadas para self-hosted versus
-  Manypost gerenciado.
+- Entrega: classificador IPv4/IPv6 + `outboundRequest` com pin do IP validado
+  (Host/SNI do hostname), redirects revalidados; usado em mídia from-url,
+  entrega de webhooks e CIMD OAuth.
+- Flags `MEDIA_ALLOW_PRIVATE_URLS` / `WEBHOOKS_ALLOW_PRIVATE` default **false**;
+  só E2E/dev controlado.
+- Spec viva: [`outbound-request-security`](../../openspec/specs/outbound-request-security/spec.md).
+- Archive: [`2026-07-27-harden-outbound-request-security`](../../openspec/changes/archive/2026-07-27-harden-outbound-request-security/).
+- **Residual consciente (phase 2):** providers ainda baixam `media.url` com
+  `ctx.fetch` (URLs em geral já são do storage da instância). Endurecer com
+  allowlist de host (`MEDIA_PUBLIC_URL`/`PUBLIC_URL`) ou fetch pinado no worker.
 
-### H-03 — exceções de worker podem ser reconhecidas como sucesso
+### H-03 — exceções de worker reconhecidas como sucesso — **resolvido**
 
-- Evidência: `packages/queue/src/runtime.ts` captura erros inesperados nos
-  handlers de publish, thread e webhook e não relança.
-- Impacto: pg-boss pode concluir o job sem aplicar seu retry; recovery não cobre
-  igualmente todas as fases/deliveries.
-- Recomendação: definir erro tratado versus infraestrutura por fila, persistir
-  o estado apropriado e relançar somente falhas que o pg-boss deve repetir.
-  Testar acknowledgement, duplicidade e crash. A parte de publicação/thread
-  deve ser resolvida junto ao H-01; webhook ainda exige escopo explícito.
+- Entrega: `runBatch` em publish, continue-thread e webhook relança a primeira
+  falha inesperada após processar o lote; retries de negócio de webhook
+  continuam dentro de `makeDeliverWebhook`.
+- Código: `packages/queue/src/runtime.ts`.
 
 ## Prioridade 2 — identidade, contratos e dados
 
@@ -92,10 +84,9 @@ regeneração verificada do cliente web.
 
 ### M-07 — volume local sem restore comprovado
 
-Produção usa `/app/uploads` em um volume Railway único. O schema aceita
-`STORAGE_PROVIDER=s3`, mas não existe adapter. Antes de múltiplas réplicas:
-implementar object storage por port, definir retenção/backup, testar restore e
-documentar migração/rollback.
+Driver `s3` (R2/S3/MinIO) e `MEDIA_PUBLIC_URL` já existem (onda 25 / living
+`media-object-storage`). Residual: restore testado, retenção/backup e migração
+de volume local → bucket em produção multi-réplica.
 
 ### M-09 — isolamento indireto de tabelas filhas
 
