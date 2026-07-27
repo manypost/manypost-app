@@ -1,6 +1,7 @@
 import { ErrorCodes } from '@manypost/contracts';
 import { DomainError } from '../../domain/shared/result';
 import { EXT_BY_MIME, sniffMedia } from '../../infra/media/sniff';
+import { outboundRequest } from '../../infra/net/outbound-http';
 import type { MediaRecord, MediaRepository, MediaStorage } from '../ports/media';
 import { assertPublicUrl } from './webhooks';
 
@@ -59,10 +60,42 @@ export const makeIngestMediaFromUrl = (
   deps: MediaDeps & { allowPrivateUrls?: boolean; fetchFn?: typeof fetch },
 ) =>
   async (input: { orgId: string; url: string; alt?: string }): Promise<MediaRecord> => {
-    const doFetch = deps.fetchFn ?? fetch;
     const maxBytes = Math.max(deps.limits.imageMaxBytes, deps.limits.videoMaxBytes);
 
-    // segue redirects manualmente re-validando cada salto (um 302 podia apontar p/ rede privada)
+    // Adapter pinado: resolve DNS → classifica → conecta só no IP público validado;
+    // cada redirect revalida (anti DNS-rebinding / SSRF).
+    if (!deps.fetchFn) {
+      const res = await outboundRequest(
+        {
+          url: input.url,
+          method: 'GET',
+          headers: { 'user-agent': 'manypost-media' },
+          redirect: 'follow',
+        },
+        {
+          allowPrivate: deps.allowPrivateUrls,
+          what: 'mídia',
+          maxRedirects: 3,
+          timeoutMs: 30_000,
+          maxBytes,
+          userAgent: 'manypost-media',
+        },
+      ).catch((err) => {
+        if (err instanceof DomainError) throw err;
+        throw new DomainError(ErrorCodes.MediaFetchFailed, `download falhou: ${String(err).slice(0, 200)}`);
+      });
+      if (res.status < 200 || res.status >= 300) {
+        throw new DomainError(ErrorCodes.MediaFetchFailed, `download falhou (HTTP ${res.status})`);
+      }
+      return storeSniffed(deps, {
+        orgId: input.orgId,
+        bytes: res.body,
+        ...(input.alt ? { alt: input.alt } : {}),
+      });
+    }
+
+    // Caminho de teste com fetchFn injetado (sem pin real).
+    const doFetch = deps.fetchFn;
     let url = input.url;
     let res: Response | undefined;
     for (let hop = 0; hop < 4; hop++) {
@@ -85,8 +118,6 @@ export const makeIngestMediaFromUrl = (
     if (!res || !res.ok) {
       throw new DomainError(ErrorCodes.MediaFetchFailed, `download falhou (HTTP ${res?.status ?? '?'})`);
     }
-
-    // lê com teto de tamanho — não confia no content-length
     const chunks: Uint8Array[] = [];
     let total = 0;
     const reader = res.body?.getReader();
@@ -107,7 +138,6 @@ export const makeIngestMediaFromUrl = (
       bytes.set(c, offset);
       offset += c.byteLength;
     }
-
     return storeSniffed(deps, { orgId: input.orgId, bytes, ...(input.alt ? { alt: input.alt } : {}) });
   };
 
