@@ -71,11 +71,11 @@ export function DiagramSlide() {
           <div className="auth-enter flex size-[11rem] flex-col rounded-lg border border-paper/30 bg-paper/[0.07] p-4">
             <div className="flex min-h-0 flex-1 items-center justify-center">
               <Image
-                src="/images/logo.png"
+                src="/images/logoSimplificada.svg"
                 alt=""
                 width={52}
                 height={52}
-                className="size-[52px] rounded-md"
+                className="size-[52px]"
               />
             </div>
             <p className="mb-3 text-center text-[12.5px] font-medium leading-[16px] tracking-[-0.2px] text-paper">

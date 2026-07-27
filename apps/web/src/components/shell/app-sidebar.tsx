@@ -144,9 +144,16 @@ export function AppSidebar() {
           )}
         >
           {isCollapsed ? (
-            <Image src="/images/logo.png" alt="manypost" width={32} height={32} className="rounded-sm shrink-0" priority />
+            <Image
+              src="/images/logoSimplificada.svg"
+              alt="manypost"
+              width={32}
+              height={32}
+              className="size-8 shrink-0"
+              priority
+            />
           ) : (
-            <Wordmark className="text-base font-bold text-ink" />
+            <Wordmark />
           )}
         </Link>
 

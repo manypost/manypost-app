@@ -1,12 +1,20 @@
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
-/** Logo (mark roxo 28px) + wordmark `manypost` — sempre minúsculo (regra da marca). */
+/**
+ * Logo completa (ícone + wordmark `manypost` em curvas) — `public/images/logo.svg`.
+ * O SVG já inclui o texto; não duplicar "manypost" ao lado.
+ * Para só o mark quadrado (sidebar recolhida, favicon-like), use `logoSimplificada.svg`.
+ */
 export function Wordmark({ className }: { className?: string }) {
   return (
-    <span className={cn('inline-flex items-center gap-2', className)}>
-      <Image src="/images/logo.png" alt="" width={28} height={28} className="rounded-sm" priority />
-      <span className="font-display text-lg font-bold tracking-[-0.3px] text-ink">manypost</span>
-    </span>
+    <Image
+      src="/images/logo.svg"
+      alt="manypost"
+      width={107}
+      height={28}
+      className={cn('h-7 w-auto', className)}
+      priority
+    />
   );
 }
