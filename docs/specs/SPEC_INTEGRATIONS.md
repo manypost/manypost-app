@@ -3,6 +3,8 @@
 [← Índice da documentação](../README.md) · [STATUS do projeto](../principal/STATUS.md) · [Decisões](../principal/DECISIONS.md) · [README do projeto](../../README.md)
 
 > **Escopo:** contexto **Channels** [AGPL núcleo] — `packages/providers`. Segue a direção do Postiz (núcleo AGPL) no contrato do provider, nos metadados declarativos e na classificação de erros (derivação documentada em POSTIZ_ANALYSIS §8). Depende de: SPEC_QUEUE_PUBLISHING (pipeline), SPEC_DATA (tabela channels), SPEC_BACKEND (ports).
+>
+> **Estado de verdade (2026-07-26):** redes no registry — mastodon, telegram, bluesky, discord (+ discord-webhook), linkedin, x, tiktok, threads, instagram-standalone, facebook, instagram, twitch, kick, **devto**, **youtube**, fake. Lista canônica: [STATUS.md](../principal/STATUS.md) e `packages/providers/src/index.ts`.
 
 ## 1. Contexto
 

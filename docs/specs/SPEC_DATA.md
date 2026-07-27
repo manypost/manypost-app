@@ -3,6 +3,8 @@
 [← Índice da documentação](../README.md) · [STATUS do projeto](../principal/STATUS.md) · [Decisões](../principal/DECISIONS.md) · [README do projeto](../../README.md)
 
 > **Escopo:** `packages/db` [AGPL núcleo]. Modelo derivado do essencial do schema do Postiz (POSTIZ_ANALYSIS §4 — derivação documentada), modernizado: `jsonb` tipado, tokens cifrados, migrations versionadas. Depende de: SPEC_QUEUE_PUBLISHING (estados), SPEC_INTEGRATIONS (channels).
+>
+> **Estado de verdade (2026-07-26):** o schema vivo tem **28 tabelas** e migrations `0000`…`0005` (billing, MCP OAuth AS, `publication_attempts`). Inventário canônico de infra: [data-and-infrastructure.md](../architecture/data-and-infrastructure.md) e [STATUS.md](../principal/STATUS.md). Seções abaixo podem ser aspiracionais ou pré-billing — confirme no Drizzle e no journal.
 
 ## 1. ORM: Drizzle (justificativa vs Prisma)
 
