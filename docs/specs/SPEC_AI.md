@@ -3,6 +3,8 @@
 [← Índice da documentação](../README.md) · [STATUS do projeto](../principal/STATUS.md) · [Decisões](../principal/DECISIONS.md) · [README do projeto](../../README.md)
 
 > **Escopo:** contexto **AI Creation** e **AI Operations** no monorepo AGPL-3.0. Regra de ouro: **nenhum provedor de IA é citado no código** — tudo atrás de ports. Depende de: SPEC_BACKEND (ports), SPEC_DATA (ai_credits), SPEC_API_MCP (tool `generate_content`), SPEC_ARCHITECTURE (feature flags).
+>
+> **Estado de verdade (2026-07-26):** este SPEC é em grande parte **aspiracional**. No runtime existem ports TypeScript e a tabela `ai_credits`; **não** há `infra/ai/*`, BudgetGuard operacional nem tools MCP de geração. Não trate as seções abaixo como entregues — confirme no [STATUS.md](../principal/STATUS.md) e no código.
 
 ## 1. Divisão de capacidades (Criação vs Operacional)
 
