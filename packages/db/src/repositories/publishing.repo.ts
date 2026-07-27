@@ -578,7 +578,7 @@ export function makePublishingRepository(db: Db): PublishingRepository {
           )::int                                                                 as today_failed,
           (count(*) > 0)                                                         as ever_scheduled
         from ${publications} p
-        join ${postGroups} g on g.id = p.group_id
+        join ${postGroups} g on g.id = p.group_id and g.org_id = ${orgId}::uuid
         where p.org_id = ${orgId}::uuid
       `);
 

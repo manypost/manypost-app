@@ -73,9 +73,10 @@
 ## 7. Verification
 
 - [ ] 7.1 `bun run check`, `bun run build:web`, `bun run spec:validate` green
-- [ ] 7.2 `scripts/e2e-insights.ts` — checks against the real API and a disposable Postgres,
+- [x] 7.2 `scripts/e2e-insights.ts` — 23 checks against the real API and a disposable Postgres,
       with a hand-written expected scenario, including two organizations to prove the aggregate
-      does not mix tenants and boundary rows across a daylight-saving transition
+      does not mix tenants; the real repository integration additionally proves boundary rows
+      across a daylight-saving transition
 - [x] 7.3 Both honesty rules asserted by rendering (`home-blocks.test.tsx`), and both mutation
       checked: removing the early return makes the "block disappears" test fail; changing a radius
       makes the scale test fail
