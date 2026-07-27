@@ -63,6 +63,12 @@ interface ComposerState {
   setMode: (mode: ScheduleMode) => void;
   setPublishAtLocal: (value: string) => void;
   setRequireApproval: (value: boolean) => void;
+  /**
+   * Força o remount dos editores TipTap. Necessário quando o texto muda por FORA deles
+   * (rascunho gerado por IA preenchendo overrides): sendo não-controlados, eles não
+   * observam o store depois de montados.
+   */
+  bumpEditors: () => void;
   /** substitui o rascunho inteiro (duplicar post) — horário fica vazio p/ o usuário escolher */
   loadDraft: (draft: ComposerPrefill) => void;
   reset: () => void;
@@ -154,6 +160,7 @@ export const useComposerStore = create<ComposerState>()(
       setMode: (mode) => set({ mode }),
       setPublishAtLocal: (publishAtLocal) => set({ publishAtLocal }),
       setRequireApproval: (requireApproval) => set({ requireApproval }),
+      bumpEditors: () => set((s) => ({ editorNonce: s.editorNonce + 1 })),
       loadDraft: (draft) =>
         set((s) => ({
           ...EMPTY,

@@ -36,6 +36,7 @@ import {
   useMediaList,
   useUpdateMediaAlt,
 } from './hooks';
+import { AltTextButton } from '@/features/ai/alt-text-button';
 import { MediaThumb, formatBytes } from './media-thumb';
 import { UploadZone } from './upload-zone';
 
@@ -234,6 +235,13 @@ export function MediaView() {
                 if (e.key === 'Enter') submitAlt();
               }}
             />
+            {altTarget ? (
+              <AltTextButton
+                mediaId={altTarget.id}
+                mime={altTarget.mime}
+                onGenerated={setAltValue}
+              />
+            ) : null}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAltTarget(null)}>
