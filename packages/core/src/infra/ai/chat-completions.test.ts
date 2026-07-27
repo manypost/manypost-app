@@ -266,6 +266,28 @@ describe('geração de imagem', () => {
     expect(img).not.toHaveProperty('url');
   });
 
+  it('normaliza para PNG mesmo quando o provider compatível devolve JPEG', async () => {
+    const jpeg = await sharp({
+      create: {
+        width: 191,
+        height: 191,
+        channels: 3,
+        background: { r: 42, g: 91, b: 120 },
+      },
+    })
+      .jpeg()
+      .toBuffer();
+    const f = fakeFetch({
+      body: { data: [{ b64_json: jpeg.toString('base64') }] },
+    });
+    const provider = makeChatCompletionsProvider(imageConfig, f);
+
+    const img = await provider.generateImage!({ prompt: 'x', aspect: '1:1' });
+
+    expect([...img.bytes.slice(0, 4)]).toEqual([0x89, 0x50, 0x4e, 0x47]);
+    expect((await sharp(img.bytes).metadata()).format).toBe('png');
+  });
+
   it('sem modelo de imagem explícito, o adapter de texto NÃO anuncia que desenha', () => {
     const f = fakeFetch({ body: imagemOk });
     const provider = makeChatCompletionsProvider(config, f);
