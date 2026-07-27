@@ -28,6 +28,17 @@ describe('classifyAddress IPv4', () => {
     expect(classifyAddress('0.0.0.0').classification).toBe('unspecified');
     expect(classifyAddress('224.0.0.1').classification).toBe('multicast');
     expect(classifyAddress('192.0.2.1').classification).toBe('documentation');
+    expect(classifyAddress('198.18.0.1').classification).toBe('reserved'); // benchmarking
+    expect(classifyAddress('198.19.255.255').classification).toBe('reserved');
+  });
+
+  test('as bordas das faixas continuam públicas', () => {
+    expect(classifyAddress('198.17.255.255').classification).toBe('public'); // antes do benchmarking
+    expect(classifyAddress('198.20.0.0').classification).toBe('public'); // depois do benchmarking
+    expect(classifyAddress('172.15.0.1').classification).toBe('public');
+    expect(classifyAddress('172.32.0.1').classification).toBe('public');
+    expect(classifyAddress('100.63.255.255').classification).toBe('public');
+    expect(classifyAddress('100.128.0.1').classification).toBe('public');
   });
 });
 
@@ -47,6 +58,32 @@ describe('classifyAddress IPv6', () => {
   });
   test('IPv4-mapped público', () => {
     expect(classifyAddress('::ffff:8.8.8.8').classification).toBe('public');
+  });
+
+  /**
+   * O IPv4-mapped não é o único encapsulamento que carrega um IPv4 dentro de um IPv6. Estes
+   * três passavam como `public` porque a classificação parava no `::ffff:`, e um IPv4 privado
+   * escondido num deles é a mesma classe de furo — só muda o invólucro.
+   */
+  test('NAT64, 6to4 e IPv4-compatible são classificados pelo endereço embutido', () => {
+    expect(classifyAddress('64:ff9b::7f00:1').classification).toBe('loopback');
+    expect(classifyAddress('64:ff9b::a9fe:a9fe').classification).toBe('link_local');
+    expect(classifyAddress('64:ff9b::a00:1').classification).toBe('private');
+    expect(classifyAddress('2002:7f00:1::1').classification).toBe('loopback');
+    expect(classifyAddress('2002:a9fe:a9fe::1').classification).toBe('link_local');
+    expect(classifyAddress('2002:c0a8:1::1').classification).toBe('private');
+    expect(classifyAddress('::127.0.0.1').classification).toBe('loopback');
+    expect(classifyAddress('::169.254.169.254').classification).toBe('link_local');
+  });
+
+  test('os mesmos encapsulamentos com IPv4 público continuam públicos', () => {
+    expect(classifyAddress('64:ff9b::808:808').classification).toBe('public');
+    expect(classifyAddress('2002:808:808::1').classification).toBe('public');
+    expect(classifyAddress('::8.8.8.8').classification).toBe('public');
+  });
+
+  test('o prefixo local do NAT64 (64:ff9b:1::/48) não carrega IPv4 e é reservado', () => {
+    expect(classifyAddress('64:ff9b:1::1').classification).toBe('reserved');
   });
   test('zone id é inválido', () => {
     expect(classifyAddress('fe80::1%eth0').classification).toBe('invalid');

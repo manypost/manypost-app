@@ -17,6 +17,14 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
   `harden-outbound-request-security` → living `outbound-request-security`.
 - **Webhook worker não engole mais erro de infraestrutura** (mesma política do publish/thread):
   falha inesperada é relançada ao pg-boss após o lote.
+- **IPv4 privado escondido em NAT64, 6to4 e IPv4-compatible passa a ser recusado.** O classificador
+  já desembrulhava o IPv4-mapped (`::ffff:169.254.169.254`), mas parava aí — então
+  `64:ff9b::7f00:1` (127.0.0.1 dentro de um NAT64), `2002:7f00:1::1` (o mesmo dentro de um 6to4) e
+  `::127.0.0.1` (forma IPv4-compatible, obsoleta mas ainda aceita por stacks) eram classificados
+  como **públicos**. São três invólucros diferentes para a mesma classe de furo; agora todos são
+  classificados pelo endereço embutido. Alcançar o loopback por eles depende de o host ter rota
+  NAT64/6to4, o que não é o padrão — por isso é endurecimento, não incidente. A faixa de
+  benchmarking `198.18.0.0/15` (RFC 2544) entrou junto.
 
 ### Documentation
 

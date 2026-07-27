@@ -57,6 +57,8 @@ function classifyIpv4Int(n: number): AddressClass {
   if (a === 192 && b === 0 && ((n >>> 8) & 0xff) === 2) return 'documentation';
   if (a === 198 && b === 51 && ((n >>> 8) & 0xff) === 100) return 'documentation';
   if (a === 203 && b === 0 && ((n >>> 8) & 0xff) === 113) return 'documentation';
+  // benchmarking 198.18.0.0/15 (RFC 2544) — usada em laboratório, nunca é destino público
+  if (a === 198 && (b === 18 || b === 19)) return 'reserved';
   // multicast 224.0.0.0/4
   if (a >= 224 && a <= 239) return 'multicast';
   // reserved 240.0.0.0/4 and broadcast
@@ -121,11 +123,25 @@ function classifyIpv6Groups(g: number[]): AddressClass {
   if (g[0] === 0 && g[1] === 0 && g[2] === 0 && g[3] === 0 && g[4] === 0 && g[5] === 0 && g[6] === 0 && g[7] === 1) {
     return 'loopback';
   }
+  // O IPv4-mapped não é o único jeito de carregar um IPv4 dentro de um IPv6: NAT64, 6to4 e a
+  // forma IPv4-compatible fazem o mesmo por outros três encapsulamentos. Todos precisam ser
+  // classificados PELO ENDEREÇO EMBUTIDO — senão `64:ff9b::7f00:1` (127.0.0.1 dentro de um
+  // NAT64) passa como público, que é exatamente o furo que o IPv4-mapped já fechava.
+  const embeddedV4 = (hi: number, lo: number) => classifyIpv4Int(((hi << 16) | lo) >>> 0);
+  const topSixZero = g[0] === 0 && g[1] === 0 && g[2] === 0 && g[3] === 0 && g[4] === 0;
+
   // IPv4-mapped ::ffff:x.x.x.x
-  if (g[0] === 0 && g[1] === 0 && g[2] === 0 && g[3] === 0 && g[4] === 0 && g[5] === 0xffff) {
-    const v4 = ((g[6]! << 16) | g[7]!) >>> 0;
-    return classifyIpv4Int(v4);
+  if (topSixZero && g[5] === 0xffff) return embeddedV4(g[6]!, g[7]!);
+  // IPv4-compatible ::x.x.x.x — obsoleto (RFC 4291), mas ainda aceito por stacks
+  if (topSixZero && g[5] === 0) return embeddedV4(g[6]!, g[7]!);
+  // NAT64 64:ff9b::/96 (RFC 6052) e o prefixo local 64:ff9b:1::/48 (RFC 8215)
+  if (g[0] === 0x0064 && g[1] === 0xff9b) {
+    if (g[2] === 0 && g[3] === 0 && g[4] === 0 && g[5] === 0) return embeddedV4(g[6]!, g[7]!);
+    return 'reserved';
   }
+  // 6to4 2002::/16 (RFC 3056) — o IPv4 fica nos dois grupos seguintes
+  if (g[0] === 0x2002) return embeddedV4(g[1]!, g[2]!);
+
   // fe80::/10 link-local
   if ((g[0]! & 0xffc0) === 0xfe80) return 'link_local';
   // fc00::/7 unique local
