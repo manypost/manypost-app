@@ -14,6 +14,7 @@
 
 | Onda | Data | Entrega |
 |---|---|---|
+| 27 | 2026-07-27 | Alinhamento total docs/OpenSpec + anti-SSRF pinado + Postman completo |
 | 26 | 2026-07-26 | Posse durável por item — o post não sai duas vezes quando dois jobs se sobrepõem; incerteza vira revisão humana |
 | 25 | 2026-07-26 | Driver S3/R2 — mídia num bucket e URL pública desacoplada da origem do app (destrava a família Meta e o Dev.to) |
 | 24 | 2026-07-24 | UX das configurações por canal — cada campo com o controle certo (data, mídia, chips, categoria por nome) e mídia em settings resolvida no publish |

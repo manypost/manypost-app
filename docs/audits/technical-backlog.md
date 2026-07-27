@@ -1,6 +1,6 @@
 # Backlog técnico priorizado
 
-Estado consolidado em 2026-07-23 a partir do
+Estado consolidado em 2026-07-26; H-01/H-02/H-03 fechados em 2026-07-27 a partir do
 [diagnóstico inicial](2026-07-23-initial-diagnosis.md), testes, Semgrep,
 `bun audit` e observação somente leitura do Railway. Evidência nova deve
 atualizar este arquivo e, para mudança material, abrir ou alterar um OpenSpec.
@@ -14,9 +14,9 @@ uma observação de baixo risco sobre o runtime de uma action.
 
 | ID | Severidade | Estado | Resultado ou próximo passo |
 | --- | --- | --- | --- |
-| H-01 | alto | especificado | `harden-publishing-idempotency` |
-| H-02 | alto | especificado | `harden-outbound-request-security` |
-| H-03 | alto | aberto | contrato de erro/ack para todas as filas; publicação/thread aparece no OpenSpec H-01 |
+| H-01 | alto | resolvido | `publication_attempts` + living `publication-delivery-safety` (arquivado 2026-07-27) |
+| H-02 | alto | resolvido | pin DNS + living `outbound-request-security` (arquivado 2026-07-27) |
+| H-03 | alto | resolvido | publish/thread/webhook relançam falha inesperada após o lote (`packages/queue` runtime) |
 | H-04 | alto | parcialmente resolvido | Next e Drizzle corrigidos; sete advisories transitivos documentados abaixo |
 | H-05 | alto | resolvido | builds Docker/Railpack não mascaram mais falhas |
 | M-01 | médio | resolvido | timeout Bun 30 s, keepalive SSE 25 s, teste de regressão |
