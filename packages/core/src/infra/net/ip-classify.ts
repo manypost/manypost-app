@@ -76,7 +76,9 @@ export function parseIpv6(raw: string): number[] | null {
   let head: string[];
   let tail: string[];
   if (lower.includes('::')) {
-    const [h, t] = lower.split('::');
+    const parts = lower.split('::');
+    const h = parts[0] ?? '';
+    const t = parts[1] ?? '';
     head = h === '' ? [] : h.split(':');
     tail = t === '' ? [] : t.split(':');
   } else {
