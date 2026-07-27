@@ -1,7 +1,10 @@
 # publication-delivery-safety Specification
 
 ## Purpose
-TBD - created by archiving change harden-publishing-idempotency. Update Purpose after archive.
+Durable ownership and outcome fencing for each publication item so overlapping
+workers and crash windows never double-post: claim before provider call,
+confirm with owner token, and route indeterminate external outcomes to human
+review without automatic repost.
 ## Requirements
 ### Requirement: Publication items have one active owner
 The system MUST atomically grant at most one unexpired ownership lease for a
