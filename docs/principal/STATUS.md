@@ -9,6 +9,13 @@
 >
 > **Como manter:** ao fechar uma fatia, atualize as seções abaixo **e** abra uma entrada nova no
 > topo do changelog. Este arquivo é sobre o presente; o changelog é sobre o passado.
+>
+> **Atualização de fechamento — onda 32 (2026-07-27):** as lacunas de verificação descritas na
+> linha histórica de “Última entrega” abaixo foram fechadas. Estado atual: `bun run check:ci`
+> verde com **965 testes**, build de **19 páginas**, OpenSpec **21/21**, `e2e-ai` **71 checks**
+> com Redis, `e2e-insights` **23 checks**, migration `0007` exercitada em banco vazio/upgrade e
+> smoke de browser desktop/mobile cobrindo home, reescrita longa e imagem. Detalhe e limites:
+> [Onda 32](CHANGELOG_ONDAS.md#onda-32--2026-07-27--fechamento-verificável-de-ia-home-e-imagem).
 
 ## 0. Estado em uma tela
 
@@ -214,9 +221,10 @@ entrega está no [changelog](CHANGELOG_ONDAS.md)):
 
 **Ainda não começadas:**
 
-1. **IA de criação** — o port `AiProvider` existe; falta o adapter `openai-compatible` em `infra/ai/`,
-   créditos (`ai_credits`) e o BudgetGuard (port existe). → [SPEC_AI §2-3](../specs/SPEC_AI.md).
-   **Nunca citar provedor nominal fora de `infra/ai`** — o CI barra.
+1. **IA operacional dependente de dados que ainda não existem** — `ai_inbox`/`ai_triage`
+   dependem de ingestão de comentários e DMs; `ai_campaign_reports`/`ai_engagement_alerts`
+   dependem de coleta de métricas. A IA de criação, BudgetGuard e geração de imagem já estão
+   entregues. → [SPEC_AI §3-4](../specs/SPEC_AI.md).
 2. **Multi-org** — troca de organização e convite de membros. → [SPEC_API_MCP §6](../specs/SPEC_API_MCP.md).
 
 ### Frontend (`apps/web`) — o que a interface já entrega
@@ -229,12 +237,13 @@ O detalhe de cada onda (1 a 5) está no [changelog](CHANGELOG_ONDAS.md#frontend-
 |---|---|
 | Login / registro / Google (Clerk) | ✅ UI Manypost + hooks Clerk; erros problem+json por código estável no `/me` e demais rotas. Redesenhada na onda 21: placeholder em todo campo, alternância de senha alcançável pelo teclado, palco de altura constante e slide de abertura com o diagrama MCP + API no padrão da landing |
 | Onboarding `/boas-vindas` e `/planos` | ✅ somem quando `billingEnabled=false` (self-hosted) |
+| **Início** | ✅ resumo operacional escopado por organização: atenção, hoje, uso e semana; onboarding sem canal/post; limites civis corretos em DST |
 | **Conexões** | ✅ OAuth em popup, formulário de credenciais gerado do JSON Schema do provider, reconectar/desconectar. Três blocos: **disponíveis**, **"Precisa de credencial"** (rede pronta sem env — self-hosted vê a variável que falta) e **"Em breve"** (roteiro + redes ainda não habilitadas no gerenciado). Cada cartão tem um **ícone "?"** em accent com relevo que mostra, no **tooltip padrão do app**, só o que a rede publica (onda 13, revista na onda 18); o que **este modo** exige (`.env` no self-host, nada na nuvem) ficou só no diálogo de conexão, onde vira ação |
 | **Calendário** (dia/semana/mês/lista) | ✅ a casa do app: painel de canais, drag para reagendar, "+" por slot vazio |
 | **Composer** (modal 2 colunas) | ✅ canais por avatar, texto por canal, settings por canal (**rótulo, explicação e opções em pt-BR para 100% dos campos de todos os providers** — onda 18), mídia, threads, preview ao vivo por rede, agendar/publicar/exigir aprovação |
 | **Kanban** | ✅ colunas por estado do grupo; arrastar de Falhou → Agendado dispara retry |
 | Detalhe do post | ✅ editar texto/horário/settings, cancelar, retry por canal, ciclo do link de aprovação, progresso de thread |
-| Mídia | ✅ dropzone, importar por URL, alt text, exclusão soft |
+| Mídia | ✅ dropzone, importar por URL, alt text, exclusão soft e geração de imagem com proveniência, proporção exata e idempotência |
 | Notificações + tempo real | ✅ sino, página, SSE com fallback de polling |
 | Configurações | ✅ perfil, API keys (`mp_live_`), webhooks (`whsec_`), bloco "Conectar seu agente" (REST + MCP) |
 | Página pública `/approve/{token}` | ✅ sem login, mesmos previews do composer, aprovar / pedir ajustes |

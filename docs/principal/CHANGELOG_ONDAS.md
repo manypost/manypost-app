@@ -10,6 +10,49 @@
 > **Como manter:** ao fechar uma fatia, adicione a onda nova **no topo** e atualize o STATUS.
 > Cada entrada é auto-contida: o que mudou, onde no código, e a prova de que funciona.
 
+## Onda 32 — 2026-07-27 — fechamento verificável de IA, home e imagem
+
+**Por que houve uma onda de fechamento.** As ondas 29–31 tinham o comportamento principal, mas
+ainda declaravam lacunas reais: horário de verão não estava provado no repository, a geração de
+imagem presumiria que o modelo de texto desenhava, a idempotência paga não tinha sido exercitada
+com Redis, migrations só tinham validação estrutural e ninguém havia percorrido a UI num browser.
+Também havia tarefas OpenSpec marcadas como concluídas sem evidência equivalente.
+
+**O que foi endurecido**
+
+- O resumo da home recebe limites civis explícitos de início/fim. Lisboa foi exercitada em dias de
+  23 e 25 horas; o SQL deixou de derivar o fim com `interval '1 day'`, e cada agregado/join prova
+  `org_id`.
+- `AI_IMAGE_MODEL` virou opt-in real. Sem ele, `canGenerateImages=false`; quando presente, o
+  adapter usa `sharp` para entregar a proporção exata pedida dentro do teto de 8192×8192.
+- Se o objeto de imagem foi gravado e a linha `media` falha, o objeto recebe compensação
+  best-effort sem mascarar o erro primário.
+- O cliente de imagem mantém o mesmo `Idempotency-Key` após falha ambígua da mesma entrada e gira
+  após sucesso ou mudança de prompt/proporção/canal. O header passou a existir no OpenAPI gerado.
+- A topbar não compete mais com o `PageHeader` como segundo `h1`; falhas do dia continuam
+  explícitas. O catálogo `next-intl` usa namespaces aninhados válidos em runtime.
+
+**Provas finais**
+
+| Verificação | Resultado |
+| --- | --- |
+| `bun run check:ci` | ✅ **965 testes**, 0 falhas, 3 snapshots; typechecks, 530 módulos/1643 dependências sem violação, checks de IA/brand, Drizzle, build web e OpenSpec |
+| `bun run build:web` | ✅ build de produção, **19 páginas** |
+| `bun run spec:validate` | ✅ **21 passed**, 0 failed |
+| `scripts/e2e-ai.ts` | ✅ **71 checks** com Postgres + Redis + provedor falso: replay/conflito, cobrança única, proporção exata, proveniência e compensações |
+| `scripts/e2e-insights.ts` | ✅ **23 checks**, dois tenants e fronteiras de dia |
+| Migration `0007` | ✅ banco vazio e schema anterior com mídia existente; insert legado após upgrade e SQL inverso de rollback conferidos |
+| Plano de consulta | ✅ cenário representativo de 55 mil linhas usou `publications_org_state_date_ix`/`post_groups_org_state_ix` (~5,6 ms no ambiente descartável) |
+| Browser desktop/mobile | ✅ `/inicio`, `/midia` e demais rotas principais sem overflow e com um `h1`; primeiro uso/operacional; X+LinkedIn com reescrita de 1200 caracteres sem perda; imagem escondida sem opt-in, submissão única pendente e preview responsivo |
+
+O smoke usou Postgres/Redis e chaves Clerk locais descartáveis; o bypass do SDK frontend existiu
+somente durante a execução e foi revertido antes do diff. Screenshots e estado de browser ficaram
+fora do repositório. Não houve chamada a modelo, rede social, Clerk ou storage de produção.
+
+**Fora do corte.** Ainda não há suíte visual no CI; a verificação de browser é uma evidência
+manual reproduzível, não um teste permanente. Qualidade estética de um modelo de imagem real,
+smokes com credenciais sociais e deploy Railway continuam provas de campo separadas.
+
 ## Onda 31 — 2026-07-27 — a IA passa a produzir a imagem
 
 **O ponto de partida.** A `SPEC_AI §3` lista `ai.image` (5 créditos) e ele era o único item da

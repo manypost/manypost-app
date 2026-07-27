@@ -30,6 +30,8 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
     a resposta passa pelo mesmo `sniffMedia` (magic bytes) de todo upload, e o teto de tamanho da
     instalação vale igual. Um proxy no caminho devolvendo HTML de erro não vira mídia quebrada
     esperando para falhar na publicação — vira `ai.invalid_response`, com a franquia **devolvida**.
+    O adapter normaliza a saída com `sharp` para a proporção exata solicitada, sem ultrapassar
+    8192×8192; dimensões incompatíveis do provedor não vazam para a biblioteca.
   - **Proveniência é requisito, não enfeite.** Migration `0007`, puramente aditiva, dá a `media`
     um `source` (`upload` | `ai`), o `generation_prompt` e o `generation_model`. Várias plataformas
     já exigem divulgação de conteúdo sintético; sem a coluna, o produto não teria como cumprir — nem
@@ -37,13 +39,19 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
     que é gerado com um selo. O prompt fica com a mídia e **nunca** entra no `audit_log`.
   - **Idempotente desde o primeiro commit.** A cinco créditos, duplo clique é caro demais para
     deixar para depois — a rota reusa o middleware `Idempotency-Key` que a API pública já tinha.
+    O contrato OpenAPI declara o header e o browser preserva a mesma chave após falha ambígua,
+    trocando-a apenas quando a entrada muda ou a geração conclui; replay/conflito/cobrança única
+    são exercitados contra Redis real.
+  - **Upload e metadata formam uma unidade recuperável.** Se o objeto foi gravado mas a criação da
+    linha `media` falha, o storage recebe uma compensação best-effort; falha da limpeza nunca
+    mascara o erro primário.
   - **Uma requisição, uma imagem** (`n: 1`), para o custo de uma chamada ficar previsível.
   - Superfícies: diálogo na biblioteca de mídia, a mesma ação dentro do seletor de mídia do
     composer (com a proporção da rede escolhida já pré-selecionada, que é o momento em que a pessoa
     sabe para onde a imagem vai), e a tool MCP `generate_image` sob escopo de **escrita** — gerar
     queima a franquia paga da organização, e credencial só-leitura não pode gastar crédito.
-  - `AI_IMAGE_MODEL`, opcional: sem ela a geração usa `AI_MODEL`. Existe para o operador cujo
-    modelo de texto não desenha não precisar de duas instalações.
+  - `AI_IMAGE_MODEL` é o **opt-in explícito** da capacidade. Sem ela, `AI_MODEL` nunca é presumido
+    como modelo de imagem e a geração permanece desabilitada.
   - Sem provedor capaz de desenhar, `/v1/capabilities` reporta `ai.canGenerateImages: false`, a
     rota responde `capability.disabled` e a interface **esconde a ação inteira** — o mesmo padrão
     que `canDescribeImages` já usava.
@@ -60,9 +68,11 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
     de atenção (falhas, revisão, aprovação, entrega parcial, canais a reconectar), o que sai hoje e
     a semana por dia. As fronteiras de dia são resolvidas **no fuso do usuário** por `Intl`, nunca
     por offset fixo (um erro de uma hora aqui move um post do "hoje" para o "amanhã" na tela que a
-    pessoa usa para conferir o dia). Filtro por `org_id` em toda ramificação, inclusive dentro de
-    cada subconsulta — agregado é exatamente onde um vazamento passa despercebido, porque ninguém
-    vê a linha, só um número plausível.
+    pessoa usa para conferir o dia). Início e fim de cada dia civil são limites explícitos:
+    semanas com transição de horário de verão aceitam dias UTC de 23/25 horas sem derivar o fim
+    por `interval '1 day'`. Filtro por `org_id` em toda ramificação, inclusive dentro de cada
+    subconsulta — agregado é exatamente onde um vazamento passa despercebido, porque ninguém vê
+    a linha, só um número plausível.
   - **Tela `/inicio`**, e `/` passa a levar até lá. O calendário continua onde estava, a um clique.
   - **Bloco sem conteúdo não existe.** "Precisa de atenção" **desaparece** quando nada está errado
     — não vira um cartão verde de "tudo em ordem" (design.md §3.3: silêncio também é sinal). Os
@@ -75,7 +85,8 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
     conectar um.
   - **`PageHeader` (design.md §13)**, adotado em `/inicio`, `/calendario`, `/kanban`, `/midia` e
     `/conexoes` — nenhuma tela do app tinha cabeçalho, o título vivia só na topbar e **nenhuma tela
-    dizia o que era**. Cada uma ganhou uma linha de descrição.
+    dizia o que era**. Cada uma ganhou uma linha de descrição; a topbar passou a ser contexto
+    visual, não um segundo `h1`, preservando um único título principal por página.
   - **"Início" na sidebar** e o wordmark apontando para lá: antes ele levava ao calendário, então
     nem o gesto universal de voltar ao começo existia.
   - `scripts/e2e-insights.ts` — 23 checks contra API real e Postgres descartável, com cenário
