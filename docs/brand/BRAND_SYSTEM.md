@@ -1,9 +1,11 @@
-# ManyPost BRAND & DESIGN SYSTEM · ESPECIFICAÇÃO OFICIAL (ASTRO 5)
+# manypost BRAND & DESIGN SYSTEM · ESPECIFICAÇÃO OFICIAL
 
 [← Índice da documentação](../README.md) · [Guia de adaptação para o app](README.md) · [SPEC_FRONTEND](../specs/SPEC_FRONTEND.md) · [README do projeto](../../README.md)
 
 > **Documento de Referência para Agentes de IA e Engenheiros de Frontend**
-> Este arquivo estabelece as regras de identidade visual, estrutura de interface, tokens de cor, escala tipográfica e anatomia de componentes do **ManyPost**. Toda nova página, componente ou interface gerada por IA ou humanos DEVE seguir estes padrões, inspirados na clareza, solidez e maturidade de plataformas como **Zapier** e **Cloudflare**.
+> Este arquivo estabelece as regras de identidade visual, estrutura de interface, tokens de cor, escala tipográfica e anatomia de componentes do **manypost**. Toda nova página, componente ou interface gerada por IA ou humanos DEVE seguir estes padrões, inspirados na clareza, solidez e maturidade de plataformas como **Zapier** e **Cloudflare**.
+>
+> **Wordmark canônico:** sempre **`manypost`** em caixa baixa (UI, `<title>`, e-mails, docs de produto). A forma `ManyPost` é **histórica** neste arquivo e não deve ser reintroduzida. Fonte: [docs/brand/README.md](README.md), `CLAUDE.md`, `check:brand`.
 
 ---
 
@@ -216,9 +218,9 @@ Cards estruturais devem ter altura igualizada (`height: 100%` em grids com `alig
 * **Especificação:** `font-size: 11px`, `font-weight: 600`, `padding: 4px 10px`, `border-radius: 4px`, `background: var(--surface)`, `border: 1px solid var(--line)`, `color: var(--graphite)`, `text-transform: uppercase`.
 
 ### C. Logo Oficial (`/images/logo.png`)
-* A logo oficial do ManyPost está em `public/images/logo.png` (ou `logo.png` se carregado diretamente na raiz do componente de branding) — um mark quadrado roxo.
-* **No Header:** Utilizar `<img src="/images/logo.png" alt="Logo do ManyPost" width="28" height="28" />` (com fallback `onerror` na documentação HTML), acompanhada do wordmark `ManyPost` em fonte Display.
-* **Grafia da Marca:** A grafia oficial é sempre **`ManyPost`** (com `M` e `P` maiúsculos), inclusive em títulos, textos e `<title>`. Nunca escrever "manypost" ou "ManyPost".
+* A logo oficial do manypost está em `public/images/logo.png` (ou `logo.png` se carregado diretamente na raiz do componente de branding) — um mark quadrado roxo.
+* **No Header:** Utilizar `<img src="/images/logo.png" alt="Logo do manypost" width="28" height="28" />` (com fallback `onerror` na documentação HTML), acompanhada do wordmark **`manypost`** em fonte Display (Plus Jakarta Sans no app; Degular na landing legada quando disponível).
+* **Grafia da Marca:** A grafia oficial é sempre **`manypost`** (tudo minúsculo), inclusive em títulos, textos e `<title>`. Nunca escrever `ManyPost` ou `Manypost` em superfícies de produto.
 
 ---
 
