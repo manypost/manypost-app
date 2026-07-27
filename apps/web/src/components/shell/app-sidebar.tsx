@@ -12,11 +12,10 @@ import {
   SquareKanban,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Wordmark } from '@/components/brand/wordmark';
+import { BrandMark } from '@/components/brand/brand-mark';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { usePlanFeatures } from '@/features/billing/hooks';
 import { useNotifications } from '@/features/notifications/hooks';
@@ -108,12 +107,15 @@ export function AppSidebar() {
   const footerNav = billingEnabled ? [BILLING_NAV, ...FOOTER_NAV] : FOOTER_NAV;
 
   const [isCollapsed, setIsCollapsed] = useState(false);
+  /** Só true após ler localStorage — evita spin da logo no reload. */
+  const [sidebarReady, setSidebarReady] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('manypost:sidebar-collapsed');
     if (saved === 'true') {
       setIsCollapsed(true);
     }
+    setSidebarReady(true);
   }, []);
 
   const toggleCollapsed = (collapsed: boolean) => {
@@ -139,22 +141,11 @@ export function AppSidebar() {
           href="/calendario"
           aria-label="manypost"
           className={cn(
-            'flex items-center gap-2.5 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+            'flex items-center outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
             isCollapsed && 'transition-opacity duration-200 group-hover/header:opacity-0',
           )}
         >
-          {isCollapsed ? (
-            <Image
-              src="/images/logoSimplificada.svg"
-              alt="manypost"
-              width={32}
-              height={32}
-              className="size-8 shrink-0"
-              priority
-            />
-          ) : (
-            <Wordmark />
-          )}
+          <BrandMark compact={isCollapsed} ready={sidebarReady} />
         </Link>
 
         {isCollapsed ? (

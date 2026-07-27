@@ -337,6 +337,92 @@
   );
 }
 
+/*
+ * Brand mark — fases full → spinning → static (sidebar recolher/expandir).
+ * data-phase no container; CSS cuida de opacidade, escala e largura.
+ * Zero box-shadow; transitions só em width/opacity/transform (não no hover).
+ */
+.brand-mark {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  width: 107px; /* wordmark 1600×420 a 28px de altura */
+  transition: width 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.brand-mark__full,
+.brand-mark__spin,
+.brand-mark__static {
+  transition:
+    opacity 0.28s ease,
+    transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.brand-mark__full {
+  height: 28px;
+  width: auto;
+  object-fit: contain;
+  object-position: left center;
+  opacity: 1;
+  transform: scale(1);
+  transform-origin: left center;
+}
+
+.brand-mark__spin,
+.brand-mark__static {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 28px;
+  width: 28px;
+  object-fit: contain;
+  opacity: 0;
+  transform: translateY(-50%) scale(0.88);
+  transform-origin: center center;
+  pointer-events: none;
+}
+
+.brand-mark[data-phase='spinning'],
+.brand-mark[data-phase='static'] {
+  width: 28px;
+}
+
+.brand-mark[data-phase='spinning'] .brand-mark__full,
+.brand-mark[data-phase='static'] .brand-mark__full {
+  opacity: 0;
+  transform: scale(0.9);
+  pointer-events: none;
+}
+
+.brand-mark[data-phase='spinning'] .brand-mark__spin {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+}
+
+.brand-mark[data-phase='spinning'] .brand-mark__static {
+  opacity: 0;
+}
+
+.brand-mark[data-phase='static'] .brand-mark__spin {
+  opacity: 0;
+  transform: translateY(-50%) scale(0.96);
+}
+
+.brand-mark[data-phase='static'] .brand-mark__static {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-mark,
+  .brand-mark__full,
+  .brand-mark__spin,
+  .brand-mark__static {
+    transition: none !important;
+  }
+}
+
 /* placeholder do editor TipTap (composer) — cor decorativa, nunca texto lido */
 .tiptap p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
