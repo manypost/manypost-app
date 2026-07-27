@@ -86,7 +86,12 @@ Regras:
 - Erros: RFC 9457 (`application/problem+json`) com `code` estável do domínio.
 - Rate limit por credencial: token bucket Redis, default 60 req/min + burst, headers `RateLimit-*`; 429 com `Retry-After`. (*Direção do Postiz — throttler Redis — com resposta padrão.*)
 - Paginação por cursor (`?cursor=&limit=`); `Idempotency-Key` em todos os POST de mutação.
-- Anti-SSRF em qualquer fetch de URL de usuário (resolver DNS → bloquear IP privado — paridade com o dispatcher do Postiz).
+- **Anti-SSRF em qualquer fetch de URL de usuário** (importar mídia por URL e entregar webhook). Implementado em 2026-07-26 (OpenSpec `harden-outbound-request-security`), com três garantias que "resolver DNS e bloquear IP privado" sozinho não dá:
+  1. **A conexão é fixada no endereço aprovado.** Resolver e depois deixar o `fetch` resolver de novo abre a janela do *DNS rebinding*: o nome responde público na validação e privado na conexão. A resolução acontece uma vez e o resultado é fixado no socket (`lookup` do próprio request — `makePinnedFetch`), então conectar em outro endereço é impossível. O hostname **não** é trocado pelo IP: SNI, `Host` e validação de certificado continuam corretos.
+  2. **A política é por faixa parseada, não por prefixo de texto.** O endereço vira bytes e é comparado com as faixas de RFC 1918/5735/6598/6890, com o IPv4 embutido em IPv6 (mapeado, compatível, NAT64, 6to4) classificado pelo que ele é. Prefixo textual erra por construção — `::ffff:169.254.169.254` não começa por `169.254.`.
+  3. **Falha fechado**: nome que não resolve, resposta **mista** (público + privado), credenciais na URL e esquema fora de http(s) são recusados. Redirect **nunca** é seguido pela camada de saída — quem chama decide, e cada salto repassa pela política inteira.
+  - Exceções de desenvolvimento continuam explícitas e por superfície (`MEDIA_ALLOW_PRIVATE_URLS`, `WEBHOOKS_ALLOW_PRIVATE`), falsas no gerenciado. Telemetria: `outbound_blocked_total{surface,reason}` e log com hostname e motivo — **nunca** a URL, que em webhook carrega caminho e assinatura.
+  - **Limitação conhecida:** `https://<ip-literal>/` não obtém validação de hostname no Bun (ele aceita certificado que não cobre o endereço, onde o Node recusa). Não é recusado porque apontar webhook para um IP público é legítimo no self-host.
 - Versionamento no path (`/public/v1`); breaking → `/v2` com sunset headers.
 
 ## 4. Webhooks de saída

@@ -1,6 +1,7 @@
 import { createHmac } from 'node:crypto';
 import { lookup } from 'node:dns/promises';
 import { ErrorCodes, type WebhookEnvelope, type WebhookEvent } from '@manypost/contracts';
+import { classifyAddress } from '../../domain/shared/ip-address';
 import { DomainError } from '../../domain/shared/result';
 import type { CryptoService } from '../ports/crypto';
 import type { EventPublisher, WebhookRecord, WebhookRepository } from '../ports/events';
@@ -25,18 +26,45 @@ const sanitize = (w: WebhookRecord) => ({
   createdAt: w.createdAt,
 });
 
-/** Bloqueia URLs que resolvem para IP privado (anti-SSRF — SPEC_API_MCP §3). */
+/**
+ * Recusa cedo a URL que não pode ser destino de saída (anti-SSRF — SPEC_API_MCP §3), para o
+ * usuário receber um 400 legível ao CADASTRAR o webhook em vez de uma entrega que falha depois.
+ *
+ * Isto é validação de admissão, não a proteção em si: entre validar e conectar o DNS pode mudar,
+ * e por isso a garantia real está no `makePinnedFetch`, que resolve uma vez e **fixa o endereço
+ * na conexão**. As duas usam o MESMO classificador, então o que é aceito aqui é o que conecta lá.
+ */
 export async function assertPublicUrl(rawUrl: string, allowPrivate = false, what = 'webhook') {
-  const url = new URL(rawUrl);
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    throw new DomainError(ErrorCodes.PostInvalidSettings, `URL de ${what} inválida`);
+  }
   if (url.protocol !== 'https:' && url.protocol !== 'http:') {
     throw new DomainError(ErrorCodes.PostInvalidSettings, `URL de ${what} deve ser http(s)`);
   }
+  if (url.username || url.password) {
+    throw new DomainError(ErrorCodes.PostInvalidSettings, `URL de ${what} não pode levar credenciais`);
+  }
   if (allowPrivate) return;
-  const addrs = await lookup(url.hostname, { all: true }).catch(() => []);
-  const isPrivate = (ip: string) =>
-    /^(10\.|127\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|0\.|::1|f[cd]|fe80)/i.test(ip);
-  if (addrs.length === 0 || addrs.some((a) => isPrivate(a.address))) {
-    throw new DomainError(ErrorCodes.PostInvalidSettings, `URL de ${what} não permitida (rede privada)`);
+
+  const refuse = (reason: string) => {
+    throw new DomainError(
+      ErrorCodes.PostInvalidSettings,
+      `URL de ${what} não permitida (${reason})`,
+    );
+  };
+  const host = url.hostname.startsWith('[') ? url.hostname.slice(1, -1) : url.hostname;
+  const literal = classifyAddress(host);
+  if (!literal.allowed && literal.reason !== 'malformed') refuse(literal.reason);
+  if (literal.allowed) return;
+
+  const addrs = await lookup(host, { all: true }).catch(() => []);
+  if (addrs.length === 0) refuse('não resolve');
+  for (const a of addrs) {
+    const verdict = classifyAddress(a.address);
+    if (!verdict.allowed) refuse(verdict.reason); // resposta mista falha fechado
   }
 }
 

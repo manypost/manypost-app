@@ -14,6 +14,7 @@
 
 | Onda | Data | Entrega |
 |---|---|---|
+| 27 | 2026-07-26 | Saída endurecida — a conexão vai para o endereço aprovado (fim do DNS rebinding) e a política deixa de ser regex de prefixo |
 | 25 | 2026-07-26 | Driver S3/R2 — mídia num bucket e URL pública desacoplada da origem do app (destrava a família Meta e o Dev.to) |
 | 24 | 2026-07-24 | UX das configurações por canal — cada campo com o controle certo (data, mídia, chips, categoria por nome) e mídia em settings resolvida no publish |
 | 23.1 | 2026-07-24 | MCP OAuth interop — DCR público no issuer + RFC 8252 loopback (OpenCode/Codex/Claude/VS Code) |
@@ -44,6 +45,71 @@
 > As ondas 1 e 2 do frontend e as fatias de backend anteriores (fundação, banco, auth, publicação,
 > retry, webhooks, mídia, threads, aprovação por link, listagens/SSE, providers da onda 1) estão
 > registradas em [STATUS.md §2](STATUS.md#2-o-que-já-está-pronto-e-verificado), com spec e código de cada uma.
+
+---
+
+## Onda 27 — Saída endurecida: a conexão vai para o endereço aprovado (2026-07-26)
+
+**Por que esta onda existe.** O manypost faz duas requisições para URLs que o usuário escolhe:
+importar mídia por URL e entregar webhook. As duas eram validadas por `assertPublicUrl`, que
+resolvia o nome e recusava IP privado. O problema não é o que ela verificava — é **quando**: depois
+de aprovar, quem conectava era um `fetch` separado, que **resolvia o nome de novo**. Entre as duas
+resoluções o dono do domínio troca a resposta do DNS e a conexão sai para a rede interna. É o
+*DNS rebinding*, e nenhuma quantidade de melhoria na lista de IPs proibidos fecha essa janela.
+
+**A correção.** A resolução acontece **uma vez** e o conjunto aprovado é fixado no socket: o
+`lookup` do próprio request devolve só aqueles endereços, então conectar em outro é impossível. O
+hostname **não** é trocado pelo IP — SNI, `Host` e validação de certificado continuam corretos por
+construção. `agent: false` impede que um socket aberto antes desta validação seja reusado.
+
+**O spike que escolheu o mecanismo — e o que ele revelou.** A proposta exigia evidência de TLS/SNI
+e proibia "emular pinagem superficialmente". A primeira rodada testou contra um CDN público e
+"passou" no caso do certificado errado com `ECONNREFUSED` — que não prova validação nenhuma, era o
+CDN recusando SNI desconhecido. Refeito contra um servidor TLS local com certificado só para
+`pin-test.local`, onde a única recusa possível é a certa, ficaram quatro respostas: (1) o `lookup`
+custom **é** honrado, mas só no formato array — a assinatura antiga de três argumentos quebra o Bun
+em `results.sort is not a function`; (2) a pinagem é real, provada conectando a `pin-test.invalid`,
+um nome que não existe em DNS nenhum; (3) IP + `servername` valida o certificado
+(`ERR_TLS_CERT_ALTNAME_INVALID`); e (4) **conectar por IP sem `servername` não valida identidade
+nenhuma no Bun**, onde o Node recusa. O item (4) decidiu o desenho: qualquer abordagem que troque
+o hostname pelo endereço perde a validação em silêncio se alguém esquecer uma linha.
+
+**A lista de proibidos deixou de ser regex de prefixo.** Comparar o começo da string erra por
+construção, e a prova é empírica: o regex antigo **deixava passar** `::ffff:169.254.169.254` — o
+metadata de nuvem escrito como IPv4 mapeado em IPv6 —, além de `100.64.0.1` (CGNAT), `224.0.0.1`,
+`255.255.255.255`, `198.18.0.1`, `192.0.0.1`, `64:ff9b::7f00:1` (NAT64 com loopback dentro) e
+`2002:7f00:1::1` (6to4 com loopback dentro). Agora o endereço vira bytes e é comparado com faixas
+normalizadas, com o IPv4 embutido em IPv6 classificado pelo que ele realmente é. Uma tabela de 58
+casos guarda a política, cada linha dizendo por que existe.
+
+**Um guarda foi apagado por não guardar nada.** A primeira versão trazia
+`isAmbiguousNumericHost`, para barrar `2130706433` e `0x7f000001` antes do resolvedor. O teste
+mostrou que ele nunca dispara: o parser de URL do WHATWG **já canonicaliza** essas formas para
+`127.0.0.1` (e lança nas inválidas). Código que parece segurança e não protege nada é pior que
+nenhum código — ele foi removido, e a propriedade virou teste sobre o caminho real.
+
+**Três recusas novas, todas fechando por padrão**: resposta de DNS **mista** (um endereço público e
+um privado para o mesmo nome — a assinatura do rebinding, não uma configuração legítima),
+credenciais na URL (`https://user:senha@host/`) e redirect. Este último merece nota: a camada de
+saída **nunca** segue um 3xx sozinha, porque seguir é um salto sem validação; quem chama decide, e
+cada salto repassa pela política inteira. A importação de mídia já fazia esse laço, então a
+mudança preservou o comportamento dela.
+
+**Provas.** 701 testes unitários (76 novos), com a pinagem provada de forma indireta e airtight:
+uma requisição a `pin-test.invalid` chega ao servidor, e não existe resolução no mundo que a
+levasse lá. Depois, o bloqueio foi exercido **no ar**, numa instância em modo gerenciado
+(`WEBHOOKS_ALLOW_PRIVATE=false`, `MEDIA_ALLOW_PRIVATE_URLS=false`): `169.254.169.254` →
+`link-local`, `[::ffff:127.0.0.1]` → `loopback`, `2130706433` → `loopback`, `10.0.0.5` →
+`private`, `user:senha@` → credenciais — nas duas superfícies. Os cinco E2E rodaram verdes com o
+caminho endurecido ligado.
+
+**O que ficou de fora.** `https://<ip-literal>/` não obtém validação de hostname no Bun (o achado 4
+do spike). Não é recusado porque apontar um webhook para um IP público é legítimo no self-host; a
+exposição se limita a essa forma de URL e está registrada. As chamadas dos **providers** de rede
+social continuam usando o `fetch` global — elas vão para domínios que nós escolhemos no código, não
+para URLs do usuário, e a proposta já colocava isso fora do escopo da primeira fase.
+
+Mudança OpenSpec: `harden-outbound-request-security` (spec `outbound-request-security`).
 
 ---
 

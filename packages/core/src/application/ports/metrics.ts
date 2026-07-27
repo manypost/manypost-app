@@ -12,4 +12,10 @@ export interface MetricsSink {
   onRecovered(kind: 'due' | 'stuck', count: number): void;
   /** `rate_limit_denied_total{provider,reason}` — reason ∈ window|concurrency */
   onRateLimitDenied(provider: string, reason: 'window' | 'concurrency'): void;
+  /**
+   * `outbound_blocked_total{surface,reason}` — destino de saída recusado pela política anti-SSRF.
+   * `reason` é o motivo classificado (loopback, link-local, private…), nunca o host nem a URL:
+   * a URL de um webhook carrega caminho e assinatura, e métrica não é lugar de segredo.
+   */
+  onOutboundBlocked?(surface: 'media' | 'webhook', reason: string): void;
 }

@@ -131,6 +131,11 @@ export function createPrometheusMetrics() {
     'Publicações adiadas por rate-limit por provider e motivo',
     ['provider', 'reason'],
   );
+  const outboundBlocked = new Counter(
+    'outbound_blocked_total',
+    'Destinos de saída recusados pela política anti-SSRF, por superfície e motivo',
+    ['surface', 'reason'],
+  );
   const httpDuration = new Histogram(
     'http_request_duration_seconds',
     'Latência das requisições HTTP por método, rota e status',
@@ -148,6 +153,7 @@ export function createPrometheusMetrics() {
     onRetry: (errorClass) => retries.inc({ class: errorClass }),
     onRecovered: (kind, count) => count > 0 && recovered.inc({ kind }, count),
     onRateLimitDenied: (provider, reason) => rateLimitDenied.inc({ provider, reason }),
+    onOutboundBlocked: (surface, reason) => outboundBlocked.inc({ surface, reason }),
   };
 
   return {
@@ -168,6 +174,7 @@ export function createPrometheusMetrics() {
           ...retries.render(),
           ...recovered.render(),
           ...rateLimitDenied.render(),
+          ...outboundBlocked.render(),
           ...queueDepth.render(),
           ...httpDuration.render(),
         ].join('\n') + '\n'

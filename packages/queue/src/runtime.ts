@@ -41,6 +41,9 @@ export interface PublishingRuntimeOpts {
   crypto: CryptoService;
   retryBaseSec: number;
   allowPrivateWebhookUrls?: boolean;
+  /** `fetch` endurecido para a entrega de webhook (resolve uma vez e fixa o endereço na
+   *  conexão — anti-SSRF/rebinding). Ausente = `fetch` global, sem pinagem. */
+  outboundFetch?: typeof fetch;
   /** secrets de app por provider (env → ctx.secrets do worker) */
   providerSecrets?: Record<string, Record<string, string>>;
   /** resolução de `mediaSettings` no publish (ex.: miniatura do YouTube: id → URL) */
@@ -147,6 +150,7 @@ export async function createPublishingRuntime(
     crypto: opts.crypto,
     scheduler,
     ...(opts.allowPrivateWebhookUrls ? { allowPrivateUrls: true } : {}),
+    ...(opts.outboundFetch ? { fetchFn: opts.outboundFetch } : {}),
     log,
   });
 

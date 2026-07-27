@@ -6,6 +6,31 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ## [Unreleased]
 
+### Security
+
+- **A conexão de saída agora vai para o endereço que foi aprovado.** A validação anti-SSRF
+  resolvia o nome, aprovava e deixava um `fetch` **resolver de novo** para conectar — entre as duas
+  resoluções o dono do domínio pode trocar a resposta do DNS e a conexão sai para a rede interna
+  (*DNS rebinding*). Agora a resolução acontece uma vez e o conjunto aprovado é **fixado no
+  socket**, então conectar em outro endereço é impossível; o hostname continua sendo o hostname,
+  então SNI, `Host` e validação de certificado seguem corretos. Vale para importar mídia por URL e
+  para a entrega de webhooks, com a mesma política. Mudança OpenSpec:
+  `harden-outbound-request-security`.
+- **A lista de endereços proibidos deixou de ser um regex de prefixo de texto.** O regex anterior
+  comparava o começo da string, então **deixava passar** `::ffff:169.254.169.254` (o metadata de
+  nuvem escrito como IPv4 mapeado em IPv6), `100.64.0.1` (CGNAT), `224.0.0.1` (multicast),
+  `255.255.255.255`, `198.18.0.1`, `192.0.0.1`, `64:ff9b::7f00:1` (NAT64 com loopback dentro) e
+  `2002:7f00:1::1` (6to4 com loopback dentro). Agora o endereço é parseado para bytes e comparado
+  com faixas normalizadas (RFC 1918/5735/6598/6890), com o IPv4 embutido em IPv6 classificado pelo
+  que ele realmente é. Uma tabela de 58 casos guarda a política.
+- Resposta de DNS **mista** (um endereço público e um privado para o mesmo nome) passa a falhar
+  fechado: é a assinatura de um ataque de rebinding, não uma configuração legítima. Também são
+  recusados credenciais na URL (`https://user:senha@host/`) e esquema fora de http(s).
+- **Redirect nunca é seguido sozinho** pela camada de saída: um 3xx seguido automaticamente é um
+  salto sem validação. Quem chama decide seguir, e cada salto repassa pela política inteira.
+- Nova métrica `outbound_blocked_total{surface,reason}` e log estruturado com **hostname e motivo,
+  nunca a URL** — a URL de um webhook carrega caminho e assinatura.
+
 ### Added
 
 - **Mídia pode morar num bucket (Cloudflare R2, AWS S3 ou MinIO), não só no disco do servidor.**

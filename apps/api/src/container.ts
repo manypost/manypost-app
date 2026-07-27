@@ -42,6 +42,7 @@ import {
   makeGetBilling,
   makeIngestMediaFromUrl,
   makeMediaStorage,
+  makePinnedFetch,
   makeListApiKeys,
   makeListChannels,
   makeListInvoices,
@@ -165,6 +166,25 @@ export async function buildContainer(env: Env) {
   // métricas Prometheus (SPEC_INFRA §4): o sink alimenta publish/recover; a apps/api expõe /metrics
   const metrics = createPrometheusMetrics();
 
+  /**
+   * Saída endurecida (anti-SSRF — SPEC_API_MCP §3): resolve o destino uma vez, recusa endereço
+   * não público e **fixa o endereço aprovado na conexão**, fechando a janela de rebinding entre
+   * validar e conectar. O `allowPrivate` é a exceção de desenvolvimento/self-host, explícita por
+   * superfície; no gerenciado as duas variáveis são falsas. A telemetria leva hostname e motivo,
+   * nunca a URL (que em webhook carrega caminho e assinatura).
+   */
+  const outboundFetch = (surface: 'media' | 'webhook', allowPrivate: boolean, timeoutMs: number) =>
+    makePinnedFetch({
+      allowPrivate,
+      timeoutMs,
+      onBlocked: ({ hostname, reason }) => {
+        metrics.sink.onOutboundBlocked?.(surface, reason);
+        console.log(
+          JSON.stringify({ level: 'warn', msg: 'outbound_blocked', surface, hostname, reason }),
+        );
+      },
+    });
+
   const runtime = await createPublishingRuntime({
     databaseUrl: env.DATABASE_URL,
     redisUrl: env.REDIS_URL,
@@ -175,6 +195,7 @@ export async function buildContainer(env: Env) {
     crypto,
     retryBaseSec: env.PUBLISH_RETRY_BASE_SEC,
     allowPrivateWebhookUrls: env.WEBHOOKS_ALLOW_PRIVATE,
+    outboundFetch: outboundFetch('webhook', env.WEBHOOKS_ALLOW_PRIVATE, 10_000),
     providerSecrets,
     // resolução de mediaSettings no publish (ex.: miniatura do YouTube: id → URL pública)
     media: repos.media,
@@ -232,6 +253,7 @@ export async function buildContainer(env: Env) {
       fromUrl: makeIngestMediaFromUrl({
         ...mediaDeps,
         allowPrivateUrls: env.MEDIA_ALLOW_PRIVATE_URLS,
+        fetchFn: outboundFetch('media', env.MEDIA_ALLOW_PRIVATE_URLS, 30_000),
       }),
       list: makeListMedia(mediaDeps),
       setAlt: makeSetMediaAlt(mediaDeps),

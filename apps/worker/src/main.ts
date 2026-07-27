@@ -7,7 +7,7 @@ import {
   makeWebhookRepository,
   runMigrations,
 } from '@manypost/db';
-import { AesGcmCryptoService, makeMediaStorage } from '@manypost/core';
+import { AesGcmCryptoService, makeMediaStorage, makePinnedFetch } from '@manypost/core';
 import { providerRegistry } from '@manypost/providers';
 import { createPublishingRuntime } from '@manypost/queue';
 import { fileURLToPath } from 'node:url';
@@ -33,6 +33,16 @@ const runtime = await createPublishingRuntime({
   crypto: AesGcmCryptoService.fromHex(env.ENCRYPTION_KEY),
   retryBaseSec: env.PUBLISH_RETRY_BASE_SEC,
   allowPrivateWebhookUrls: env.WEBHOOKS_ALLOW_PRIVATE,
+  // saída endurecida na entrega de webhook — a MESMA que a api usa. Esquecer aqui repetiria a
+  // divergência da decisão 20 do STATUS: quem entrega webhook em escala é este processo
+  outboundFetch: makePinnedFetch({
+    allowPrivate: env.WEBHOOKS_ALLOW_PRIVATE,
+    timeoutMs: 10_000,
+    onBlocked: ({ hostname, reason }) =>
+      console.log(
+        JSON.stringify({ level: 'warn', msg: 'outbound_blocked', surface: 'webhook', hostname, reason }),
+      ),
+  }),
   // sem isso o refresh de token (LinkedIn/X exigem client id/secret) falha no worker dedicado
   providerSecrets: providerSecretsFromEnv(env),
   // resolução de mediaSettings no publish (miniatura do YouTube: id → URL pública). MESMO
