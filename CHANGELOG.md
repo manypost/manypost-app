@@ -6,6 +6,82 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ## [Unreleased]
 
+### Added
+
+- **Fatia de IA: a plataforma passa a gerar conteúdo de verdade.** Até aqui as oito features
+  `ai_*` existiam só no catálogo de planos — o gate funcionava, mas atrás dele não havia nada.
+  Esta entrega liga quatro delas ponta a ponta. OpenSpec: `add-ai-content-assistance` →
+  capacidades `ai-provider-runtime`, `ai-budget-control`, `ai-content-generation`,
+  `posting-time-suggestions`.
+  - **Adapters agnósticos de fornecedor** em `packages/core/src/infra/ai/`, selecionados por
+    `AI_PROVIDER` — dois protocolos HTTP (`openai-compatible` e `anthropic`) cobrem gateways
+    agregadores, os fornecedores de uso amplo e runtimes locais de self-host. Trocar de
+    fornecedor é mudar `AI_BASE_URL`/`AI_MODEL`, nunca código; `AI_API_KEY` é **opcional**
+    (runtime local não pede credencial). Boot falha fechado nomeando a variável que falta, e
+    nenhuma falha do provedor devolve corpo, endpoint ou chave ao cliente. Nova fronteira de
+    CI `ia-so-pelo-port`: use-case que importar `infra/ai` reprova o dependency-cruiser.
+  - **BudgetGuard operacional** (DECISIONS v1 §8 deixa de ser aspiracional): reserva → confirma
+    ou devolve, sobre `ai_credits` + a nova `ai_grants`. A concessão é um único `UPDATE`
+    condicional, então o bloqueio de linha do Postgres torna impossível furar a franquia —
+    provado por teste de integração com **dez reservas simultâneas contra franquia de cinco**
+    (SPEC_AI §5.3). Reserva órfã é recuperada por lease na varredura preguiçosa da reserva
+    seguinte, sem cron. Falha nossa (modelo fora do ar, resposta ilegível) **devolve** a
+    franquia. Self-hosted contabiliza e nunca recusa.
+  - **`ai_caption` (Pro)** — legenda adaptada por rede, reescrita com instrução, hashtags e
+    alt text de imagem para leitor de tela. O limite do canal é garantido **depois** do modelo,
+    por corte em fronteira de frase com marca `shortened`: prompt não entrega 100% de nada, e
+    100% é o critério de aceite. Usa o mesmo merge de settings do agendamento, então conta
+    verificada do X vale 4000 caracteres aqui como vale lá.
+  - **`ai_best_time` (Pro)** — sugestão de horário por canal. **Sem modelo e sem custo de
+    franquia**: estatística sobre o histórico de entrega da própria organização mais uma linha
+    de base por rede, com `confidence` e `sampleSize` expostos. Enquanto não houver histórico,
+    a resposta diz que é ponto de partida em vez de fingir medição. Funciona mesmo com
+    `AI_PROVIDER=none`.
+  - **`ai_multichannel_draft` e `ai_calendar` (Premium)** — uma ideia vira um rascunho por
+    canal; um objetivo vira uma semana proposta. Saída estruturada é lida defensivamente e
+    validada; o plano da semana **propõe e não agenda** — nenhuma publicação, rascunho ou job
+    nasce dessas rotas.
+  - **Superfícies**: `POST /v1/ai/{caption,rewrite,hashtags,alt-text,draft,week-plan}` e
+    `GET /v1/ai/best-times`, documentadas em OpenAPI 3.1 com rate-limit de rajada por
+    organização; bloco `ai` no `GET /v1/capabilities` (habilitada, visão, saldo); tools MCP
+    `generate_content` e `suggest_best_times`; ações no composer, alt text na biblioteca de
+    mídia, rascunho por IA e dica de melhor horário no agendamento.
+  - Dois defeitos encontrados **usando a aplicação de verdade** e corrigidos com regressão:
+    (a) as ações de IA liam o texto do editor durante o render — o `?.` não protegia, porque a
+    instância do TipTap existe antes de a view montar e continua existindo depois de destruída
+    pelo remount, e nos dois casos `editor.state` é null (`Cannot read properties of null`);
+    o texto passou a vir do store e o editor é usado só para escrever, com guarda de instância
+    viva. (b) o CTA de upgrade apontava para uma rota inexistente — as rotas do app são em
+    português (`/planos`), e agora usam `next/link` como o resto da interface.
+  - **Texto do usuário é dado, não instrução**: tudo que vem de fora entra delimitado e o
+    delimitador não pode ser fechado por dentro. A defesa real, porém, é a jusante — nenhuma
+    saída de modelo é executada, vira URL ou publica sem uma pessoa aceitar.
+  - **Auditoria sem conteúdo**: cada geração registra organização, ator e operação; nem
+    `audit_log` nem `ai_grants` guardam prompt, texto gerado ou credencial.
+  - **Resposta cortada pelo teto de tokens não é entregue como se estivesse pronta.** Descoberto
+    verificando contra um provedor real: **modelo de raciocínio gasta tokens de SAÍDA pensando**
+    antes de escrever a primeira letra, então um teto apertado o corta no meio da palavra.
+    Duas correções: (a) `finish_reason: length` / `stop_reason: max_tokens` vira
+    `ai.invalid_response` **nomeando `AI_MAX_OUTPUT_TOKENS`**, em vez de virar um fragmento
+    marcado como "encurtado para caber no canal" — que é outra coisa e esconderia um problema
+    de configuração; (b) o teto enviado ao provedor passou a ser o **da instalação**, não um
+    calculado por requisição: `max_tokens` é teto e não alvo (modelo comum para sozinho quando
+    termina), e apertá-lo não comprava nada, porque o tamanho por canal já é garantido **depois**
+    do modelo. Default de `AI_MAX_OUTPUT_TOKENS` subiu para 4000.
+  - `AI_TIMEOUT_MS` e `AI_MAX_OUTPUT_TOKENS` novos; `.env.example` ganhou blocos prontos para
+    **sete** provedores reais (inclui Fireworks) e a nota sobre modelo de raciocínio.
+    `scripts/live-ai.ts` faz um smoke opt-in contra o provedor configurado, sem tocar no banco
+    e sem imprimir a credencial (precedente `live-telegram.ts`/`live-r2.ts`). Franquia por plano
+    no catálogo: Grátis 0 / Pro 500 / Premium 2000.
+  - Migration `0006_ai_budget` (aditiva): `ai_credits.reserved` e a tabela `ai_grants`.
+
+### Changed
+
+- **Snapshot OpenAPI do web regenerado** (`apps/web/openapi.json`, `schema.d.ts`). Além das
+  rotas de IA, a regeneração trouxe correções **não relacionadas** que o snapshot devia desde
+  ondas anteriores: os escopos `mcp:read`/`mcp:write` no corpo de `POST /v1/api-keys` e as
+  rotas de OAuth/well-known, que o código já servia e o arquivo versionado não refletia.
+
 ### Security
 
 - **Anti-SSRF com pin de DNS.** Media import, entrega de webhooks e fetch CIMD do MCP

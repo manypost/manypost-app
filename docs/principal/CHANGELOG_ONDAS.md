@@ -10,6 +10,79 @@
 > **Como manter:** ao fechar uma fatia, adicione a onda nova **no topo** e atualize o STATUS.
 > Cada entrada é auto-contida: o que mudou, onde no código, e a prova de que funciona.
 
+## Onda 28 — 2026-07-27 — a fatia de IA sai do papel (4 das 8 features prometidas)
+
+**O ponto de partida.** As oito features `ai_*` já estavam no catálogo de planos com o gate
+funcionando — mas atrás do gate não havia nada. Existiam as interfaces `AiProvider`/`BudgetGuard`,
+a tabela `ai_credits` que ninguém escrevia, quatro variáveis `AI_*` que ninguém lia e o grep de
+CI. Uma organização que pagasse o Pro recebia uma feature que resolvia para o vazio.
+
+**O que mudou**
+
+- **Adapters agnósticos** em `packages/core/src/infra/ai/` — o único lugar do monorepo onde um
+  fornecedor pode ser nomeado, e mesmo lá os arquivos são nomeados pelo **protocolo** que falam
+  (`chat-completions.ts`, `messages.ts`). Seleção por `AI_PROVIDER` via `aiConfigFromEnv`, fonte
+  única que a api e o worker compartilham (precedente do `mediaStorageConfigFromEnv`).
+  `AI_BASE_URL`/`AI_MODEL` falham fechado no boot; **`AI_API_KEY` é opcional de propósito** —
+  runtime de modelo local não pede credencial, e exigir uma quebraria o self-host. Fronteira nova
+  no dependency-cruiser (`ia-so-pelo-port`): use-case que importar `infra/ai` reprova o CI.
+- **BudgetGuard operacional.** Migration `0006` (aditiva): `ai_credits.reserved` + tabela
+  `ai_grants`. A concessão é **uma** instrução condicional (`granted - used - reserved >= n`), então
+  quem serializa gerações simultâneas é o bloqueio de linha do Postgres, não código de aplicação.
+  Reserva órfã volta por lease na varredura preguiçosa da reserva seguinte (sem cron — precedente
+  do link de aprovação). **Erro nosso devolve a franquia**: cobrar a org por um provedor fora do ar
+  ou por uma resposta ilegível é a troca errada. Self-hosted contabiliza e nunca recusa.
+- **`ai_caption` (Pro)** — legenda por rede, reescrita com instrução, hashtags, alt text.
+  O limite do canal é imposto **depois** do modelo, por corte em fronteira de frase com marca
+  `shortened`: prompt nenhum entrega 100% de nada, e "100% dos casos" é literalmente o critério de
+  aceite da SPEC_AI §5.5. Usa o mesmo merge de settings do agendamento.
+- **`ai_best_time` (Pro)** — heurística estatística sobre o histórico de entrega da própria org
+  mais linha de base por rede. **Sem LLM, sem franquia, funciona com `AI_PROVIDER=none`.**
+  Devolve `confidence` e `sampleSize`, e diz "ponto de partida" quando não há histórico em vez de
+  fingir medição. Conversão de fuso por `Intl` (offset fixo erraria em horário de verão).
+- **`ai_multichannel_draft` e `ai_calendar` (Premium)** — ideia → rascunho por canal; objetivo →
+  semana proposta. O plano da semana **propõe e não agenda**.
+- **Superfícies** — `/v1/ai/*` em OpenAPI 3.1 com rate-limit de rajada por org (a franquia limita
+  custo, não ritmo), bloco `ai` no `/v1/capabilities`, tools MCP `generate_content` e
+  `suggest_best_times`, e no web: ações no composer, alt text na mídia, rascunho por IA e dica de
+  horário no agendamento — tudo sumindo quando a instalação não tem IA.
+
+**O que NÃO foi entregue, e por quê**
+
+`ai_inbox`, `ai_triage`, `ai_campaign_reports` e `ai_engagement_alerts` continuam gateadas. Não
+faltam por IA: faltam **ingestão**. Nenhum provider lê comentário ou DM (`mention.received` não
+existe) e `channel_metrics` está vazia porque nada escreve nela. Ligar essas features hoje
+produziria resposta inventada. `ai.image` (SPEC_AI §3) também fica: precisa de caminho de escrita
+de mídia gerada e classe de custo própria.
+
+**Provas**
+
+- `bun run check` verde: **800 testes** (13 do adapter de chat-completions, 7 do de messages,
+  10 do parser estruturado, 10 do encurtamento, 12 do BudgetGuard, 14 dos prompts, 32 dos
+  use-cases, 18 dos melhores horários, 17 das rotas), fronteiras, grep de IA e brand.
+- **Integração contra Postgres real** (`ai-credits.repo.integration.test.ts`, 10 testes): o
+  critério da SPEC_AI §5.3 — **dez reservas simultâneas contra franquia de cinco concedem
+  exatamente cinco**, e `used + reserved` nunca passa de `granted`. Verificado por mutação:
+  removendo a condição do `UPDATE`, três testes quebram (dez concessões em vez de cinco).
+- **`scripts/e2e-ai.ts`, 32 checks** com API real, Postgres descartável e um "modelo" falso que
+  fala o protocolo: franquia debitada e refletida no `/v1/capabilities`, tokens reais gravados no
+  grant, brief delimitado como dado no corpo enviado, limite do canal imposto sobre resposta
+  longa, resposta ilegível devolvendo a franquia, best-times sem tocar no modelo, canal de outra
+  org em 404 e **nenhuma credencial ou endpoint vazando** na falha do provedor. No CI como job
+  próprio, com banco próprio.
+- **Smoke real opcional** (`scripts/live-ai.ts`, nunca no CI): geração de verdade contra o
+  provedor configurado, sem tocar no banco e sem imprimir a credencial. Foi ele que revelou o
+  comportamento de **modelo de raciocínio** — gasta tokens de saída pensando antes de escrever,
+  então um teto apertado corta a resposta no meio da palavra. Duas correções vieram daí: resposta
+  cortada vira `ai.invalid_response` nomeando `AI_MAX_OUTPUT_TOKENS` (nunca é entregue como se
+  estivesse pronta), e o teto enviado passou a ser o **da instalação**, não um calculado por
+  requisição — `max_tokens` é teto e não alvo, e o tamanho por canal já é garantido depois.
+- **Dois defeitos achados usando a aplicação**, ambos com regressão: as ações de IA liam o texto
+  do editor durante o render (instância do TipTap existe antes da view montar e depois de
+  destruída pelo remount — `editor.state` null nos dois casos), e o CTA de upgrade apontava para
+  rota inexistente (as rotas do app são em português).
+- `bun run db:check`, `bun run build:web` e `bun run spec:validate` verdes.
+
 ## Onda 27 — 2026-07-27 — alinhamento docs/OpenSpec + anti-SSRF pinado + Postman
 
 **O que mudou**
