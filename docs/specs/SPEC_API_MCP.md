@@ -3,6 +3,8 @@
 [← Índice da documentação](../README.md) · [STATUS do projeto](../principal/STATUS.md) · [Decisões](../principal/DECISIONS.md) · [README do projeto](../../README.md)
 
 > **Escopo:** contexto **Surfaces** [AGPL núcleo]. API RESTful pública e servidor MCP **sobre os mesmos use-cases** (nunca duplicar regra). Segue a direção do Postiz (núcleo AGPL) em: MCP sobre o core, OAuth de recurso protegido, origem da mutação auditada. Corrige: JWT eterno, API key sem hash/escopo. Depende de: SPEC_BACKEND (use-cases/OpenAPI), SPEC_DATA (api_keys, oauth_*, audit_log).
+>
+> **Estado de verdade (2026-07-26):** auth humana no runtime é **Clerk-only** (OpenSpec `clerk-human-authentication`). Trechos que ainda descrevam JWT access/refresh Manypost ou rotas `GOOGLE_*`/`GITHUB_*` na API são **histórico pré-Clerk** e não o comportamento vigente — confirme em `apps/api/src/http/middleware/auth.ts`, `openspec/specs/` e [STATUS.md](../principal/STATUS.md). Este arquivo mistura requisitos históricos/aspiracionais com o runtime; em conflito, prevalecem código + OpenSpec vivo.
 
 ## 1. Princípio
 
@@ -12,9 +14,9 @@ flowchart TB
     MCP[MCP server /mcp] --> UC
     WEB[web app] --> REST
     subgraph authn [Autenticação unificada]
-        JWT[JWT access/refresh - humanos]
-        KEY[API keys com escopos - máquinas]
-        OAT[OAuth tokens - MCP/apps de terceiros]
+        CLERK[Clerk session JWT - humanos]
+        KEY[API keys mp_live_ - máquinas]
+        OAT[OAuth mpo_ - MCP/apps de terceiros]
     end
     authn --> REST & MCP
     UC --> AUD[audit_log central com origem WEB/API/MCP]
@@ -24,11 +26,22 @@ Uma única pilha de autorização: qualquer credencial resolve para um **Princip
 
 ## 2. Autenticação
 
-### Humanos (web) — corrige o JWT eterno do Postiz
-- **Access token JWT** (HS256→migração p/ EdDSA quando houver federação), 15 min, claims `{sub, org, role}`; cookie httpOnly `SameSite=Lax`.
-- **Refresh token** opaco, 30 dias, rotação a cada uso, hash no banco (`sessions`), detecção de reuso (roubo → revoga a família), logout revoga.
-- Troca de organização = novo access token (claim `org`).
-- **Login social (Google/GitHub)** — *paridade com o Postiz (providers de login), núcleo AGPL*: OAuth code flow com state anti-CSRF em cookie httpOnly single-use; identidades em `auth_identities` (N por usuário); vínculo automático a conta existente **somente com e-mail verificado no provedor** (`auth.social_email_unverified` caso contrário); avatar do provedor preenche `users.avatar_url` apenas quando vazio; habilitado por env (`GOOGLE_*`/`GITHUB_*` — ausente = botão não existe).
+### Humanos (web) — Clerk-only (vigente)
+- **Sessão no Clerk** (senha, verificação de e-mail, Google/MFA e demais IdPs no **Clerk Dashboard** — não há rotas `GOOGLE_*`/`GITHUB_*` na API Manypost).
+- Cada request humana envia `Authorization: Bearer <Clerk JWT>` (ou cookie `__session` no SSE, onde o EventSource não manda header).
+- A API verifica o token (JWKS / chave local de E2E) e resolve **usuário + organização + papel no Postgres** (`auth_identities.provider=clerk`). Claims de tenant do cliente **não** autorizam.
+- Superfície humana REST: basicamente `GET /v1/auth/me` + demais `/v1/*` com papel (MEMBER/ADMIN). Sem JWT access/refresh Manypost, sem cookie de sessão Manypost, sem exchange.
+- Fail-closed sem chaves Clerk configuradas (exceto `MODE=worker`).
+- Tabela `sessions` permanece no schema como **legado** (sem consumidor no runtime Clerk-only).
+
+<details>
+<summary>Histórico pré-Clerk (não implementado no runtime atual)</summary>
+
+- Access token JWT Manypost (HS256), 15 min, claims `{sub, org, role}`; cookie httpOnly.
+- Refresh opaco 30 dias com rotação e hash em `sessions`.
+- Login social via env `GOOGLE_*`/`GITHUB_*` na própria API.
+
+</details>
 
 ### Máquinas — API keys com escopos
 - Formato `mp_live_<prefix8><secret32>`; armazenada **só o hash** (sha256) + prefixo para lookup; exibida uma única vez.
@@ -54,7 +67,7 @@ O serviço de API atende **três hosts** (roteamento por `Host`, mesmo processo,
 
 | Host | Env | Serve |
 |---|---|---|
-| app (produto) | `PUBLIC_URL` | `/v1` interno (humano: cookie/JWT, autorização por **papel**), `/public/approval`, `/uploads`, `/public/v1` (compat) e `/mcp` (compat) |
+| app (produto) | `PUBLIC_URL` | `/v1` interno (humano: Bearer Clerk ou cookie `__session` no SSE; autorização por **papel**), `/public/approval`, `/uploads`, `/public/v1` (compat) e `/mcp` (compat) |
 | `api.dominio` | `API_PUBLIC_URL` | **`/v1` = esta API** (mesmo sub-app de `/public/v1`, re-prefixado) + `/openapi.json` e `/docs` restritos a ela |
 | `mcp.dominio` | `MCP_PUBLIC_URL` | **servidor MCP na raiz** (§5), com `/mcp` como alias |
 
