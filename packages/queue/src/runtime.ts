@@ -211,15 +211,12 @@ export async function createPublishingRuntime(
             'thread continuation falhou',
           ),
       );
-      await boss.work<{ deliveryId: string }>(WEBHOOK_QUEUE, async (jobs) => {
-        for (const job of jobs) {
-          try {
-            await deliver(job.data.deliveryId);
-          } catch (err) {
-            log('error', 'webhook delivery falhou', { deliveryId: job.data.deliveryId, err: String(err) });
-          }
-        }
-      });
+      // Mesma política de publish/thread: erro inesperado de infra é relançado para o
+      // pg-boss não marcar o job como entregue. Retries de negócio da delivery já são
+      // persistidos dentro de `makeDeliverWebhook` (PENDING + re-enqueue).
+      await boss.work<{ deliveryId: string }>(WEBHOOK_QUEUE, (jobs) =>
+        runBatch(jobs, (d) => deliver(d.deliveryId), 'webhook delivery falhou'),
+      );
       await boss.work(RECOVER_QUEUE, async () => {
         const out = await recover();
         opts.metrics?.onRecovered('due', out.due);
