@@ -2,7 +2,14 @@ import { describe, expect, test } from 'bun:test';
 import type { Editor } from '@tiptap/react';
 import messages from '@/messages/pt-BR.json';
 import { editorUtilizavel, textoParaAplicar, variantesParaOverrides } from './ai-actions';
-import { ASPECTOS, REWRITE_EDIT_IDS, REWRITE_IDS, REWRITE_TONE_IDS } from './hooks';
+import {
+  ASPECTOS,
+  createImageIdempotencyTracker,
+  imageGenerationRequest,
+  REWRITE_EDIT_IDS,
+  REWRITE_IDS,
+  REWRITE_TONE_IDS,
+} from './hooks';
 
 const ai = messages.ai as Record<string, string>;
 
@@ -205,6 +212,24 @@ describe('cobertura de tradução da superfície de IA', () => {
  * tradução apareceria cru para o usuário.
  */
 describe('geração de imagem', () => {
+  test('a mesma submissão reutiliza a chave; mudança e sucesso avançam a chave', () => {
+    let sequence = 0;
+    const tracker = createImageIdempotencyTracker(() => `key-${++sequence}`);
+    const first = { prompt: 'um gato', aspect: '4:5' as const };
+
+    const request1 = imageGenerationRequest(first, tracker);
+    const request2 = imageGenerationRequest({ ...first }, tracker);
+    expect(request1.headers['Idempotency-Key']).toBe('key-1');
+    expect(request2.headers['Idempotency-Key']).toBe('key-1');
+
+    const changed = imageGenerationRequest({ ...first, aspect: '1:1' }, tracker);
+    expect(changed.headers['Idempotency-Key']).toBe('key-2');
+
+    tracker.complete({ ...first, aspect: '1:1' });
+    const afterSuccess = imageGenerationRequest({ ...first, aspect: '1:1' }, tracker);
+    expect(afterSuccess.headers['Idempotency-Key']).toBe('key-3');
+  });
+
   test('toda proporção oferecida tem rótulo humano', () => {
     for (const a of ASPECTOS) {
       expect(ai[a.labelKey], `falta a chave ai.${a.labelKey}`).toBeTruthy();

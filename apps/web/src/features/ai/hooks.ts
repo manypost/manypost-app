@@ -1,6 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRef } from 'react';
 import { api } from '@/lib/api/client';
 import { useCapabilities, usePlanFeatures } from '@/features/billing/hooks';
 
@@ -212,6 +213,56 @@ export interface GeneratedMedia {
   source: string;
 }
 
+export interface GenerateImageInput {
+  prompt: string;
+  aspect?: AspectId;
+  channelId?: string;
+  alt?: string;
+}
+
+const imageRequestFingerprint = (input: GenerateImageInput) =>
+  JSON.stringify([
+    input.prompt.trim(),
+    input.aspect ?? null,
+    input.channelId ?? null,
+    input.alt?.trim() || null,
+  ]);
+
+export interface ImageIdempotencyTracker {
+  keyFor(input: GenerateImageInput): string;
+  complete(input: GenerateImageInput): void;
+}
+
+/**
+ * Mantém a chave depois de erro: se o servidor concluiu e só a resposta se perdeu, "tentar de
+ * novo" precisa obter o replay. Sucesso limpa a chave para "gerar outra" ser uma ação nova.
+ */
+export function createImageIdempotencyTracker(
+  makeKey: () => string = () => crypto.randomUUID(),
+): ImageIdempotencyTracker {
+  let current: { fingerprint: string; key: string } | undefined;
+  return {
+    keyFor(input) {
+      const fingerprint = imageRequestFingerprint(input);
+      if (current?.fingerprint !== fingerprint) {
+        current = { fingerprint, key: makeKey() };
+      }
+      return current.key;
+    },
+    complete(input) {
+      if (current?.fingerprint === imageRequestFingerprint(input)) current = undefined;
+    },
+  };
+}
+
+export const imageGenerationRequest = (
+  input: GenerateImageInput,
+  tracker: ImageIdempotencyTracker,
+) => ({
+  body: input,
+  headers: { 'Idempotency-Key': tracker.keyFor(input) },
+});
+
 /**
  * Geração de imagem (`ai_image`, Premium — 5 créditos).
  *
@@ -220,17 +271,19 @@ export interface GeneratedMedia {
  */
 export function useGenerateImage() {
   const queryClient = useQueryClient();
+  const trackerRef = useRef<ImageIdempotencyTracker | null>(null);
+  if (!trackerRef.current) trackerRef.current = createImageIdempotencyTracker();
+  const tracker = trackerRef.current;
   return useMutation({
-    mutationFn: async (input: {
-      prompt: string;
-      aspect?: AspectId;
-      channelId?: string;
-      alt?: string;
-    }) => {
-      const { data, error } = await api.POST('/v1/ai/image', { body: input });
+    mutationFn: async (input: GenerateImageInput) => {
+      const { data, error } = await api.POST(
+        '/v1/ai/image',
+        imageGenerationRequest(input, tracker),
+      );
       if (error) throw error;
       return data.media as GeneratedMedia;
     },
+    onSuccess: (_data, input) => tracker.complete(input),
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ['capabilities'] });
       void queryClient.invalidateQueries({ queryKey: ['media'] });
