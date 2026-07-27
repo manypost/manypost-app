@@ -89,10 +89,10 @@ export function Topbar() {
         </DropdownMenu>
         <Wordmark />
       </div>
-      {/* o título da página vive na topbar */}
-      <h1 className="hidden text-lg font-semibold tracking-[-0.3px] text-ink md:block">
+      {/* contexto persistente; o h1 semântico pertence ao PageHeader da tela */}
+      <p className="hidden text-lg font-semibold tracking-[-0.3px] text-ink md:block">
         {title ? t(title.key) : ''}
-      </h1>
+      </p>
 
       <div className="flex items-center gap-2">
       <NotificationsMenu />

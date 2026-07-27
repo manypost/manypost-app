@@ -117,8 +117,15 @@ describe('distribuição das variantes pelos canais que as pediram', () => {
 describe('catálogo de reescrita e catálogo de mensagens', () => {
   test('todo id oferecido tem rótulo traduzido', () => {
     for (const id of REWRITE_IDS) {
-      expect(ai[`rewrite.${id}`], `falta a chave ai.rewrite.${id}`).toBeTruthy();
+      expect(
+        (ai.rewrite as Record<string, string> | undefined)?.[id],
+        `falta a chave ai.rewrite.${id}`,
+      ).toBeTruthy();
     }
+  });
+
+  test('não usa pontos em chaves literais — next-intl reserva ponto para navegação', () => {
+    expect(Object.keys(ai).filter((key) => key.includes('.'))).toEqual([]);
   });
 
   test('os grupos do menu cobrem o catálogo inteiro, sem repetir', () => {

@@ -25,4 +25,9 @@ describe('um único dono do cabeçalho por tela', () => {
       false,
     );
   });
+
+  test('o topbar não compete com o PageHeader pelo h1 da tela', async () => {
+    const topbar = await source('components/shell/topbar.tsx');
+    expect(topbar).not.toContain('<h1');
+  });
 });
