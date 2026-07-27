@@ -4,7 +4,7 @@
 
 > **Escopo:** contexto **Publishing** [AGPL núcleo]. É a spec mais crítica do sistema. Segue a direção do Postiz (núcleo AGPL) no desenho do pipeline, na taxonomia de erros e na recuperação; diverge na tecnologia de fila. Depende de: SPEC_DATA (tabelas), SPEC_INTEGRATIONS (providers), SPEC_BACKEND (use-cases), SPEC_INFRA (Redis).
 >
-> **Estado de verdade (2026-07-26):** posse por item (`publication_attempts`), semáforo `maxConcurrent` via Redis e rethrow de erro inesperado em publish/thread estão no código. Anti-SSRF com **pin de DNS na conexão** ainda é a change aberta `harden-outbound-request-security`. Confirme em `publishing.ts`, `packages/queue` e `openspec/specs/`.
+> **Estado de verdade (2026-07-26):** posse por item (`publication_attempts`), semáforo `maxConcurrent` via Redis e rethrow de erro inesperado em publish/thread estão no código. Anti-SSRF com **pin de DNS na conexão** está em `outbound-request-security` (living). Confirme em `publishing.ts`, `packages/queue` e `openspec/specs/`.
 
 ## 1. Contexto e lições do Postiz
 
