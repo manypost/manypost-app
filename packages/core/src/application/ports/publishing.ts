@@ -263,4 +263,15 @@ export interface PublishingRepository {
   refreshGroupState(groupId: string): Promise<void>;
   /** posts (grupos) criados desde `since` — limite mensal do plano Grátis (PlanPolicy) */
   countGroupsSince(orgId: string, since: Date): Promise<number>;
+  /**
+   * Momentos em que o canal JÁ publicou com sucesso (`DONE`), desde `since` — insumo da
+   * sugestão de melhor horário (`ai_best_time`). Devolve os instantes crus em UTC: quem
+   * agrupa por dia e hora é o caso de uso, que sabe o fuso pedido. Escopado por organização.
+   */
+  listDeliveredTimes(
+    orgId: string,
+    channelId: string,
+    since: Date,
+    limit: number,
+  ): Promise<Date[]>;
 }

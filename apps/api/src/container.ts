@@ -1,4 +1,5 @@
 import {
+  aiConfigFromEnv,
   clerkConfig,
   isBillingEnabled,
   mediaStorageConfigFromEnv,
@@ -7,6 +8,7 @@ import {
 } from '@manypost/config';
 import {
   createDb,
+  makeAiCreditsRepository,
   makeApiKeyRepository,
   makeApprovalLinkRepository,
   makeAuditLogRepository,
@@ -24,6 +26,16 @@ import {
 } from '@manypost/db';
 import {
   AesGcmCryptoService,
+  makeAiProvider,
+  makeBudgetGuard,
+  makeDraftMultichannel,
+  makeGenerateAltText,
+  makeGenerateCaption,
+  makePlanWeek,
+  makeRewriteText,
+  makeSuggestBestTimes,
+  makeSuggestHashtags,
+  type AiDeps,
   makeApplyRemoteSubscription,
   makeCancelPost,
   makeCancelSubscription,
@@ -111,6 +123,7 @@ export async function buildContainer(env: Env) {
     media: makeMediaRepository(db),
     approvals: makeApprovalLinkRepository(db),
     audit: makeAuditLogRepository(db),
+    aiCredits: makeAiCreditsRepository(db),
     notifications: makeNotificationRepository(db),
     subscriptions: makeSubscriptionRepository(db),
   };
@@ -214,10 +227,49 @@ export async function buildContainer(env: Env) {
     };
   }
 
+  // IA (SPEC_AI §2): sem AI_PROVIDER a instalação não tem IA — `ai` fica null e as rotas
+  // respondem `capability.disabled`, com a UI escondendo a superfície inteira. O BudgetGuard,
+  // porém, é montado sempre: o mecanismo de teto é arquitetura, não feature (DECISIONS v1 §8).
+  const budget = makeBudgetGuard({ credits: repos.aiCredits, plan });
+  const aiProvider = makeAiProvider(aiConfigFromEnv(env));
+  const ai = aiProvider
+    ? (() => {
+        const deps: AiDeps = {
+          provider: aiProvider,
+          budget,
+          plan,
+          channels: repos.channels,
+          registry: providerRegistry,
+          media: repos.media,
+          storage,
+          audit: repos.audit,
+        };
+        return {
+          caption: makeGenerateCaption(deps),
+          rewrite: makeRewriteText(deps),
+          hashtags: makeSuggestHashtags(deps),
+          altText: makeGenerateAltText(deps),
+          draft: makeDraftMultichannel(deps),
+          weekPlan: makePlanWeek(deps),
+          /** o adapter vê imagem? define se o alt-text aparece na UI */
+          canDescribeImages: Boolean(aiProvider.describeImage),
+        };
+      })()
+    : null;
+
   return {
     env,
     db,
     repos,
+    budget,
+    ai,
+    // heurística, não modelo: existe mesmo sem AI_PROVIDER e não consome franquia (SPEC_AI §3)
+    bestTimes: makeSuggestBestTimes({
+      publishing: repos.publishing,
+      channels: repos.channels,
+      registry: providerRegistry,
+      plan,
+    }),
     clerkIdentity,
     crypto,
     storage,

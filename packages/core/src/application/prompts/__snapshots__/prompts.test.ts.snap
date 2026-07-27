@@ -1,0 +1,44 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`templates de prompt (SPEC_AI §2) snapshot da legenda 1`] = `
+"Rede: Instagram.
+Limite: 2200 caracteres — não ultrapasse.
+Tom desejado: acolhedor.
+
+Material do usuário:
+<<<BRIEF
+novo café da casa
+>>>BRIEF
+
+Escreva UMA legenda para esta rede."
+`;
+
+exports[`templates de prompt (SPEC_AI §2) snapshot do rascunho multicanal 1`] = `
+"Ideia do usuário:
+<<<IDEIA
+abrimos aos domingos
+>>>IDEIA
+Tom desejado: direto.
+
+Canais de destino:
+- ch-1 (Instagram, até 2200 caracteres)
+- ch-2 (X, até 280 caracteres)
+Devolva JSON exatamente nesta forma:
+{"drafts":[{"channelId":"<id do canal>","text":"<texto do post>"}]}
+Inclua um item por canal listado, usando o id exatamente como aparece acima."
+`;
+
+exports[`templates de prompt (SPEC_AI §2) snapshot do plano da semana 1`] = `
+"Objetivo da semana:
+<<<OBJETIVO
+aumentar reservas
+>>>OBJETIVO
+
+Canais disponíveis:
+- ch-1 (Instagram, até 2200 caracteres)
+
+Proponha 5 publicações para a semana que começa em 2026-08-03.
+Devolva JSON exatamente nesta forma:
+{"slots":[{"channelId":"<id>","topic":"<tema em uma linha>","text":"<rascunho do post>","dayOffset":<0 a 6>,"hour":<0 a 23>}]}
+Use apenas ids que aparecem na lista de canais."
+`;

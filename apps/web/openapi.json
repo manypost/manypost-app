@@ -53,6 +53,10 @@
       "description": "plano, features e limites da organização"
     },
     {
+      "name": "ai",
+      "description": "geração de conteúdo e sugestão de horários (SPEC_AI)"
+    },
+    {
       "name": "billing",
       "description": "assinatura e cobrança (só no serviço gerenciado)"
     },
@@ -1126,6 +1130,58 @@
               "enforced"
             ]
           },
+          "ai": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "canDescribeImages": {
+                "type": "boolean"
+              },
+              "credits": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "granted": {
+                    "type": "integer"
+                  },
+                  "used": {
+                    "type": "integer"
+                  },
+                  "reserved": {
+                    "type": "integer",
+                    "description": "gerações em voo"
+                  },
+                  "remaining": {
+                    "type": "integer"
+                  },
+                  "periodEnd": {
+                    "type": "string"
+                  },
+                  "enforced": {
+                    "type": "boolean",
+                    "description": "false = self-hosted: contabiliza, mas nunca recusa"
+                  }
+                },
+                "required": [
+                  "granted",
+                  "used",
+                  "reserved",
+                  "remaining",
+                  "periodEnd",
+                  "enforced"
+                ]
+              }
+            },
+            "required": [
+              "enabled",
+              "canDescribeImages",
+              "credits"
+            ]
+          },
           "endpoints": {
             "type": "object",
             "properties": {
@@ -1148,7 +1204,122 @@
           "billingEnabled",
           "selfHosted",
           "plan",
+          "ai",
           "endpoints"
+        ]
+      },
+      "AiVariant": {
+        "type": "object",
+        "properties": {
+          "channelId": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "maxLength": {
+            "type": "integer"
+          },
+          "shortened": {
+            "type": "boolean",
+            "description": "true = o texto passou do limite do canal e foi cortado"
+          }
+        },
+        "required": [
+          "channelId",
+          "text",
+          "maxLength",
+          "shortened"
+        ]
+      },
+      "AiPlannedSlot": {
+        "type": "object",
+        "properties": {
+          "channelId": {
+            "type": "string"
+          },
+          "topic": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "publishAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "maxLength": {
+            "type": "integer"
+          },
+          "shortened": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "channelId",
+          "topic",
+          "text",
+          "publishAt",
+          "maxLength",
+          "shortened"
+        ]
+      },
+      "AiBestTimes": {
+        "type": "object",
+        "properties": {
+          "channelId": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "weekday": {
+                  "type": "integer",
+                  "description": "0 = domingo … 6 = sábado"
+                },
+                "hour": {
+                  "type": "integer"
+                },
+                "score": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "weekday",
+                "hour",
+                "score"
+              ]
+            }
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
+          },
+          "sampleSize": {
+            "type": "integer",
+            "description": "publicações da própria organização que sustentam a resposta"
+          },
+          "fromBaseline": {
+            "type": "boolean",
+            "description": "true = veio da linha de base da rede, sem histórico próprio"
+          }
+        },
+        "required": [
+          "channelId",
+          "timezone",
+          "slots",
+          "confidence",
+          "sampleSize",
+          "fromBaseline"
         ]
       },
       "PlanCatalog": {
@@ -2183,7 +2354,9 @@
                         "media:write",
                         "analytics:read",
                         "webhooks:manage",
-                        "mcp"
+                        "mcp",
+                        "mcp:read",
+                        "mcp:write"
                       ]
                     },
                     "minItems": 1
@@ -4144,6 +4317,851 @@
           },
           "401": {
             "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/ai/caption": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "security": [
+          {
+            "clerkAuth": []
+          }
+        ],
+        "summary": "Gera uma legenda por canal, adaptada a cada rede",
+        "description": "Requer a feature `ai_caption` (plano Pro). O texto devolvido SEMPRE respeita o limite do canal: se o modelo passar, cortamos numa fronteira de frase e marcamos `shortened`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "brief": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4000
+                  },
+                  "channelIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "minItems": 1,
+                    "maxItems": 20,
+                    "description": "canais de destino — todos precisam ser desta organização"
+                  },
+                  "tone": {
+                    "type": "string",
+                    "maxLength": 120
+                  },
+                  "settings": {
+                    "type": "object",
+                    "additionalProperties": {},
+                    "description": "settings da publicação, mergeados com os do canal — mesma semântica do agendamento (uma conta verificada do X, por exemplo, valida contra o limite maior)"
+                  }
+                },
+                "required": [
+                  "brief",
+                  "channelIds"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "legendas por canal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "variants": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AiVariant"
+                      }
+                    }
+                  },
+                  "required": [
+                    "variants"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "requisição fora do contrato (problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "plano atual não inclui — `extra.requiredTier` diz o plano mínimo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "não encontrado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate limit — aguarde e tente de novo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/ai/rewrite": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "security": [
+          {
+            "clerkAuth": []
+          }
+        ],
+        "summary": "Reescreve um texto seguindo uma instrução",
+        "description": "Requer a feature `ai_caption` (plano Pro).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20000
+                  },
+                  "instruction": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  },
+                  "channelId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "settings": {
+                    "type": "object",
+                    "additionalProperties": {},
+                    "description": "settings da publicação, mergeados com os do canal — mesma semântica do agendamento (uma conta verificada do X, por exemplo, valida contra o limite maior)"
+                  }
+                },
+                "required": [
+                  "text",
+                  "instruction",
+                  "channelId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "texto reescrito",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiVariant"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "requisição fora do contrato (problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "plano atual não inclui — `extra.requiredTier` diz o plano mínimo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "não encontrado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate limit — aguarde e tente de novo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/ai/hashtags": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "security": [
+          {
+            "clerkAuth": []
+          }
+        ],
+        "summary": "Sugere hashtags para um texto e uma rede",
+        "description": "Requer a feature `ai_caption` (plano Pro).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20000
+                  },
+                  "channelId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 30
+                  }
+                },
+                "required": [
+                  "text",
+                  "channelId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "hashtags sugeridas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "hashtags": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "hashtags"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "requisição fora do contrato (problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "plano atual não inclui — `extra.requiredTier` diz o plano mínimo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "não encontrado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate limit — aguarde e tente de novo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/ai/alt-text": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "security": [
+          {
+            "clerkAuth": []
+          }
+        ],
+        "summary": "Descreve uma imagem da biblioteca para leitores de tela",
+        "description": "Requer a feature `ai_caption` (plano Pro) **e** um modelo que enxergue imagem. Sem essa capacidade responde 501 `ai.capability_unavailable` — descrever pelo nome do arquivo seria pior que não descrever.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mediaId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "context": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "maxLength": {
+                    "type": "integer",
+                    "minimum": 60,
+                    "maximum": 1000
+                  }
+                },
+                "required": [
+                  "mediaId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "descrição da imagem",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "alt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "alt"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "requisição fora do contrato (problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "plano atual não inclui — `extra.requiredTier` diz o plano mínimo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "não encontrado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate limit — aguarde e tente de novo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "capacidade não disponível nesta instalação",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/ai/draft": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "security": [
+          {
+            "clerkAuth": []
+          }
+        ],
+        "summary": "Transforma uma ideia em um rascunho por canal",
+        "description": "Requer a feature `ai_multichannel_draft` (plano Premium).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "idea": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4000
+                  },
+                  "channelIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "minItems": 1,
+                    "maxItems": 20,
+                    "description": "canais de destino — todos precisam ser desta organização"
+                  },
+                  "tone": {
+                    "type": "string",
+                    "maxLength": 120
+                  },
+                  "settings": {
+                    "type": "object",
+                    "additionalProperties": {},
+                    "description": "settings da publicação, mergeados com os do canal — mesma semântica do agendamento (uma conta verificada do X, por exemplo, valida contra o limite maior)"
+                  }
+                },
+                "required": [
+                  "idea",
+                  "channelIds"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "rascunhos por canal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "drafts": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AiVariant"
+                      }
+                    }
+                  },
+                  "required": [
+                    "drafts"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "requisição fora do contrato (problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "plano atual não inclui — `extra.requiredTier` diz o plano mínimo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "não encontrado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate limit — aguarde e tente de novo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/ai/week-plan": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "security": [
+          {
+            "clerkAuth": []
+          }
+        ],
+        "summary": "Propõe uma semana de publicações",
+        "description": "Requer a feature `ai_calendar` (plano Premium). **Propõe, não agenda**: nada é criado, agendado ou publicado por esta rota — o resultado é material que uma pessoa aceita.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "goal": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  "channelIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "minItems": 1,
+                    "maxItems": 20,
+                    "description": "canais de destino — todos precisam ser desta organização"
+                  },
+                  "weekStart": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "início da semana, ISO 8601"
+                  },
+                  "slots": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 21
+                  },
+                  "settings": {
+                    "type": "object",
+                    "additionalProperties": {},
+                    "description": "settings da publicação, mergeados com os do canal — mesma semântica do agendamento (uma conta verificada do X, por exemplo, valida contra o limite maior)"
+                  }
+                },
+                "required": [
+                  "goal",
+                  "channelIds",
+                  "weekStart"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "semana proposta",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "slots": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AiPlannedSlot"
+                      }
+                    }
+                  },
+                  "required": [
+                    "slots"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "requisição fora do contrato (problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "plano atual não inclui — `extra.requiredTier` diz o plano mínimo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "não encontrado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate limit — aguarde e tente de novo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/ai/best-times": {
+      "get": {
+        "tags": [
+          "ai"
+        ],
+        "security": [
+          {
+            "clerkAuth": []
+          }
+        ],
+        "summary": "Sugere horários de publicação para um canal",
+        "description": "Requer a feature `ai_best_time` (plano Pro). **Não usa modelo e não consome franquia**: é estatística sobre o histórico da própria organização mais uma linha de base por rede. `confidence` e `sampleSize` dizem o quanto a resposta vale — com pouco histórico, `fromBaseline` vem true e a confiança é baixa. Responde mesmo sem IA configurada.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "channelId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "America/Sao_Paulo"
+            },
+            "required": false,
+            "name": "timezone",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 21
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "horários sugeridos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiBestTimes"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "requisição fora do contrato (problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "plano atual não inclui — `extra.requiredTier` diz o plano mínimo",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "não encontrado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "rate limit — aguarde e tente de novo",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6506,6 +7524,185 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/.well-known/oauth-authorization-server": {
+      "get": {
+        "tags": [
+          ".well-known"
+        ],
+        "summary": "GET /.well-known/oauth-authorization-server",
+        "responses": {
+          "default": {
+            "description": "resposta — veja o código / TESTING.md"
+          }
+        }
+      }
+    },
+    "/.well-known/oauth-protected-resource": {
+      "get": {
+        "tags": [
+          ".well-known"
+        ],
+        "summary": "GET /.well-known/oauth-protected-resource",
+        "responses": {
+          "default": {
+            "description": "resposta — veja o código / TESTING.md"
+          }
+        }
+      }
+    },
+    "/.well-known/oauth-protected-resource/mcp": {
+      "get": {
+        "tags": [
+          ".well-known"
+        ],
+        "summary": "GET /.well-known/oauth-protected-resource/mcp",
+        "responses": {
+          "default": {
+            "description": "resposta — veja o código / TESTING.md"
+          }
+        }
+      }
+    },
+    "/oauth/register": {
+      "post": {
+        "tags": [
+          "oauth"
+        ],
+        "summary": "POST /oauth/register",
+        "responses": {
+          "default": {
+            "description": "resposta — veja o código / TESTING.md"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/authorize": {
+      "get": {
+        "tags": [
+          "oauth"
+        ],
+        "summary": "GET /oauth/authorize",
+        "responses": {
+          "default": {
+            "description": "resposta — veja o código / TESTING.md"
+          }
+        }
+      }
+    },
+    "/oauth/consent/context": {
+      "get": {
+        "tags": [
+          "oauth"
+        ],
+        "summary": "GET /oauth/consent/context",
+        "responses": {
+          "default": {
+            "description": "resposta — veja o código / TESTING.md"
+          }
+        }
+      }
+    },
+    "/oauth/consent/approve": {
+      "post": {
+        "tags": [
+          "oauth"
+        ],
+        "summary": "POST /oauth/consent/approve",
+        "responses": {
+          "default": {
+            "description": "resposta — veja o código / TESTING.md"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/consent/deny": {
+      "post": {
+        "tags": [
+          "oauth"
+        ],
+        "summary": "POST /oauth/consent/deny",
+        "responses": {
+          "default": {
+            "description": "resposta — veja o código / TESTING.md"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/token": {
+      "post": {
+        "tags": [
+          "oauth"
+        ],
+        "summary": "POST /oauth/token",
+        "responses": {
+          "default": {
+            "description": "resposta — veja o código / TESTING.md"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mcp/.well-known/oauth-protected-resource": {
+      "get": {
+        "tags": [
+          "mcp"
+        ],
+        "summary": "GET /mcp/.well-known/oauth-protected-resource",
+        "responses": {
+          "default": {
+            "description": "resposta — veja o código / TESTING.md"
+          }
+        }
+      }
+    },
+    "/mcp/.well-known/oauth-protected-resource/mcp": {
+      "get": {
+        "tags": [
+          "mcp"
+        ],
+        "summary": "GET /mcp/.well-known/oauth-protected-resource/mcp",
+        "responses": {
+          "default": {
+            "description": "resposta — veja o código / TESTING.md"
           }
         }
       }

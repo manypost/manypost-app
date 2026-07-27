@@ -9,8 +9,9 @@ const FORBIDDEN = /\b(openai|anthropic|gpt-\d|claude|gemini|mistral)\b/i;
 const ALLOWED_PATHS = [
   /packages[\\/]core[\\/]src[\\/]infra[\\/]ai/,
   /apps[\\/]api[\\/]src[\\/]infra[\\/]ai/,
-  // seleção do adapter via env (SPEC_AI §2): 'openai-compatible' é nome de protocolo
-  /packages[\\/]config[\\/]src[\\/]env\.ts$/,
+  // seleção do adapter via env (SPEC_AI §2): 'openai-compatible' é nome de PROTOCOLO, não de
+  // fornecedor — e o teste da própria seleção precisa escrever os mesmos valores do enum
+  /packages[\\/]config[\\/]src[\\/]env\.(test\.)?ts$/,
 ];
 const ROOTS = ['apps', 'packages'];
 

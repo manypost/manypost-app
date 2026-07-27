@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import {
+  aiConfigFromEnv,
   clerkConfig,
   loadEnv,
   machineEndpoints,
@@ -219,5 +220,68 @@ describe('storage de mídia (add-s3-media-storage)', () => {
     } catch (err) {
       expect(String(err)).not.toContain('nao-e-um-segredo-real');
     }
+  });
+});
+
+describe('IA agnóstica de provedor (SPEC_AI §2)', () => {
+  const ia = {
+    AI_PROVIDER: 'openai-compatible',
+    AI_BASE_URL: 'https://gateway.example/v1',
+    AI_MODEL: 'modelo-de-teste',
+  };
+
+  it('sem AI_PROVIDER, a instalação não tem IA (e o boot passa)', () => {
+    expect(aiConfigFromEnv(loadEnv(base))).toBeNull();
+  });
+
+  it('protocolo completo vira a configuração do adapter, com os tetos default', () => {
+    expect(aiConfigFromEnv(loadEnv({ ...base, ...ia, AI_API_KEY: 'nao-e-uma-chave-real' }))).toEqual(
+      {
+        protocol: 'openai-compatible',
+        baseUrl: 'https://gateway.example/v1',
+        apiKey: 'nao-e-uma-chave-real',
+        model: 'modelo-de-teste',
+        timeoutMs: 45_000,
+        maxOutputTokens: 4000,
+      },
+    );
+  });
+
+  // runtime de modelo local não pede credencial — exigir uma quebraria o self-host
+  it('sem AI_API_KEY o boot passa e a configuração sai sem chave', () => {
+    const config = aiConfigFromEnv(loadEnv({ ...base, ...ia }));
+    expect(config).not.toBeNull();
+    expect(config).not.toHaveProperty('apiKey');
+  });
+
+  it('os tetos de tempo e de saída são configuráveis', () => {
+    const config = aiConfigFromEnv(
+      loadEnv({ ...base, ...ia, AI_TIMEOUT_MS: '9000', AI_MAX_OUTPUT_TOKENS: '256' }),
+    );
+    expect(config).toMatchObject({ timeoutMs: 9000, maxOutputTokens: 256 });
+  });
+
+  // fail-closed: um AI_PROVIDER sem endereço/modelo só apareceria na 1ª geração do usuário
+  it.each(['AI_BASE_URL', 'AI_MODEL'])('protocolo sem %s recusa o boot nomeando a variável', (
+    ausente,
+  ) => {
+    const source: Record<string, string | undefined> = {
+      ...base,
+      ...ia,
+      AI_API_KEY: 'nao-e-uma-chave-real',
+    };
+    delete source[ausente];
+    expect(() => loadEnv(source)).toThrow(new RegExp(ausente));
+    try {
+      loadEnv(source);
+    } catch (err) {
+      expect(String(err)).not.toContain('nao-e-uma-chave-real');
+    }
+  });
+
+  it('o outro protocolo usa o MESMO mapeamento (trocar de dialeto não é mudar código)', () => {
+    const config = aiConfigFromEnv(loadEnv({ ...base, ...ia, AI_PROVIDER: 'anthropic' }));
+    expect(config?.protocol).toBe('anthropic');
+    expect(config?.baseUrl).toBe('https://gateway.example/v1');
   });
 });

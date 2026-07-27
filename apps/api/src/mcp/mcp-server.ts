@@ -296,5 +296,75 @@ export function buildMcpServer(ctn: Container, principal: McpPrincipal): McpServ
     },
   );
 
+  // ---- IA (SPEC_API_MCP / SPEC_AI §3) ----
+  //
+  // Exige escopo de ESCRITA mesmo sem mutar dado do usuário: gerar consome a franquia paga da
+  // organização, e uma credencial "só leitura" não pode queimar crédito de ninguém.
+  server.registerTool(
+    'generate_content',
+    {
+      title: 'Gerar conteúdo com IA',
+      description:
+        'Gera uma legenda por canal a partir de um brief, adaptada a cada rede e sempre dentro ' +
+        'do limite dela. Requer a feature de IA no plano e franquia disponível. Devolve texto ' +
+        'para revisão — NÃO agenda nem publica nada.',
+      inputSchema: {
+        brief: z.string().min(1).max(4000).describe('o que o post precisa dizer'),
+        channelIds: z.array(z.string().uuid()).min(1).max(20).describe('canais de destino'),
+        tone: z.string().max(120).optional().describe('tom desejado, ex.: "direto", "acolhedor"'),
+      },
+    },
+    async ({ brief, channelIds, tone }) => {
+      if (!requireWrite()) return denyScope('write');
+      if (!ctn.ai) {
+        return fail(
+          new DomainError('capability.disabled', 'Esta instalação não tem IA configurada.'),
+        );
+      }
+      try {
+        const out = await ctn.ai.caption(
+          { orgId, userId: credentialId, actorType: 'MCP' },
+          { brief, channelIds, ...(tone ? { tone } : {}) },
+        );
+        return ok(out.variants);
+      } catch (err) {
+        return fail(err);
+      }
+    },
+  );
+
+  server.registerTool(
+    'suggest_best_times',
+    {
+      title: 'Sugerir horários de publicação',
+      description:
+        'Sugere horários para um canal a partir do histórico da própria organização mais uma ' +
+        'linha de base por rede. Não usa modelo e não consome franquia; `confidence` e ' +
+        '`sampleSize` dizem o quanto a resposta vale.',
+      inputSchema: {
+        channelId: z.string().uuid(),
+        timezone: z.string().optional().describe('IANA, ex.: America/Sao_Paulo'),
+        limit: z.number().int().min(1).max(21).optional(),
+      },
+    },
+    async ({ channelId, timezone, limit }) => {
+      if (!requireRead()) return denyScope('read');
+      try {
+        return ok(
+          await ctn.bestTimes(
+            { orgId },
+            {
+              channelId,
+              ...(timezone ? { timezone } : {}),
+              ...(limit ? { limit } : {}),
+            },
+          ),
+        );
+      } catch (err) {
+        return fail(err);
+      }
+    },
+  );
+
   return server;
 }

@@ -38,6 +38,28 @@ const Capabilities = z
       enforced: z.boolean(),
     }),
     /**
+     * IA desta instalação (SPEC_AI §5.2). `enabled: false` = nenhum provedor configurado:
+     * a UI esconde a superfície inteira em vez de oferecer botão que responderia 404.
+     */
+    ai: z.object({
+      enabled: z.boolean(),
+      /** false = o modelo configurado não enxerga imagem; a UI some com o alt-text automático */
+      canDescribeImages: z.boolean(),
+      /** null quando não há IA — não há franquia a mostrar */
+      credits: z
+        .object({
+          granted: z.number().int(),
+          used: z.number().int(),
+          reserved: z.number().int().openapi({ description: 'gerações em voo' }),
+          remaining: z.number().int(),
+          periodEnd: z.string(),
+          enforced: z
+            .boolean()
+            .openapi({ description: 'false = self-hosted: contabiliza, mas nunca recusa' }),
+        })
+        .nullable(),
+    }),
+    /**
      * Onde uma máquina fala com esta instalação (SPEC_API_MCP §3/§5). Vem do servidor porque
      * depende de como ELA foi publicada (host dedicado `api.`/`mcp.` ou origem única).
      */
@@ -72,7 +94,11 @@ export function capabilityRoutes(ctn: Container) {
       },
     }),
     async (c) => {
-      const plan = await ctn.plan.snapshot(c.get('principal').orgId);
+      const orgId = c.get('principal').orgId;
+      const plan = await ctn.plan.snapshot(orgId);
+      // o saldo só é lido quando há IA: sem provedor não há franquia a mostrar, e abrir balde
+      // de créditos numa instalação que nunca vai gerar nada seria escrita à toa
+      const credits = ctn.ai ? await ctn.budget.balance(orgId) : null;
       return c.json(
         {
           billingEnabled: Boolean(ctn.billing),
@@ -81,6 +107,13 @@ export function capabilityRoutes(ctn: Container) {
             ...plan,
             currentPeriodEnd: plan.currentPeriodEnd?.toISOString() ?? null,
             cancelAt: plan.cancelAt?.toISOString() ?? null,
+          },
+          ai: {
+            enabled: Boolean(ctn.ai),
+            canDescribeImages: ctn.ai?.canDescribeImages ?? false,
+            credits: credits
+              ? { ...credits, periodEnd: credits.periodEnd.toISOString() }
+              : null,
           },
           endpoints: machineEndpoints(ctn.env),
         },

@@ -32,6 +32,9 @@ import { cn } from '@/lib/utils';
 import type { Editor } from '@tiptap/react';
 import { ChannelPicker } from './channel-picker';
 import { ChannelSettingsCard } from './channel-settings';
+import { AiActions } from '@/features/ai/ai-actions';
+import { BestTimeHint } from '@/features/ai/best-time-hint';
+import { DraftFromIdea } from '@/features/ai/draft-from-idea';
 import { ComposerEditor } from './editor';
 import { FormattingToolbar } from './formatting-toolbar';
 import { useSchedulePost } from './hooks';
@@ -334,7 +337,18 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
             </section>
 
             <section className="border-t border-line pt-6">
-            <SectionHeader label={t('sections.content')} />
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <SectionHeader label={t('sections.content')} />
+              {/* a ideia vira um texto por canal: chega como override, exatamente o formato
+                  que `textByChannel` do agendamento já aceita — nada é agendado aqui */}
+              <DraftFromIdea
+                channelIds={store.channelIds}
+                onDrafts={(drafts) => {
+                  for (const d of drafts) store.setOverride(d.channelId, d.text);
+                  store.bumpEditors();
+                }}
+              />
+            </div>
             <Tabs value={resolvedTab} onValueChange={setActiveTab}>
               {/* Fileira de redes (padrão Postiz SelectCurrent): globo = edição/prévia global,
                   depois um chip por canal. Comanda a aba de edição no clique e "espia" a prévia
@@ -422,6 +436,11 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
                   <div className="flex flex-wrap items-center gap-1 border-t border-line px-2 py-1.5">
                     <MediaPicker selectedIds={store.mediaIds} onToggle={store.toggleMedia} />
                     <FormattingToolbar editor={globalEditor} />
+                    <AiActions
+                      editor={globalEditor}
+                      text={store.text}
+                      channelIds={store.channelIds}
+                    />
                     {counterPill}
                   </div>
                 </div>
@@ -464,6 +483,11 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
                         <div className="flex flex-wrap items-center justify-between gap-1 border-t border-line px-2 py-1.5">
                           <div className="flex flex-wrap items-center gap-1">
                             <FormattingToolbar editor={channelEditors[ch.id] ?? null} />
+                            <AiActions
+                              editor={channelEditors[ch.id] ?? null}
+                              text={store.overrides[ch.id] ?? store.text}
+                              channelIds={[ch.id]}
+                            />
                           </div>
                           <HoverPopover align="end" className="flex w-80 flex-col gap-2 p-3" content={validationContent}>
                             <button
@@ -548,6 +572,11 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
                             onToggle={(mediaId) => store.toggleThreadMedia(item.key, mediaId)}
                           />
                           <FormattingToolbar editor={channelEditors[item.key] ?? null} />
+                          <AiActions
+                            editor={channelEditors[item.key] ?? null}
+                            text={item.text}
+                            channelIds={store.channelIds}
+                          />
                           <div className="flex items-center gap-1.5">
                             <Label htmlFor={`delay-${item.key}`} className="text-xs text-graphite">
                               {t('threadDelay')}
@@ -688,6 +717,10 @@ export function ComposerView({ onDone }: { onDone: () => void }) {
               onChange={store.setPublishAtLocal}
               ariaLabel={t('modeSchedule')}
               className="min-w-0 flex-1 sm:w-auto sm:flex-none"
+            />
+            <BestTimeHint
+              channelId={store.channelIds[0]}
+              onPick={store.setPublishAtLocal}
             />
           </div>
 

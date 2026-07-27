@@ -19,7 +19,7 @@ const escapeHtml = (s: string) =>
   s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 
 /** texto puro → parágrafos do TipTap (1 linha = 1 <p>; linha vazia = <p> vazio) */
-const textToHtml = (text: string) =>
+export const textToHtml = (text: string) =>
   text
     .split('\n')
     .map((line) => `<p>${escapeHtml(line)}</p>`)

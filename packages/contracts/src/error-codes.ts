@@ -32,6 +32,12 @@ export const ErrorCodes = {
   BillingProviderError: 'billing.provider_error',
   // ia
   AiBudgetExceeded: 'ai.budget_exceeded',
+  /** o provedor de IA falhou (credencial, limite, indisponibilidade) — 502, nunca vaza corpo/endpoint */
+  AiProviderFailed: 'ai.provider_failed',
+  /** o modelo respondeu, mas a resposta não serve (estrutura inválida) — 502; a franquia é devolvida */
+  AiInvalidResponse: 'ai.invalid_response',
+  /** o adapter configurado não tem a capacidade pedida (ex.: descrever imagem) — 501 */
+  AiCapabilityUnavailable: 'ai.capability_unavailable',
   CapabilityDisabled: 'capability.disabled',
   // auth
   AuthInvalidCredentials: 'auth.invalid_credentials',

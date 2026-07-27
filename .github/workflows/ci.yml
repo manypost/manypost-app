@@ -124,3 +124,40 @@ jobs:
           for i in $(seq 1 30); do curl -sf http://localhost:3986/health >/dev/null && break; sleep 1; done
           BASE_URL=http://localhost:3987 SELF_HOSTED_BASE_URL=http://localhost:3986 \
             bun run scripts/e2e-billing.ts
+
+      # IA: exige a API com AI_PROVIDER apontando para um "modelo" que o próprio script sobe
+      # (fala o protocolo, não sai para a rede e não usa credencial real). Banco próprio: o
+      # script contabiliza franquia e não pode sujar a cota das outras fases.
+      - name: e2e ia (adapter + BudgetGuard + rotas, com modelo falso)
+        env:
+          MODE: api
+          PORT: 3198
+          PUBLIC_URL: http://127.0.0.1:3198
+          DATABASE_URL: postgresql://mp:mp@localhost:5499/mp_ai
+          REDIS_URL: redis://localhost:6399
+          ENCRYPTION_KEY: cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd
+          DB_MIGRATE: auto
+          UPLOAD_DIR: /tmp/mp-uploads-ai
+          # gerenciado, para a franquia ser REALMENTE imposta (em self-hosted nada é recusado)
+          IS_SELF_HOSTED: 'false'
+          HIDE_BILLING: 'false'
+          STRIPE_SECRET_KEY: sk_test_ci_nunca_chamada
+          STRIPE_WEBHOOK_SECRET: whsec_ci
+          AI_PROVIDER: openai-compatible
+          AI_BASE_URL: http://127.0.0.1:3199
+          AI_API_KEY: nao-e-uma-chave-real
+          AI_MODEL: modelo-de-teste
+          # valor distinto do default (4000) de propósito: o E2E confere que o teto que chega
+          # ao provedor é ESTE, e não um derivado do limite de caracteres do canal
+          AI_MAX_OUTPUT_TOKENS: '900'
+        run: |
+          E2E_KEY_DIR="$(mktemp -d)"
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out "$E2E_KEY_DIR/private.pem" 2>/dev/null
+          export E2E_CLERK_PRIVATE_KEY_FILE="$E2E_KEY_DIR/private.pem"
+          export CLERK_JWT_KEY="$(openssl pkey -in "$E2E_KEY_DIR/private.pem" -pubout 2>/dev/null)"
+          PGPASSWORD=mp psql -h localhost -p 5499 -U mp -d mp -c 'CREATE DATABASE mp_ai;'
+          bun run apps/api/src/main.ts &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:3198/health >/dev/null && break; sleep 1; done
+          TEST_DATABASE_URL=postgresql://mp:mp@localhost:5499/mp_ai \
+            DATABASE_URL=postgresql://mp:mp@localhost:5499/mp_ai \
+            bun run scripts/e2e-ai.ts
