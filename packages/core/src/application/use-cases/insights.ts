@@ -70,31 +70,77 @@ const validarTimezone = (tz: string): string => {
   }
 };
 
-/**
- * Instante em que começa o dia civil do fuso pedido que contém `agora`.
- *
- * Feito lendo as partes formatadas e remontando: é a única forma correta sem tabela de fusos
- * própria. Somar offset fixo erra em toda transição de horário de verão — e um erro de uma hora
- * aqui move um post do "hoje" para o "amanhã" na tela que a pessoa usa para conferir o dia.
- */
-export function startOfDayIn(agora: Date, timeZone: string): Date {
-  const partes = new Intl.DateTimeFormat('en-CA', {
+interface CivilDate {
+  year: number;
+  month: number;
+  day: number;
+}
+
+const civilDateIn = (instant: Date | number, timeZone: string): CivilDate => {
+  const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  }).formatToParts(agora);
+  }).formatToParts(instant);
+  const get = (type: string) => Number(parts.find((part) => part.type === type)?.value ?? '0');
+  return { year: get('year'), month: get('month'), day: get('day') };
+};
 
-  const get = (t: string) => Number(partes.find((p) => p.type === t)?.value ?? '0');
-  // quanto do dia local já passou; subtrair isso de `agora` dá a meia-noite local em UTC
-  const decorridoMs =
-    ((get('hour') % 24) * 3600 + get('minute') * 60 + get('second')) * 1000 +
-    (agora.getTime() % 1000);
-  return new Date(agora.getTime() - decorridoMs);
+const compareCivilDate = (left: CivilDate, right: CivilDate): number =>
+  left.year - right.year || left.month - right.month || left.day - right.day;
+
+const addCivilDays = (date: CivilDate, days: number): CivilDate => {
+  const moved = new Date(Date.UTC(date.year, date.month - 1, date.day + days));
+  return {
+    year: moved.getUTCFullYear(),
+    month: moved.getUTCMonth() + 1,
+    day: moved.getUTCDate(),
+  };
+};
+
+/**
+ * Primeiro instante que pertence a uma data civil no fuso pedido.
+ *
+ * Não convertemos "00:00" subtraindo as horas mostradas no relógio: no dia em que o relógio
+ * avança, 13:00 locais podem ter só 12 horas reais desde a meia-noite. Em vez disso, procuramos
+ * monotonicamente a fronteira em que a data formatada por `Intl` passa a ser a data alvo. Isso
+ * também cobre o dia de 25 horas quando o relógio volta.
+ */
+const startOfCivilDate = (target: CivilDate, timeZone: string): Date => {
+  const approximate = Date.UTC(target.year, target.month - 1, target.day);
+  let before = approximate - 48 * 3_600_000;
+  let atOrAfter = approximate + 48 * 3_600_000;
+
+  // Os extremos de ±48h cobrem todos os offsets IANA vigentes; os loops deixam a função correta
+  // também para mudanças históricas de linha de data sem depender desse conhecimento.
+  while (compareCivilDate(civilDateIn(before, timeZone), target) >= 0) {
+    before -= 24 * 3_600_000;
+  }
+  while (compareCivilDate(civilDateIn(atOrAfter, timeZone), target) < 0) {
+    atOrAfter += 24 * 3_600_000;
+  }
+
+  while (atOrAfter - before > 1) {
+    const middle = before + Math.floor((atOrAfter - before) / 2);
+    if (compareCivilDate(civilDateIn(middle, timeZone), target) >= 0) atOrAfter = middle;
+    else before = middle;
+  }
+
+  const found = civilDateIn(atOrAfter, timeZone);
+  if (compareCivilDate(found, target) !== 0) {
+    throw new DomainError(
+      ErrorCodes.PostInvalidSettings,
+      `a data civil não existe no fuso ${timeZone}`,
+      { timezone: timeZone, date: `${target.year}-${target.month}-${target.day}` },
+    );
+  }
+  return new Date(atOrAfter);
+};
+
+/** Instante em que começa o dia civil do fuso pedido que contém `agora`. */
+export function startOfDayIn(agora: Date, timeZone: string): Date {
+  return startOfCivilDate(civilDateIn(agora, timeZone), timeZone);
 }
 
 export interface InsightsDeps {
@@ -111,13 +157,16 @@ export const makeSummarizeInsights =
   ): Promise<InsightsSummary> => {
     const timezone = validarTimezone(input.timezone ?? INSIGHTS_DEFAULT_TIMEZONE);
     const agora = deps.now?.() ?? new Date();
-    const inicioDeHoje = startOfDayIn(agora, timezone);
-    // 7 dias civis a partir de hoje; o repositório fatia por dia usando o mesmo fuso
-    const fimDaJanela = new Date(inicioDeHoje.getTime() + 7 * 86_400_000);
+    const hoje = civilDateIn(agora, timezone);
+    const inicioDeHoje = startOfCivilDate(hoje, timezone);
+    const fimDeHoje = startOfCivilDate(addCivilDays(hoje, 1), timezone);
+    // Sete DATAS civis a partir de hoje. Em transição de DST isto não equivale a 168 horas.
+    const fimDaJanela = startOfCivilDate(addCivilDays(hoje, 7), timezone);
 
     const [resumo, canais] = await Promise.all([
       deps.publishing.summarize(actor.orgId, {
         dayStart: inicioDeHoje,
+        dayEnd: fimDeHoje,
         weekEnd: fimDaJanela,
         timezone,
       }),

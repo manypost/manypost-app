@@ -566,15 +566,15 @@ export function makePublishingRepository(db: Db): PublishingRepository {
           count(distinct g.id) filter (where g.state = 'PARTIAL')::int           as partial,
           count(*) filter (
             where p.state = ${'SCHEDULED'} and p.publish_at >= ${w.dayStart.toISOString()}::timestamptz
-              and p.publish_at < ${w.dayStart.toISOString()}::timestamptz + interval '1 day'
+              and p.publish_at < ${w.dayEnd.toISOString()}::timestamptz
           )::int                                                                 as today_scheduled,
           count(*) filter (
             where p.state = 'PUBLISHED' and p.published_at >= ${w.dayStart.toISOString()}::timestamptz
-              and p.published_at < ${w.dayStart.toISOString()}::timestamptz + interval '1 day'
+              and p.published_at < ${w.dayEnd.toISOString()}::timestamptz
           )::int                                                                 as today_published,
           count(*) filter (
             where p.state = 'FAILED' and p.updated_at >= ${w.dayStart.toISOString()}::timestamptz
-              and p.updated_at < ${w.dayStart.toISOString()}::timestamptz + interval '1 day'
+              and p.updated_at < ${w.dayEnd.toISOString()}::timestamptz
           )::int                                                                 as today_failed,
           (count(*) > 0)                                                         as ever_scheduled
         from ${publications} p

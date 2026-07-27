@@ -95,22 +95,47 @@ describe('fuso: o dia é do usuário, não do servidor', () => {
     expect(toquio.toISOString()).toBe('2026-07-26T15:00:00.000Z');
   });
 
-  it('a janela pedida ao repositório começa na meia-noite local e cobre 7 dias', async () => {
+  it('a janela pedida ao repositório explicita hoje, amanhã e 7 dias civis', async () => {
     const { deps, pedidos } = harness({ now: () => new Date('2026-07-27T18:00:00.000Z') });
     await makeSummarizeInsights(deps)(ACTOR, { timezone: 'America/Sao_Paulo' });
 
-    const w = pedidos[0]!.window as { dayStart: Date; weekEnd: Date; timezone: string };
+    const w = pedidos[0]!.window as {
+      dayStart: Date;
+      dayEnd: Date;
+      weekEnd: Date;
+      timezone: string;
+    };
     expect(w.dayStart.toISOString()).toBe('2026-07-27T03:00:00.000Z');
+    expect(w.dayEnd.toISOString()).toBe('2026-07-28T03:00:00.000Z');
     expect(w.weekEnd.getTime() - w.dayStart.getTime()).toBe(7 * 86_400_000);
     expect(w.timezone).toBe('America/Sao_Paulo');
   });
 
-  it('horário de verão: a conversão não é offset fixo', () => {
-    // Lisboa em janeiro é UTC+0; em julho é UTC+1. Somar um offset fixo erraria num dos dois.
-    const inverno = startOfDayIn(new Date('2026-01-15T12:00:00.000Z'), 'Europe/Lisbon');
-    const verao = startOfDayIn(new Date('2026-07-15T12:00:00.000Z'), 'Europe/Lisbon');
-    expect(inverno.toISOString()).toBe('2026-01-15T00:00:00.000Z');
-    expect(verao.toISOString()).toBe('2026-07-14T23:00:00.000Z');
+  it('início do dia da virada de verão não subtrai a hora que ainda não existia', () => {
+    const inicio = startOfDayIn(new Date('2026-03-29T12:00:00.000Z'), 'Europe/Lisbon');
+    expect(inicio.toISOString()).toBe('2026-03-29T00:00:00.000Z');
+  });
+
+  it('virada para o verão: hoje tem 23h e os 7 dias civis têm 167h', async () => {
+    const { deps, pedidos } = harness({ now: () => new Date('2026-03-29T12:00:00.000Z') });
+    await makeSummarizeInsights(deps)(ACTOR, { timezone: 'Europe/Lisbon' });
+
+    const w = pedidos[0]!.window as { dayStart: Date; dayEnd: Date; weekEnd: Date };
+    expect(w.dayStart.toISOString()).toBe('2026-03-29T00:00:00.000Z');
+    expect(w.dayEnd.toISOString()).toBe('2026-03-29T23:00:00.000Z');
+    expect(w.dayEnd.getTime() - w.dayStart.getTime()).toBe(23 * 3_600_000);
+    expect(w.weekEnd.getTime() - w.dayStart.getTime()).toBe(167 * 3_600_000);
+  });
+
+  it('volta ao inverno: hoje tem 25h e os 7 dias civis têm 169h', async () => {
+    const { deps, pedidos } = harness({ now: () => new Date('2026-10-25T12:00:00.000Z') });
+    await makeSummarizeInsights(deps)(ACTOR, { timezone: 'Europe/Lisbon' });
+
+    const w = pedidos[0]!.window as { dayStart: Date; dayEnd: Date; weekEnd: Date };
+    expect(w.dayStart.toISOString()).toBe('2026-10-24T23:00:00.000Z');
+    expect(w.dayEnd.toISOString()).toBe('2026-10-26T00:00:00.000Z');
+    expect(w.dayEnd.getTime() - w.dayStart.getTime()).toBe(25 * 3_600_000);
+    expect(w.weekEnd.getTime() - w.dayStart.getTime()).toBe(169 * 3_600_000);
   });
 });
 
