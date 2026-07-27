@@ -164,9 +164,8 @@ const EnvSchema = z
      */
     AI_MAX_OUTPUT_TOKENS: z.coerce.number().int().min(64).max(32_000).default(4000),
     /**
-     * Modelo de IMAGEM, quando o de texto não desenha. Opcional: sem ele, a geração de imagem usa
-     * `AI_MODEL`. Existe para o operador não precisar de duas instalações só porque o modelo de
-     * texto que ele escolheu não produz imagem.
+     * Opt-in explícito para geração de imagem. Sem ele, o adapter não expõe `generateImage`:
+     * falar o mesmo protocolo não prova que `AI_MODEL` sabe desenhar.
      */
     AI_IMAGE_MODEL: z.string().optional(),
 
@@ -373,6 +372,8 @@ export type AiConfig = {
   /** ausente = sem header de autorização (runtime local) */
   apiKey?: string;
   model: string;
+  /** presente = operador declarou um modelo capaz de gerar imagens */
+  imageModel?: string;
   timeoutMs: number;
   maxOutputTokens: number;
 };

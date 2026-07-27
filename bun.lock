@@ -111,6 +111,7 @@
       "version": "0.0.1",
       "dependencies": {
         "@manypost/contracts": "workspace:*",
+        "sharp": "^0.34.5",
         "zod": "^3.25.0",
       },
     },

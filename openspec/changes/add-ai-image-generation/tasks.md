@@ -4,7 +4,7 @@
       bytes + mime + dimensions + optional `revisedPrompt`, accepts `AbortSignal`
 - [x] 1.2 Add `ai_image` to `PlanFeature` and to the Premium bundle in `contracts/src/billing.ts`
 - [x] 1.3 Failing test: `minimumTierFor('ai_image')` is `PREMIUM`
-- [ ] 1.4 `AI_IMAGE_MODEL` as an optional explicit capability opt-in in
+- [x] 1.4 `AI_IMAGE_MODEL` as an optional explicit capability opt-in in
       `packages/config/src/env.ts`; without it the text adapter does not expose image generation
 
 ## 2. Provenance (migration + repo)
@@ -16,10 +16,10 @@
 
 ## 3. Adapter (test-first)
 
-- [ ] 3.1 Failing test in `infra/ai/chat-completions.test.ts`: every ratio becomes the vendor's
+- [x] 3.1 Failing test in `infra/ai/chat-completions.test.ts`: every ratio becomes the vendor's
       closest native resolution, and the returned bytes have the exact requested aspect
-- [ ] 3.2 Failing test: an adapter without `AI_IMAGE_MODEL` does not expose the method
-- [ ] 3.3 Implement `generateImage` only when opted in; center-crop with bounded Sharp processing
+- [x] 3.2 Failing test: an adapter without `AI_IMAGE_MODEL` does not expose the method
+- [x] 3.3 Implement `generateImage` only when opted in; center-crop with bounded Sharp processing
       and return the real transformed dimensions
 - [x] 3.4 `canGenerateImages` on the selected provider, beside `canDescribeImages`
 

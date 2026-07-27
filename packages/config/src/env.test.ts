@@ -261,6 +261,16 @@ describe('IA agnóstica de provedor (SPEC_AI §2)', () => {
     expect(config).toMatchObject({ timeoutMs: 9000, maxOutputTokens: 256 });
   });
 
+  it('modelo de imagem é opt-in explícito e não nasce do modelo de texto', () => {
+    const textOnly = aiConfigFromEnv(loadEnv({ ...base, ...ia }));
+    expect(textOnly).not.toHaveProperty('imageModel');
+
+    const withImage = aiConfigFromEnv(
+      loadEnv({ ...base, ...ia, AI_IMAGE_MODEL: 'modelo-que-desenha' }),
+    );
+    expect(withImage).toMatchObject({ imageModel: 'modelo-que-desenha' });
+  });
+
   // fail-closed: um AI_PROVIDER sem endereço/modelo só apareceria na 1ª geração do usuário
   it.each(['AI_BASE_URL', 'AI_MODEL'])('protocolo sem %s recusa o boot nomeando a variável', (
     ausente,
