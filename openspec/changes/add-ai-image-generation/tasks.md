@@ -31,7 +31,7 @@
 - [x] 4.4 Failing test: the audit entry carries neither prompt nor bytes
 - [x] 4.5 Implement `makeGenerateImage`, reusing `sniffMedia` and the storage/repository path that
       uploads already use — the ceiling and the magic-byte check come for free
-- [ ] 4.6 Failing test: repository failure after `storage.put` deletes the object best-effort,
+- [x] 4.6 Failing test: repository failure after `storage.put` deletes the object best-effort,
       preserves the primary error and releases the allowance; reuse the invariant for uploads
 
 ## 5. Surfaces

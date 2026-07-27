@@ -1,6 +1,6 @@
 import { ErrorCodes } from '@manypost/contracts';
 import { DomainError } from '../../domain/shared/result';
-import { EXT_BY_MIME, sniffMedia } from '../../infra/media/sniff';
+import { sniffMedia } from '../../infra/media/sniff';
 import type { AiProvider, BudgetGuard, ImageAspect } from '../ports/ai-provider';
 import { isImageAspect } from '../ports/ai-provider';
 import type { AuditLogRepository } from '../ports/approvals';
@@ -10,6 +10,7 @@ import type { PlanPolicy } from '../ports/plan-policy';
 import type { ChannelRepository } from '../ports/publishing';
 import { withBudget } from './ai-budget';
 import type { AiActor } from './ai';
+import { persistMediaBytes } from './media';
 
 /**
  * `ai_image` — "IA: gera imagem para o post" (SPEC_AI §3, plano Premium, 5 créditos).
@@ -130,14 +131,10 @@ export const makeGenerateImage =
           );
         }
 
-        const key = `${actor.orgId}/${crypto.randomUUID()}.${EXT_BY_MIME[sniffed.mime]}`;
-        await deps.storage.put(key, imagem.bytes, sniffed.mime);
-
-        const registro = await deps.media.create({
+        const registro = await persistMediaBytes(deps, {
           orgId: actor.orgId,
-          path: key,
+          bytes: imagem.bytes,
           mime: sniffed.mime,
-          byteSize: imagem.bytes.byteLength,
           width: sniffed.width ?? imagem.width,
           height: sniffed.height ?? imagem.height,
           alt: input.alt?.trim() || null,

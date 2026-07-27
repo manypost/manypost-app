@@ -22,6 +22,8 @@ function harness(
     plan?: PlanPolicy;
     canal?: ChannelRecord;
     imageMaxBytes?: number;
+    mediaCreateError?: Error;
+    storageDeleteError?: Error;
   } = {},
 ) {
   const orcamento = { reservado: 0, confirmado: 0, devolvido: 0 };
@@ -29,6 +31,7 @@ function harness(
   const criados: MediaRecord[] = [];
   const auditados: Array<Record<string, unknown>> = [];
   const pedidos: Array<Record<string, unknown>> = [];
+  const removidos: string[] = [];
 
   const budget: BudgetGuard = {
     async reserve() {
@@ -83,6 +86,7 @@ function harness(
       } as unknown as PlanPolicy),
     media: {
       async create(d: Record<string, unknown>) {
+        if (over.mediaCreateError) throw over.mediaCreateError;
         const rec = {
           id: 'm-1',
           durationSec: null,
@@ -98,6 +102,10 @@ function harness(
     storage: {
       async put(key: string, bytes: Uint8Array, mime: string) {
         guardados.push({ key, bytes, mime });
+      },
+      async delete(key: string) {
+        removidos.push(key);
+        if (over.storageDeleteError) throw over.storageDeleteError;
       },
       publicUrl: (k: string) => `https://mp.test/${k}`,
     } as unknown as AiImageDeps['storage'],
@@ -116,7 +124,7 @@ function harness(
     modelLabel: 'modelo-de-imagem',
   };
 
-  return { deps, orcamento, guardados, criados, auditados, pedidos };
+  return { deps, orcamento, guardados, criados, auditados, pedidos, removidos };
 }
 
 const planoQueNega = (): PlanPolicy =>
@@ -266,6 +274,24 @@ describe('os bytes são validados como bytes', () => {
     expect(erro.code).toBe('media.too_large');
     expect(criados).toHaveLength(0);
     expect(orcamento.devolvido).toBe(1);
+  });
+
+  it('falha ao criar a linha remove o arquivo, preserva o erro e devolve a franquia', async () => {
+    const primary = new Error('banco indisponível');
+    const { deps, orcamento, guardados, removidos } = harness({
+      mediaCreateError: primary,
+      storageDeleteError: new Error('limpeza também falhou'),
+    });
+
+    const error = await makeGenerateImage(deps)(ACTOR, { prompt: 'x' }).catch(
+      (caught: unknown) => caught,
+    );
+
+    expect(error).toBe(primary);
+    expect(guardados).toHaveLength(1);
+    expect(removidos).toEqual([guardados[0]!.key]);
+    expect(orcamento.devolvido).toBe(1);
+    expect(orcamento.confirmado).toBe(0);
   });
 });
 

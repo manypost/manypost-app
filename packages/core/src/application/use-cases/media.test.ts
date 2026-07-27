@@ -90,6 +90,41 @@ describe('uploadMedia', () => {
     expect(f.records).toHaveLength(0);
   });
 
+  test('falha do banco depois do put remove o objeto e preserva o erro primário', async () => {
+    const primary = new Error('banco indisponível');
+    const media: MediaRepository = {
+      ...f.media,
+      create: () => Promise.reject(primary),
+    };
+
+    const error = await makeUploadMedia({ ...f, media })({
+      orgId: 'org-1',
+      bytes: pngBytes(),
+    }).catch((caught: unknown) => caught);
+
+    expect(error).toBe(primary);
+    expect(f.files.size).toBe(0);
+  });
+
+  test('falha da limpeza não esconde o erro que impediu o registro', async () => {
+    const primary = new Error('banco indisponível');
+    const media: MediaRepository = {
+      ...f.media,
+      create: () => Promise.reject(primary),
+    };
+    const storage: MediaStorage = {
+      ...f.storage,
+      delete: () => Promise.reject(new Error('bucket indisponível')),
+    };
+
+    const error = await makeUploadMedia({ ...f, media, storage })({
+      orgId: 'org-1',
+      bytes: pngBytes(),
+    }).catch((caught: unknown) => caught);
+
+    expect(error).toBe(primary);
+  });
+
   test('acima do limite por tipo → media.too_large e nada é gravado', async () => {
     const big = new Uint8Array(2048);
     big.set(pngBytes());
