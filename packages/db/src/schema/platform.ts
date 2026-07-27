@@ -94,7 +94,14 @@ export const auditLog = pgTable(
   (t) => [index('audit_log_org_ix').on(t.orgId, t.createdAt)],
 );
 
-/** Franquia de IA por organização (SPEC_AI §3; BudgetGuard). */
+/**
+ * Franquia de IA por organização e período (SPEC_AI §3; BudgetGuard).
+ *
+ * `reserved` é o que está EM VOO: reservado antes da chamada ao modelo e ainda não confirmado.
+ * A decisão de conceder é `granted - used - reserved >= n` num único UPDATE condicional — é o
+ * bloqueio de linha do Postgres que serializa gerações simultâneas e torna impossível furar a
+ * franquia (SPEC_AI §5.3), sem retry no aplicativo.
+ */
 export const aiCredits = pgTable(
   'ai_credits',
   {
@@ -105,11 +112,55 @@ export const aiCredits = pgTable(
     kind: text('kind').notNull().default('general'),
     granted: integer('granted').notNull(),
     used: integer('used').notNull().default(0),
+    reserved: integer('reserved').notNull().default(0),
     periodStart: timestamp('period_start', { withTimezone: true }).notNull(),
     periodEnd: timestamp('period_end', { withTimezone: true }).notNull(),
     ...timestamps,
   },
-  (t) => [index('ai_credits_org_ix').on(t.orgId, t.periodEnd)],
+  (t) => [
+    index('ai_credits_org_ix').on(t.orgId, t.periodEnd),
+    // um balde por org/tipo/período: é o que torna a abertura do período idempotente sob corrida
+    uniqueIndex('ai_credits_period_ux').on(t.orgId, t.kind, t.periodStart),
+  ],
+);
+
+/**
+ * Uma reserva de franquia e seu desfecho. A coluna `reserved` sozinha não bastaria: um processo
+ * que morresse entre a chamada ao modelo e a confirmação vazaria franquia sem deixar rastro do
+ * que vazou. Esta linha dá (a) idempotência à confirmação — transição condicional saindo de
+ * RESERVED, no mesmo espírito da máquina de estados de publicação —, (b) a lease que permite
+ * recuperar reserva órfã e (c) o histórico de custo por operação.
+ *
+ * NUNCA guarda prompt, texto gerado, credencial ou identidade do fornecedor.
+ */
+export const aiGrants = pgTable(
+  'ai_grants',
+  {
+    id: pk(),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => organizations.id),
+    creditId: uuid('credit_id')
+      .notNull()
+      .references(() => aiCredits.id),
+    /** operação de domínio que pediu (ex.: `ai.caption`) — atribuição de custo, não conteúdo */
+    operation: text('operation').notNull(),
+    estimatedCredits: integer('estimated_credits').notNull(),
+    /** RESERVED | COMMITTED | RELEASED */
+    state: text('state').notNull().default('RESERVED'),
+    /** créditos realmente consumidos — só depois de COMMITTED */
+    credits: integer('credits'),
+    inputTokens: integer('input_tokens'),
+    outputTokens: integer('output_tokens'),
+    /** lease: passou daqui sem resolver, a próxima reserva da org devolve o valor */
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    ...timestamps,
+  },
+  (t) => [
+    index('ai_grants_org_ix').on(t.orgId, t.createdAt),
+    // varredura preguiçosa de lease vencida (sem cron — precedente do link de aprovação)
+    index('ai_grants_reclaim_ix').on(t.orgId, t.state, t.expiresAt),
+  ],
 );
 
 /** manypost como authorization server OAuth p/ MCP e apps de terceiros (SPEC_API_MCP §2). */

@@ -77,6 +77,13 @@ export interface PlanLimits {
   webhooks: number;
   /** API keys ativas */
   apiKeys: number;
+  /**
+   * Franquia mensal de IA, em créditos (1 crédito = 1 geração de texto). `0` = plano sem IA.
+   * O **mecanismo** de teto existe em toda instalação (DECISIONS v1 §8); estes **números** só
+   * são impostos no gerenciado, e são valor comercial — mudar aqui não exige migration.
+   * `ai_best_time` não consome crédito: é heurística estatística, sem modelo (SPEC_AI §3).
+   */
+  aiCredits: number;
 }
 
 export interface PlanPrice {
@@ -116,7 +123,7 @@ export const PLANS: Record<PlanTier, PlanDefinition> = {
   FREE: {
     tier: 'FREE',
     name: 'manypost Grátis',
-    limits: { channels: 3, postsPerMonth: 15, webhooks: 0, apiKeys: 0 },
+    limits: { channels: 3, postsPerMonth: 15, webhooks: 0, apiKeys: 0, aiCredits: 0 },
     features: [],
     prices: { MONTHLY: null, YEARLY: null },
   },
@@ -129,6 +136,7 @@ export const PLANS: Record<PlanTier, PlanDefinition> = {
       postsPerMonth: UNLIMITED,
       webhooks: UNLIMITED,
       apiKeys: UNLIMITED,
+      aiCredits: 500,
     },
     features: PRO_FEATURES,
     prices: {
@@ -145,6 +153,7 @@ export const PLANS: Record<PlanTier, PlanDefinition> = {
       postsPerMonth: UNLIMITED,
       webhooks: UNLIMITED,
       apiKeys: UNLIMITED,
+      aiCredits: 2000,
     },
     features: [
       ...PRO_FEATURES,
