@@ -1,6 +1,11 @@
 import { z } from '@hono/zod-openapi';
 import { ErrorCodes } from '@manypost/contracts';
-import { DomainError, IMAGE_ASPECTS, aiPrompts } from '@manypost/core';
+import {
+  DomainError,
+  IMAGE_ASPECTS,
+  IMAGE_QUALITY_MODES,
+  aiPrompts,
+} from '@manypost/core';
 import type { Container } from '../../container';
 import { requireAuth } from '../middleware/auth';
 import { idempotency } from '../middleware/public-api';
@@ -152,7 +157,10 @@ const ImageBody = z.object({
     .uuid()
     .optional()
     .openapi({ description: 'a proporção vira a que a rede deste canal trata melhor no feed' }),
-  quality: z.enum(['draft', 'standard']).optional(),
+  mode: z
+    .enum(IMAGE_QUALITY_MODES)
+    .optional()
+    .openapi({ description: 'economy = 2 créditos/low; quality = 5 créditos/high; padrão economy' }),
   alt: z.string().max(1000).optional().openapi({ description: 'descrição para leitor de tela' }),
 });
 
@@ -407,11 +415,12 @@ export function aiRoutes(ctn: Container) {
     summary: 'Gera uma imagem e guarda na biblioteca de mídia',
     description:
       'Requer a feature `ai_image` (plano Premium) **e** um provedor que gere imagem; sem essa ' +
-      'capacidade responde 501 `ai.capability_unavailable`. Custa 5 créditos — uma requisição, ' +
-      'uma imagem. A forma pedida é **proporção**, nunca resolução: quem traduz é o adapter. ' +
+      'capacidade responde 501 `ai.capability_unavailable`. O modo `economy` custa 2 créditos e ' +
+      'usa renderização baixa; `quality` custa 5 e usa alta. O padrão é `economy`. Uma requisição ' +
+      'gera uma imagem. A forma pedida é **proporção**, nunca resolução: quem traduz é o adapter. ' +
       'Os bytes devolvidos pelo provedor são validados por assinatura de arquivo (o `content-type` ' +
       'declarado não é confiável) e entram na biblioteca marcados como gerados, com o prompt e o ' +
-      'modelo. Aceita `Idempotency-Key`: a cinco créditos, duplo clique é caro.',
+      'modelo. Aceita `Idempotency-Key`: repetir uma geração paga não pode cobrar duas vezes.',
     request: {
       ...jsonBody(ImageBody),
       headers: z.object({
@@ -433,7 +442,7 @@ export function aiRoutes(ctn: Container) {
       prompt: body.prompt,
       ...(body.aspect ? { aspect: body.aspect } : {}),
       ...(body.channelId ? { channelId: body.channelId } : {}),
-      ...(body.quality ? { quality: body.quality } : {}),
+      ...(body.mode ? { mode: body.mode } : {}),
       ...(body.alt ? { alt: body.alt } : {}),
     });
     return c.json({

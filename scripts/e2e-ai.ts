@@ -327,6 +327,19 @@ async function main() {
     await sql<{ used: number }[]>`SELECT used FROM ai_credits WHERE org_id = ${org!.id}::uuid`
   )[0]!.used;
 
+  const chamadasAntesDoModoInvalido = recebidos.length;
+  const modoInvalido = await post('/v1/ai/image', {
+    prompt: 'x',
+    aspect: '1:1',
+    mode: 'modelo-ou-dialeto-arbitrario',
+  });
+  check('modo fora do catálogo é recusado', modoInvalido.status === 400, modoInvalido.status);
+  check(
+    'modo inválido não chama o provedor',
+    recebidos.length === chamadasAntesDoModoInvalido,
+    recebidos.slice(chamadasAntesDoModoInvalido),
+  );
+
   const img = await post('/v1/ai/image', { prompt: 'um gato no sofá', aspect: '9:16' });
   const imgBody = (await img.json()) as { media?: Record<string, unknown> };
   check('image responde 200', img.status === 200, imgBody);
@@ -341,6 +354,7 @@ async function main() {
   const pedidoDeImagem = recebidos.at(-1)!;
   check('falou o dialeto de imagens', pedidoDeImagem.path === '/images/generations', pedidoDeImagem.path);
   check('pediu UMA imagem só', pedidoDeImagem.body.n === 1, pedidoDeImagem.body);
+  check('modo omitido usa qualidade econômica', pedidoDeImagem.body.quality === 'low', pedidoDeImagem.body);
   check(
     'a PROPORÇÃO virou resolução no adapter (o core não manda pixel)',
     pedidoDeImagem.body.size === '1024x1792',
@@ -360,14 +374,37 @@ async function main() {
   const [aposImagem] = await sql<{ used: number }[]>`
     SELECT used FROM ai_credits WHERE org_id = ${org!.id}::uuid`;
   check(
-    'uma imagem custa 5 créditos (classe própria, não a de texto)',
-    aposImagem!.used === usadoAntesDaImagem + 5,
+    'uma imagem econômica custa 2 créditos (classe própria, acima de texto)',
+    aposImagem!.used === usadoAntesDaImagem + 2,
     { antes: usadoAntesDaImagem, depois: aposImagem!.used },
   );
 
+  const qualidade = await post('/v1/ai/image', {
+    prompt: 'um gato final',
+    aspect: '1:1',
+    mode: 'quality',
+  });
+  check('modo qualidade responde 200', qualidade.status === 200, await qualidade.clone().text());
+  const pedidoQualidade = recebidos.at(-1)!;
+  check('modo qualidade pede high ao provedor', pedidoQualidade.body.quality === 'high', pedidoQualidade.body);
+  const [aposQualidade] = await sql<{ used: number }[]>`
+    SELECT used FROM ai_credits WHERE org_id = ${org!.id}::uuid`;
+  check('imagem em qualidade final custa 5 créditos', aposQualidade!.used === aposImagem!.used + 5, {
+    antes: aposImagem!.used,
+    depois: aposQualidade!.used,
+  });
+
   const auditoriaImg = await sql<{ detail: unknown }[]>`
     SELECT detail FROM audit_log WHERE org_id = ${org!.id}::uuid AND action = 'ai.image'`;
-  check('a geração foi auditada', auditoriaImg.length === 1, auditoriaImg);
+  check('as duas gerações foram auditadas', auditoriaImg.length === 2, auditoriaImg);
+  check(
+    'a auditoria registra modo e créditos',
+    JSON.stringify(auditoriaImg).includes('"mode":"economy"') &&
+      JSON.stringify(auditoriaImg).includes('"mode":"quality"') &&
+      JSON.stringify(auditoriaImg).includes('"credits":2') &&
+      JSON.stringify(auditoriaImg).includes('"credits":5'),
+    auditoriaImg,
+  );
   check(
     'sem o prompt na auditoria',
     !JSON.stringify(auditoriaImg).includes('um gato'),
@@ -380,7 +417,7 @@ async function main() {
     fetch(`${API}/v1/ai/image`, {
       method: 'POST',
       headers: { ...authed(), 'idempotency-key': chave },
-      body: JSON.stringify({ prompt: 'mesmo pedido', aspect: '1:1' }),
+      body: JSON.stringify({ prompt: 'mesmo pedido', aspect: '1:1', mode: 'quality' }),
     });
   const chamadasAntesIdem = recebidos.length;
   const usadoAntesIdem = (

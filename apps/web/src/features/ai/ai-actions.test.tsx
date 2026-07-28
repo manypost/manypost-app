@@ -10,6 +10,7 @@ import {
 import {
   ASPECTOS,
   createImageIdempotencyTracker,
+  IMAGE_MODE_OPTIONS,
   imageGenerationRequest,
   REWRITE_EDIT_IDS,
   REWRITE_IDS,
@@ -250,19 +251,36 @@ describe('geração de imagem', () => {
   test('a mesma submissão reutiliza a chave; mudança e sucesso avançam a chave', () => {
     let sequence = 0;
     const tracker = createImageIdempotencyTracker(() => `key-${++sequence}`);
-    const first = { prompt: 'um gato', aspect: '4:5' as const };
+    const first = { prompt: 'um gato', aspect: '4:5' as const, mode: 'economy' as const };
 
     const request1 = imageGenerationRequest(first, tracker);
     const request2 = imageGenerationRequest({ ...first }, tracker);
     expect(request1.headers['Idempotency-Key']).toBe('key-1');
     expect(request2.headers['Idempotency-Key']).toBe('key-1');
 
-    const changed = imageGenerationRequest({ ...first, aspect: '1:1' }, tracker);
-    expect(changed.headers['Idempotency-Key']).toBe('key-2');
+    const changedMode = imageGenerationRequest({ ...first, mode: 'quality' }, tracker);
+    expect(changedMode.headers['Idempotency-Key']).toBe('key-2');
 
-    tracker.complete({ ...first, aspect: '1:1' });
-    const afterSuccess = imageGenerationRequest({ ...first, aspect: '1:1' }, tracker);
-    expect(afterSuccess.headers['Idempotency-Key']).toBe('key-3');
+    const changed = imageGenerationRequest({ ...first, mode: 'quality', aspect: '1:1' }, tracker);
+    expect(changed.headers['Idempotency-Key']).toBe('key-3');
+
+    tracker.complete({ ...first, mode: 'quality', aspect: '1:1' });
+    const afterSuccess = imageGenerationRequest(
+      { ...first, mode: 'quality', aspect: '1:1' },
+      tracker,
+    );
+    expect(afterSuccess.headers['Idempotency-Key']).toBe('key-4');
+  });
+
+  test('oferece exatamente economia e qualidade, com custo e texto humano', () => {
+    expect(IMAGE_MODE_OPTIONS.map(({ id, credits }) => ({ id, credits }))).toEqual([
+      { id: 'economy', credits: 2 },
+      { id: 'quality', credits: 5 },
+    ]);
+    for (const option of IMAGE_MODE_OPTIONS) {
+      expect(ai[option.labelKey], `falta ai.${option.labelKey}`).toBeTruthy();
+      expect(ai[option.descriptionKey], `falta ai.${option.descriptionKey}`).toBeTruthy();
+    }
   });
 
   test('toda proporção oferecida tem rótulo humano', () => {

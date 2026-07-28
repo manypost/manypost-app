@@ -55,11 +55,11 @@ export const PlanFeatures = [
   /** "IA: monta e otimiza o calendário da semana" */
   'ai_calendar',
   /**
-   * "IA: gera imagem para o post" (SPEC_AI §3, `ai.image` — 5 créditos por imagem).
+   * "IA: gera imagem para o post" (`economy` = 2 créditos; `quality` = 5).
    *
    * Premium, e não Pro, por custo unitário: uma imagem custa uma ordem de magnitude mais que uma
-   * legenda, e a franquia de 500 do Pro se esgotaria em cem imagens — o que viraria reclamação de
-   * franquia, não uso satisfeito.
+   * legenda, e a franquia do Pro se esgotaria rapidamente em imagens finais — o que viraria
+   * reclamação de franquia, não uso satisfeito.
    */
   'ai_image',
   /** "IA: responde comentários e DMs num lugar só" */

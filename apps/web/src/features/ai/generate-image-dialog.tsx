@@ -17,10 +17,18 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { ASPECTOS, useAiAvailability, useGenerateImage, type AspectId, type GeneratedMedia } from './hooks';
+import {
+  ASPECTOS,
+  IMAGE_MODE_OPTIONS,
+  useAiAvailability,
+  useGenerateImage,
+  type AspectId,
+  type GeneratedMedia,
+  type ImageModeId,
+} from './hooks';
 
 /**
- * "IA: gera imagem para o post" (`ai_image`, plano Premium — 5 créditos por imagem).
+ * "IA: gera imagem para o post" (`ai_image`, plano Premium — 2 ou 5 créditos por imagem).
  *
  * Some inteiro quando a instalação não consegue desenhar (`capabilities.ai.canGenerateImages`):
  * oferecer um botão que responderia 501 é pior que não ter botão. Plano sem a feature MOSTRA o
@@ -47,6 +55,7 @@ export function GenerateImageDialog({
 
   const [open, setOpen] = React.useState(false);
   const [prompt, setPrompt] = React.useState('');
+  const [mode, setMode] = React.useState<ImageModeId>('economy');
   const [aspect, setAspect] = React.useState<AspectId | null>(null);
   const [erro, setErro] = React.useState<string | null>(null);
   const [pronta, setPronta] = React.useState<GeneratedMedia | null>(null);
@@ -61,6 +70,7 @@ export function GenerateImageDialog({
     try {
       const media = await gerar.mutateAsync({
         prompt,
+        mode,
         ...(aspect ? { aspect } : {}),
         // sem proporção explícita, o canal decide — a regra vive no servidor
         ...(!aspect && channelId ? { channelId } : {}),
@@ -75,6 +85,7 @@ export function GenerateImageDialog({
     setOpen(false);
     setPronta(null);
     setPrompt('');
+    setMode('economy');
     setErro(null);
   };
 
@@ -155,6 +166,42 @@ export function GenerateImageDialog({
                 />
               </div>
 
+              <fieldset className="flex flex-col gap-1.5">
+                <legend className="text-meta font-semibold uppercase tracking-wide text-graphite">
+                  {t('imageModeLabel')}
+                </legend>
+                <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                  {IMAGE_MODE_OPTIONS.map((option) => {
+                    const ativo = mode === option.id;
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        aria-pressed={ativo}
+                        onClick={() => setMode(option.id)}
+                        className={cn(
+                          'cursor-pointer rounded-md border px-3 py-2 text-left outline-none transition-colors duration-200',
+                          'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
+                          ativo
+                            ? 'bevel-accent border-accent text-ink'
+                            : 'border-line bg-surface text-graphite hover:border-accent hover:text-ink',
+                        )}
+                      >
+                        <span className="flex items-center justify-between gap-2 text-compact font-semibold">
+                          <span>{t(option.labelKey)}</span>
+                          <span className="text-meta font-medium">
+                            {t('imageCostShort', { count: option.credits })}
+                          </span>
+                        </span>
+                        <span className="mt-0.5 block text-meta font-normal">
+                          {t(option.descriptionKey)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+
               <div className="flex flex-col gap-1.5">
                 <span className="text-meta font-semibold uppercase tracking-wide text-graphite">
                   {t('imageAspectLabel')}
@@ -187,7 +234,11 @@ export function GenerateImageDialog({
               </div>
 
               {ai.credits?.enforced ? (
-                <p className="text-meta text-graphite">{t('imageCost', { count: 5 })}</p>
+                <p className="text-meta text-graphite">
+                  {t('imageCost', {
+                    count: IMAGE_MODE_OPTIONS.find((option) => option.id === mode)!.credits,
+                  })}
+                </p>
               ) : null}
               {ai.exhausted ? <p className="text-meta text-graphite">{t('exhausted')}.</p> : null}
               {erro ? (

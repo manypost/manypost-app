@@ -1,6 +1,11 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { DomainError, hasMcpReadScope, hasMcpWriteScope } from '@manypost/core';
+import {
+  DomainError,
+  IMAGE_QUALITY_MODES,
+  hasMcpReadScope,
+  hasMcpWriteScope,
+} from '@manypost/core';
 import type { Container } from '../container';
 
 /**
@@ -340,8 +345,9 @@ export function buildMcpServer(ctn: Container, principal: McpPrincipal): McpServ
       description:
         'Gera uma imagem a partir de uma descrição e a guarda na biblioteca de mídia da ' +
         'organização, marcada como gerada por IA. A forma é uma PROPORÇÃO (1:1, 4:5, 9:16, 16:9, ' +
-        '1.91:1) ou o canal de destino, que decide a proporção da rede dele. Custa 5 créditos por ' +
-        'imagem. NÃO publica nada: a imagem fica na biblioteca para uma pessoa usar.',
+        '1.91:1) ou o canal de destino, que decide a proporção da rede dele. O modo economy custa ' +
+        '2 créditos; quality custa 5. Sem modo, usa economy. NÃO publica nada: a imagem fica na ' +
+        'biblioteca para uma pessoa usar.',
       inputSchema: {
         prompt: z.string().min(1).max(2000).describe('o que a imagem deve mostrar'),
         aspect: z
@@ -349,10 +355,14 @@ export function buildMcpServer(ctn: Container, principal: McpPrincipal): McpServ
           .optional()
           .describe('proporção; sem ela, o canal decide; sem os dois, 1:1'),
         channelId: z.string().uuid().optional().describe('canal de destino, para escolher a forma'),
+        mode: z
+          .enum(IMAGE_QUALITY_MODES)
+          .optional()
+          .describe('economy (2 créditos, rápido) ou quality (5 créditos, resultado final)'),
         alt: z.string().max(1000).optional().describe('descrição para leitor de tela'),
       },
     },
-    async ({ prompt, aspect, channelId, alt }) => {
+    async ({ prompt, aspect, channelId, mode, alt }) => {
       // escopo de ESCRITA mesmo sem mutar conteúdo do usuário: gerar imagem queima a franquia
       // paga da organização, e credencial só-leitura não pode gastar crédito
       if (!requireWrite()) return denyScope('write');
@@ -368,6 +378,7 @@ export function buildMcpServer(ctn: Container, principal: McpPrincipal): McpServ
             prompt,
             ...(aspect ? { aspect } : {}),
             ...(channelId ? { channelId } : {}),
+            ...(mode ? { mode } : {}),
             ...(alt ? { alt } : {}),
           },
         );
