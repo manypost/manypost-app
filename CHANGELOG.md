@@ -8,6 +8,12 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Changed
 
+- **Home e calendário receberam uma rodada visual restrita ao PR #54.** Os CTAs
+  “Novo post” e “Criar post” explicitam o texto branco; a Home ganhou respiro,
+  hover e uma entrada curta que desaparece sob `prefers-reduced-motion`; e o
+  calendário voltou à escala compacta de tipografia, controles, seletores de
+  dia e timeline sem alterar rotas, filtros, drag-and-drop ou agendamento.
+  OpenSpec: `refine-home-calendar-visuals`.
 - **Composer modular integrado às superfícies de IA, mídia e persistência.** A refatoração
   `refine-composer-authoring` mantém um editor TipTap por aba/item, trilho de redes com capacidade,
   validação em popover, threads compactas e rodapé responsivo, sem regredir os contratos entregues
@@ -27,6 +33,12 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Added
 
+- **Backlog atual de evolução do produto.**
+  [`docs/audits/2026-07-28-product-improvement-opportunities.md`](docs/audits/2026-07-28-product-improvement-opportunities.md)
+  separa sugestões P0/P1/P2 e registra impacto, esforço, dependências e PR
+  sugerido. Nenhuma das funcionalidades maiores foi implementada nesta rodada;
+  Home v2, busca, central de falhas, colaboração, analytics e outras expansões
+  permanecem para mudanças OpenSpec e PRs próprios.
 - **`ai_image`: a IA passa a produzir a imagem, não só o texto.** A `SPEC_AI §3` listava
   `ai.image` — "prompt + tamanho → media na biblioteca", 5 créditos — e era o único item da família
   de criação que existia como nada: o port guardava um slot `generateImage` sem implementação. Um
