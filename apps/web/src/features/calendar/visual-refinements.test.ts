@@ -48,4 +48,20 @@ describe('proporções visuais do calendário', () => {
     expect(grids).not.toContain('text-xs');
     expect(grids).not.toContain('text-sm');
   });
+
+  test('horários da grade usam o token de eixo em desktop e mobile', async () => {
+    const grids = await source('./calendar-grids.tsx');
+    const hourLabels = [
+      ...grids.matchAll(
+        /'([^'\n]*text-right[^'\n]*tabular-nums[^'\n]*)'[\s\S]{0,350}\{hourFmt\.format/g,
+      ),
+    ];
+
+    expect(hourLabels).toHaveLength(2);
+    for (const label of hourLabels) {
+      const classes = label[1]!.split(/\s+/);
+      expect(classes).toContain('text-axis');
+      expect(classes).not.toContain('text-meta');
+    }
+  });
 });
