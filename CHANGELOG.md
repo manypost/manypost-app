@@ -8,6 +8,12 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Changed
 
+- **Geração de imagem compatível com endpoints atuais.** O adapter do protocolo
+  `openai-compatible` deixou de enviar o parâmetro opcional
+  `response_format`, rejeitado pelo endpoint atual de imagens, e continua
+  consumindo o resultado base64 devolvido por padrão. A correção não altera a
+  API do Manypost, o fluxo de créditos, a proveniência ou o armazenamento.
+  OpenSpec: `fix-image-generation-request-compatibility`.
 - **Home e calendário receberam uma rodada visual restrita ao PR #54.** Os CTAs
   “Novo post” e “Criar post” explicitam o texto branco; a Home ganhou respiro,
   hover e uma entrada curta que desaparece sob `prefers-reduced-motion`; e o

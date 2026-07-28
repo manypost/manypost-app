@@ -168,8 +168,9 @@ export function makeChatCompletionsProvider(
     ...(imageModel
       ? {
           /**
-           * Pede `b64_json` em vez de URL: URL de provedor expira em horas. Depois traduz a forma
-           * nativa para a proporção exata prometida pelo port.
+           * O endpoint devolve `b64_json` por padrão: não pedimos URL temporária nem enviamos
+           * parâmetros opcionais que endpoints atuais rejeitam. Depois traduzimos a forma nativa
+           * para a proporção exata prometida pelo port.
            */
           async generateImage({ prompt, aspect, quality, signal }) {
             const { size } = RESOLUCAO_POR_PROPORCAO[aspect];
@@ -182,7 +183,6 @@ export function makeChatCompletionsProvider(
                 prompt,
                 size,
                 n: 1,
-                response_format: 'b64_json',
                 ...(quality ? { quality: quality === 'draft' ? 'low' : 'standard' } : {}),
               },
               authHeaders(config.apiKey, (key) => ({ authorization: `Bearer ${key}` })),
