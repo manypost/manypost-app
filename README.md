@@ -48,13 +48,13 @@
 <a href="docs/media/manypost-calendar.mp4">
   <img
     alt="Demonstração do calendário multicanal do manypost"
-    src="docs/media/manypost-calendar.webp"
+    src="docs/media/manypost-calendar.gif"
     width="1280"
   />
 </a>
 
 <p align="center">
-  <sub>▶ Clique na imagem para assistir à demonstração completa.</sub>
+  <sub>▶ A demonstração inicia automaticamente e reinicia em loop. Clique para abrir o MP4.</sub>
 </p>
 
 ## Visão geral

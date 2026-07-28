@@ -121,7 +121,7 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 ### Documentation
 
 - **README renovado.** A página inicial do repositório ganhou uma apresentação
-  mais visual e escaneável, demonstração em vídeo do calendário multicanal,
+  mais visual e escaneável, demonstração animada do calendário multicanal,
   início rápido, recursos e integrações atualizados e rotas mais claras para
   usuários, integradores e contribuidores.
 - Alinhamento docs↔código: inventário de **28 tabelas** / migrations `0000..0005`,
