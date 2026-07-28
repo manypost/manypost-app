@@ -13,8 +13,11 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
   hover e uma entrada curta que desaparece sob `prefers-reduced-motion`; e o
   calendário voltou à escala compacta de tipografia, controles, seletores de
   dia e timeline, incluindo rótulos horários em uma escala exclusiva de 9px
-  preservada após o `tailwind-merge`, sem alterar rotas, filtros, drag-and-drop
-  ou agendamento.
+  preservada após o `tailwind-merge`. A escala tipográfica customizada também
+  passou a ser reconhecida pelo merge central de classes: botões preenchidos
+  mantêm texto branco e inputs/textareas preservam o tamanho compacto e o
+  placeholder, inclusive em Configurações. Não houve alteração de rotas,
+  filtros, drag-and-drop ou agendamento.
   OpenSpec: `refine-home-calendar-visuals`.
 - **Composer modular integrado às superfícies de IA, mídia e persistência.** A refatoração
   `refine-composer-authoring` mantém um editor TipTap por aba/item, trilho de redes com capacidade,
