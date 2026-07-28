@@ -37,6 +37,6 @@
   contrast, submission body and loading/error/success cycles.
 - [ ] 4.3 Archive `add-ai-image-quality-modes`, rerun `bun run spec:validate`, review the complete
   diff for secrets/generated artifacts and commit with Conventional Commits.
-- [ ] 4.4 Push `feat/ai-image-quality-modes`, open the second PR stacked on
+- [x] 4.4 Push `feat/ai-image-quality-modes`, open the second PR stacked on
   `feat/ai-fixes-home-and-image`, deploy that branch to the Coolify staging app and smoke-test
   without syncing environment secrets.
