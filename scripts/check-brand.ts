@@ -7,7 +7,7 @@
  *  4. radius só 4/6/8px (rounded-sm|md|lg|xl|full — full apenas em avatar)
  *  5. wordmark sempre `manypost` minúsculo em texto de UI
  *  6. nenhum tamanho de fonte arbitrário no regime compacto (< 16px) — a escala do
- *     design.md §6.3 existe como utility: text-calendar-hour/axis/meta/compact/panel
+ *     design.md §6.3 existe como utility: calendar-hour-label e text-axis/meta/compact/panel
  *  7. animação contínua respeita `prefers-reduced-motion`
  *  8. `<button>` declara `cursor-pointer`
  *
@@ -57,9 +57,9 @@ const RULES: Array<{ rule: string; re: RegExp; skip?: (file: string) => boolean 
     // design.md §6.4 fixa 11px como piso e §43.20 proíbe valor fora dos tokens: as duas juntas
     // condenam o `text-[11px]` avulso. `.text-meta` existe para o papel "Metadado".
     // Só o REGIME COMPACTO (< 16px), onde a escala do §6.3 é normativa e as utilities existem
-    // (text-calendar-hour/axis/meta/compact/panel + as do Tailwind). Acima de 16px vale o regime editorial do
+    // (calendar-hour-label + text-axis/meta/compact/panel + as do Tailwind). Acima de 16px vale o regime editorial do
     // §6.2, que usa `clamp()` e valor explícito de propósito — hero e títulos de marca.
-    rule: 'tamanho de fonte arbitrário no regime compacto (use text-calendar-hour/axis/meta/compact/panel — design.md §6.3/§43.20)',
+    rule: 'tamanho de fonte arbitrário no regime compacto (use calendar-hour-label ou text-axis/meta/compact/panel — design.md §6.3/§43.20)',
     re: /\btext-\[(?:\d|1[0-5])(?:\.\d+)?(?:px|rem|em)\]/,
     skip: (f) => !/\.tsx?$/.test(f),
   },
