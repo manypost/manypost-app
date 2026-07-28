@@ -12,8 +12,9 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
   “Novo post” e “Criar post” explicitam o texto branco; a Home ganhou respiro,
   hover e uma entrada curta que desaparece sob `prefers-reduced-motion`; e o
   calendário voltou à escala compacta de tipografia, controles, seletores de
-  dia e timeline, incluindo rótulos horários em uma escala exclusiva de 9px, sem
-  alterar rotas, filtros, drag-and-drop ou agendamento.
+  dia e timeline, incluindo rótulos horários em uma escala exclusiva de 9px
+  preservada após o `tailwind-merge`, sem alterar rotas, filtros, drag-and-drop
+  ou agendamento.
   OpenSpec: `refine-home-calendar-visuals`.
 - **Composer modular integrado às superfícies de IA, mídia e persistência.** A refatoração
   `refine-composer-authoring` mantém um editor TipTap por aba/item, trilho de redes com capacidade,

@@ -621,7 +621,7 @@ export function TimeGrid({
               <div key={hour} className="grid" style={{ gridTemplateColumns: colsDesktop }}>
                 <span
                   className={cn(
-                    '-mt-2 border-r border-line px-2 pt-2 text-right text-calendar-hour tabular-nums text-mist transition-colors',
+                    '-mt-2 calendar-hour-label border-r border-line px-2 pt-2 text-right tabular-nums text-mist transition-colors',
                     isPastRow && 'cal-past opacity-80',
                   )}
                 >
@@ -765,7 +765,7 @@ export function TimeGrid({
                 >
                   <span
                     className={cn(
-                      'border-b border-r border-line px-1.5 pt-2 text-right text-calendar-hour font-medium tabular-nums transition-colors',
+                      'calendar-hour-label border-b border-r border-line px-1.5 pt-2 text-right font-medium tabular-nums transition-colors',
                       isPast ? 'cal-past text-mist opacity-80' : 'bg-surface-2/40 text-graphite',
                     )}
                   >
