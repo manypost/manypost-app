@@ -141,7 +141,8 @@
    * ESCALA DE PRODUTO (design.md §6.3) como utilities de verdade.
    *
    * O Tailwind entrega 12px (`text-xs`), 14px (`text-sm`), 16px (`text-base`) e 18px
-   * (`text-lg`) — e a escala do §6.3 também precisa de 10, 11, 13 e 15px. Sem nome, cada
+   * (`text-lg`) — e a escala do §6.3 também precisa de 10, 11, 13 e 15px. O eixo horário
+   * denso do calendário possui uma exceção semântica e isolada de 9px. Sem nome, cada
    * componente escrevia `text-[13px]`: 102 ocorrências de 13px, 57 de 11px e 18 de 10px,
    * mais um punhado de 9, 10.5, 11.5 e 12.5px que ninguém decidiu — inclusive tamanhos
    * ABAIXO do piso de 11px que o §6.4 fixa para interface compacta.
@@ -150,7 +151,9 @@
    * próximo componente não escolhe 9px por descuido. Acima de 16px vale o regime editorial do
    * §6.2, onde `clamp()` e valor explícito são a forma documentada.
    */
-  --text-axis: 10px; /* eixo de gráfico (§6.3) — o único papel autorizado abaixo de 11px */
+  --text-calendar-hour: 9px; /* exceção: somente 00:00–23:00 na grade do calendário */
+  --text-calendar-hour--line-height: 12px;
+  --text-axis: 10px; /* eixo de gráfico (§6.3) — menor escala reutilizável */
   --text-axis--line-height: 14px;
   --text-meta: 11px; /* metadado, badge (§6.3); piso da interface compacta (§6.4) */
   --text-meta--line-height: 1.4;
