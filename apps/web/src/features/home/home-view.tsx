@@ -56,13 +56,17 @@ export function HomeView() {
   const mostrarPlano = plano?.enforced === true;
 
   return (
-    <div className="mx-auto w-full max-w-6xl">
+    <div className="mx-auto w-full max-w-6xl pb-8">
       <PageHeader
         title={nome ? `${saudacao}, ${nome}` : saudacao}
         description={t('subtitle')}
         actions={
           <>
-            <Button type="button" className="cursor-pointer gap-1.5" onClick={() => openComposer()}>
+            <Button
+              type="button"
+              className="cursor-pointer gap-1.5 text-paper"
+              onClick={() => openComposer()}
+            >
               <PenSquare className="size-3.5" aria-hidden />
               {t('newPost')}
             </Button>
@@ -72,8 +76,8 @@ export function HomeView() {
       />
 
       {resumo.isPending ? (
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="flex flex-col gap-4">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="flex flex-col gap-5">
             <Skeleton className="h-32 rounded-lg" />
             <Skeleton className="h-28 rounded-lg" />
           </div>
@@ -84,8 +88,8 @@ export function HomeView() {
           {t('loadError')}
         </p>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="flex min-w-0 flex-col gap-4">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="flex min-w-0 flex-col gap-5">
             {/* primeiro uso: a home É o onboarding, em vez de uma grade de zeros */}
             {resumo.data.firstRun ? (
               <FirstRunBlock step={resumo.data.firstRun} aiEnabled={ai?.enabled ?? false} />
@@ -98,7 +102,7 @@ export function HomeView() {
             )}
           </div>
 
-          <div className="flex min-w-0 flex-col gap-4">
+          <div className="flex min-w-0 flex-col gap-5">
             {mostrarPlano && plano ? (
               <UsageBlock
                 usage={{

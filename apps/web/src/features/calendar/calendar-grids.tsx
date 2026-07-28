@@ -363,7 +363,7 @@ export function MonthGrid({
                   type="button"
                   onClick={() => setSelectedKey(key)}
                   className={cn(
-                    'flex flex-col items-center justify-start min-h-[50px] py-1 px-0.5 rounded-md transition-colors outline-none focus-visible:outline-2 focus-visible:outline-accent',
+                    'flex min-h-12 flex-col items-center justify-start rounded-md px-0.5 py-1 outline-none transition-colors focus-visible:outline-2 focus-visible:outline-accent',
                     isPastDay && !isSelected && 'cal-past opacity-80',
                     !inMonth && 'opacity-40 bg-surface-2/50',
                     isSelected && 'bg-accent-tint border border-accent',
@@ -372,7 +372,7 @@ export function MonthGrid({
                 >
                   <span
                     className={cn(
-                      'text-xs font-semibold tabular-nums flex items-center justify-center size-6 rounded-full',
+                      'flex size-6 items-center justify-center rounded-full text-compact font-semibold tabular-nums',
                       isToday
                         ? 'bevel-primary border text-paper'
                         : isSelected
@@ -413,24 +413,24 @@ export function MonthGrid({
         </div>
 
         {/* Agenda do Dia mobile */}
-        <section aria-label="Agenda do Dia" className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4">
+        <section aria-label="Agenda do Dia" className="flex flex-col gap-2.5 rounded-lg border border-line bg-surface p-3">
           <div className="flex items-center justify-between border-b border-line pb-2.5">
             <div className="flex flex-col">
-              <span className="text-xs font-semibold uppercase tracking-wide text-graphite">
+              <span className="text-meta font-semibold uppercase tracking-wide text-graphite">
                 {t.has('mobileAgendaTitle') ? t('mobileAgendaTitle') : 'Agenda do Dia'}
               </span>
-              <h3 className="text-sm font-bold capitalize text-ink">
+              <h3 className="text-compact font-semibold capitalize text-ink">
                 {new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long' }).format(selectedDate)}
               </h3>
             </div>
-            <span className="rounded-full bg-surface-2 px-2.5 py-1 text-xs font-semibold text-graphite">
+            <span className="rounded-full bg-surface-2 px-2.5 py-1 text-meta font-semibold text-graphite">
               {selectedItems.length} {selectedItems.length === 1 ? 'post' : 'posts'}
             </span>
           </div>
 
           {selectedItems.length === 0 ? (
             <div className="rounded-md border border-dashed border-line bg-surface-2 px-4 py-8 text-center">
-              <p className="text-xs leading-relaxed text-graphite">
+              <p className="text-compact leading-relaxed text-graphite">
                 {t.has('mobileAgendaEmpty') ? t('mobileAgendaEmpty') : 'Nenhum post agendado para este dia.'}
               </p>
               <Button
@@ -442,7 +442,7 @@ export function MonthGrid({
                 }}
                 className="mt-3 gap-1.5 font-semibold"
               >
-                <Plus className="size-4" aria-hidden />
+                <Plus className="size-3.5" aria-hidden />
                 {t('newPost')}
               </Button>
             </div>
@@ -467,7 +467,7 @@ export function MonthGrid({
                 }}
                 className="mt-2 gap-1.5 w-full font-semibold"
               >
-                <Plus className="size-4" aria-hidden />
+                <Plus className="size-3.5" aria-hidden />
                 {t('newPost')}
               </Button>
             </div>
@@ -544,7 +544,7 @@ export function TimeGrid({
   // abre a grade já perto do horário útil (7:00)
   useEffect(() => {
     scrollRefDesktop.current?.scrollTo({ top: 7 * 49 });
-    scrollRefMobile.current?.scrollTo({ top: 7 * 56 });
+    scrollRefMobile.current?.scrollTo({ top: 7 * 48 });
   }, []);
 
   // agrupa por (dia, hora)
@@ -656,7 +656,7 @@ export function TimeGrid({
         </div>
       </div>
 
-      {/* --- MOBILE ONLY (< md): Seletor da Semana espaçoso + Linha do Tempo do Dia focada --- */}
+      {/* --- MOBILE ONLY (< md): Seletor semanal compacto + timeline do dia --- */}
       <div className="flex md:hidden flex-col gap-3">
         {isWeekView ? (
           <div className="overflow-hidden rounded-lg border border-line bg-surface p-2">
@@ -672,7 +672,7 @@ export function TimeGrid({
                     type="button"
                     onClick={() => setMobileSelectedKey(key)}
                     className={cn(
-                      'flex flex-col items-center justify-start min-h-[56px] py-1.5 px-0.5 rounded-md transition-all outline-none focus-visible:outline-2 focus-visible:outline-accent',
+                      'flex min-h-12 flex-col items-center justify-start rounded-md px-0.5 py-1 outline-none transition-all focus-visible:outline-2 focus-visible:outline-accent',
                       isSelected && 'bg-accent-tint border border-accent',
                       !isSelected && 'hover:bg-surface-2',
                     )}
@@ -682,7 +682,7 @@ export function TimeGrid({
                     </span>
                     <span
                       className={cn(
-                        'text-sm font-bold tabular-nums flex items-center justify-center size-6 rounded-full',
+                        'flex size-6 items-center justify-center rounded-full text-compact font-semibold tabular-nums',
                         isToday
                           ? 'bevel-primary border text-paper'
                           : isSelected
@@ -720,18 +720,18 @@ export function TimeGrid({
           </div>
         ) : null}
 
-        {/* Cabeçalho do dia ativo com respiro visual */}
-        <div className="flex items-center justify-between rounded-lg border border-line bg-surface p-3.5">
+        {/* Cabeçalho compacto do dia ativo */}
+        <div className="flex items-center justify-between rounded-lg border border-line bg-surface p-3">
           <div className="flex flex-col min-w-0">
-            <span className="text-xs font-bold uppercase tracking-wider text-accent">
+            <span className="text-meta font-semibold uppercase tracking-wide text-accent">
               {isWeekView ? 'Linha do Tempo 24h' : 'Visão do Dia'}
             </span>
-            <h3 className="text-sm font-bold capitalize text-ink truncate mt-0.5">
+            <h3 className="mt-0.5 truncate text-compact font-semibold capitalize text-ink">
               {activeDateFormatted}
             </h3>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <span className="rounded-full bg-surface-2 px-3 py-1 text-xs font-semibold text-graphite">
+            <span className="rounded-full bg-surface-2 px-2.5 py-1 text-meta font-semibold text-graphite">
               {activeDateItems.length} {activeDateItems.length === 1 ? 'post' : 'posts'}
             </span>
             <Button
@@ -743,13 +743,13 @@ export function TimeGrid({
               }}
               className="gap-1 px-2.5 font-semibold"
             >
-              <Plus className="size-4" aria-hidden />
+              <Plus className="size-3.5" aria-hidden />
               <span className="hidden sm:inline">{t('newPost')}</span>
             </Button>
           </div>
         </div>
 
-        {/* Linha do Tempo 24h para o dia único no mobile (respiro visual, slots de 56px, chips 100% de largura) */}
+        {/* Timeline móvel com a mesma linha compacta de 48px da grade base */}
         <div className="overflow-hidden rounded-lg border border-line bg-surface">
           <div ref={scrollRefMobile} className="max-h-[calc(100dvh-280px)] overflow-y-auto">
             {Array.from({ length: 24 }, (_, hour) => {
@@ -761,11 +761,11 @@ export function TimeGrid({
               return (
                 <div
                   key={hour}
-                  className="grid grid-cols-[56px_minmax(0,1fr)] min-h-[56px]"
+                  className="grid min-h-12 grid-cols-[48px_minmax(0,1fr)]"
                 >
                   <span
                     className={cn(
-                      'border-b border-r border-line px-2 pt-2.5 text-right text-xs font-medium tabular-nums transition-colors',
+                      'border-b border-r border-line px-1.5 pt-2 text-right text-meta font-medium tabular-nums transition-colors',
                       isPast ? 'cal-past text-mist opacity-80' : 'bg-surface-2/40 text-graphite',
                     )}
                   >

@@ -46,7 +46,7 @@ function Card({
   return (
     <section
       className={cn(
-        'bevel-surface flex flex-col gap-3 rounded-lg border p-4 sm:p-5',
+        'home-surface bevel-surface flex flex-col gap-3 rounded-lg border p-4 transition-[border-color,filter] duration-200 hover:brightness-[0.99] motion-reduce:transition-none sm:p-5',
         tone === 'alert' ? 'border-state-failed' : 'border-line',
       )}
     >
