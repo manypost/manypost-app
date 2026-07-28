@@ -53,5 +53,5 @@
   compatibility, security and rollback guidance.
 - [x] 5.5 Run focused tests, `bun run spec:validate`, `git diff --check`, `bun run check`,
   `bun run db:check` and `bun run build:web`.
-- [ ] 5.6 Commit and push the PR #55 update, wait for CI, deploy the branch to Coolify staging
+- [x] 5.6 Commit and push the PR #55 update, wait for CI, deploy the branch to Coolify staging
   without syncing environment secrets and smoke-test the configured URL.
