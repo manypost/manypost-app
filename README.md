@@ -181,16 +181,16 @@ um provider no [guia de integrações](docs/specs/SPEC_INTEGRATIONS.md).
 Todas as superfícies chegam aos mesmos casos de uso. HTTP adapta transporte,
 repositories adaptam persistência e providers adaptam cada rede social.
 
-<a href="scripts/generate-readme-architecture.py">
+<a href="docs/media/manypost-architecture.png">
   <img
-    alt="Arquitetura operacional do manypost: interfaces web, REST e MCP atravessam o core, worker, dados e providers sociais"
+    alt="Arquitetura do manypost: entradas convergem na plataforma, que coordena infraestrutura e canais"
     src="docs/media/manypost-architecture.png"
-    width="1280"
+    width="820"
   />
 </a>
 
 <p align="center">
-  <sub>Diagrama como código, gerado com <a href="https://github.com/mingrammer/diagrams">mingrammer/diagrams</a>. Clique para ver a fonte.</sub>
+  <sub>Abra em tamanho completo · <a href="scripts/generate-readme-architecture.py">ver código-fonte</a> · gerado com <a href="https://github.com/mingrammer/diagrams">mingrammer/diagrams</a></sub>
 </p>
 
 | Módulo | Responsabilidade |

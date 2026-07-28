@@ -32,15 +32,18 @@ OUTPUT_PATH = REPOSITORY_ROOT / "docs" / "media" / "manypost-architecture"
 GRAPH_ATTRIBUTES = {
     "bgcolor": "#FFFFFF",
     "compound": "true",
+    "dpi": "144",
     "fontcolor": "#111111",
     "fontname": "Arial",
-    "fontsize": "24",
+    "fontsize": "22",
     "labeljust": "l",
     "labelloc": "t",
     "newrank": "true",
-    "nodesep": "0.4",
-    "pad": "0.35",
-    "ranksep": "0.75",
+    "nodesep": "0.28",
+    "pad": "0.22",
+    "ranksep": "0.55",
+    "ratio": "compress",
+    "size": "13,6!",
     "splines": "spline",
 }
 
@@ -49,10 +52,12 @@ NODE_ATTRIBUTES = {
     "fillcolor": "#FFFFFF",
     "fontcolor": "#111111",
     "fontname": "Arial",
-    "fontsize": "11",
-    "margin": "0.12",
-    "penwidth": "1.2",
+    "fontsize": "13",
+    "height": "1.05",
+    "margin": "0.08",
+    "penwidth": "1",
     "style": "rounded,filled",
+    "width": "1.15",
 }
 
 EDGE_ATTRIBUTES = {
@@ -60,17 +65,17 @@ EDGE_ATTRIBUTES = {
     "color": "#8E8E96",
     "fontcolor": "#6B6B70",
     "fontname": "Arial",
-    "fontsize": "9",
-    "penwidth": "1.3",
+    "fontsize": "10",
+    "penwidth": "1.15",
 }
 
 CLUSTER_BASE = {
     "fontcolor": "#6B6B70",
     "fontname": "Arial",
-    "fontsize": "12",
+    "fontsize": "13",
     "labeljust": "l",
-    "margin": "18",
-    "penwidth": "1.2",
+    "margin": "14",
+    "penwidth": "1",
     "style": "rounded,filled",
 }
 
@@ -87,11 +92,20 @@ def cluster_attributes(background: str, border: str) -> dict[str, str]:
     }
 
 
+def input_cluster_attributes() -> dict[str, str]:
+    """Keep entry points in one compact column."""
+
+    return {
+        **cluster_attributes("#F5F5F7", "#E2E2E7"),
+        "rank": "same",
+    }
+
+
 def generate_diagram() -> None:
     """Render the current operational architecture as a portable PNG."""
 
     with Diagram(
-        "manypost — arquitetura operacional",
+        "manypost · arquitetura em uma visão",
         direction="LR",
         filename=str(OUTPUT_PATH),
         outformat="png",
@@ -101,66 +115,64 @@ def generate_diagram() -> None:
         edge_attr=EDGE_ATTRIBUTES,
     ):
         with Cluster(
-            "Interfaces",
-            graph_attr=cluster_attributes("#F5F5F7", "#E2E2E7"),
+            "Entradas",
+            graph_attr=input_cluster_attributes(),
         ):
-            teams = Users("Equipes e\nagências")
-            machines = Client("Automações e agentes\nREST · MCP")
+            teams = Users("Equipes")
+            machines = Client("Automações\nREST · MCP")
 
         with Cluster(
-            "manypost · mesmas regras de negócio",
+            "Plataforma manypost",
             graph_attr=cluster_attributes("#F6F3FF", "#7C3AED"),
         ):
-            web = Nextjs("Next.js web")
-            api = Server("Hono API\nREST · MCP · OpenAPI")
-            core = Typescript("Core\ncasos de uso + ports")
-            jobs = Rack("packages/queue\npg-boss")
-            worker = Server("Worker\nhandlers")
+            web = Nextjs("Web")
+            api = Server("API\nHono")
+            core = Typescript("Core\ncasos de uso")
+            jobs = Rack("Fila\npg-boss")
+            worker = Server("Worker")
 
         with Cluster(
-            "Dados e coordenação",
+            "Infraestrutura e canais",
             graph_attr=cluster_attributes("#F5F5F7", "#E2E2E7"),
         ):
-            database = PostgreSQL("PostgreSQL\nestado + jobs pg-boss")
-            coordination = Redis("Redis\ncoordenação")
-            media = Storage("Mídia\nlocal / S3")
+            database = PostgreSQL("PostgreSQL")
+            coordination = Redis("Redis")
+            media = Storage("Mídia\nlocal · S3")
+            adapters = Switch("Providers\n16 adapters")
+            networks = Router("Redes sociais")
             (
                 database
                 - Edge(style="invis")
                 - coordination
                 - Edge(style="invis")
                 - media
+                - Edge(style="invis")
+                - adapters
+                - Edge(style="invis")
+                - networks
             )
 
-        with Cluster(
-            "Destinos",
-            graph_attr=cluster_attributes("#F5F5F7", "#E2E2E7"),
-        ):
-            adapters = Switch("16 adapters\npackages/providers")
-            networks = Router("Redes sociais\ne comunidades")
-
-        teams >> Edge(label="UI", color="#7C3AED") >> web
-        web >> Edge(label="HTTP", color="#7C3AED") >> api
-        machines >> Edge(label="REST · MCP", color="#7C3AED") >> api
+        teams >> Edge(color="#7C3AED") >> web
+        machines >> Edge(color="#7C3AED") >> api
+        web >> Edge(color="#7C3AED") >> api
 
         api >> Edge(color="#7C3AED", penwidth="1.8") >> core
-        core >> Edge(label="JobPort") >> jobs
-        jobs >> Edge(label="consome") >> worker
+        core >> Edge(label="jobs") >> jobs
+        jobs >> worker
         worker >> Edge(
-            label="mesmos casos de uso",
             color="#7C3AED",
             constraint="false",
             style="dashed",
         ) >> core
 
-        core >> Edge(label="estado") >> database
+        core >> database
         jobs >> Edge(
             constraint="false",
             style="dashed",
         ) >> database
-        core >> Edge(label="rate limit · realtime") >> coordination
-        core >> Edge(label="mídia") >> media
-        core >> Edge(label="provider ports") >> adapters
+        core >> coordination
+        core >> media
+        core >> adapters
         adapters >> Edge(color="#7C3AED", penwidth="1.8") >> networks
 
 
