@@ -12,3 +12,4 @@ coverage/
 .DS_Store
 .vscode/
 .claude/settings.local.json
+/.local/coolify-manypost/
