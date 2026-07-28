@@ -41,6 +41,7 @@ planejamento anterior e podem conter números ou topologias históricos.
 | [audits/technical-backlog.md](audits/technical-backlog.md) | riscos abertos, advisories e ordem recomendada |
 | [audits/2026-07-27-ai-slice-review-and-proposals.md](audits/2026-07-27-ai-slice-review-and-proposals.md) | revisão crítica da fatia de IA (PR #52), achados com evidência e propostas — inclui o desenho de geração de imagem (`ai.image`) |
 | [audits/2026-07-27-home-e-evolucao-do-app.md](audits/2026-07-27-home-e-evolucao-do-app.md) | a home que não existe (`/` é redirect), o que a plataforma já sabe e não mostra, e o plano de evolução do app por ondas |
+| [audits/2026-07-28-product-improvement-opportunities.md](audits/2026-07-28-product-improvement-opportunities.md) | fotografia atual pós-Home com oportunidades futuras priorizadas por impacto, esforço, dependências e PR sugerido |
 | [`CHANGELOG.md`](../CHANGELOG.md) | impacto de cada entrega para usuário, desenvolvimento e operação |
 
 ---
