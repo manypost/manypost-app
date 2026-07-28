@@ -52,12 +52,12 @@ interface AiProvider {
 | `ai.rewrite` | texto + instrução (encurtar, formal, emoji…) | texto | 1 |
 | `ai.hashtags` | texto + rede | lista | 1 |
 | `ai.altText` | imagem (url) | alt descritivo | 1 |
-| `ai.image` | prompt + tamanho | media na biblioteca | 5 |
+| `ai.image` | prompt + proporção + modo (`economy` ou `quality`) | media na biblioteca | 2 / 5 |
 | `ai.bestTimes` | canal + histórico | melhores horários por rede (PLANS: feature Pro) | 0 — **heurística estatística sobre `channel_metrics`/histórico de engajamento, sem LLM**; entra aqui só por ser vendida como "IA" |
 
 Todos passam por: (a) checagem de créditos (`ai_credits`, decremento transacional no SaaS Cloud); (b) moderação quando disponível; (c) registro em `audit_log` + usage (tokens/custo estimado) para telemetria do operador.
 
-**Como ficou na entrega:** a ordem é `plano → franquia → modelo → confirma/devolve → auditoria` — gatear antes de reservar garante que plano sem a feature nunca gaste franquia descobrindo isso. Moderação segue não implementada (o port mantém `moderate?` opcional). O registro é duplo: `audit_log` (quem gerou o quê) e `ai_grants` (quanto custou, por operação); **nenhum dos dois guarda prompt, texto gerado ou credencial**. O custo em créditos por operação: legenda 1 **por canal**, reescrita 1, hashtags 1, alt text 1, rascunho multicanal 2, plano da semana 3; `ai.bestTimes` custa **0** e nem reserva. Falha nossa — provedor fora do ar, resposta que não pôde ser lida — **devolve** a reserva em vez de confirmá-la.
+**Como ficou na entrega:** a ordem é `plano → franquia → modelo → confirma/devolve → auditoria` — gatear antes de reservar garante que plano sem a feature nunca gaste franquia descobrindo isso. Moderação segue não implementada (o port mantém `moderate?` opcional). O registro é duplo: `audit_log` (quem gerou o quê) e `ai_grants` (quanto custou, por operação); **nenhum dos dois guarda prompt, texto gerado ou credencial**. O custo em créditos por operação: legenda 1 **por canal**, reescrita 1, hashtags 1, alt text 1, rascunho multicanal 2, plano da semana 3; imagem econômica 2, imagem em qualidade final 5; `ai.bestTimes` custa **0** e nem reserva. Falha nossa — provedor fora do ar, resposta que não pôde ser lida — **devolve** a reserva em vez de confirmá-la.
 
 ### Franquia por plano (*direção do Postiz: Credits*)
 - **Self-host (`IS_SELF_HOSTED=true`):** franquia default infinita e sem cobrança por créditos (o operador usa sua própria chave configurada em `AI_API_KEY`). **Entregue:** o mecanismo roda igual e o consumo continua sendo registrado — o operador que paga a própria chave também quer saber quanto gastou.

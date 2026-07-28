@@ -8,6 +8,14 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Changed
 
+- **Geração de imagem ganha modos explícitos de custo e qualidade.** O diálogo, a API e a tool
+  MCP agora oferecem `economy` (renderização `low`, 2 créditos) e `quality` (renderização `high`,
+  5 créditos), sempre sobre o único `AI_IMAGE_MODEL` configurado. O padrão é econômico, os dois
+  custos aparecem antes do clique e trocar o modo troca também a identidade idempotente da
+  submissão. O navegador nunca envia nome de modelo ou parâmetro livre do provedor; essa tradução
+  permanece no adapter. Não há migration nem nova variável, e o rollback é conjunto entre
+  API/web com regeneração do cliente OpenAPI.
+  OpenSpec: `add-ai-image-quality-modes`.
 - **Geração de imagem compatível com endpoints atuais.** O adapter do protocolo
   `openai-compatible` deixou de enviar o parâmetro opcional
   `response_format`, rejeitado pelo endpoint atual de imagens, e continua
@@ -53,7 +61,7 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
   Home v2 ganhou um documento dedicado com opções, esforço, riscos, não-objetivos
   e decisões que precisam de aprovação antes do PR2.
 - **`ai_image`: a IA passa a produzir a imagem, não só o texto.** A `SPEC_AI §3` listava
-  `ai.image` — "prompt + tamanho → media na biblioteca", 5 créditos — e era o único item da família
+  `ai.image` — "prompt + tamanho → media na biblioteca" — e era o único item da família
   de criação que existia como nada: o port guardava um slot `generateImage` sem implementação. Um
   agendador cuja IA escreve a legenda e não produz a figura para um passo antes do trabalho, porque
   a figura é a parte que falta. OpenSpec: `add-ai-image-generation` → capacidade nova
@@ -81,7 +89,7 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
     já exigem divulgação de conteúdo sintético; sem a coluna, o produto não teria como cumprir — nem
     como responder um cliente que pergunte qual modelo produziu um material. A biblioteca marca o
     que é gerado com um selo. O prompt fica com a mídia e **nunca** entra no `audit_log`.
-  - **Idempotente desde o primeiro commit.** A cinco créditos, duplo clique é caro demais para
+  - **Idempotente desde o primeiro commit.** Uma geração paga não pode ser cobrada duas vezes por
     deixar para depois — a rota reusa o middleware `Idempotency-Key` que a API pública já tinha.
     O contrato OpenAPI declara o header e o browser preserva a mesma chave após falha ambígua,
     trocando-a apenas quando a entrada muda ou a geração conclui; replay/conflito/cobrança única
@@ -90,6 +98,8 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
     linha `media` falha, o storage recebe uma compensação best-effort; falha da limpeza nunca
     mascara o erro primário.
   - **Uma requisição, uma imagem** (`n: 1`), para o custo de uma chamada ficar previsível.
+  - **Dois modos sobre o mesmo modelo:** `economy` traduz para `low` e custa 2 créditos;
+    `quality` traduz para `high` e custa 5. O modo econômico é o padrão determinístico.
   - Superfícies: diálogo na biblioteca de mídia, a mesma ação dentro do seletor de mídia do
     composer (com a proporção da rede escolhida já pré-selecionada, que é o momento em que a pessoa
     sabe para onde a imagem vai), e a tool MCP `generate_image` sob escopo de **escrita** — gerar

@@ -53,7 +53,7 @@ export interface AiProvider {
     prompt: string;
     aspect: ImageAspect;
     /** o adapter traduz para o que o fornecedor entende; o core nunca vê pixel */
-    quality?: 'draft' | 'standard';
+    mode: ImageQualityMode;
     signal?: AbortSignal;
   }): Promise<GeneratedImage>;
   moderate?(text: string): Promise<{ flagged: boolean; categories: string[] }>;
@@ -65,6 +65,10 @@ export interface AiProvider {
  */
 export const IMAGE_ASPECTS = ['1:1', '4:5', '9:16', '16:9', '1.91:1'] as const;
 export type ImageAspect = (typeof IMAGE_ASPECTS)[number];
+
+/** escolha de produto fechada; o adapter traduz isto para o dialeto do fornecedor */
+export const IMAGE_QUALITY_MODES = ['economy', 'quality'] as const;
+export type ImageQualityMode = (typeof IMAGE_QUALITY_MODES)[number];
 
 export const isImageAspect = (v: string): v is ImageAspect =>
   (IMAGE_ASPECTS as readonly string[]).includes(v);
