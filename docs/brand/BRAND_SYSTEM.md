@@ -162,6 +162,7 @@ O padrão imutável para todo o restante do sistema: subtítulos de cards, botõ
 * **Corpo de Texto (`.body-lg` / Parágrafos):** `font-size: 14px a 16px`, `font-weight: 400`, `line-height: 1.6`, `color: var(--graphite)`.
 * **Textos de UI / Botões (`ZapButton`) / Form Labels:** `font-size: 11px, 13px ou 15px`, `font-weight: 600` (ou `700` no botão large).
 * **Metadados / Legendas / Carimbos de Tempo:** `font-size: 12px a 15px`, `font-weight: 600`, `color: var(--graphite)`.
+* **Exceção do eixo horário do calendário:** `font-size: 9px`, `line-height: 12px`, restrito aos rótulos `00:00–23:00` das grades de dia/semana; não reutilizar em metadados, botões ou conteúdo.
 
 ---
 
