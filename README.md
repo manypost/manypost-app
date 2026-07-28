@@ -181,21 +181,17 @@ um provider no [guia de integrações](docs/specs/SPEC_INTEGRATIONS.md).
 Todas as superfícies chegam aos mesmos casos de uso. HTTP adapta transporte,
 repositories adaptam persistência e providers adaptam cada rede social.
 
-```mermaid
-flowchart LR
-  Web["Next.js web"] --> API["Hono API"]
-  REST["REST clients"] --> API
-  Agents["MCP agents"] --> API
+<a href="scripts/generate-readme-architecture.py">
+  <img
+    alt="Arquitetura operacional do manypost: interfaces web, REST e MCP atravessam o core, worker, dados e providers sociais"
+    src="docs/media/manypost-architecture.png"
+    width="1280"
+  />
+</a>
 
-  API --> Core["Core use cases + ports"]
-  Core --> DB["Drizzle + PostgreSQL"]
-  Core --> Queue["pg-boss + Redis"]
-  Core --> Providers["Social providers"]
-
-  Queue --> Worker["Worker"]
-  Worker --> Core
-  Providers --> Networks["Social networks"]
-```
+<p align="center">
+  <sub>Diagrama como código, gerado com <a href="https://github.com/mingrammer/diagrams">mingrammer/diagrams</a>. Clique para ver a fonte.</sub>
+</p>
 
 | Módulo | Responsabilidade |
 | --- | --- |
