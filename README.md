@@ -1,330 +1,303 @@
-<div align="center">
-  <br />
+<h1 align="center">
   <a href="https://github.com/manypost/manypost-app">
-    <picture>
-      <img alt="manypost" src="docs/brand/logo.svg" width="280" />
-    </picture>
+    <img alt="manypost" src="docs/brand/logo.svg" width="280" />
   </a>
-  <br />
-  <p><strong>Agendador e publicador de posts para redes sociais — 100% open source</strong></p>
-  <p>
-    Alternativa self-hosted ao Buffer, Hootsuite, Hypefury e Later.<br />
-    Compositor multicanal, calendário + kanban, publicação durável com retry e rate-limit,<br />
-    aprovação de cliente por link, API REST pública e servidor MCP para agentes de IA.
-  </p>
-</div>
+</h1>
 
 <p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/Licen%C3%A7a-AGPL%203.0-7C3AED.svg" alt="Licença AGPL 3.0"></a>
-  <a href="#-community-x-cloud-a-mesma-base-de-c%C3%B3digo"><img src="https://img.shields.io/badge/C%C3%B3digo-100%25%20aberto-00C853" alt="100% open source"></a>
-  <a href="https://bun.sh"><img src="https://img.shields.io/badge/Bun-%E2%89%A51.2.0-black?logo=bun" alt="Bun"></a>
-  <a href="https://hono.dev"><img src="https://img.shields.io/badge/API-Hono-FF6F00?logo=hono" alt="Hono"></a>
-  <a href="https://nextjs.org"><img src="https://img.shields.io/badge/Web-Next.js-black?logo=next.js" alt="Next.js"></a>
-  <a href="https://orm.drizzle.team"><img src="https://img.shields.io/badge/ORM-Drizzle-C5F74F?logo=drizzle" alt="Drizzle ORM"></a>
-  <a href="docs/principal/STATUS.md"><img src="https://img.shields.io/badge/Status-Fase%201%20(MVP)-2563EB" alt="Status do projeto"></a>
+  <strong>Crie, aprove, agende e publique em todas as suas redes a partir de um só lugar.</strong>
 </p>
 
-## 📋 Índice
+<p align="center">
+  Plataforma open source de publicação multicanal para equipes, automações e agentes de IA.<br />
+  Um compositor, um calendário e uma infraestrutura confiável — da ideia ao post publicado.
+</p>
 
-- [Sobre o projeto](#-sobre-o-projeto)
-- [O que já funciona](#-o-que-já-funciona)
-- [Redes suportadas](#-redes-suportadas)
-- [Community × Cloud: a mesma base de código](#-community--cloud-a-mesma-base-de-código)
-- [Instalação](#-instalação)
-- [API pública e servidor MCP](#-api-pública-e-servidor-mcp)
-- [Estrutura do monorepo](#️-estrutura-do-monorepo)
-- [Mapa de arquitetura e manutenção](#-mapa-de-arquitetura-e-manutenção)
-- [Regras invioláveis](#-regras-invioláveis)
-- [Documentação](#-documentação)
-- [Como contribuir](#-como-contribuir)
-- [Atribuição ao Postiz e licença](#️-atribuição-ao-postiz-e-licença)
+<p align="center">
+  <a href="https://github.com/manypost/manypost-app/actions/workflows/ci.yml">
+    <img alt="CI" src="https://github.com/manypost/manypost-app/actions/workflows/ci.yml/badge.svg?branch=main" />
+  </a>
+  <a href="LICENSE">
+    <img alt="Licença AGPL-3.0" src="https://img.shields.io/badge/licen%C3%A7a-AGPL--3.0-7C3AED" />
+  </a>
+  <a href="https://bun.sh">
+    <img alt="Bun 1.3.14" src="https://img.shields.io/badge/Bun-1.3.14-111111?logo=bun" />
+  </a>
+  <a href="https://www.typescriptlang.org">
+    <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white" />
+  </a>
+  <a href="apps/web/openapi.json">
+    <img alt="OpenAPI 3.1" src="https://img.shields.io/badge/OpenAPI-3.1-6BA539?logo=openapiinitiative&logoColor=white" />
+  </a>
+  <a href="#community-e-cloud">
+    <img alt="100% open source" src="https://img.shields.io/badge/c%C3%B3digo-100%25%20aberto-00A86B" />
+  </a>
+</p>
 
-## 💡 Sobre o projeto
+<p align="center">
+  <a href="#início-rápido">Início rápido</a> ·
+  <a href="#o-que-o-manypost-entrega">Recursos</a> ·
+  <a href="#redes-e-destinos">Integrações</a> ·
+  <a href="#arquitetura">Arquitetura</a> ·
+  <a href="docs/README.md">Documentação</a> ·
+  <a href="CONTRIBUTING.md">Contribuir</a>
+</p>
 
-O **manypost** agenda e publica posts em várias redes sociais a partir de um lugar só, rodando na
-sua própria infraestrutura — três containers (app, Postgres, Redis), sem stack pesada.
+<br />
 
-**100% open source, de verdade:** todo o código da aplicação vive neste monorepo sob
-[AGPL-3.0](LICENSE) — inclusive billing, workspaces e IA operacional. Não existe repositório
-privado, edição enterprise nem feature escondida atrás de licença comercial. A diferença entre a
-instalação comunitária e o serviço gerenciado é [uma variável de ambiente](#-community--cloud-a-mesma-base-de-código),
-não uma diferença de código. → [por que essa decisão](docs/principal/DECISIONS.md#adendo-v12-2026-07-17--monorepo-único-100-open-source-estratégia-postiz)
+<a href="docs/media/manypost-calendar.mp4">
+  <img
+    alt="Demonstração do calendário multicanal do manypost"
+    src="docs/media/manypost-calendar.webp"
+    width="1280"
+  />
+</a>
 
-- **📅 Agendamento multicanal** — um compositor, N redes, com texto e configurações próprias por
-  canal, calendário (dia/semana/mês/lista) e kanban por estado. → [SPEC_FRONTEND](docs/specs/SPEC_FRONTEND.md)
-- **🧵 Threads nativas** — sequências com atraso configurável entre itens. O cursor de envio é
-  persistido: uma falha no meio retoma de onde parou e **nunca reposta** o que já foi publicado.
-  → [SPEC_QUEUE_PUBLISHING §7](docs/specs/SPEC_QUEUE_PUBLISHING.md)
-- **🤝 Aprovação de cliente sem login** — link público com validade configurável; o cliente vê o
-  preview exato e aprova com um clique (`DRAFT → SCHEDULED`). → [SPEC_API_MCP §3](docs/specs/SPEC_API_MCP.md)
-- **🤖 API REST + servidor MCP nativo** — a mesma regra de negócio servindo pessoas e máquinas.
-  Conecte um agente (Claude, Cursor) ou automação (n8n, Make). → [detalhes](#-api-pública-e-servidor-mcp)
-- **⚡ Publicação durável** — fila no próprio Postgres, retry com backoff exponencial e jitter,
-  rate-limit atômico em Redis, semáforo de concorrência por rede e scanner que recupera o que
-  ficou para trás. → [SPEC_QUEUE_PUBLISHING](docs/specs/SPEC_QUEUE_PUBLISHING.md)
-- **🔐 Segurança de ponta a ponta** — tokens de canal e segredos de webhook cifrados em repouso
-  (AES-256-GCM com AAD), rotação de refresh token com detecção de reuso, anti-SSRF em todo fetch de
-  URL do usuário. → [SPEC_DATA §5](docs/specs/SPEC_DATA.md)
-- **🚫 Nunca repostar na dúvida** — se a rede não confirma o resultado, a publicação vai para
-  `NEEDS_REVIEW` e espera um humano. Duplicar post de cliente é dano irreversível.
-  → [DECISIONS §7](docs/principal/DECISIONS.md)
+<p align="center">
+  <sub>▶ Clique na imagem para assistir à demonstração completa.</sub>
+</p>
 
-## ✅ O que já funciona
+## Visão geral
 
-O projeto está na **fase 1 (MVP)**. Cada item abaixo tem teste automatizado e/ou E2E real contra
-Postgres + Redis + worker de verdade — a lista completa, com a prova e o arquivo de código de cada
-um, está no [STATUS.md](docs/principal/STATUS.md#2-o-que-já-está-pronto-e-verificado).
+O **manypost** reúne o ciclo de conteúdo social em uma única plataforma:
+conexão de canais, criação por rede, calendário, aprovação externa, publicação
+assíncrona, recuperação de falhas e automação por API ou MCP.
 
-| Área | Estado |
-|---|---|
-| Conta e login (Clerk-only), API keys `mp_live_` com escopo, OAuth MCP `mpo_` | ✅ |
-| Conexão de canais por OAuth ou credenciais, tokens cifrados | ✅ |
-| Composer multicanal: texto por canal, mídia, threads, preview por rede | ✅ |
-| Calendário, kanban, arrastar para reagendar, retry manual | ✅ |
-| Publicação com retry, rate-limit, semáforo e recuperação | ✅ |
-| Aprovação por link público, sem login | ✅ |
-| Webhooks de saída assinados (HMAC) + eventos em tempo real (SSE) | ✅ |
-| Biblioteca de mídia com detecção real de MIME | ✅ |
-| API REST pública + servidor MCP + `/metrics` Prometheus | ✅ |
-| Billing do serviço gerenciado (desligado por padrão) | ✅ |
-| IA de criação · analytics · multi-organização | ⏳ [no backlog](docs/principal/STATUS.md#4-o-que-falta--em-ordem-sugerida-com-referências) |
+Ele foi desenhado para dois usos que compartilham a mesma regra de negócio:
 
-**Verifique você mesmo:** `bun run check` roda os dois typechecks, a suíte
-vigente, fronteiras de arquitetura e checks próprios de IA/marca. →
-[como rodar os E2E](docs/operations/development.md#e2e-http)
+- **equipes e agências** trabalham pela interface web, com previews por canal,
+  calendário, kanban, threads e aprovação de cliente sem login;
+- **desenvolvedores e agentes** operam pela API REST pública ou pelo servidor
+  MCP, com escopos, idempotência, rate limit e auditoria.
 
-## 🔌 Redes suportadas
+> [!IMPORTANT]
+> Community e Cloud usam exatamente este monorepo AGPL-3.0. Não existe edição
+> enterprise fechada nem recurso mantido em outro repositório.
 
-| Rede | Como conecta | Publica | Threads |
-|---|---|---|---|
-| **Mastodon** | OAuth por instância | texto + mídia | ✅ |
-| **Bluesky** | handle + app password | texto + imagens | ✅ |
-| **Telegram** | bot token (`/connect` no canal) | texto, foto, vídeo, álbum | ✅ |
-| **Discord** (bot) | OAuth2 + bot oficial | texto + mídia, escolha do canal | — |
-| **Discord** (webhook) | cola a URL do webhook — sem app | texto + mídia | — |
-| **LinkedIn** | OAuth (perfil de membro) | texto + até 20 imagens | ✅ comentários |
-| **X** | OAuth2 PKCE (traga sua chave) | texto, imagens, vídeo | ✅ |
-| **TikTok** | OAuth2 PKCE | vídeo e foto | — |
-| **Threads** | OAuth | texto, mídia e carrossel | ✅ |
-| **Instagram** | Instagram Login | imagem, vídeo e carrossel | — |
-| **Facebook** | OAuth + Página | texto e mídia | — |
-| **Twitch / Kick** | OAuth | chat ao vivo | — |
+## O que o manypost entrega
 
-Configurar as credenciais de cada uma, passo a passo e sem tecniquês:
-**[docs/principal/INTEGRATIONS_SETUP.md](docs/principal/INTEGRATIONS_SETUP.md)**.
-Provider sem credencial no `.env` simplesmente não aparece na tela de conexões.
-Quer adicionar uma rede? → [SPEC_INTEGRATIONS](docs/specs/SPEC_INTEGRATIONS.md) +
-[o estado dos gates de cada plataforma](docs/principal/platform-gates.md).
+<table>
+  <tr>
+    <td width="33%" valign="top">
+      <strong>Compositor multicanal</strong><br />
+      Texto global ou por rede, mídia, threads, previews e validações específicas
+      de cada destino.
+    </td>
+    <td width="33%" valign="top">
+      <strong>Calendário e kanban</strong><br />
+      Visualizações por dia, semana, mês ou lista, com drag-and-drop e estados de
+      publicação.
+    </td>
+    <td width="33%" valign="top">
+      <strong>Aprovação sem login</strong><br />
+      Compartilhe um link temporário para o cliente revisar e aprovar o conteúdo.
+    </td>
+  </tr>
+  <tr>
+    <td width="33%" valign="top">
+      <strong>Publicação durável</strong><br />
+      pg-boss, retry com backoff, rate limit, fencing, idempotência e recuperação
+      de jobs interrompidos.
+    </td>
+    <td width="33%" valign="top">
+      <strong>IA dentro do fluxo</strong><br />
+      Legendas, reescrita, hashtags, alt text, rascunhos multicanal e sugestões de
+      horário com orçamento controlado.
+    </td>
+    <td width="33%" valign="top">
+      <strong>REST + MCP nativos</strong><br />
+      OpenAPI 3.1, API keys com escopos, webhooks assinados e ferramentas para
+      agentes de IA.
+    </td>
+  </tr>
+</table>
 
-## 🔓 Community × Cloud: a mesma base de código
+### Segurança como comportamento de produto
 
-O modelo é o do [Postiz](https://github.com/gitroomhq/postiz-app): **um monorepo, tudo aberto**.
-O que separa a instalação que você roda em casa do serviço gerenciado é o valor de duas variáveis
-de ambiente — o binário é o mesmo, e você pode ligar ou desligar qualquer lado.
+- tokens de canais e segredos de webhook cifrados em repouso com AES-256-GCM;
+- isolamento multi-tenant por organização em toda operação;
+- proteção anti-SSRF com validação e pin de DNS nos fetches externos;
+- estados de publicação condicionais para impedir concorrência e jobs obsoletos;
+- resultado externo incerto vai para `NEEDS_REVIEW`, nunca para retry cego;
+- logs estruturados com request/correlation IDs, sem tokens ou conteúdo sensível.
+
+## Início rápido
+
+### Explorar o backend com Docker
+
+O ambiente local sobe API, worker, PostgreSQL e Redis e disponibiliza o
+explorador OpenAPI em **<http://localhost:3000/docs>**.
 
 ```bash
-IS_SELF_HOSTED=true   # tudo liberado, sem limite de plano
-HIDE_BILLING=true     # nenhuma tela de cobrança na interface
+git clone https://github.com/manypost/manypost-app.git
+cd manypost-app
+cp .env.example .env
+# Preencha no .env as chaves de teste do Clerk indicadas no arquivo.
+docker compose up --build
 ```
 
-| | **manypost Community** (você hospeda) | **manypost Cloud** (gerenciado) |
-|---|---|---|
-| Código | o mesmo deste repositório | o mesmo deste repositório |
-| Limites de plano | nenhum | aplicados por `PlanPolicy` |
-| Cobrança | inexistente — as rotas nem são montadas | Stripe |
-| Redes | todas, com as suas chaves (BYO-key) | todas, chaves inclusas |
-| IA | sua própria chave de provedor | franquia inclusa |
-| Custo | grátis | assinatura |
+Para conectar o provider de teste e acompanhar uma publicação completa, siga o
+guia [TESTING.md](TESTING.md).
 
-Sem `STRIPE_SECRET_KEY` não há cobrança nem bloqueio: a instalação roda liberada, e as rotas de
-billing retornam 404 porque nem chegam a existir. → [PLANS.md](docs/principal/PLANS.md) ·
-[DECISIONS §15-16](docs/principal/DECISIONS.md#adendo-v12-2026-07-17--monorepo-único-100-open-source-estratégia-postiz) ·
-[SPEC_ARCHITECTURE §5](docs/specs/SPEC_ARCHITECTURE.md)
+### Rodar a aplicação completa em desenvolvimento
 
-## 🚀 Instalação
-
-### Testar o backend em 5 minutos (só Docker)
-
-```bash
-git clone https://github.com/manypost/manypost-app.git manypost
-cd manypost
-docker compose up
-```
-
-Sobe API + worker, Postgres e Redis, aplica as migrations e abre o explorador
-em **<http://localhost:3000/docs>**. Esse compose não inicia a interface Next.js.
-O guia passo a passo — criar conta, conectar um canal de mentira e ver um post publicar — está em
-**[TESTING.md](TESTING.md)**, escrito para quem não programa.
-
-### Desenvolvimento
+Pré-requisitos: [Bun 1.3.14](https://bun.sh), PostgreSQL, Redis e credenciais de
+teste do Clerk.
 
 ```bash
 bun install --frozen-lockfile
-cp .env.example .env      # gere os segredos: openssl rand -hex 32
+cp .env.example .env
+# Configure as variáveis obrigatórias descritas no arquivo.
 docker compose up postgres redis -d
-bun run dev:all           # API em :3100 + web em :3000
+PORT=3100 bun run dev:all
 ```
 
-| Comando | O que faz |
-|---|---|
-| `bun run dev:all` | API + web juntos, com hot reload |
-| `bun run dev` / `dev:worker` / `dev:web` | cada processo isolado |
-| `bun run check` | typecheck + testes + fronteiras + lints de IA e de marca — **rode antes de todo PR** |
-| `bun run check:ci` | matriz de PR: `check` + Drizzle + build web + OpenSpec |
-| `bun run stripe:sync` | cria o catálogo de planos na sua conta Stripe (só no modo gerenciado) |
+- web: <http://localhost:3000>
+- API: <http://localhost:3100>
+- documentação OpenAPI: <http://localhost:3100/docs>
 
-Todas as variáveis estão comentadas no [`.env.example`](.env.example).
-Deploy, observabilidade e topologia: [SPEC_INFRA](docs/specs/SPEC_INFRA.md).
+O guia de desenvolvimento cobre setup, testes, debug e E2E:
+[docs/operations/development.md](docs/operations/development.md).
 
-## 🤖 API pública e servidor MCP
+## Redes e destinos
 
-As duas superfícies de máquina são fachadas sobre **os mesmos use-cases** da aplicação — nunca uma
-regra de negócio duplicada. → [SPEC_API_MCP](docs/specs/SPEC_API_MCP.md)
+O registry atual possui **16 adapters reais**. A disponibilidade na interface
+depende das credenciais da instalação e dos gates externos de cada plataforma.
 
-- **REST** com API key (`mp_live_`), escopos por chave, `Idempotency-Key` nos POST, rate-limit por
-  credencial e OpenAPI 3.1 completo. Explorador ao vivo em `/docs` da sua instância.
-- **MCP** (Model Context Protocol) por Streamable HTTP: `list_channels`, `list_posts`, `get_post`,
-  `schedule_post`, `update_post`, `cancel_post`, `upload_media_from_url` — com limite anti-loop de
-  agente e auditoria de origem em cada mutação.
-- **Postman** — coleção completa (humano, público, OAuth AS, MCP) em
-  [`postman/`](postman/README.md), regenerável com `python3 scripts/generate-postman.py`.
+| Categoria | Destinos |
+| --- | --- |
+| Redes sociais | Instagram, Facebook Pages, Threads, TikTok, X, LinkedIn, Bluesky e Mastodon |
+| Vídeo e artigos | YouTube e Dev.to |
+| Comunidades | Telegram e Discord, por OAuth ou webhook |
+| Live chat | Twitch e Kick |
 
-Em produção elas podem ganhar hosts dedicados (`api.seudominio` e `mcp.seudominio`) apontando para o
-mesmo serviço; num self-host de um domínio só, ficam em `/public/v1` e `/mcp`. A tela de
-Configurações mostra os endereços e um prompt pronto para colar no seu agente.
+Cada adapter declara limites de texto e mídia, settings próprios, classificação
+de erro e suporte a replies/threads. Veja como configurar credenciais em
+[INTEGRATIONS_SETUP.md](docs/principal/INTEGRATIONS_SETUP.md) e como adicionar
+um provider no [guia de integrações](docs/specs/SPEC_INTEGRATIONS.md).
 
-## 🏗️ Estrutura do monorepo
+## Arquitetura
 
-```text
-apps/api           Bun + Hono: REST (/v1), servidor MCP, webhooks, SSE, OpenAPI
-apps/worker        Bun: consumidores da fila (publicação, retry, scanner de zumbis)
-apps/web           Next.js + Tailwind: a interface
-packages/core      Domínio, use-cases, ports e infra compartilhada (crypto/mídia)
-packages/db        Drizzle: schema, migrations e repositórios
-packages/providers  Um diretório por rede social
-packages/contracts Tipos, schemas e o catálogo de planos — zero lógica
-packages/queue     pg-boss, rate-limiter e idempotência em Redis
-packages/config    Validação tipada do ambiente (falha rápido no boot)
-docs/              Toda a documentação — specs, decisões, status, marca
-postman/           Coleção Postman + environments (ver postman/README.md)
+Todas as superfícies chegam aos mesmos casos de uso. HTTP adapta transporte,
+repositories adaptam persistência e providers adaptam cada rede social.
+
+```mermaid
+flowchart LR
+  Web["Next.js web"] --> API["Hono API"]
+  REST["REST clients"] --> API
+  Agents["MCP agents"] --> API
+
+  API --> Core["Core use cases + ports"]
+  Core --> DB["Drizzle + PostgreSQL"]
+  Core --> Queue["pg-boss + Redis"]
+  Core --> Providers["Social providers"]
+
+  Queue --> Worker["Worker"]
+  Worker --> Core
+  Providers --> Networks["Social networks"]
 ```
 
-Detalhe de cada fronteira: [SPEC_ARCHITECTURE §4](docs/specs/SPEC_ARCHITECTURE.md).
+| Módulo | Responsabilidade |
+| --- | --- |
+| `apps/web` | Next.js App Router, interface e cliente OpenAPI gerado |
+| `apps/api` | Hono, auth, REST interna/pública, MCP, webhooks e OpenAPI |
+| `apps/worker` | entrada dedicada do runtime pg-boss |
+| `packages/core` | domínio, casos de uso e ports |
+| `packages/db` | Drizzle, migrations e repositories PostgreSQL |
+| `packages/providers` | adapters das redes sociais |
+| `packages/queue` | jobs, Redis, rate limit, idempotência e realtime |
+| `packages/contracts` | tipos, schemas, enums e eventos compartilhados |
 
-## 🗺 Mapa de arquitetura e manutenção
+Comece pela [arquitetura vigente](docs/architecture/README.md) e pelo
+[mapa do repositório](docs/architecture/repository-map.md). As fronteiras são
+verificadas automaticamente pelo CI.
 
-A documentação canônica do código vigente começa em
-**[docs/architecture/README.md](docs/architecture/README.md)**. O
-[mapa do repositório](docs/architecture/repository-map.md) mostra, para cada
-app/package, responsabilidade, entradas, dependências, consumidores, riscos,
-comandos e onde alterar.
+## API pública e servidor MCP
 
-Antes de contribuir, leia [`AGENTS.md`](AGENTS.md) e use o
-[workflow OpenSpec](docs/openspec.md). Os documentos históricos em
-`docs/principal/` e as specs anteriores continuam preservados, mas podem conter
-números e topologias do momento em que foram escritos.
+A API pública usa chaves `mp_live_`, escopos por credencial,
+`Idempotency-Key` nas mutações e problem+json com códigos estáveis. O contrato
+OpenAPI 3.1 fica disponível em `/openapi.json` e `/docs` de cada instância.
 
-## 🔒 Regras invioláveis
+O servidor MCP expõe operações de consulta e agendamento sobre os mesmos casos
+de uso da API. A coleção completa para desenvolvimento e integração está em
+[`postman/`](postman/README.md).
 
-Verificadas por CI em todo PR (`bun run check`):
+## Community e Cloud
 
-1. **Monorepo 100% aberto** — nenhuma dependência de código fechado; a separação Community × Cloud é
-   sempre de ambiente, nunca de código. → [DECISIONS §15](docs/principal/DECISIONS.md)
-2. **Dependência dirigida ao core** — `packages/core` não importa de `apps/*`,
-   `packages/db` ou `packages/providers`; o domínio não importa framework
-   (`dependency-cruiser`). `packages/core/src/infra` é uma exceção histórica
-   documentada. → [arquitetura](docs/architecture/README.md)
-3. **Multi-tenant** — toda operação prova escopo por organização diretamente
-   ou por pai já escopado; várias tabelas filhas não possuem `org_id`.
-   → [dados e riscos](docs/audits/2026-07-23-initial-diagnosis.md)
-4. **IA agnóstica** — nenhum provedor de IA nominal fora de `infra/ai/*`, e toda operação passa por
-   um teto de custo. → [SPEC_AI](docs/specs/SPEC_AI.md)
-5. **Segredos protegidos** — tokens cifrados com chave dedicada, nunca logados.
-6. **Derivação declarada** — trecho reconhecivelmente portado do Postiz leva
-   `// Derived from Postiz (AGPL-3.0): <arquivo>`. → [ATTRIBUTION.md](ATTRIBUTION.md)
-7. **Zero sombras na UI** — hierarquia por borda e camada de fundo, hover sem deslocamento, cores só
-   por token. → [BRAND_SYSTEM.md](docs/brand/BRAND_SYSTEM.md)
+O binário e o banco de código são os mesmos nos dois modos. A diferença é
+operacional, configurada por ambiente:
 
-## 📚 Documentação
+```bash
+IS_SELF_HOSTED=true
+HIDE_BILLING=true
+```
 
-Tudo está em **[docs/](docs/README.md)** — comece pelo índice, que roteia por perfil (quem só quer
-usar, quem vai contribuir, quem integra por API).
+| | Community | Cloud gerenciado |
+| --- | --- | --- |
+| Código | este monorepo | este monorepo |
+| Licença | AGPL-3.0 | AGPL-3.0 |
+| Limites de plano | desativados | aplicados por `PlanPolicy` |
+| Billing | rotas não montadas | Stripe |
+| Credenciais das redes | fornecidas por você | operadas pelo serviço |
+| Infraestrutura | sua | gerenciada |
 
-**Código vigente** — [arquitetura](docs/architecture/README.md) ·
-[mapa do repositório](docs/architecture/repository-map.md) ·
-[OpenSpec](docs/openspec.md) · [`AGENTS.md`](AGENTS.md) ·
-[Postman](postman/README.md)
+Sem configuração Stripe, a instalação self-hosted não cobra nem aplica limites
+comerciais. A decisão e suas implicações estão documentadas em
+[DECISIONS.md](docs/principal/DECISIONS.md) e
+[PLANS.md](docs/principal/PLANS.md).
 
-**Estado e planejamento** — [docs/principal/](docs/README.md#principal--estado-decisões-e-planejamento)
+## Desenvolvimento e qualidade
 
-| | |
-|---|---|
-| [STATUS.md](docs/principal/STATUS.md) ⭐ | o que funciona, o que falta, como verificar |
-| [CHANGELOG_ONDAS.md](docs/principal/CHANGELOG_ONDAS.md) | cada entrega, com suas provas |
-| [DECISIONS.md](docs/principal/DECISIONS.md) | decisões congeladas e o porquê de cada uma |
-| [PLANS.md](docs/principal/PLANS.md) | planos do gerenciado e gates comerciais |
-| [platform-gates.md](docs/principal/platform-gates.md) | aprovações pendentes por plataforma |
-| [INTEGRATIONS_SETUP.md](docs/principal/INTEGRATIONS_SETUP.md) | credenciais de cada rede, sem tecniquês |
-| [POSTIZ_ANALYSIS.md](docs/principal/POSTIZ_ANALYSIS.md) | a análise que fundamenta a arquitetura |
+Bun é obrigatório; o projeto não usa npm, pnpm ou Yarn.
 
-**Specs técnicas** — [docs/specs/](docs/README.md#specs--especificações-técnicas)
+```bash
+bun run check          # typechecks, testes, fronteiras, IA e identidade
+bun run db:check       # schema e migrations Drizzle
+bun run build:web      # build Next.js de produção
+bun run spec:validate  # OpenSpec estrito
+```
 
-[ARCHITECTURE](docs/specs/SPEC_ARCHITECTURE.md) ·
-[BACKEND](docs/specs/SPEC_BACKEND.md) ·
-[FRONTEND](docs/specs/SPEC_FRONTEND.md) ·
-[DATA](docs/specs/SPEC_DATA.md) ·
-[QUEUE_PUBLISHING](docs/specs/SPEC_QUEUE_PUBLISHING.md) ·
-[INTEGRATIONS](docs/specs/SPEC_INTEGRATIONS.md) ·
-[API_MCP](docs/specs/SPEC_API_MCP.md) ·
-[AI](docs/specs/SPEC_AI.md) ·
-[INFRA](docs/specs/SPEC_INFRA.md) ·
-[ROADMAP](docs/specs/SPEC_ROADMAP.md)
+Features e mudanças de comportamento seguem o fluxo
+[OpenSpec](docs/openspec.md): proposta, requisitos, design quando necessário,
+tasks test-first, validação e archive depois da implementação.
 
-**Marca e interface** — [docs/brand/](docs/README.md#brand--identidade-visual-normativo-para-ui):
-[BRAND_SYSTEM.md](docs/brand/BRAND_SYSTEM.md) (normativo para qualquer tela) ·
-[guia de adaptação](docs/brand/README.md)
+## Documentação
 
-**Na raiz:** [TESTING.md](TESTING.md) (testar sem programar) ·
-[CONTRIBUTING.md](CONTRIBUTING.md) · [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) ·
-[ATTRIBUTION.md](ATTRIBUTION.md) · [NOTICE](NOTICE) · [LICENSE](LICENSE) ·
-[AGENTS.md](AGENTS.md) (instruções canônicas para humanos e agentes) ·
-[CLAUDE.md](CLAUDE.md) (instruções legadas específicas)
+| Quero… | Começar por |
+| --- | --- |
+| testar sem conhecer a codebase | [TESTING.md](TESTING.md) |
+| instalar e desenvolver | [guia de desenvolvimento](docs/operations/development.md) |
+| entender componentes e fluxos | [arquitetura](docs/architecture/README.md) |
+| integrar via REST ou MCP | [spec de API/MCP](docs/specs/SPEC_API_MCP.md) e [Postman](postman/README.md) |
+| configurar uma rede | [guia de integrações](docs/principal/INTEGRATIONS_SETUP.md) |
+| conhecer o estado do projeto | [STATUS.md](docs/principal/STATUS.md) |
+| entender decisões técnicas | [DECISIONS.md](docs/principal/DECISIONS.md) |
+| contribuir | [CONTRIBUTING.md](CONTRIBUTING.md) e [AGENTS.md](AGENTS.md) |
 
-## 🤝 Como contribuir
+O índice completo está em [docs/README.md](docs/README.md).
 
-Toda contribuição é bem-vinda — código, documentação, tradução, um provider novo ou um bug bem
-descrito. O contrato técnico (branches, commits, `bun run check`) está em
-**[CONTRIBUTING.md](CONTRIBUTING.md)**, e a convivência em
-[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+## Contribuição e licença
 
-Bons pontos de partida: o [backlog do STATUS](docs/principal/STATUS.md#4-o-que-falta--em-ordem-sugerida-com-referências)
-lista o que ficou de fora de cada fatia entregue, com a spec de referência.
-Para adicionar uma rede social, [SPEC_INTEGRATIONS](docs/specs/SPEC_INTEGRATIONS.md) descreve o
-contrato e existe um test-kit que valida qualquer provider novo.
+Contribuições de código, documentação, traduções e novos providers são
+bem-vindas. Antes de começar, leia o [guia de contribuição](CONTRIBUTING.md), o
+[código de conduta](CODE_OF_CONDUCT.md) e as regras operacionais em
+[AGENTS.md](AGENTS.md).
 
-## ⚖️ Atribuição ao Postiz e licença
-
-O manypost é **derivado em conceito e arquitetura do [Postiz](https://github.com/gitroomhq/postiz-app)**
-(AGPL-3.0), estudado no commit `84edda5b02ea4a0aa31263a6aa52bc02b50f109f`.
-
-Não é uma cópia literal — a stack é outra (Bun/Hono/Drizzle no lugar de NestJS/Prisma) —, mas o
-contrato de provider, a taxonomia de erros, o pipeline de publicação e o modelo de dados essencial
-seguem a direção deles. Por respeito ao trabalho original e em conformidade com a licença,
-**este repositório inteiro é AGPL-3.0**. Cada elemento derivado está listado em
-[ATTRIBUTION.md](ATTRIBUTION.md) e analisado em
+O manypost é derivado em conceito e arquitetura do
+[Postiz](https://github.com/gitroomhq/postiz-app), também AGPL-3.0. A stack é
+própria, mas contratos e decisões reconhecidamente derivados são preservados e
+declarados em [ATTRIBUTION.md](ATTRIBUTION.md) e
 [POSTIZ_ANALYSIS.md](docs/principal/POSTIZ_ANALYSIS.md).
 
-Licença completa: [LICENSE](LICENSE) · avisos de terceiros: [NOTICE](NOTICE).
+Distribuído sob a [GNU Affero General Public License v3.0](LICENSE). Avisos de
+terceiros estão em [NOTICE](NOTICE).
 
 ---
 
-<div align="center">
-  <sub>
-    <a href="#-sobre-o-projeto">Topo</a> ·
-    <a href="docs/README.md">Documentação</a> ·
-    <a href="docs/principal/STATUS.md">Status</a> ·
-    <a href="TESTING.md">Testar</a> ·
-    <a href="CONTRIBUTING.md">Contribuir</a> ·
-    <a href="LICENSE">AGPL-3.0</a>
-  </sub>
-</div>
+<p align="center">
+  <a href="#visão-geral">Topo</a> ·
+  <a href="docs/README.md">Documentação</a> ·
+  <a href="docs/principal/STATUS.md">Status</a> ·
+  <a href="CHANGELOG.md">Changelog</a> ·
+  <a href="LICENSE">AGPL-3.0</a>
+</p>
