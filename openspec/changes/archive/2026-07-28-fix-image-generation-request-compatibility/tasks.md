@@ -12,5 +12,5 @@
 ## 3. Validation and staging
 
 - [x] 3.1 Run the focused adapter tests, `bun run check`, `bun run db:check`, `bun run build:web` and `git diff --check`.
-- [ ] 3.2 Commit and push the correction to the branch of PR #54, then confirm its GitHub check.
-- [ ] 3.3 Configure only the required Coolify staging variables, redeploy the exact commit and verify health, capability advertisement and a real image generation without exposing credentials.
+- [x] 3.2 Commit and push the correction to the branch of PR #54, then confirm its GitHub check.
+- [x] 3.3 Configure only the required Coolify staging variables, redeploy the exact commit and verify health, capability wiring and a real image generation without exposing credentials.
