@@ -236,6 +236,7 @@ describe('geração de imagem', () => {
     expect(enviado.size).toBe('1024x1792'); // 9:16 → retrato
     expect(enviado.model).toBe('modelo-de-imagem');
     expect(enviado.n).toBe(1); // uma requisição, uma imagem (custo previsível)
+    expect(enviado).not.toHaveProperty('response_format');
   });
 
   it('cada proporção suportada tem uma resolução própria', async () => {
