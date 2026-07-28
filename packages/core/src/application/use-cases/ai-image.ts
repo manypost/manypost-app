@@ -1,7 +1,12 @@
 import { ErrorCodes } from '@manypost/contracts';
 import { DomainError } from '../../domain/shared/result';
 import { sniffMedia } from '../../infra/media/sniff';
-import type { AiProvider, BudgetGuard, ImageAspect } from '../ports/ai-provider';
+import type {
+  AiProvider,
+  BudgetGuard,
+  ImageAspect,
+  ImageQualityMode,
+} from '../ports/ai-provider';
 import { isImageAspect } from '../ports/ai-provider';
 import type { AuditLogRepository } from '../ports/approvals';
 import type { ChannelProviderRegistry } from '../ports/channel-provider-registry';
@@ -13,7 +18,7 @@ import type { AiActor } from './ai';
 import { persistMediaBytes } from './media';
 
 /**
- * `ai_image` — "IA: gera imagem para o post" (SPEC_AI §3, plano Premium, 5 créditos).
+ * `ai_image` — "IA: gera imagem para o post" (plano Premium, 2 ou 5 créditos).
  *
  * A ordem é a mesma de toda a fatia (design D10): plano → franquia → modelo → confirma/devolve →
  * auditoria. Gatear antes de reservar garante que organização sem a feature nunca gaste franquia
@@ -32,8 +37,11 @@ import { persistMediaBytes } from './media';
  *    debitada por unidade.
  */
 
-/** custo em créditos de uma imagem (SPEC_AI §3) — classe própria, muito acima de texto */
-export const CUSTO_IMAGEM = 5;
+/** ambos ficam acima de texto; qualidade final preserva a classe histórica de 5 créditos */
+export const IMAGE_MODE_CREDITS: Record<ImageQualityMode, number> = {
+  economy: 2,
+  quality: 5,
+};
 
 export interface AiImageDeps {
   provider: AiProvider;
@@ -82,7 +90,7 @@ export const makeGenerateImage =
       /** proporção explícita; sem ela, `channelId` decide; sem os dois, 1:1 */
       aspect?: string;
       channelId?: string;
-      quality?: 'draft' | 'standard';
+      mode?: ImageQualityMode;
       /** descrição para leitor de tela, quando quem chamou já tem uma */
       alt?: string;
     },
@@ -104,15 +112,17 @@ export const makeGenerateImage =
     const generateImage = deps.provider.generateImage;
 
     const aspect = await resolverProporcao(deps, actor.orgId, input);
+    const mode = input.mode ?? 'economy';
+    const credits = IMAGE_MODE_CREDITS[mode];
 
     const media = await withBudget(
       deps.budget,
-      { orgId: actor.orgId, operation: 'ai.image', credits: CUSTO_IMAGEM },
+      { orgId: actor.orgId, operation: 'ai.image', credits },
       async () => {
         const imagem = await generateImage({
           prompt,
           aspect,
-          ...(input.quality ? { quality: input.quality } : {}),
+          mode,
         });
 
         // o `mime` declarado NÃO é confiável: quem decide é o conteúdo
@@ -157,7 +167,7 @@ export const makeGenerateImage =
         action: 'ai.image',
         targetType: 'media',
         targetId: media.id,
-        detail: { aspect },
+        detail: { aspect, mode, credits },
       })
       .catch(() => {});
 

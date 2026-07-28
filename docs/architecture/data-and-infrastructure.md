@@ -366,8 +366,10 @@ valor, mesmo de sandbox.
 
 Os adapters, BudgetGuard, casos de uso, rotas, UI e E2E de IA estão
 implementados. `AI_IMAGE_MODEL` é propositalmente separado: falar o mesmo
-protocolo não prova que `AI_MODEL` desenha. O exporter OTel permanece sem wiring
-confirmado.
+protocolo não prova que `AI_MODEL` desenha. Um único modelo atende os modos
+`economy` (`low`, 2 créditos) e `quality` (`high`, 5 créditos); não existem
+variáveis de modelo por modo nem fallback automático. O exporter OTel permanece
+sem wiring confirmado.
 
 ### Scripts locais/E2E
 

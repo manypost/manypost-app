@@ -27,6 +27,7 @@ function harness(
   } = {},
 ) {
   const orcamento = { reservado: 0, confirmado: 0, devolvido: 0 };
+  const creditos = { reservados: [] as number[], confirmados: [] as number[] };
   const guardados: Array<{ key: string; bytes: Uint8Array; mime: string }> = [];
   const criados: MediaRecord[] = [];
   const auditados: Array<Record<string, unknown>> = [];
@@ -34,12 +35,14 @@ function harness(
   const removidos: string[] = [];
 
   const budget: BudgetGuard = {
-    async reserve() {
+    async reserve(_orgId, _operation, credits) {
       orcamento.reservado++;
+      creditos.reservados.push(credits);
       return { grantId: 'g1' };
     },
-    async commit() {
+    async commit(_grantId, actual) {
       orcamento.confirmado++;
+      creditos.confirmados.push(actual.credits);
     },
     async release() {
       orcamento.devolvido++;
@@ -124,7 +127,7 @@ function harness(
     modelLabel: 'modelo-de-imagem',
   };
 
-  return { deps, orcamento, guardados, criados, auditados, pedidos, removidos };
+  return { deps, orcamento, creditos, guardados, criados, auditados, pedidos, removidos };
 }
 
 const planoQueNega = (): PlanPolicy =>
@@ -296,12 +299,39 @@ describe('os bytes são validados como bytes', () => {
 });
 
 describe('auditoria e custo', () => {
+  it('economia é o padrão determinístico e custa 2 créditos', async () => {
+    const { deps, creditos, pedidos } = harness();
+    await makeGenerateImage(deps)(ACTOR, { prompt: 'x' });
+
+    expect(pedidos[0]!.mode).toBe('economy');
+    expect(creditos.reservados).toEqual([2]);
+    expect(creditos.confirmados).toEqual([2]);
+  });
+
+  it('qualidade final custa 5 créditos', async () => {
+    const { deps, creditos, pedidos } = harness();
+    await makeGenerateImage(deps)(ACTOR, { prompt: 'x', mode: 'quality' });
+
+    expect(pedidos[0]!.mode).toBe('quality');
+    expect(creditos.reservados).toEqual([5]);
+    expect(creditos.confirmados).toEqual([5]);
+  });
+
   it('registra que gerou, sem o prompt e sem os bytes', async () => {
     const { deps, auditados } = harness();
-    await makeGenerateImage(deps)(ACTOR, { prompt: 'segredo do prompt', aspect: '1:1' });
+    await makeGenerateImage(deps)(ACTOR, {
+      prompt: 'segredo do prompt',
+      aspect: '1:1',
+      mode: 'quality',
+    });
     await Promise.resolve();
 
-    expect(auditados[0]).toMatchObject({ orgId: 'org-1', actorId: 'user-1', action: 'ai.image' });
+    expect(auditados[0]).toMatchObject({
+      orgId: 'org-1',
+      actorId: 'user-1',
+      action: 'ai.image',
+      detail: { aspect: '1:1', mode: 'quality', credits: 5 },
+    });
     expect(JSON.stringify(auditados[0])).not.toContain('segredo do prompt');
     expect(JSON.stringify(auditados[0])).not.toContain('PNG');
   });

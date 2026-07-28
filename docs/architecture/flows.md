@@ -243,15 +243,17 @@ com casos de fronteira/DST na integração real do repository.
    pessoa decidir antes de substituir o editor.
 4. Legendas/rascunhos multicanal continuam aplicando o limite determinístico
    depois do modelo e preservam uma variante por canal.
-5. Geração de imagem pede proporção agnóstica. O adapter normaliza os bytes com
-   `sharp` para a razão exata, dentro do teto de 8192×8192, e o caso de uso
-   valida magic bytes/tamanho antes de persistir no storage.
+5. Geração de imagem pede proporção e modo agnósticos. `economy` reserva 2
+   créditos e vira `low` somente no adapter; `quality` reserva 5 e vira `high`.
+   Omitir o modo escolhe economia. O adapter normaliza os bytes com `sharp`
+   para a razão exata, dentro do teto de 8192×8192, e o caso de uso valida
+   magic bytes/tamanho antes de persistir no storage.
 6. O upload é seguido pela criação da metadata com proveniência. Falha nessa
    segunda etapa remove o objeto em compensação best-effort e preserva o erro
    primário.
 7. A rota de imagem exige `Idempotency-Key`. O browser reutiliza a chave após
-   falha ambígua da mesma entrada e só a troca quando prompt/proporção/canal
-   mudam ou uma resposta é concluída com sucesso.
+   falha ambígua da mesma entrada e só a troca quando prompt/proporção/canal/
+   modo mudam ou uma resposta é concluída com sucesso.
 
 Auditoria e ledger registram ator, operação, custo e contagem de tokens, nunca
 prompt, conteúdo gerado, bytes ou credencial. Redis ausente mantém a política

@@ -172,7 +172,7 @@ export function makeChatCompletionsProvider(
            * parâmetros opcionais que endpoints atuais rejeitam. Depois traduzimos a forma nativa
            * para a proporção exata prometida pelo port.
            */
-          async generateImage({ prompt, aspect, quality, signal }) {
+          async generateImage({ prompt, aspect, mode = 'economy', signal }) {
             const { size } = RESOLUCAO_POR_PROPORCAO[aspect];
             const raw = await postJson(
               config,
@@ -183,7 +183,7 @@ export function makeChatCompletionsProvider(
                 prompt,
                 size,
                 n: 1,
-                ...(quality ? { quality: quality === 'draft' ? 'low' : 'standard' } : {}),
+                quality: mode === 'economy' ? 'low' : 'high',
               },
               authHeaders(config.apiKey, (key) => ({ authorization: `Bearer ${key}` })),
               signal,

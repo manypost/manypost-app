@@ -2563,7 +2563,7 @@ export type paths = {
         put?: never;
         /**
          * Gera uma imagem e guarda na biblioteca de mídia
-         * @description Requer a feature `ai_image` (plano Premium) **e** um provedor que gere imagem; sem essa capacidade responde 501 `ai.capability_unavailable`. Custa 5 créditos — uma requisição, uma imagem. A forma pedida é **proporção**, nunca resolução: quem traduz é o adapter. Os bytes devolvidos pelo provedor são validados por assinatura de arquivo (o `content-type` declarado não é confiável) e entram na biblioteca marcados como gerados, com o prompt e o modelo. Aceita `Idempotency-Key`: a cinco créditos, duplo clique é caro.
+         * @description Requer a feature `ai_image` (plano Premium) **e** um provedor que gere imagem; sem essa capacidade responde 501 `ai.capability_unavailable`. O modo `economy` custa 2 créditos e usa renderização baixa; `quality` custa 5 e usa alta. O padrão é `economy`. Uma requisição gera uma imagem. A forma pedida é **proporção**, nunca resolução: quem traduz é o adapter. Os bytes devolvidos pelo provedor são validados por assinatura de arquivo (o `content-type` declarado não é confiável) e entram na biblioteca marcados como gerados, com o prompt e o modelo. Aceita `Idempotency-Key`: repetir uma geração paga não pode cobrar duas vezes.
          */
         post: {
             parameters: {
@@ -2588,8 +2588,11 @@ export type paths = {
                          * @description a proporção vira a que a rede deste canal trata melhor no feed
                          */
                         channelId?: string;
-                        /** @enum {string} */
-                        quality?: "draft" | "standard";
+                        /**
+                         * @description economy = 2 créditos/low; quality = 5 créditos/high; padrão economy
+                         * @enum {string}
+                         */
+                        mode?: "economy" | "quality";
                         /** @description descrição para leitor de tela */
                         alt?: string;
                     };

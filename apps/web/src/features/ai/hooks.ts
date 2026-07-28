@@ -203,6 +203,23 @@ export const ASPECTOS = [
 
 export type AspectId = (typeof ASPECTOS)[number]['id'];
 
+export const IMAGE_MODE_OPTIONS = [
+  {
+    id: 'economy',
+    credits: 2,
+    labelKey: 'imageModeEconomy',
+    descriptionKey: 'imageModeEconomyDescription',
+  },
+  {
+    id: 'quality',
+    credits: 5,
+    labelKey: 'imageModeQuality',
+    descriptionKey: 'imageModeQualityDescription',
+  },
+] as const;
+
+export type ImageModeId = (typeof IMAGE_MODE_OPTIONS)[number]['id'];
+
 export interface GeneratedMedia {
   id: string;
   url: string;
@@ -217,6 +234,7 @@ export interface GenerateImageInput {
   prompt: string;
   aspect?: AspectId;
   channelId?: string;
+  mode?: ImageModeId;
   alt?: string;
 }
 
@@ -225,6 +243,7 @@ const imageRequestFingerprint = (input: GenerateImageInput) =>
     input.prompt.trim(),
     input.aspect ?? null,
     input.channelId ?? null,
+    input.mode ?? null,
     input.alt?.trim() || null,
   ]);
 
@@ -264,7 +283,7 @@ export const imageGenerationRequest = (
 });
 
 /**
- * Geração de imagem (`ai_image`, Premium — 5 créditos).
+ * Geração de imagem (`ai_image`, Premium — 2 créditos em economia, 5 em qualidade).
  *
  * Invalida a biblioteca de mídia junto com a franquia: a imagem nasce lá dentro, e a lista
  * precisa mostrá-la sem um F5.
