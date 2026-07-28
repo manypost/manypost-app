@@ -282,7 +282,7 @@ export function CalendarView() {
       <div className="flex min-w-0 flex-1 flex-col gap-4">
         {/* toolbar */}
         {/* toolbar responsiva com abas padronizadas */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <div className="flex items-center justify-between gap-2 w-full sm:w-auto">
             {view !== 'lista' ? (
               <div className="flex items-center gap-1">
@@ -297,26 +297,26 @@ export function CalendarView() {
                 </Button>
               </div>
             ) : null}
-            <span className="text-sm font-semibold capitalize text-ink sm:ml-2 truncate max-w-[200px] sm:max-w-none">{periodLabel}</span>
+            <span className="max-w-[200px] truncate text-compact font-semibold capitalize text-ink sm:ml-2 sm:max-w-none">{periodLabel}</span>
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto sm:ml-auto">
             {view === 'lista' ? (
               <Tabs value={listFilter} onValueChange={(v) => setParams({ estado: v === 'todos' ? null : v })} className="w-full sm:w-auto">
-                <TabsList className="grid w-full grid-cols-4 sm:flex sm:w-auto h-11 sm:h-10 p-1">
-                  <TabsTrigger value="todos" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-compact font-semibold truncate">{t('filter.all')}</TabsTrigger>
-                  <TabsTrigger value="agendados" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-compact font-semibold truncate">{t('filter.scheduled')}</TabsTrigger>
-                  <TabsTrigger value="rascunhos" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-compact font-semibold truncate">{t('filter.drafts')}</TabsTrigger>
-                  <TabsTrigger value="publicados" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-compact font-semibold truncate">{t('filter.published')}</TabsTrigger>
+                <TabsList className="grid h-9 w-full grid-cols-4 p-0.5 sm:flex sm:h-8 sm:w-auto">
+                  <TabsTrigger value="todos" className="truncate px-2 py-1 text-meta font-semibold sm:px-2.5">{t('filter.all')}</TabsTrigger>
+                  <TabsTrigger value="agendados" className="truncate px-2 py-1 text-meta font-semibold sm:px-2.5">{t('filter.scheduled')}</TabsTrigger>
+                  <TabsTrigger value="rascunhos" className="truncate px-2 py-1 text-meta font-semibold sm:px-2.5">{t('filter.drafts')}</TabsTrigger>
+                  <TabsTrigger value="publicados" className="truncate px-2 py-1 text-meta font-semibold sm:px-2.5">{t('filter.published')}</TabsTrigger>
                 </TabsList>
               </Tabs>
             ) : null}
             <Tabs value={view} onValueChange={(v) => setParams({ visao: v === 'semana' ? null : v })} className="w-full sm:w-auto">
-              <TabsList className="grid w-full grid-cols-4 sm:flex sm:w-auto h-11 sm:h-10 p-1">
-                <TabsTrigger value="dia" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-compact font-semibold truncate">{t('viewDay')}</TabsTrigger>
-                <TabsTrigger value="semana" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-compact font-semibold truncate">{t('viewWeek')}</TabsTrigger>
-                <TabsTrigger value="mes" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-compact font-semibold truncate">{t('viewMonth')}</TabsTrigger>
-                <TabsTrigger value="lista" className="px-2.5 sm:px-3 py-1.5 text-xs sm:text-compact font-semibold truncate">{t('viewList')}</TabsTrigger>
+              <TabsList className="grid h-9 w-full grid-cols-4 p-0.5 sm:flex sm:h-8 sm:w-auto">
+                <TabsTrigger value="dia" className="truncate px-2 py-1 text-meta font-semibold sm:px-2.5">{t('viewDay')}</TabsTrigger>
+                <TabsTrigger value="semana" className="truncate px-2 py-1 text-meta font-semibold sm:px-2.5">{t('viewWeek')}</TabsTrigger>
+                <TabsTrigger value="mes" className="truncate px-2 py-1 text-meta font-semibold sm:px-2.5">{t('viewMonth')}</TabsTrigger>
+                <TabsTrigger value="lista" className="truncate px-2 py-1 text-meta font-semibold sm:px-2.5">{t('viewList')}</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -413,7 +413,7 @@ function ListView({
   if (items.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-line bg-surface-2 px-6 py-12 text-center">
-        <p className="text-sm leading-relaxed text-graphite">{t('empty')}</p>
+        <p className="text-compact leading-relaxed text-graphite">{t('empty')}</p>
         <Button size="sm" className="mt-4" onClick={() => openComposer()}>
           {t('newPost')}
         </Button>
@@ -436,7 +436,7 @@ function ListView({
     <div className="flex flex-col gap-6">
       {[...groups.entries()].map(([key, dayItems]) => (
         <section key={key} aria-label={key} className="flex flex-col gap-2">
-          <h2 className="text-center text-sm font-semibold capitalize text-graphite">
+          <h2 className="text-center text-compact font-semibold capitalize text-graphite">
             {key === 'sem-data'
               ? t('noDate')
               : key === todayKey
@@ -474,7 +474,7 @@ function ListView({
                           />
                         ) : null}
                       </span>
-                      <span className="font-semibold text-xs text-ink sm:hidden">{item.channel.name}</span>
+                      <span className="text-meta font-semibold text-ink sm:hidden">{item.channel.name}</span>
                     </div>
 
                     <div className="flex shrink-0 items-center gap-1.5 sm:hidden">
@@ -484,15 +484,15 @@ function ListView({
                       <Badge variant={stateBadgeVariant(item.state)} className="text-axis px-1.5 py-0">
                         {t.has(`state.${item.state}`) ? t(`state.${item.state}`) : item.state}
                       </Badge>
-                      <span className="text-xs font-semibold tabular-nums text-ink ml-1">
+                      <span className="ml-1 text-meta font-semibold tabular-nums text-ink">
                         {item.publishAt ? timeLabel.format(new Date(item.publishAt)) : '—'}
                       </span>
                     </div>
                   </div>
 
                   <span className="min-w-0 flex-1 w-full sm:w-auto">
-                    <span className="block text-sm font-medium text-ink line-clamp-2 sm:truncate sm:font-normal">{item.text}</span>
-                    <span className="mt-1 sm:mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-graphite">
+                    <span className="block line-clamp-2 text-compact font-medium text-ink sm:truncate sm:font-normal">{item.text}</span>
+                    <span className="mt-1 flex flex-wrap items-center gap-x-2 text-meta text-graphite sm:mt-0.5">
                       <span className="hidden sm:inline truncate">{item.channel.name}</span>
                       {item.mediaCount > 0 ? <span>{t('media', { count: item.mediaCount })}</span> : null}
                       {item.state === 'FAILED' && item.errorMessage ? (
