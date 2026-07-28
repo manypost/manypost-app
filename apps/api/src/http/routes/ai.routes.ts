@@ -438,7 +438,7 @@ export function aiRoutes(ctn: Container) {
   });
   app.post('/image', idempotency(ctn.runtime.idempotency), async (c) => {
     const body = ImageBody.parse(await c.req.json());
-    const { media } = await requireAi().image(actor(c), {
+    const { media } = await ctn.aiImage.generate(actor(c), {
       prompt: body.prompt,
       ...(body.aspect ? { aspect: body.aspect } : {}),
       ...(body.channelId ? { channelId: body.channelId } : {}),

@@ -2,9 +2,9 @@ import { ErrorCodes } from '@manypost/contracts';
 import { DomainError } from '../../domain/shared/result';
 import { sniffMedia } from '../../infra/media/sniff';
 import type {
-  AiProvider,
   BudgetGuard,
   ImageAspect,
+  ImageGenerationProvider,
   ImageQualityMode,
 } from '../ports/ai-provider';
 import { isImageAspect } from '../ports/ai-provider';
@@ -44,7 +44,7 @@ export const IMAGE_MODE_CREDITS: Record<ImageQualityMode, number> = {
 };
 
 export interface AiImageDeps {
-  provider: AiProvider;
+  provider: ImageGenerationProvider | null;
   budget: BudgetGuard;
   plan: PlanPolicy;
   media: MediaRepository;
@@ -103,7 +103,7 @@ export const makeGenerateImage =
     }
 
     // gerar imagem é capacidade OPCIONAL do adapter: recusar é melhor que devolver um texto
-    if (!deps.provider.generateImage) {
+    if (!deps.provider) {
       throw new DomainError(
         ErrorCodes.AiCapabilityUnavailable,
         'O provedor configurado nesta instalação não gera imagens.',

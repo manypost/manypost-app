@@ -13,7 +13,7 @@
 > | `ai.captionFromBrief`, `ai.rewrite`, `ai.hashtags`, `ai.altText` (§3) | ✅ entregue (feature `ai_caption`, plano Pro) | `use-cases/ai.ts`, `POST /v1/ai/*` |
 > | `ai.bestTimes` (§3) | ✅ entregue como **heurística sem LLM e sem custo de franquia**, com `confidence`/`sampleSize` | `use-cases/ai-best-times.ts` |
 > | Rascunho multicanal e calendário da semana | ✅ entregue (features `ai_multichannel_draft`, `ai_calendar`, plano Premium) | idem |
-> | `ai.image` (§3) | ❌ não entregue — o port guarda o slot `generateImage`, sem implementação | — |
+> | `ai.image` (§3) | ✅ entregue — port/fábrica independentes, modos economy/quality e mídia persistida | `use-cases/ai-image.ts`, `infra/ai/image-generations.ts` |
 > | **IA operacional (§4)**: inbox, triagem, relatórios de campanha, alertas de engajamento | ❌ **bloqueado por INGESTÃO, não por IA** | ver abaixo |
 >
 > As quatro features de IA operacional (`ai_inbox`, `ai_triage`, `ai_campaign_reports`, `ai_engagement_alerts`) dependem de dado que a plataforma **ainda não coleta**: nenhum provider lê comentário ou DM (o evento `mention.received` do §4.1 não existe), e `channel_metrics` está vazia porque nada escreve nela. Enquanto essas duas ingestões não existirem, ligar essas features produziria resposta inventada — por isso elas continuam gateadas no catálogo e sem implementação. Os critérios de aceite do §5 estão cobertos por teste; o §5.3 (dez gerações simultâneas não furam a franquia) roda contra Postgres real em `packages/db/src/repositories/ai-credits.repo.integration.test.ts`, e a fatia inteira em `scripts/e2e-ai.ts`.
@@ -34,13 +34,23 @@
 interface AiProvider {
   generateText(req: { system: string; prompt: string; maxTokens: number;
                       temperature?: number }): Promise<{ text: string; usage: TokenUsage }>;
-  generateImage?(req: { prompt: string; size: ImageSize }): Promise<{ url: string; usage: ImageUsage }>;
   moderate?(text: string): Promise<{ flagged: boolean; categories: string[] }>;
+}
+
+interface ImageGenerationProvider {
+  generateImage(req: { prompt: string; aspect: ImageAspect;
+                       mode: ImageQualityMode }): Promise<GeneratedImage>;
 }
 ```
 
 - Adapter configurado por env: `AI_PROVIDER=openai-compatible | anthropic | none` + `AI_BASE_URL`/`AI_API_KEY`/`AI_MODEL`. `openai-compatible` cobre a maioria dos gateways e modelos locais (Ollama/vLLM) — essencial para self-host. `none` desliga toda a IA com UI degradando graciosamente (botões somem — capacidade vem de `GET /v1/capabilities`). **Entregue com três ajustes ao texto original:** (a) `AI_BASE_URL` e `AI_MODEL` são obrigatórias quando o protocolo é selecionado (boot falha fechado nomeando a que falta), mas **`AI_API_KEY` é opcional** — runtime local não pede credencial, e exigir uma forçaria todo self-hoster a inventar um valor; (b) `AI_TIMEOUT_MS` e `AI_MAX_OUTPUT_TOKENS` limitam tempo e custo de cada chamada; (c) `AI_BASE_URL` **não** passa pelo classificador anti-SSRF, de propósito: é configuração do operador, e o self-host legítimo aponta para endereço privado (registrado como decisão em `openspec/changes/add-ai-content-assistance/design.md` D3). Exemplos prontos de seis provedores estão no `.env.example`.
 - **Descrever imagem é capacidade opcional do adapter** (`describeImage`): sem modelo com visão, o alt text recusa com `ai.capability_unavailable` (501) em vez de descrever pelo nome do arquivo. `GET /v1/capabilities` expõe `ai.canDescribeImages` para a UI sumir com o botão.
+- **Gerar imagem usa port e fábrica próprios.** `AI_IMAGE_PROVIDER`,
+  `AI_IMAGE_BASE_URL`, `AI_IMAGE_API_KEY` e `AI_IMAGE_MODEL` permitem trocar um endpoint
+  OpenAI-compatible sem tocar no provider de texto nem no código. `AI_IMAGE_MODEL` sozinho herda a
+  conexão completa de texto por compatibilidade; provider de imagem explícito nunca herda endpoint
+  ou chave. `none` desliga somente imagens. Um protocolo nativo novo fica restrito a um adapter e
+  ao registro na fábrica.
 - Nome de modelo/provedor jamais hard-coded em use-case, prompt ou frontend (grep no CI: `openai|anthropic|gpt-|claude` proibidos fora de `infra/ai/*`).
 - Prompts do núcleo versionados em `packages/core/src/application/prompts/` como templates puros testáveis (snapshot tests).
 
@@ -103,10 +113,13 @@ O **mecanismo** de teto de custo existe desde o dia 1 no monorepo; apenas os **n
 ## 5. Critérios de aceite (núcleo)
 
 1. Trocar `AI_PROVIDER` entre um provedor OpenAI-compatible local e um remoto sem mudança de código — teste com dois adapters fake.
-2. `AI_PROVIDER=none`: API responde `capability.disabled` e o composer não exibe IA.
-3. Créditos: decremento transacional; concorrência de 10 gerações simultâneas não fura a franquia (teste).
-4. Grep de provedores nominais fora de `infra/ai/*` falha o CI.
-5. Prompt de legenda respeita `maxLength` do canal em 100% dos casos de teste (com margem de 10%).
+2. Trocar `AI_IMAGE_PROVIDER`/`AI_IMAGE_BASE_URL` entre endpoints de imagem sem mudar texto, rota,
+   caso de uso ou browser; configuração explícita nunca herda a chave de texto.
+3. `AI_PROVIDER=none`: API responde `capability.disabled` e o composer não exibe IA de texto;
+   imagem permanece independente conforme `AI_IMAGE_PROVIDER`.
+4. Créditos: decremento transacional; concorrência de 10 gerações simultâneas não fura a franquia (teste).
+5. Grep de provedores nominais fora de `infra/ai/*` falha o CI.
+6. Prompt de legenda respeita `maxLength` do canal em 100% dos casos de teste (com margem de 10%).
 
 ---
 

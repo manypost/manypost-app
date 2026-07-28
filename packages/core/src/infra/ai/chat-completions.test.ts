@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import sharp from 'sharp';
 import { DomainError } from '../../domain/shared/result';
 import { makeChatCompletionsProvider } from './chat-completions';
+import { makeImageGenerationsProvider } from './image-generations';
 
 const config = {
   baseUrl: 'https://gateway.example/v1',
@@ -10,7 +11,7 @@ const config = {
   timeoutMs: 5000,
   maxOutputTokens: 500,
 };
-const imageConfig = { ...config, imageModel: 'modelo-de-imagem' };
+const imageConfig = { ...config, model: 'modelo-de-imagem' };
 
 /** dublê de fetch: guarda a última requisição e devolve o que o teste mandar */
 function fakeFetch(reply: { status?: number; body?: unknown; text?: string }) {
@@ -227,9 +228,9 @@ describe('geração de imagem', () => {
 
   it('traduz PROPORÇÃO em resolução do fornecedor — o core nunca manda pixel', async () => {
     const f = fakeFetch({ body: imagemOk });
-    const provider = makeChatCompletionsProvider(imageConfig, f);
+    const provider = makeImageGenerationsProvider(imageConfig, f);
 
-    await provider.generateImage!({ prompt: 'um gato', aspect: '9:16', mode: 'economy' });
+    await provider.generateImage({ prompt: 'um gato', aspect: '9:16', mode: 'economy' });
 
     expect(f.calls[0]!.url).toBe('https://gateway.example/v1/images/generations');
     const enviado = body(f);
@@ -243,8 +244,8 @@ describe('geração de imagem', () => {
     const vistos = new Set<string>();
     for (const aspect of ['1:1', '4:5', '9:16', '16:9', '1.91:1'] as const) {
       const f = fakeFetch({ body: imagemOk });
-      const provider = makeChatCompletionsProvider(imageConfig, f);
-      await provider.generateImage!({ prompt: 'x', aspect, mode: 'economy' });
+      const provider = makeImageGenerationsProvider(imageConfig, f);
+      await provider.generateImage({ prompt: 'x', aspect, mode: 'economy' });
       vistos.add(String(body(f).size));
     }
     // 1:1 e 4:5 podem coincidir num fornecedor sem retrato próprio, mas retrato e paisagem não
@@ -259,9 +260,9 @@ describe('geração de imagem', () => {
 
     for (const [mode, expectedQuality] of casos) {
       const f = fakeFetch({ body: imagemOk });
-      const provider = makeChatCompletionsProvider(imageConfig, f);
+      const provider = makeImageGenerationsProvider(imageConfig, f);
 
-      await provider.generateImage!({ prompt: 'x', aspect: '1:1', mode });
+      await provider.generateImage({ prompt: 'x', aspect: '1:1', mode });
 
       expect(body(f).quality).toBe(expectedQuality);
     }
@@ -269,9 +270,9 @@ describe('geração de imagem', () => {
 
   it('devolve BYTES, dimensões e o prompt revisado — nunca uma URL que expira', async () => {
     const f = fakeFetch({ body: imagemOk });
-    const provider = makeChatCompletionsProvider(imageConfig, f);
+    const provider = makeImageGenerationsProvider(imageConfig, f);
 
-    const img = await provider.generateImage!({
+    const img = await provider.generateImage({
       prompt: 'um gato',
       aspect: '1:1',
       mode: 'economy',
@@ -301,19 +302,12 @@ describe('geração de imagem', () => {
     const f = fakeFetch({
       body: { data: [{ b64_json: jpeg.toString('base64') }] },
     });
-    const provider = makeChatCompletionsProvider(imageConfig, f);
+    const provider = makeImageGenerationsProvider(imageConfig, f);
 
-    const img = await provider.generateImage!({ prompt: 'x', aspect: '1:1', mode: 'economy' });
+    const img = await provider.generateImage({ prompt: 'x', aspect: '1:1', mode: 'economy' });
 
     expect([...img.bytes.slice(0, 4)]).toEqual([0x89, 0x50, 0x4e, 0x47]);
     expect((await sharp(img.bytes).metadata()).format).toBe('png');
-  });
-
-  it('sem modelo de imagem explícito, o adapter de texto NÃO anuncia que desenha', () => {
-    const f = fakeFetch({ body: imagemOk });
-    const provider = makeChatCompletionsProvider(config, f);
-    expect(provider.generateImage).toBeUndefined();
-    expect(f.calls).toHaveLength(0);
   });
 
   it('recorta os bytes para a proporção EXATA e devolve as dimensões reais', async () => {
@@ -327,8 +321,8 @@ describe('geração de imagem', () => {
 
     for (const [aspect, [numerator, denominator]] of Object.entries(ratios)) {
       const f = fakeFetch({ body: imagemOk });
-      const provider = makeChatCompletionsProvider(imageConfig, f);
-      const result = await provider.generateImage!({
+      const provider = makeImageGenerationsProvider(imageConfig, f);
+      const result = await provider.generateImage({
         prompt: 'x',
         aspect: aspect as keyof typeof ratios,
         mode: 'economy',
@@ -345,30 +339,30 @@ describe('geração de imagem', () => {
 
   it('resposta sem imagem vira ai.invalid_response, não um objeto vazio', async () => {
     const f = fakeFetch({ body: { data: [] } });
-    const provider = makeChatCompletionsProvider(imageConfig, f);
+    const provider = makeImageGenerationsProvider(imageConfig, f);
 
     const erro = (await provider
-      .generateImage!({ prompt: 'x', aspect: '1:1', mode: 'economy' })
+      .generateImage({ prompt: 'x', aspect: '1:1', mode: 'economy' })
       .catch((e: unknown) => e)) as DomainError;
     expect(erro.code).toBe('ai.invalid_response');
   });
 
   it('base64 inválido também vira ai.invalid_response', async () => {
     const f = fakeFetch({ body: { data: [{ b64_json: '!!!nao-e-base64!!!' }] } });
-    const provider = makeChatCompletionsProvider(imageConfig, f);
+    const provider = makeImageGenerationsProvider(imageConfig, f);
 
     const erro = (await provider
-      .generateImage!({ prompt: 'x', aspect: '1:1', mode: 'economy' })
+      .generateImage({ prompt: 'x', aspect: '1:1', mode: 'economy' })
       .catch((e: unknown) => e)) as DomainError;
     expect(erro.code).toBe('ai.invalid_response');
   });
 
   it('falha do provedor não vaza chave nem endereço', async () => {
     const f = fakeFetch({ status: 500, body: { error: 'nao-e-uma-chave-real vazou' } });
-    const provider = makeChatCompletionsProvider(imageConfig, f);
+    const provider = makeImageGenerationsProvider(imageConfig, f);
 
     const erro = (await provider
-      .generateImage!({ prompt: 'x', aspect: '1:1', mode: 'economy' })
+      .generateImage({ prompt: 'x', aspect: '1:1', mode: 'economy' })
       .catch((e: unknown) => e)) as DomainError;
 
     const serializado = JSON.stringify({ m: erro.message, d: erro.detail });

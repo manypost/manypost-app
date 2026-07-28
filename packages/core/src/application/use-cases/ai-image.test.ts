@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'bun:test';
 import { DomainError } from '../../domain/shared/result';
-import type { AiProvider, BudgetGuard, GeneratedImage } from '../ports/ai-provider';
+import type {
+  BudgetGuard,
+  GeneratedImage,
+  ImageGenerationProvider,
+} from '../ports/ai-provider';
 import type { MediaRecord } from '../ports/media';
 import type { PlanPolicy } from '../ports/plan-policy';
 import type { ChannelRecord } from '../ports/publishing';
@@ -52,26 +56,22 @@ function harness(
     },
   };
 
-  const provider: AiProvider = {
-    async generateText() {
-      throw new Error('não usado');
-    },
-    ...(over.imagem === 'sem-capacidade'
-      ? {}
+  const imageOverrides = over.imagem === 'sem-capacidade' ? {} : (over.imagem ?? {});
+  const provider: ImageGenerationProvider | null =
+    over.imagem === 'sem-capacidade'
+      ? null
       : {
           async generateImage(req: Record<string, unknown>) {
             pedidos.push(req);
-            const extra = over.imagem === 'sem-capacidade' ? {} : (over.imagem ?? {});
             return {
               bytes: PNG,
               mime: 'image/png',
               width: 1024,
               height: 1024,
-              ...extra,
+              ...imageOverrides,
             } as GeneratedImage;
           },
-        }),
-  };
+        };
 
   const deps: AiImageDeps = {
     provider,

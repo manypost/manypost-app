@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import {
   aiConfigFromEnv,
   clerkConfig,
+  imageConfigFromEnv,
   loadEnv,
   machineEndpoints,
   machineHosts,
@@ -265,10 +266,113 @@ describe('IA agnóstica de provedor (SPEC_AI §2)', () => {
     const textOnly = aiConfigFromEnv(loadEnv({ ...base, ...ia }));
     expect(textOnly).not.toHaveProperty('imageModel');
 
-    const withImage = aiConfigFromEnv(
-      loadEnv({ ...base, ...ia, AI_IMAGE_MODEL: 'modelo-que-desenha' }),
+    expect(imageConfigFromEnv(loadEnv({ ...base, ...ia }))).toBeNull();
+  });
+
+  it('imagem herda a conexão completa de texto quando o provider próprio é omitido', () => {
+    const config = imageConfigFromEnv(
+      loadEnv({
+        ...base,
+        ...ia,
+        AI_API_KEY: 'chave-de-texto-herdada',
+        AI_IMAGE_MODEL: 'modelo-que-desenha',
+      }),
     );
-    expect(withImage).toMatchObject({ imageModel: 'modelo-que-desenha' });
+    expect(config).toEqual({
+      protocol: 'openai-compatible',
+      baseUrl: 'https://gateway.example/v1',
+      apiKey: 'chave-de-texto-herdada',
+      model: 'modelo-que-desenha',
+      timeoutMs: 45_000,
+    });
+  });
+
+  it('provider de imagem explícito usa endpoint e chave próprios sem alterar texto', () => {
+    const env = loadEnv({
+      ...base,
+      ...ia,
+      AI_API_KEY: 'chave-de-texto',
+      AI_IMAGE_PROVIDER: 'openai-compatible',
+      AI_IMAGE_BASE_URL: 'https://images.example/v1',
+      AI_IMAGE_API_KEY: 'chave-de-imagem',
+      AI_IMAGE_MODEL: 'modelo-que-desenha',
+    });
+
+    expect(aiConfigFromEnv(env)).toMatchObject({
+      baseUrl: 'https://gateway.example/v1',
+      apiKey: 'chave-de-texto',
+      model: 'modelo-de-teste',
+    });
+    expect(imageConfigFromEnv(env)).toEqual({
+      protocol: 'openai-compatible',
+      baseUrl: 'https://images.example/v1',
+      apiKey: 'chave-de-imagem',
+      model: 'modelo-que-desenha',
+      timeoutMs: 45_000,
+    });
+  });
+
+  it('provider de imagem explícito sem chave não herda a credencial de texto', () => {
+    const config = imageConfigFromEnv(
+      loadEnv({
+        ...base,
+        ...ia,
+        AI_API_KEY: 'chave-de-texto-nao-deve-vazar',
+        AI_IMAGE_PROVIDER: 'openai-compatible',
+        AI_IMAGE_BASE_URL: 'https://images.example/v1',
+        AI_IMAGE_MODEL: 'modelo-local',
+      }),
+    );
+    expect(config).not.toHaveProperty('apiKey');
+  });
+
+  it('AI_IMAGE_PROVIDER=none desliga só imagens', () => {
+    const env = loadEnv({
+      ...base,
+      ...ia,
+      AI_IMAGE_PROVIDER: 'none',
+      AI_IMAGE_MODEL: 'valor-antigo-pode-permanecer',
+    });
+    expect(aiConfigFromEnv(env)).not.toBeNull();
+    expect(imageConfigFromEnv(env)).toBeNull();
+  });
+
+  it.each(['AI_IMAGE_BASE_URL', 'AI_IMAGE_MODEL'])(
+    'provider de imagem explícito sem %s recusa o boot',
+    (ausente) => {
+      const source: Record<string, string | undefined> = {
+        ...base,
+        ...ia,
+        AI_IMAGE_PROVIDER: 'openai-compatible',
+        AI_IMAGE_BASE_URL: 'https://images.example/v1',
+        AI_IMAGE_MODEL: 'modelo-que-desenha',
+      };
+      delete source[ausente];
+      expect(() => loadEnv(source)).toThrow(new RegExp(ausente));
+    },
+  );
+
+  it('configuração parcial de imagem não herda a chave de texto silenciosamente', () => {
+    expect(() =>
+      loadEnv({
+        ...base,
+        ...ia,
+        AI_API_KEY: 'chave-de-texto-nao-deve-vazar',
+        AI_IMAGE_BASE_URL: 'https://images.example/v1',
+        AI_IMAGE_MODEL: 'modelo-que-desenha',
+      }),
+    ).toThrow(/AI_IMAGE_PROVIDER/);
+  });
+
+  it('herança recusa um protocolo de texto sem adapter de imagem registrado', () => {
+    expect(() =>
+      loadEnv({
+        ...base,
+        ...ia,
+        AI_PROVIDER: 'anthropic',
+        AI_IMAGE_MODEL: 'modelo-que-desenha',
+      }),
+    ).toThrow(/AI_IMAGE_PROVIDER/);
   });
 
   // fail-closed: um AI_PROVIDER sem endereço/modelo só apareceria na 1ª geração do usuário

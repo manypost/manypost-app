@@ -366,13 +366,16 @@ export function buildMcpServer(ctn: Container, principal: McpPrincipal): McpServ
       // escopo de ESCRITA mesmo sem mutar conteúdo do usuário: gerar imagem queima a franquia
       // paga da organização, e credencial só-leitura não pode gastar crédito
       if (!requireWrite()) return denyScope('write');
-      if (!ctn.ai) {
+      if (!ctn.aiImage.enabled) {
         return fail(
-          new DomainError('capability.disabled', 'Esta instalação não tem IA configurada.'),
+          new DomainError(
+            'ai.capability_unavailable',
+            'O provedor configurado nesta instalação não gera imagens.',
+          ),
         );
       }
       try {
-        const { media } = await ctn.ai.image(
+        const { media } = await ctn.aiImage.generate(
           { orgId, userId: credentialId, actorType: 'MCP' },
           {
             prompt,

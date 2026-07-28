@@ -100,7 +100,7 @@ export function capabilityRoutes(ctn: Container) {
       const plan = await ctn.plan.snapshot(orgId);
       // o saldo só é lido quando há IA: sem provedor não há franquia a mostrar, e abrir balde
       // de créditos numa instalação que nunca vai gerar nada seria escrita à toa
-      const credits = ctn.ai ? await ctn.budget.balance(orgId) : null;
+      const credits = ctn.ai || ctn.aiImage.enabled ? await ctn.budget.balance(orgId) : null;
       return c.json(
         {
           billingEnabled: Boolean(ctn.billing),
@@ -113,7 +113,7 @@ export function capabilityRoutes(ctn: Container) {
           ai: {
             enabled: Boolean(ctn.ai),
             canDescribeImages: ctn.ai?.canDescribeImages ?? false,
-            canGenerateImages: ctn.ai?.canGenerateImages ?? false,
+            canGenerateImages: ctn.aiImage.enabled,
             credits: credits
               ? { ...credits, periodEnd: credits.periodEnd.toISOString() }
               : null,

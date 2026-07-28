@@ -60,8 +60,8 @@ export function GenerateImageDialog({
   const [erro, setErro] = React.useState<string | null>(null);
   const [pronta, setPronta] = React.useState<GeneratedMedia | null>(null);
 
-  // instalação sem IA, ou com um provedor que não desenha: a ação não existe
-  if (!ai.enabled || !ai.canGenerateImages) return null;
+  // texto e imagem podem usar providers independentes; só a capacidade de desenhar importa aqui
+  if (!ai.canGenerateImages) return null;
 
   const travado = !ai.hasImage;
 
