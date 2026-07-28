@@ -95,6 +95,10 @@ depender de migration complexa, API externa ou mudança de identidade. O layout
 e o conteúdo exatos ainda precisam de aprovação antes de qualquer alteração
 significativa, conforme solicitado pelo owner.
 
+O recorte, as alternativas priorizadas e as decisões que exigem aprovação estão
+detalhados em
+[`2026-07-28-home-v2-pr2-opportunities.md`](2026-07-28-home-v2-pr2-opportunities.md).
+
 ## Itens deliberadamente não implementados neste PR
 
 - novas seções ou dados na Home;
