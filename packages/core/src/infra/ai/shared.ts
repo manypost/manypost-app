@@ -9,19 +9,18 @@
 import { ErrorCodes } from '@manypost/contracts';
 import { DomainError } from '../../domain/shared/result';
 
-export type AiAdapterConfig = {
+export type ProviderHttpConfig = {
   baseUrl: string;
   apiKey?: string;
-  model: string;
   timeoutMs: number;
-  maxOutputTokens: number;
-  /**
-   * Modelo de imagem, quando o de texto não desenha. Opcional: sem ele, a geração de imagem usa
-   * `model`. Existe porque um operador não deveria precisar de duas instalações só porque o modelo
-   * de texto que ele escolheu não produz imagem.
-   */
-  imageModel?: string;
 };
+
+export type AiAdapterConfig = ProviderHttpConfig & {
+  model: string;
+  maxOutputTokens: number;
+};
+
+export type ImageAdapterConfig = ProviderHttpConfig & { model: string };
 
 /** o mesmo `fetch` global, injetável para os testes não tocarem a rede */
 export type FetchLike = (url: string | URL | Request, init?: RequestInit) => Promise<Response>;
@@ -72,7 +71,7 @@ export const joinUrl = (base: string, path: string): string =>
  * 2xx com JSON vira DomainError classificado — o chamador nunca vê Response nem corpo cru.
  */
 export async function postJson(
-  config: AiAdapterConfig,
+  config: ProviderHttpConfig,
   fetchImpl: FetchLike,
   path: string,
   body: unknown,

@@ -358,6 +358,9 @@ valor, mesmo de sandbox.
 | `AI_BASE_URL` | obrigatório quando IA ativa | URL do endpoint do protocolo escolhido |
 | `AI_API_KEY` | opcional | segredo, nunca logar |
 | `AI_MODEL` | obrigatório quando IA ativa | identificador do modelo de texto |
+| `AI_IMAGE_PROVIDER` | opcional | `openai-compatible`; omitido herda conexão de texto, `none` desliga somente imagens |
+| `AI_IMAGE_BASE_URL` | obrigatório com provider de imagem explícito | endpoint independente de imagem |
+| `AI_IMAGE_API_KEY` | opcional | segredo independente; nunca herda a chave de texto quando o provider de imagem é explícito |
 | `AI_IMAGE_MODEL` | opcional, opt-in | modelo declarado capaz de gerar imagens; ausente desabilita `ai_image` |
 | `AI_TIMEOUT_MS` | default `45000` | timeout por chamada, entre 1s e 300s |
 | `AI_MAX_OUTPUT_TOKENS` | default `4000` | teto de saída por chamada, entre 64 e 32000 |
@@ -365,11 +368,18 @@ valor, mesmo de sandbox.
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | opcional | URL aceita no env; wiring OTel não confirmado |
 
 Os adapters, BudgetGuard, casos de uso, rotas, UI e E2E de IA estão
-implementados. `AI_IMAGE_MODEL` é propositalmente separado: falar o mesmo
-protocolo não prova que `AI_MODEL` desenha. Um único modelo atende os modos
-`economy` (`low`, 2 créditos) e `quality` (`high`, 5 créditos); não existem
-variáveis de modelo por modo nem fallback automático. O exporter OTel permanece
-sem wiring confirmado.
+implementados. Imagem usa `ImageGenerationProvider` e fábrica próprios. Trocar um endpoint
+OpenAI-compatible exige apenas o bloco `AI_IMAGE_*`; um protocolo nativo novo exige um adapter e
+seu registro na fábrica, sem alterar rota, caso de uso, metering, storage ou browser.
+
+Para compatibilidade, `AI_IMAGE_MODEL` sozinho herda protocolo, base URL e chave da conexão de
+texto. Ao definir `AI_IMAGE_PROVIDER`, a conexão passa a ser totalmente independente:
+`AI_IMAGE_BASE_URL` é obrigatória e somente `AI_IMAGE_API_KEY` pode autenticá-la. Configuração
+parcial falha no boot para impedir envio acidental da chave de texto a outro endpoint.
+`AI_IMAGE_PROVIDER=none` desliga apenas imagens. Não há fallback após falha externa.
+
+Um único modelo de imagem atende `economy` (`low`, 2 créditos) e `quality` (`high`, 5 créditos);
+não existem variáveis de modelo por modo. O exporter OTel permanece sem wiring confirmado.
 
 ### Scripts locais/E2E
 

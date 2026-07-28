@@ -233,9 +233,10 @@ com casos de fronteira/DST na integração real do repository.
 
 **Entradas:** `/v1/ai/*`, ações do composer/biblioteca e tools MCP.
 
-1. `AI_PROVIDER=none` desmonta a capacidade. Texto exige
-   `AI_BASE_URL` + `AI_MODEL`; imagem exige também o opt-in
-   `AI_IMAGE_MODEL`.
+1. Texto e imagem são capacidades independentes. `AI_PROVIDER=none` desmonta somente texto;
+   imagem usa o bloco `AI_IMAGE_*` próprio ou, por compatibilidade, herda a conexão completa de
+   texto quando apenas `AI_IMAGE_MODEL` está definido. `AI_IMAGE_PROVIDER=none` desmonta somente
+   imagem.
 2. O PlanPolicy autoriza a feature e o BudgetGuard reserva créditos numa
    operação condicional. Sucesso confirma; falha interna/provedor devolve.
 3. Prompts delimitam conteúdo do usuário como dado. Reescrita nunca corta a
