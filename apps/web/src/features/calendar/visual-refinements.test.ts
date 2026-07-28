@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
+import { cn } from '../../lib/utils';
+
 const source = (name: string) => Bun.file(new URL(name, import.meta.url)).text();
 
 describe('proporções visuais do calendário', () => {
@@ -60,9 +62,15 @@ describe('proporções visuais do calendário', () => {
     expect(hourLabels).toHaveLength(2);
     for (const label of hourLabels) {
       const classes = label[1]!.split(/\s+/);
-      expect(classes).toContain('text-calendar-hour');
+      expect(classes).toContain('calendar-hour-label');
+      expect(classes).not.toContain('text-calendar-hour');
       expect(classes).not.toContain('text-axis');
       expect(classes).not.toContain('text-meta');
     }
+
+    expect(cn('calendar-hour-label text-mist').split(/\s+/)).toEqual([
+      'calendar-hour-label',
+      'text-mist',
+    ]);
   });
 });
