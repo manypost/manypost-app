@@ -15,6 +15,8 @@ A provider's **vocabulary of sizes** is part of that vendor detail: callers SHAL
 express the shape of a requested image as an aspect ratio drawn from a closed set,
 and the adapter SHALL translate that ratio into whatever dimensions its protocol
 accepts. No use case, route, contract or interface SHALL name a pixel resolution.
+The adapter MUST omit optional request parameters that the selected protocol
+endpoint does not accept and MUST still read the endpoint's base64 image result.
 
 #### Scenario: No provider configured by default
 
@@ -47,6 +49,12 @@ accepts. No use case, route, contract or interface SHALL name a pixel resolution
 - **WHEN** an image is requested for a given aspect ratio
 - **THEN** the adapter chooses the dimensions its provider accepts
 - **AND** the ratio, not the resolution, is what crosses the port
+
+#### Scenario: Image request uses only supported parameters
+
+- **WHEN** the adapter requests one image from a protocol-compatible endpoint
+- **THEN** the outbound body omits unsupported optional response-format fields
+- **AND** the adapter reads the base64 image returned by the endpoint
 
 ### Requirement: Provider configuration fails closed at boot
 
