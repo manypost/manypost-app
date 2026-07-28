@@ -5,7 +5,7 @@ import { aiRoutes } from './ai.routes';
 
 const AUTH = { authorization: 'Bearer clerk-session' };
 
-function makeApp(over: { ai?: unknown; rateLimiter?: unknown } = {}) {
+function makeApp(over: { ai?: unknown; aiImage?: unknown; rateLimiter?: unknown } = {}) {
   const chamadas: string[] = [];
   /** o que a rota entregou ao caso de uso — é o que prova que o corpo foi traduzido certo */
   const recebidos: Record<string, unknown>[] = [];
@@ -36,6 +36,25 @@ function makeApp(over: { ai?: unknown; rateLimiter?: unknown } = {}) {
             weekPlan: async () => ({ slots: [] }),
             canDescribeImages: true,
           },
+    aiImage:
+      'aiImage' in over
+        ? over.aiImage
+        : {
+            enabled: true,
+            generate: async () => ({
+              media: {
+                id: 'media-1',
+                path: 'org-1/media-1.png',
+                mime: 'image/png',
+                byteSize: 68,
+                width: 1,
+                height: 1,
+                alt: null,
+                source: 'ai',
+              },
+            }),
+          },
+    storage: { publicUrl: (path: string) => `https://media.example/${path}` },
     bestTimes: async () => {
       chamadas.push('bestTimes');
       return {
@@ -65,6 +84,7 @@ describe('rotas de IA — autenticação', () => {
     ['post', '/alt-text'],
     ['post', '/draft'],
     ['post', '/week-plan'],
+    ['post', '/image'],
     ['get', '/best-times'],
   ])('%s %s recusa sem sessão', async (method, path) => {
     const { app } = makeApp();
@@ -98,6 +118,18 @@ describe('instalação sem IA configurada (SPEC_AI §5.2)', () => {
 
     expect(res.status).toBe(200);
     expect(chamadas).toContain('bestTimes');
+  });
+
+  it('imagem continua independente quando apenas o provider de texto está desligado', async () => {
+    const { app } = makeApp({ ai: null });
+    const res = await app.request('/image', {
+      method: 'POST',
+      headers: { ...AUTH, 'content-type': 'application/json' },
+      body: JSON.stringify({ prompt: 'um gato', mode: 'economy' }),
+    });
+
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { media: { id: string } }).media.id).toBe('media-1');
   });
 });
 

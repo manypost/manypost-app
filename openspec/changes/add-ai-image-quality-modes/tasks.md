@@ -40,3 +40,18 @@
 - [x] 4.4 Push `feat/ai-image-quality-modes`, open the second PR stacked on
   `feat/ai-fixes-home-and-image`, deploy that branch to the Coolify staging app and smoke-test
   without syncing environment secrets.
+
+## 5. Plug-and-play image provider
+
+- [x] 5.1 Add focused failing config tests for inherited image configuration, explicit independent
+  configuration, explicit disablement and incomplete-configuration boot failures.
+- [x] 5.2 Add focused failing core/container tests proving image generation depends on a dedicated
+  provider port and that text/image adapters can use different endpoints and credentials.
+- [x] 5.3 Implement `ImageGenerationProvider`, an image adapter factory and deterministic
+  `imageConfigFromEnv` resolution without leaking text credentials into explicit image config.
+- [x] 5.4 Update `.env.example`, AI/architecture documentation and `CHANGELOG.md` with precedence,
+  compatibility, security and rollback guidance.
+- [x] 5.5 Run focused tests, `bun run spec:validate`, `git diff --check`, `bun run check`,
+  `bun run db:check` and `bun run build:web`.
+- [ ] 5.6 Commit and push the PR #55 update, wait for CI, deploy the branch to Coolify staging
+  without syncing environment secrets and smoke-test the configured URL.

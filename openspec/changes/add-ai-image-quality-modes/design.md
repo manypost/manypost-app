@@ -1,10 +1,16 @@
 ## Context
 
-The parent PR introduced `/v1/ai/image`, a provider-agnostic `generateImage` port and a compact
-generation dialog. The port already had draft/standard placeholders, but the UI sent neither and
-the OpenAI-compatible adapter relied on the provider default. Current `gpt-image-2` supports
-`low`, `medium`, `high` and `auto`; the public product only needs a cheap iteration mode and a final
-asset mode.
+The parent PR introduced `/v1/ai/image`, a provider-agnostic `generateImage` capability and a
+compact generation dialog. The port already had draft/standard placeholders, but the UI sent
+neither and the OpenAI-compatible adapter relied on the provider default. Current `gpt-image-2`
+supports `low`, `medium`, `high` and `auto`; the public product only needs a cheap iteration mode
+and a final asset mode.
+
+Image generation is currently attached as an optional method of the text `AiProvider`. Its endpoint,
+credential and protocol therefore always come from `AI_PROVIDER`, `AI_BASE_URL` and `AI_API_KEY`.
+Changing the image API can unexpectedly change captions and rewrites too. It also means adding a
+native image protocol would require modifying a text adapter instead of registering an isolated
+image adapter.
 
 The change crosses the web client, generated OpenAPI contract, Hono route, core use case and
 provider adapter. Existing plan gating, organization scoping, media storage, idempotency, byte
@@ -18,12 +24,16 @@ validation and provenance remain authoritative.
 - Keep the product enum stable and provider-neutral.
 - Align the selected mode across the browser fingerprint, API validation, budget reservation,
   adapter request and audit detail.
+- Allow image and text providers to use independent protocols, endpoints and credentials.
+- Preserve the current image configuration through an explicit compatibility inheritance rule.
+- Make a new image protocol local to a provider adapter plus one factory registration.
 - Preserve the existing dialog hierarchy and Manypost brand tokens.
 
 **Non-Goals:**
 
 - Letting clients select a model or raw provider parameter.
-- Configuring multiple image model environment variables or automatic fallback.
+- Automatic runtime fallback between image providers after an upstream failure.
+- Shipping a second native image protocol in this change.
 - Editing images, adding output formats or changing aspect-ratio behavior.
 - Changing plan allowance sizes or adding database fields.
 
@@ -80,6 +90,52 @@ API_URL=http://localhost:3100 bun run --cwd apps/web generate:api
 
 No generated file is edited manually.
 
+### 7. Image generation has its own port and adapter factory
+
+Core exposes an `ImageGenerationProvider` containing only `generateImage`. `AiProvider` remains the
+text/vision port and no longer owns image generation. The image use case depends directly on the
+smaller port, and the API composition root builds text and image providers independently.
+
+`makeImageGenerationProvider` is the only protocol selection point. Initially it registers the
+`openai-compatible` image adapter. A future native protocol adds one adapter and one factory branch;
+routes, use cases, metering, storage and browser code remain unchanged.
+
+Alternative considered: construct the existing text provider and copy its optional
+`generateImage` method. That would make independent configuration possible but preserve the wrong
+coupling and make protocol additions harder to review.
+
+### 8. Image environment settings are independent with compatibility inheritance
+
+The resolved image configuration uses:
+
+- `AI_IMAGE_PROVIDER`: optional image protocol; currently `openai-compatible` or `none`;
+- `AI_IMAGE_BASE_URL`: optional independent endpoint;
+- `AI_IMAGE_API_KEY`: optional independent credential, including an explicitly empty value for
+  local runtimes without authentication;
+- `AI_IMAGE_MODEL`: the existing explicit image capability opt-in.
+
+Resolution is deterministic:
+
+1. Without `AI_IMAGE_MODEL`, image generation is disabled.
+2. With `AI_IMAGE_PROVIDER=none`, image generation is disabled even if a model is present.
+3. With an explicit non-`none` image provider, `AI_IMAGE_BASE_URL` is required and the image key
+   comes only from `AI_IMAGE_API_KEY`.
+4. When `AI_IMAGE_PROVIDER` is omitted, protocol, base URL and key inherit from the text
+   configuration. Inheritance supports only a text protocol that has a registered image adapter;
+   otherwise the installation fails closed and names `AI_IMAGE_PROVIDER`.
+
+This keeps current deployments working while making an explicit image provider fully independent.
+The API key remains optional because local OpenAI-compatible runtimes legitimately have no
+credential.
+
+Like `AI_BASE_URL`, `AI_IMAGE_BASE_URL` is trusted operator configuration and intentionally does
+not pass through the user-input SSRF classifier. Private endpoints are a legitimate self-hosted
+deployment target; the value remains server-only and is never accepted from a browser request.
+
+Alternative considered: silently inherit each missing image field independently. That can
+accidentally send an image request to a new endpoint with the text provider's secret. Explicit image
+configuration is therefore all-or-nothing for endpoint and credential ownership.
+
 ## Risks / Trade-offs
 
 - **[High quality is materially more expensive]** → default to economy and show both credit costs
@@ -92,28 +148,38 @@ No generated file is edited manually.
   idempotency fingerprint; the server also rejects same-key/different-body conflicts.
 - **[Audit detail expands]** → record only mode, aspect and credits; never prompt, bytes, key or
   credentials.
+- **[Independent endpoint accidentally receives the text credential]** → never inherit a key when
+  `AI_IMAGE_PROVIDER` is explicit; only the compatibility mode inherits the complete connection.
+- **[Configured text protocol has no image adapter]** → fail closed at boot with the missing
+  `AI_IMAGE_PROVIDER` contract instead of exposing a button that fails after reserving credits.
+- **[Existing deployment only defines `AI_IMAGE_MODEL`]** → retain whole-connection inheritance
+  when the image provider is omitted.
 
 ## Migration Plan
 
-1. Deploy API and web together; no database or environment migration is required.
-2. Confirm `AI_IMAGE_MODEL` remains `gpt-image-2` in the target environment without reading or
-   logging its credential.
-3. Smoke-test one economical generation and inspect the request/result behavior.
-4. Quality generation is opt-in and can be validated manually when accepting its external cost.
-5. Roll back by reverting this change and regenerating the web contract. Existing media and credit
-   rows remain valid.
+1. Deploy API and web together; no database migration is required.
+2. Existing deployments may keep only `AI_IMAGE_MODEL`; the resolved image connection inherits
+   the text provider unchanged.
+3. To decouple images, set the image provider, base URL, optional key and model together without
+   removing the text settings.
+4. Smoke-test one economical generation and inspect the request/result behavior.
+5. Quality generation is opt-in and can be validated manually when accepting its external cost.
+6. Roll back by removing optional image-specific settings and reverting this change. Existing media
+   and credit rows remain valid.
 
 ## Security and Observability
 
-The route validates a closed enum before entering the use case. The provider model remains
-server-side configuration. Audit detail gains only `mode` and `credits`; prompts retain their
-existing media-provenance handling and remain absent from audit logs.
+The route validates a closed enum before entering the use case. Provider endpoint, model and
+credential remain server-side configuration. Text and image credentials are never logged, copied
+to specs or returned through capabilities. Audit detail gains only `mode` and `credits`; prompts
+retain their existing media-provenance handling and remain absent from audit logs.
 
 ## Compatibility
 
 Omitted mode remains valid. The unused `draft`/`standard` values from the unmerged parent PR are
 intentionally replaced rather than supported as aliases, preventing two vocabularies from becoming
-permanent. No Railway setting, database schema or external provider fallback changes.
+permanent. Existing `AI_IMAGE_MODEL` deployments inherit their current text provider connection.
+There is no database schema or external runtime-fallback change.
 
 ## Open Questions
 

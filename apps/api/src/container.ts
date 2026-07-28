@@ -1,5 +1,4 @@
 import {
-  aiConfigFromEnv,
   clerkConfig,
   isBillingEnabled,
   mediaStorageConfigFromEnv,
@@ -26,7 +25,6 @@ import {
 } from '@manypost/db';
 import {
   AesGcmCryptoService,
-  makeAiProvider,
   makeBudgetGuard,
   makeDraftMultichannel,
   makeGenerateAltText,
@@ -89,6 +87,7 @@ import {
 import { providerRegistry } from '@manypost/providers';
 import { createPublishingRuntime } from '@manypost/queue';
 import { makeStripeGateway, type StripeGateway } from './infra/billing/stripe.gateway';
+import { makeConfiguredAiProviders } from './infra/ai/provider-composition';
 import { makeClerkIdentityVerifier } from './infra/identity/clerk.identity';
 import { createPrometheusMetrics } from './infra/metrics/prometheus';
 
@@ -233,7 +232,11 @@ export async function buildContainer(env: Env) {
   // respondem `capability.disabled`, com a UI escondendo a superfície inteira. O BudgetGuard,
   // porém, é montado sempre: o mecanismo de teto é arquitetura, não feature (DECISIONS v1 §8).
   const budget = makeBudgetGuard({ credits: repos.aiCredits, plan });
-  const aiProvider = makeAiProvider(aiConfigFromEnv(env));
+  const {
+    text: aiProvider,
+    image: imageProvider,
+    imageConfig,
+  } = makeConfiguredAiProviders(env);
   const ai = aiProvider
     ? (() => {
         const deps: AiDeps = {
@@ -253,27 +256,28 @@ export async function buildContainer(env: Env) {
           altText: makeGenerateAltText(deps),
           draft: makeDraftMultichannel(deps),
           weekPlan: makePlanWeek(deps),
-          image: makeGenerateImage({
-            provider: aiProvider,
-            budget,
-            plan,
-            media: repos.media,
-            storage,
-            channels: repos.channels,
-            registry: providerRegistry,
-            audit: repos.audit,
-            // o mesmo teto de bytes que vale para upload: imagem gerada não ganha exceção
-            imageMaxBytes: env.MEDIA_MAX_IMAGE_MB * 1024 * 1024,
-            // só rótulo de proveniência — o caso de uso não escolhe modelo
-            modelLabel: env.AI_IMAGE_MODEL ?? env.AI_MODEL ?? 'desconhecido',
-          }),
           /** o adapter vê imagem? define se o alt-text aparece na UI */
           canDescribeImages: Boolean(aiProvider.describeImage),
-          /** o adapter DESENHA? define se a geração de imagem aparece na UI */
-          canGenerateImages: Boolean(aiProvider.generateImage),
         };
       })()
     : null;
+  const aiImage = {
+    generate: makeGenerateImage({
+      provider: imageProvider,
+      budget,
+      plan,
+      media: repos.media,
+      storage,
+      channels: repos.channels,
+      registry: providerRegistry,
+      audit: repos.audit,
+      // o mesmo teto de bytes que vale para upload: imagem gerada não ganha exceção
+      imageMaxBytes: env.MEDIA_MAX_IMAGE_MB * 1024 * 1024,
+      // só rótulo de proveniência — o caso de uso não escolhe modelo
+      modelLabel: imageConfig?.model ?? 'desconhecido',
+    }),
+    enabled: Boolean(imageProvider),
+  };
 
   return {
     env,
@@ -281,6 +285,7 @@ export async function buildContainer(env: Env) {
     repos,
     budget,
     ai,
+    aiImage,
     // resumo operacional da home: contagens agregadas do nosso próprio registro (sem métrica
     // de desempenho — `channel_metrics` está vazia porque nada escreve nela)
     insights: makeSummarizeInsights({

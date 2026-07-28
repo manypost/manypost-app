@@ -10,11 +10,19 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 - **Geração de imagem ganha modos explícitos de custo e qualidade.** O diálogo, a API e a tool
   MCP agora oferecem `economy` (renderização `low`, 2 créditos) e `quality` (renderização `high`,
-  5 créditos), sempre sobre o único `AI_IMAGE_MODEL` configurado. O padrão é econômico, os dois
+  5 créditos), sempre sobre o `AI_IMAGE_MODEL` configurado. O padrão é econômico, os dois
   custos aparecem antes do clique e trocar o modo troca também a identidade idempotente da
   submissão. O navegador nunca envia nome de modelo ou parâmetro livre do provedor; essa tradução
-  permanece no adapter. Não há migration nem nova variável, e o rollback é conjunto entre
-  API/web com regeneração do cliente OpenAPI.
+  permanece no adapter.
+  - Imagens agora usam port e fábrica independentes da IA de texto. Um endpoint
+    OpenAI-compatible pode ser trocado apenas com `AI_IMAGE_PROVIDER`, `AI_IMAGE_BASE_URL`,
+    `AI_IMAGE_API_KEY` e `AI_IMAGE_MODEL`.
+  - Definir somente `AI_IMAGE_MODEL` preserva o comportamento anterior herdando a conexão completa
+    de texto. Ao declarar um provider de imagem, endpoint e chave passam a ser exclusivamente os
+    `AI_IMAGE_*`; a chave de texto nunca é copiada silenciosamente.
+  - `AI_IMAGE_PROVIDER=none` desliga só imagens, e uma instalação pode gerar imagens mesmo com
+    texto desligado. Não há migration nem fallback automático após falha externa. Rollback:
+    remover o bloco independente e reverter API/core/config/web juntos.
   OpenSpec: `add-ai-image-quality-modes`.
 - **Geração de imagem compatível com endpoints atuais.** O adapter do protocolo
   `openai-compatible` deixou de enviar o parâmetro opcional
@@ -106,6 +114,8 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
     queima a franquia paga da organização, e credencial só-leitura não pode gastar crédito.
   - `AI_IMAGE_MODEL` é o **opt-in explícito** da capacidade. Sem ela, `AI_MODEL` nunca é presumido
     como modelo de imagem e a geração permanece desabilitada.
+  - `AI_IMAGE_PROVIDER`/`AI_IMAGE_BASE_URL`/`AI_IMAGE_API_KEY` permitem uma conexão independente;
+    omitindo o provider, a conexão de texto é herdada integralmente por compatibilidade.
   - Sem provedor capaz de desenhar, `/v1/capabilities` reporta `ai.canGenerateImages: false`, a
     rota responde `capability.disabled` e a interface **esconde a ação inteira** — o mesmo padrão
     que `canDescribeImages` já usava.

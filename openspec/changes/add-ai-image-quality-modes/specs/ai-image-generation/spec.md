@@ -73,3 +73,38 @@ or arbitrary provider quality value from the browser.
 - **WHEN** a browser changes the rendering mode after a failed logical submission
 - **THEN** the changed body receives a new idempotency key
 - **AND** an unchanged retry continues to reuse its original key
+
+### Requirement: Image provider is independently replaceable
+
+The system SHALL resolve image generation through an image-specific provider port and factory,
+SHALL allow an operator to replace an OpenAI-compatible image API through environment
+configuration only, and MUST NOT expose endpoint, model or credential choices to browser callers.
+
+#### Scenario: Independent image provider configured
+
+- **WHEN** an operator configures an image protocol, base URL, optional API key and image model
+- **THEN** image generation uses that connection independently from the text provider
+- **AND** captions, rewrites and other text operations continue using their existing connection
+
+#### Scenario: Existing installation defines only an image model
+
+- **WHEN** `AI_IMAGE_MODEL` is configured and `AI_IMAGE_PROVIDER` is omitted
+- **THEN** the complete text provider protocol, base URL and optional key are inherited for images
+- **AND** the installation preserves its pre-change behavior without an environment migration
+
+#### Scenario: Explicit image provider has incomplete connection
+
+- **WHEN** an operator selects a non-disabled image protocol without its required base URL or model
+- **THEN** application boot fails closed and names the missing image-specific variable
+- **AND** no text-provider credential is silently copied into the independent connection
+
+#### Scenario: Image provider is explicitly disabled
+
+- **WHEN** `AI_IMAGE_PROVIDER=none`
+- **THEN** image generation is unavailable even if an image model value remains configured
+- **AND** text generation remains available according to its own provider configuration
+
+#### Scenario: New native image protocol is added
+
+- **WHEN** a maintainer implements the provider-neutral image port and registers its adapter
+- **THEN** existing routes, use cases, metering, storage and browser contracts require no changes

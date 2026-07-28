@@ -6,10 +6,11 @@
  * `null` = instalação sem IA (`AI_PROVIDER=none`). O composition root não monta o bundle e as
  * rotas respondem `capability.disabled` — a UI some com os botões (SPEC_AI §5.2).
  */
-import type { AiProvider } from '../../application/ports/ai-provider';
+import type { AiProvider, ImageGenerationProvider } from '../../application/ports/ai-provider';
 import { makeChatCompletionsProvider } from './chat-completions';
+import { makeImageGenerationsProvider } from './image-generations';
 import { makeMessagesProvider } from './messages';
-import type { AiAdapterConfig, FetchLike } from './shared';
+import type { AiAdapterConfig, FetchLike, ImageAdapterConfig } from './shared';
 
 export type AiProviderConfig = AiAdapterConfig & {
   protocol: 'openai-compatible' | 'anthropic';
@@ -25,4 +26,16 @@ export function makeAiProvider(
     : makeChatCompletionsProvider(config, fetchImpl);
 }
 
-export type { AiAdapterConfig, FetchLike } from './shared';
+export type ImageProviderConfig = ImageAdapterConfig & {
+  protocol: 'openai-compatible';
+};
+
+export function makeImageGenerationProvider(
+  config: ImageProviderConfig | null,
+  fetchImpl: FetchLike = fetch,
+): ImageGenerationProvider | null {
+  if (!config) return null;
+  return makeImageGenerationsProvider(config, fetchImpl);
+}
+
+export type { AiAdapterConfig, FetchLike, ImageAdapterConfig } from './shared';

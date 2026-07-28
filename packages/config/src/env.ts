@@ -164,9 +164,13 @@ const EnvSchema = z
      */
     AI_MAX_OUTPUT_TOKENS: z.coerce.number().int().min(64).max(32_000).default(4000),
     /**
-     * Opt-in explícito para geração de imagem. Sem ele, o adapter não expõe `generateImage`:
-     * falar o mesmo protocolo não prova que `AI_MODEL` sabe desenhar.
+     * Provedor de imagem independente. Ausente = modo de compatibilidade, herdando a conexão
+     * completa de texto; `none` desliga somente imagens.
      */
+    AI_IMAGE_PROVIDER: z.enum(['none', 'openai-compatible']).optional(),
+    AI_IMAGE_BASE_URL: z.string().url().optional(),
+    AI_IMAGE_API_KEY: z.string().optional(),
+    /** opt-in explícito: `AI_MODEL` nunca é presumido capaz de desenhar */
     AI_IMAGE_MODEL: z.string().optional(),
 
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
@@ -218,6 +222,43 @@ const EnvSchema = z
           message: `${nome} é obrigatória com AI_PROVIDER=${env.AI_PROVIDER}`,
         });
       }
+    }
+  })
+  // Imagens têm conexão própria. Quando o provider é explícito, endpoint e credencial nunca
+  // vazam da configuração de texto. Provider omitido é somente a compatibilidade histórica:
+  // herda a conexão inteira, desde que o protocolo tenha adapter de imagem registrado.
+  .superRefine((env, ctx) => {
+    if (env.AI_IMAGE_PROVIDER === 'none') return;
+
+    if (env.AI_IMAGE_PROVIDER === 'openai-compatible') {
+      for (const nome of ['AI_IMAGE_BASE_URL', 'AI_IMAGE_MODEL'] as const) {
+        if (!env[nome]) {
+          ctx.addIssue({
+            code: 'custom',
+            path: [nome],
+            message: `${nome} é obrigatória com AI_IMAGE_PROVIDER=${env.AI_IMAGE_PROVIDER}`,
+          });
+        }
+      }
+      return;
+    }
+
+    if (env.AI_IMAGE_BASE_URL || env.AI_IMAGE_API_KEY) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['AI_IMAGE_PROVIDER'],
+        message:
+          'AI_IMAGE_PROVIDER é obrigatória ao configurar endpoint ou credencial próprios de imagem',
+      });
+    }
+
+    if (env.AI_IMAGE_MODEL && env.AI_PROVIDER !== 'openai-compatible') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['AI_IMAGE_PROVIDER'],
+        message:
+          'AI_IMAGE_PROVIDER é obrigatória porque o protocolo de texto não tem adapter de imagem registrado',
+      });
     }
   })
   .superRefine((env, ctx) => {
@@ -372,8 +413,6 @@ export type AiConfig = {
   /** ausente = sem header de autorização (runtime local) */
   apiKey?: string;
   model: string;
-  /** presente = operador declarou um modelo capaz de gerar imagens */
-  imageModel?: string;
   timeoutMs: number;
   maxOutputTokens: number;
 };
@@ -388,7 +427,42 @@ export function aiConfigFromEnv(env: Env): AiConfig | null {
     model: env.AI_MODEL!,
     timeoutMs: env.AI_TIMEOUT_MS,
     maxOutputTokens: env.AI_MAX_OUTPUT_TOKENS,
-    ...(env.AI_IMAGE_MODEL ? { imageModel: env.AI_IMAGE_MODEL } : {}),
+  };
+}
+
+export type ImageConfig = {
+  protocol: 'openai-compatible';
+  baseUrl: string;
+  /** ausente = sem header de autorização (runtime local) */
+  apiKey?: string;
+  model: string;
+  timeoutMs: number;
+};
+
+/**
+ * Configuração de imagem resolvida. Provider explícito possui conexão inteiramente própria;
+ * provider omitido herda a conexão inteira de texto para preservar instalações existentes.
+ */
+export function imageConfigFromEnv(env: Env): ImageConfig | null {
+  if (!env.AI_IMAGE_MODEL || env.AI_IMAGE_PROVIDER === 'none') return null;
+
+  if (env.AI_IMAGE_PROVIDER === 'openai-compatible') {
+    return {
+      protocol: env.AI_IMAGE_PROVIDER,
+      baseUrl: env.AI_IMAGE_BASE_URL!,
+      ...(env.AI_IMAGE_API_KEY ? { apiKey: env.AI_IMAGE_API_KEY } : {}),
+      model: env.AI_IMAGE_MODEL,
+      timeoutMs: env.AI_TIMEOUT_MS,
+    };
+  }
+
+  // O schema garante que esta herança só existe para um protocolo com adapter registrado.
+  return {
+    protocol: 'openai-compatible',
+    baseUrl: env.AI_BASE_URL!,
+    ...(env.AI_API_KEY ? { apiKey: env.AI_API_KEY } : {}),
+    model: env.AI_IMAGE_MODEL,
+    timeoutMs: env.AI_TIMEOUT_MS,
   };
 }
 
