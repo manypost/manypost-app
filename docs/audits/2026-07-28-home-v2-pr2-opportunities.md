@@ -87,4 +87,3 @@ integração externa:
 - layout aprovado pelo owner antes da implementação;
 - testes focados, E2E visual responsivo, `bun run check` e
   `bun run build:web` aprovados.
-
