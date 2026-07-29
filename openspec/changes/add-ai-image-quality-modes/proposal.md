@@ -23,6 +23,8 @@ allowance.
 - Add a compact, accessible selector to the existing generation dialog without redesigning its
   layout.
 - Include the selected mode and charged credits in the non-sensitive audit detail.
+- Settle the audit append before exposing a successful response, so immediate consumers and
+  operational checks do not race a fire-and-forget write.
 
 ## Goals
 
@@ -59,7 +61,9 @@ None.
   adapter, adapter composition, MCP tool input, generated web client and existing dialog.
 - **Data:** no schema or migration; the existing media provenance remains unchanged.
 - **Security:** the client sends a closed mode enum, never a model name or arbitrary provider
-  parameter. Prompts and credentials remain excluded from logs and specs.
+  parameter. Prompts and credentials remain excluded from logs and specs. The audit append settles
+  before success is returned, without turning a completed paid generation into a retryable failure
+  if the audit repository itself is unavailable.
 - **Compatibility:** the optional legacy `draft` and `standard` request values introduced only on
   the still-unmerged parent PR are replaced by `economy` and `quality`. Omitting the field remains
   valid and now deterministically means `economy`.
