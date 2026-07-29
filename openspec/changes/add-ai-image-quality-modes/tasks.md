@@ -62,5 +62,5 @@
   corresponding audit append is still pending; run the focused file and record the expected RED.
 - [x] 6.2 Await the best-effort audit append before returning successful media, while preserving
   the completed generation when the audit repository rejects; rerun the focused test GREEN.
-- [ ] 6.3 Update `CHANGELOG.md`, run `bun run spec:validate`, `git diff --check`, `bun run check`,
+- [x] 6.3 Update `CHANGELOG.md`, run `bun run spec:validate`, `git diff --check`, `bun run check`,
   `bun run db:check` and `bun run build:web`, then verify the real-API AI E2E in CI.
