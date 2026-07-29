@@ -136,6 +136,21 @@ Alternative considered: silently inherit each missing image field independently.
 accidentally send an image request to a new endpoint with the text provider's secret. Explicit image
 configuration is therefore all-or-nothing for endpoint and credential ownership.
 
+### 9. The audit attempt settles before generation success returns
+
+The image use case awaits the audit append before returning successful media. The append remains
+best-effort: an audit repository failure is contained because the provider call, allowance commit,
+media storage and media record have already completed, and converting that completed operation into
+an error would invite an unsafe duplicate generation outside idempotent HTTP callers.
+
+This ordering removes a race where an immediate consumer receives HTTP 200 and queries `audit_log`
+before the corresponding row exists. It also makes the real-API E2E deterministic without polling
+or weakening its assertion.
+
+Alternative considered: keep the fire-and-forget append and make tests retry. That preserves the
+race in production and teaches the test to tolerate an observability gap instead of enforcing the
+request boundary.
+
 ## Risks / Trade-offs
 
 - **[High quality is materially more expensive]** → default to economy and show both credit costs
@@ -154,6 +169,9 @@ configuration is therefore all-or-nothing for endpoint and credential ownership.
   `AI_IMAGE_PROVIDER` contract instead of exposing a button that fails after reserving credits.
 - **[Existing deployment only defines `AI_IMAGE_MODEL`]** → retain whole-connection inheritance
   when the image provider is omitted.
+- **[Audit storage is slow or unavailable after generation completes]** → await the append attempt
+  for deterministic ordering, but contain its failure so a completed paid generation is not
+  presented as safe to retry.
 
 ## Migration Plan
 

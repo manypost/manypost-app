@@ -74,6 +74,14 @@ or arbitrary provider quality value from the browser.
 - **THEN** the changed body receives a new idempotency key
 - **AND** an unchanged retry continues to reuse its original key
 
+#### Scenario: Successful generation is audited before the response is observable
+
+- **WHEN** image generation, media persistence and allowance confirmation succeed
+- **THEN** the non-sensitive audit append attempt settles before the successful response returns
+- **AND** an immediate audit reader does not race a still-pending append
+- **AND** an audit repository failure does not turn the already-completed paid generation into an
+  error that invites a duplicate request
+
 ### Requirement: Image provider is independently replaceable
 
 The system SHALL resolve image generation through an image-specific provider port and factory,

@@ -28,6 +28,7 @@ function harness(
     imageMaxBytes?: number;
     mediaCreateError?: Error;
     storageDeleteError?: Error;
+    auditAppend?: (event: Record<string, unknown>) => Promise<void>;
   } = {},
 ) {
   const orcamento = { reservado: 0, confirmado: 0, devolvido: 0 };
@@ -120,6 +121,7 @@ function harness(
     registry: { get: () => undefined, list: () => [] } as unknown as AiImageDeps['registry'],
     audit: {
       async append(e: Record<string, unknown>) {
+        if (over.auditAppend) return over.auditAppend(e);
         auditados.push(e);
       },
     } as unknown as AiImageDeps['audit'],
@@ -299,6 +301,50 @@ describe('os bytes são validados como bytes', () => {
 });
 
 describe('auditoria e custo', () => {
+  it('não conclui a geração enquanto a auditoria correspondente ainda está pendente', async () => {
+    let iniciarAuditoria!: () => void;
+    let concluirAuditoria!: () => void;
+    const auditoriaIniciada = new Promise<void>((resolve) => {
+      iniciarAuditoria = resolve;
+    });
+    const auditoriaPendente = new Promise<void>((resolve) => {
+      concluirAuditoria = resolve;
+    });
+    const { deps } = harness({
+      auditAppend: async () => {
+        iniciarAuditoria();
+        await auditoriaPendente;
+      },
+    });
+    let respondeu = false;
+
+    const geracao = makeGenerateImage(deps)(ACTOR, { prompt: 'x' }).then(() => {
+      respondeu = true;
+    });
+
+    await auditoriaIniciada;
+    await Promise.resolve();
+    expect(respondeu).toBe(false);
+
+    concluirAuditoria();
+    await geracao;
+    expect(respondeu).toBe(true);
+  });
+
+  it('falha da auditoria não transforma a geração já concluída em erro retentável', async () => {
+    const { deps, criados, creditos } = harness({
+      auditAppend: async () => {
+        throw new Error('audit_log indisponível');
+      },
+    });
+
+    const { media } = await makeGenerateImage(deps)(ACTOR, { prompt: 'x', mode: 'quality' });
+
+    expect(media.id).toBe('m-1');
+    expect(criados).toHaveLength(1);
+    expect(creditos.confirmados).toEqual([5]);
+  });
+
   it('economia é o padrão determinístico e custa 2 créditos', async () => {
     const { deps, creditos, pedidos } = harness();
     await makeGenerateImage(deps)(ACTOR, { prompt: 'x' });
