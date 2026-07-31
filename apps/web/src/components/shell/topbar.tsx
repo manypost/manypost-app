@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, CalendarDays, CreditCard, House, Image as ImageIcon, LogOut, Menu, PenSquare, Plug, Settings, SquareKanban } from 'lucide-react';
+import { Bell, CalendarDays, CreditCard, House, Image as ImageIcon, LogOut, Menu, PenSquare, Plug, Search, Settings, SquareKanban } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -20,6 +20,7 @@ import { useLogout, useMe } from '@/features/auth/hooks';
 import { usePlanFeatures } from '@/features/billing/hooks';
 import { useComposerModal } from '@/features/composer/use-composer-modal';
 import { NotificationsMenu } from '@/features/notifications/notifications-menu';
+import { useCommandPalette } from '@/features/search/hooks';
 
 const MOBILE_NAV = [
   { href: '/inicio', key: 'home', icon: House },
@@ -49,6 +50,7 @@ export function Topbar() {
   const { data: me, isPending } = useMe();
   const logout = useLogout();
   const openComposer = useComposerModal((s) => s.openComposer);
+  const abrirPaleta = useCommandPalette((s) => s.abrir);
   const title = TITLE_BY_PATH.find(({ prefix }) => pathname.startsWith(prefix));
   const { billingEnabled } = usePlanFeatures();
   const mobileNav = billingEnabled
@@ -95,6 +97,27 @@ export function Topbar() {
       </p>
 
       <div className="flex items-center gap-2">
+      {/* atalho invisível é atalho inexistente: o gatilho é o que ensina o ⌘K */}
+      <button
+        type="button"
+        onClick={abrirPaleta}
+        aria-label={t('commandPalette.open')}
+        className="inset-field hidden cursor-pointer items-center gap-2 rounded-md border px-2.5 py-1.5 text-meta text-graphite outline-none transition-colors duration-200 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:flex"
+      >
+        <Search className="size-3.5" aria-hidden />
+        <span>{t('commandPalette.open')}</span>
+        <kbd className="ml-2 rounded-sm border border-line bg-surface px-1.5 py-0.5 text-axis font-semibold">
+          ⌘K
+        </kbd>
+      </button>
+      <button
+        type="button"
+        onClick={abrirPaleta}
+        aria-label={t('commandPalette.open')}
+        className="grid size-8 cursor-pointer place-items-center rounded-sm text-graphite outline-none transition-colors duration-200 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:hidden"
+      >
+        <Search className="size-4" aria-hidden />
+      </button>
       <NotificationsMenu />
       {isPending ? (
         <Skeleton className="size-8 rounded-full" />

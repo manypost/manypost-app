@@ -1,3 +1,4 @@
+import type { components } from '@/lib/api/schema';
 import type { InsightsSummary } from './hooks';
 
 /**
@@ -121,3 +122,290 @@ export const primeiroNome = (nome: string | null | undefined): string | null => 
   if (!limpo) return null;
   return limpo.split(/\s+/)[0] ?? null;
 };
+
+// ---------------------------------------------------------------------------
+// Home v2 — SPEC home-operational-overview (mudança `add-home-operational-blocks`)
+// ---------------------------------------------------------------------------
+
+export type FeedItem = components['schemas']['FeedItem'];
+
+/** publicação em estado TERMINAL: o desfecho já aconteceu, é isso que vira atividade */
+const TERMINAIS = new Set(['PUBLISHED', 'FAILED', 'CANCELLED', 'NEEDS_REVIEW']);
+
+const MAX_ATIVIDADE = 8;
+const JANELA_ATIVIDADE_MS = 7 * 24 * 60 * 60 * 1000;
+const MAX_PROXIMAS = 5;
+const MAX_RASCUNHOS = 4;
+/** semana com este tanto de dias vazios já é um buraco de agenda, não uma folga */
+const DIAS_VAZIOS_PREOCUPANTES = 4;
+
+// --- rascunho local do composer ------------------------------------------------
+
+export interface RascunhoLocal {
+  texto: string;
+  /** epoch ms da última edição de conteúdo */
+  atualizadoEm: number;
+}
+
+/**
+ * O rascunho que a pessoa deixou pela metade no composer.
+ *
+ * `contentUpdatedAt === 0` é descartado de propósito: é um rascunho guardado antes de o campo
+ * existir, e sem o tempo o bloco não teria o que dizer. Sumir é melhor do que inventar "agora".
+ */
+export function resumoDoRascunhoLocal(draft: {
+  text: string;
+  thread: Array<{ text: string }>;
+  mediaIds: string[];
+  contentUpdatedAt: number;
+}): RascunhoLocal | null {
+  if (!draft.contentUpdatedAt) return null;
+  const comecou =
+    draft.text.trim() !== '' ||
+    draft.mediaIds.length > 0 ||
+    draft.thread.some((i) => i.text.trim() !== '');
+  if (!comecou) return null;
+  return { texto: draft.text.trim(), atualizadoEm: draft.contentUpdatedAt };
+}
+
+// --- rascunhos do servidor ----------------------------------------------------
+
+export interface RascunhoServidor {
+  groupId: string;
+  texto: string;
+  canais: number;
+}
+
+/**
+ * Posts em `DRAFT` **sem** link de aprovação pendente.
+ *
+ * É o caso de maior valor do bloco e hoje é invisível no produto: um post cujo link de aprovação
+ * expirou ou foi revogado fica em `DRAFT` para sempre e nenhuma tela diz isso. Rascunho *com*
+ * aprovação pendente fica de fora — aquele já é contado pelo bloco de atenção, e repetir seria a
+ * home falando duas vezes da mesma coisa.
+ */
+export function rascunhosDoServidor(items: FeedItem[]): RascunhoServidor[] {
+  const porGrupo = new Map<string, FeedItem[]>();
+  for (const i of items) {
+    if (i.group.state !== 'DRAFT' || i.group.awaitingApproval) continue;
+    const lista = porGrupo.get(i.groupId);
+    if (lista) lista.push(i);
+    else porGrupo.set(i.groupId, [i]);
+  }
+  return [...porGrupo.entries()]
+    .slice(0, MAX_RASCUNHOS)
+    .map(([groupId, doGrupo]) => ({
+      groupId,
+      texto: doGrupo[0]!.text,
+      canais: doGrupo.length,
+    }));
+}
+
+// --- atividade recente --------------------------------------------------------
+
+export interface NotificacaoResumida {
+  id: string;
+  kind: string;
+  title: string;
+  body: string | null;
+  link: string | null;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export type EntradaDeAtividade =
+  | {
+      tipo: 'publication';
+      chave: string;
+      groupId: string;
+      state: string;
+      canal: string;
+      provider: string;
+      texto: string;
+      em: number;
+    }
+  | { tipo: 'notification'; chave: string; title: string; link: string | null; em: number };
+
+/**
+ * O que mudou desde ontem.
+ *
+ * **Por que não é construída sobre notificações.** Elas pareciam a fonte natural e não são: o único
+ * produtor no código é o caso de uso de aprovação, então um bloco alimentado só por elas ficaria
+ * vazio na maioria das organizações. Aprovações entram *mescladas* — são atividade de verdade — mas
+ * a espinha é a entrega.
+ *
+ * **Por que a ordem é `publishedAt ?? updatedAt`.** `publishAt` é o horário *agendado*, não o
+ * momento de nada: uma publicação marcada para as 09:00 que falhou e foi retentada às 14:30
+ * apareceria como evento das 09:00. A fonte exata seria `publication_events`, que ainda não tem
+ * rota de leitura (não-objetivo declarado na mudança OpenSpec).
+ */
+export function atividadeRecente(
+  items: FeedItem[],
+  notificacoes: NotificacaoResumida[],
+  agora: Date,
+): EntradaDeAtividade[] {
+  const limite = agora.getTime() - JANELA_ATIVIDADE_MS;
+  const entradas: EntradaDeAtividade[] = [];
+
+  for (const i of items) {
+    if (!TERMINAIS.has(i.state)) continue;
+    const quando = Date.parse(i.publishedAt ?? i.updatedAt);
+    if (!Number.isFinite(quando) || quando < limite) continue;
+    entradas.push({
+      tipo: 'publication',
+      chave: i.id,
+      groupId: i.groupId,
+      state: i.state,
+      canal: i.channel.name,
+      provider: i.channel.provider,
+      texto: i.text,
+      em: quando,
+    });
+  }
+
+  for (const n of notificacoes) {
+    const quando = Date.parse(n.createdAt);
+    if (!Number.isFinite(quando) || quando < limite) continue;
+    entradas.push({ tipo: 'notification', chave: n.id, title: n.title, link: n.link, em: quando });
+  }
+
+  return entradas.sort((a, b) => b.em - a.em).slice(0, MAX_ATIVIDADE);
+}
+
+/** as próximas publicações, já cortadas no tamanho que a home mostra */
+export const proximasPublicacoes = (items: FeedItem[]): FeedItem[] =>
+  items
+    .filter((i) => i.state === 'SCHEDULED' && i.publishAt !== null)
+    .sort((a, b) => (a.publishAt ?? '').localeCompare(b.publishAt ?? ''))
+    .slice(0, MAX_PROXIMAS);
+
+// --- próxima ação contextual --------------------------------------------------
+
+export interface EstadoDaHome {
+  firstRun: InsightsSummary['firstRun'];
+  atencao: InsightsSummary['attention'];
+  week: InsightsSummary['week'];
+  proximas: FeedItem[];
+  rascunhosServidor: FeedItem[];
+  rascunhoLocal: RascunhoLocal | null;
+  planoNoLimite: boolean;
+  mostrarPlano?: boolean;
+  atividade?: EntradaDeAtividade[];
+  pipelineTemAlgo?: boolean;
+  agora: Date;
+}
+
+export type TipoDeProximaAcao =
+  | 'resumeLocalDraft'
+  | 'orphanDraft'
+  | 'scheduleSomething'
+  | 'emptyDays'
+  | 'planAtLimit';
+
+export interface ProximaAcao {
+  kind: TipoDeProximaAcao;
+  href: string;
+  /** dado extra para a mensagem (contagem, trecho do rascunho) */
+  dados?: Record<string, string | number>;
+}
+
+const DIAS_PARA_CONSIDERAR_VAZIO = 3;
+
+/**
+ * Um único próximo passo — e só quando não há nada errado.
+ *
+ * A escada é fixa e testada, não uma heurística: mesma entrada, mesma saída. Duas guardas no topo
+ * importam mais que a ordem em si. Se o bloco de atenção está na tela, este some — dois blocos
+ * dizendo o que fazer competem entre si, e o urgente perde. Em primeiro uso também some, porque os
+ * passos iniciais já *são* a próxima ação.
+ *
+ * Nenhuma condição aplicável devolve `null`: sugestão genérica para preencher espaço é o oposto do
+ * que a spec desta tela pede.
+ */
+export function proximaAcao(e: EstadoDaHome): ProximaAcao | null {
+  if (e.firstRun !== null) return null;
+  if (linhasDeAtencao(e.atencao).length > 0) return null;
+
+  if (e.rascunhoLocal) {
+    return {
+      kind: 'resumeLocalDraft',
+      href: '/compor',
+      dados: { texto: e.rascunhoLocal.texto.slice(0, 60) },
+    };
+  }
+
+  const orfaos = rascunhosDoServidor(e.rascunhosServidor);
+  if (orfaos.length > 0) {
+    return { kind: 'orphanDraft', href: '/kanban', dados: { count: orfaos.length } };
+  }
+
+  const limite = e.agora.getTime() + DIAS_PARA_CONSIDERAR_VAZIO * 24 * 60 * 60 * 1000;
+  const temAlgoLogo = e.proximas.some(
+    (p) => p.publishAt !== null && Date.parse(p.publishAt) <= limite,
+  );
+  if (!temAlgoLogo) return { kind: 'scheduleSomething', href: '/compor' };
+
+  const vazios = diasVazios(e.week.byDay);
+  if (vazios >= DIAS_VAZIOS_PREOCUPANTES) {
+    return { kind: 'emptyDays', href: '/calendario', dados: { count: vazios } };
+  }
+
+  if (e.planoNoLimite) return { kind: 'planAtLimit', href: '/planos' };
+
+  return null;
+}
+
+// --- ordem dos blocos ---------------------------------------------------------
+
+export type BlocoId =
+  | 'firstRun'
+  | 'attention'
+  | 'nextAction'
+  | 'today'
+  | 'upcoming'
+  | 'pipeline'
+  | 'drafts'
+  | 'week'
+  | 'activity'
+  | 'usage';
+
+export interface OrdemDosBlocos {
+  principal: BlocoId[];
+  lateral: BlocoId[];
+  /** abaixo de 1024px vira uma coluna só, sem `order-*` espalhado pelo JSX */
+  unica: BlocoId[];
+}
+
+/**
+ * A ordem vira dado.
+ *
+ * Duas coisas ficam garantidas por construção em vez de por disciplina: bloco sem conteúdo não
+ * entra na lista (e por isso não ocupa espaço nem vira cartão vazio), e o reordenamento no celular
+ * não precisa de `order-*` espalhado — é outra lista.
+ *
+ * O plano sai do topo da lateral de propósito: é o bloco menos urgente da tela e ocupava a posição
+ * mais nobre dela. Acionável primeiro, informativo depois, comercial por último.
+ */
+export function ordemDosBlocos(e: EstadoDaHome): OrdemDosBlocos {
+  if (e.firstRun !== null) {
+    return { principal: ['firstRun'], lateral: [], unica: ['firstRun'] };
+  }
+
+  const temAtencao = linhasDeAtencao(e.atencao).length > 0;
+  const temProximaAcao = !temAtencao && proximaAcao(e) !== null;
+
+  const principal: BlocoId[] = [];
+  if (temAtencao) principal.push('attention');
+  else if (temProximaAcao) principal.push('nextAction');
+  principal.push('today');
+  if (proximasPublicacoes(e.proximas).length > 0) principal.push('upcoming');
+  if (e.pipelineTemAlgo) principal.push('pipeline');
+
+  const lateral: BlocoId[] = [];
+  if (rascunhosDoServidor(e.rascunhosServidor).length > 0 || e.rascunhoLocal) lateral.push('drafts');
+  lateral.push('week');
+  if ((e.atividade?.length ?? 0) > 0) lateral.push('activity');
+  if (e.mostrarPlano) lateral.push('usage');
+
+  return { principal, lateral, unica: [...principal, ...lateral] };
+}

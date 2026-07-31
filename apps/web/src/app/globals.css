@@ -335,6 +335,10 @@
      opacity/transform. Com reduced motion o seletor inteiro deixa de existir. */
   .home-surface {
     animation: home-surface-enter 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    /* escalonado pela posição do bloco (`--i`, vindo de ordemDosBlocos): a tela se compõe de
+       cima para baixo em vez de piscar inteira, e o teto de 6 impede que a última fila do
+       celular apareça tarde demais para ser lida como parte da mesma entrada. */
+    animation-delay: calc(min(var(--i, 0), 6) * 40ms);
   }
 
   @keyframes home-surface-enter {

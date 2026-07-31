@@ -32,7 +32,7 @@ import { diasVazios, linhasDeAtencao, medidor, type AttentionRow } from './logic
  */
 
 /** Moldura comum dos cartões — superfície que "sobe", sem sombra (adendo design.md §51.4) */
-function Card({
+export function Card({
   title,
   children,
   action,

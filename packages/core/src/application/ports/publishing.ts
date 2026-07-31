@@ -115,6 +115,18 @@ export interface PublicationFeedItem {
   channelId: string;
   state: PublicationState;
   publishAt: Date | null;
+  /** quando a entrega de fato aconteceu — `null` enquanto não publicou */
+  publishedAt: Date | null;
+  /**
+   * última mutação da linha.
+   *
+   * Existe aqui porque `publishAt` é o horário **agendado**, não o momento de nada: uma publicação
+   * marcada para as 09:00 que falhou e foi retentada às 14:30 ordenaria como se fosse um evento das
+   * 09:00. Para desfecho terminal, `updatedAt` é a transição para aquele estado — aproximação
+   * honesta o bastante para uma lista de atividade recente. A fonte exata é `publication_events`,
+   * ainda sem rota de leitura (registrado como não-objetivo na mudança OpenSpec).
+   */
+  updatedAt: Date;
   content: PostContent;
   externalId: string | null;
   releaseUrl: string | null;
@@ -133,6 +145,15 @@ export interface PublicationFeedItem {
     username: string | null;
     avatarUrl: string | null;
   };
+}
+
+/** um post encontrado pela busca — só o que a paleta mostra */
+export interface GroupSearchHit {
+  groupId: string;
+  state: GroupState;
+  publishAt: Date | null;
+  text: string;
+  channels: Array<{ provider: string; name: string }>;
 }
 
 export interface PublicationFeedQuery {
@@ -253,6 +274,14 @@ export interface PublishingRepository {
   ): Promise<Array<{ id: string; channelId: string; jobVersion: number; publishAt: Date | null }>>;
   /** feed p/ calendário/kanban — ordenado por (publishAt, id) asc, filtros e cursor */
   listPublicationsFeed(orgId: string, q: PublicationFeedQuery): Promise<PublicationFeedItem[]>;
+  /**
+   * Busca posts pelo texto (paleta de comandos).
+   *
+   * Separada do feed de propósito: o feed é ordenado por horário de agendamento e devolve uma linha
+   * por publicação; a busca quer relevância recente e uma linha por post. Escopada por organização
+   * e limitada por janela — ver `search.routes.ts`.
+   */
+  searchGroups(orgId: string, q: string, limit: number): Promise<GroupSearchHit[]>;
   /** RETRYING/TOKEN_REFRESH/PUBLISHING parados há muito tempo (watchdog §8); `orgId` acompanha
    *  porque toda mutação de tentativa é escopada por organização */
   listStuck(

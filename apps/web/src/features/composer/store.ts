@@ -51,6 +51,14 @@ export interface ComposerState {
   publishAtLocal: string;
   requireApproval: boolean;
   editorNonce: number;
+  /**
+   * Quando o CONTEÚDO do rascunho foi tocado pela última vez (epoch ms; 0 = nunca).
+   *
+   * Existe para a home poder dizer "você deixou algo pela metade há 2 dias" — "há um rascunho",
+   * sem tempo, não é acionável. É atualizado só pelos setters de conteúdo, de propósito: abrir o
+   * composer e fechar sem escrever nada não pode fazer um rascunho velho parecer novo.
+   */
+  contentUpdatedAt: number;
 
   setText: (text: string) => void;
   toggleChannel: (id: string) => void;
@@ -89,6 +97,9 @@ const EMPTY = {
   mode: 'schedule' as ScheduleMode,
   publishAtLocal: '',
   requireApproval: false,
+  // 0 = nunca tocado. Rascunho já guardado antes deste campo existir lê 0 e some da home em vez
+  // de aparecer como "editado agora" — degradar para invisível é melhor que degradar para mentira.
+  contentUpdatedAt: 0,
 };
 
 const newKey = () =>
@@ -102,7 +113,7 @@ export const useComposerStore = create<ComposerState>()(
       ...EMPTY,
       editorNonce: 0,
 
-      setText: (text) => set({ text }),
+      setText: (text) => set({ text, contentUpdatedAt: Date.now() }),
       toggleChannel: (id) =>
         set((s) => {
           if (s.channelIds.includes(id)) {
@@ -112,7 +123,8 @@ export const useComposerStore = create<ComposerState>()(
           }
           return { channelIds: [...s.channelIds, id] };
         }),
-      setOverride: (id, text) => set((s) => ({ overrides: { ...s.overrides, [id]: text } })),
+      setOverride: (id, text) =>
+        set((s) => ({ overrides: { ...s.overrides, [id]: text }, contentUpdatedAt: Date.now() })),
       setChannelSetting: (id, key, value) =>
         set((s) => {
           const current = { ...(s.channelSettings[id] ?? {}) };
@@ -133,6 +145,7 @@ export const useComposerStore = create<ComposerState>()(
           mediaIds: s.mediaIds.includes(id)
             ? s.mediaIds.filter((m) => m !== id)
             : [...s.mediaIds, id],
+          contentUpdatedAt: Date.now(),
         })),
       removeMedia: (id) => set((s) => ({ mediaIds: s.mediaIds.filter((m) => m !== id) })),
       addThreadItem: () =>
@@ -142,6 +155,7 @@ export const useComposerStore = create<ComposerState>()(
       setThreadText: (key, text) =>
         set((s) => ({
           thread: s.thread.map((item) => (item.key === key ? { ...item, text } : item)),
+          contentUpdatedAt: Date.now(),
         })),
       setThreadDelay: (key, delaySec) =>
         set((s) => ({
@@ -170,6 +184,7 @@ export const useComposerStore = create<ComposerState>()(
         set((s) => ({
           ...EMPTY,
           ...draft,
+          contentUpdatedAt: Date.now(),
           thread: draft.thread.map((item) => ({ key: newKey(), ...item })),
           editorNonce: s.editorNonce + 1,
         })),

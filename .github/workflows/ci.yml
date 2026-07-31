@@ -94,6 +94,10 @@ jobs:
           # organizações próprias e não depende do estado das fases anteriores.
           DATABASE_URL=postgresql://mp:mp@localhost:5499/mp BASE_URL=http://localhost:3988 \
             bun run scripts/e2e-insights.ts
+          # Busca: os testes de rota usam repositório falso, então nenhum toca no SQL — e foi ali
+          # que estava o defeito da dobra de acento. Este cobre SQL, isolamento e valor com aspas.
+          DATABASE_URL=postgresql://mp:mp@localhost:5499/mp BASE_URL=http://localhost:3988 \
+            bun run scripts/e2e-search.ts
 
       # Limites de plano: exige a API em modo GERENCIADO (IS_SELF_HOSTED=false + Stripe).
       # Nenhuma chamada sai para a Stripe — o enforcement é local; a chave só liga o modo.

@@ -10,6 +10,103 @@
 > **Como manter:** ao fechar uma fatia, adicione a onda nova **no topo** e atualize o STATUS.
 > Cada entrada é auto-contida: o que mudou, onde no código, e a prova de que funciona.
 
+## Onda 34 — 2026-07-31 — Home v2, quadro v2 e busca global
+
+**O que motivou.** A onda 30 entregou uma `/inicio` que respondia bem *uma* pergunta — "está tudo
+bem?" — e parava aí. Os audits de 27 e 28/07 propuseram a evolução e ela ficou parada aguardando
+decisão. O quadro estava na situação inversa: é a ferramenta operacional real do produto e era a
+peça menos cuidada do repositório — um arquivo de 327 linhas, **zero testes**, uma única transição
+de arraste e nenhum filtro.
+
+**Três defeitos encontrados durante o trabalho, e o que cada um custava**
+
+1. **O quadro mostrava colunas vazias que não estavam vazias.** `listPublicationsFeed` ordena por
+   `publish_at ASC` e corta em `limit`; o quadro pedia 200 numa janela de 30 dias. Uma organização
+   com mais que isso recebia as 200 publicações **mais antigas** e via "Agendado" vazio enquanto
+   havia trabalho agendado. Não era incompletude — era a tela afirmando um estado falso. Corrigido
+   seguindo o cursor keyset que o endpoint já devolvia, até 1000 itens; passando disso, o quadro
+   **diz** que truncou e oferece reduzir o período.
+2. **A home não reagia ao stream.** Nenhum evento do SSE invalidava `['insights']`. Uma falha nova
+   ficava invisível e uma falha já resolvida continuava na tela até 20 s de `staleTime` ou o foco da
+   janela — que é a maneira mais rápida de ensinar alguém a não confiar num painel. O mapa de
+   evento→chave virou função pura (`invalidations.ts`), o que tornou a regressão uma asserção em
+   vez de uma promessa: `bun test` não tem DOM, então o hook não era testável, mas o mapa é.
+3. **A busca não dobrava acento, e nenhum teste podia perceber.** Os testes de rota usam
+   repositório falso, então nenhum deles toca no SQL. Escrever o `scripts/e2e-search.ts` e rodá-lo
+   contra Postgres real revelou na hora que `ilike` cru não dobra acento: "lancamento" não achava
+   "Lançamento", enquanto a paleta já dobrava acento nas telas e nos canais — a busca pareceria
+   quebrada exatamente para quem digita rápido, sem acento. Corrigido com `translate` nos dois
+   lados, portátil; `unaccent` foi recusado pelo mesmo motivo que `pg_trgm`. O script ficou
+   versionado e entrou no CI.
+4. **Um post podia ficar em rascunho para sempre e nenhuma tela dizia.** Se o link de aprovação
+   expira ou é revogado, o grupo fica em `DRAFT` e não existe operação na API que o agende (`PATCH`
+   num rascunho chama `updateDraftGroup` e ele continua `DRAFT`). O bloco de rascunhos nomeia esse
+   caso e oferece **só** o que a plataforma faz — duplicar no composer ou gerar link de aprovação.
+   A proibição de oferecer "agendar" está escrita na spec, para ninguém "consertar" o bloco
+   inventando um endpoint embaixo dele.
+
+**O que entrou**
+
+- **`/inicio`:** próximas publicações (até 5), atividade recente, rascunhos retomáveis (local e do
+  servidor), resumo do pipeline e **um** próximo passo contextual — que só aparece quando nada
+  precisa de atenção, para não competir com o bloco urgente. A ordem dos blocos virou **dado**
+  (`ordemDosBlocos`), o que faz "bloco vazio não ocupa espaço" e o reordenamento no celular saírem
+  por construção em vez de por disciplina. Cada bloco carrega e falha sozinho; antes uma leitura
+  ruim derrubava a tela inteira.
+- **`/kanban`:** filtros de canal, etapa, texto e período **na URL** (um quadro estreitado cabe num
+  link); densidade no navegador, não na URL, porque descreve a pessoa e não a visão; seleção
+  múltipla com Shift+clique e lote em leque limitado (concorrência 4, teto 50) que **reporta falha
+  parcial**; menu por card; `DragOverlay` e `KeyboardSensor` — o quadro era inoperável sem ponteiro.
+  O card deixou de ser `<button>` e virou `<article>`: um botão não pode conter checkbox nem menu.
+- **Busca global ⌘K:** telas, ações, canais e posts. Novo `GET /v1/search`, escopado pelo principal
+  (um `orgId` na query é ignorado), com teto de resultados **no schema** e janela de 180 dias.
+  Construída sobre o `Dialog` existente, sem `cmdk`.
+
+**Decisões que valem registro**
+
+- **Sem endpoint agregador na home.** Blocos independentes são o que permite "uma fonte ruim não
+  apaga as outras", e um agregador teria de reimplementar `columnOf` em SQL — duas implementações
+  da mesma regra divergem.
+- **Home e quadro compartilham a mesma `queryKey` do pipeline.** As duas telas não podem reportar
+  números diferentes do mesmo pipeline, e navegar entre elas não custa requisição.
+- **Sem endpoint de lote.** Precisaria de contrato próprio de falha parcial e idempotência, e
+  reimplementaria a validação que `makeRetryPost`/`makeCancelPost` já fazem. O teto de 50 é o que
+  torna o leque defensável; se um dia incomodar, aí o endpoint terá se justificado.
+- **Sem `pg_trgm`.** `CREATE EXTENSION` exige um privilégio que Postgres gerenciado costuma negar:
+  quebraria a migração de todo mundo para acelerar uma tela.
+- **Sem `cmdk`.** O ranking precisa ser puro e testável, e o motor de terceiros é justamente a parte
+  sobre a qual não daria para afirmar nada.
+
+**Provas**
+
+- `bun run check` verde: **1265 testes** (o quadro tinha **zero**; ganhou 111), fronteiras,
+  `check:ai-providers` e `check:brand`.
+- `bun run build:web` verde, 19 páginas. `bun run db:check` ok. `bun run spec:validate` **27/27**.
+- Contrato regenerado com a API de pé: **74 rotas**, diff só de adições (`/v1/search` e os campos
+  `publishedAt`/`updatedAt`) — nenhuma rota perdida.
+- **`scripts/e2e-search.ts` (novo, no CI): 17 checks** contra API + Postgres reais — dobra de
+  acento, isolamento entre organizações, 401 sem sessão, 400 para consulta curta e para `limit`
+  acima do teto, `orgId` da query ignorado, valor com aspas e `%` não injetando, e os dois campos
+  novos presentes no feed. Mais 11/11 do SQL exercitado direto no repositório.
+- **`scripts/e2e-insights.ts`: 23 checks** contra a mesma stack — o contrato do resumo da home
+  segue intacto, incluindo o isolamento do agregado entre duas organizações.
+
+**Limites declarados**
+
+- **Não verificado em navegador.** A API foi exercitada de ponta a ponta com sessão assinada
+  localmente (o mesmo mecanismo do CI), mas o navegador não: ⌘K por teclado, arraste com ponteiro e
+  teclado, retorno de foco, lote com falha parcial e `prefers-reduced-motion` não foram vistos na
+  tela. É a primeira tarefa da próxima onda, e é por isso que as três mudanças OpenSpec seguem
+  **abertas**, não arquivadas.
+- **`updatedAt` é aproximação** para o momento de uma falha: é a última mutação da linha, não o
+  evento. A fonte exata é `publication_events`, que segue sem rota de leitura — registrado como
+  não-objetivo explícito na mudança OpenSpec, não esquecido.
+- **`ILIKE '%…%'` sem índice de texto** varre a fatia da organização dentro da janela. Aceitável no
+  tamanho atual e documentado na spec como limite conhecido.
+
+**OpenSpec:** `add-home-operational-blocks`, `add-kanban-board-operations`,
+`add-global-command-palette`.
+
 ## Onda 33 — 2026-07-27 — Composer modular sem regressões de IA ou agendamento
 
 **O ponto de integração.** O redesenho do Composer nasceu em paralelo às ondas 29–32. A separação
