@@ -724,6 +724,19 @@
             ],
             "format": "date-time"
           },
+          "publishedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "quando a entrega aconteceu"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "última mutação da linha — ordena atividade recente"
+          },
           "text": {
             "type": "string"
           },
@@ -813,6 +826,8 @@
           "channelId",
           "state",
           "publishAt",
+          "publishedAt",
+          "updatedAt",
           "text",
           "mediaCount",
           "externalId",
@@ -1345,6 +1360,68 @@
           "today",
           "week",
           "firstRun"
+        ]
+      },
+      "SearchHit": {
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "example": "DRAFT"
+          },
+          "publishAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "text": {
+            "type": "string",
+            "description": "excerto de até 160 caracteres"
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "provider": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "provider",
+                "name"
+              ]
+            }
+          }
+        },
+        "required": [
+          "groupId",
+          "state",
+          "publishAt",
+          "text",
+          "channels"
+        ]
+      },
+      "SearchResults": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchHit"
+            }
+          }
+        },
+        "required": [
+          "items"
         ]
       },
       "AiVariant": {
@@ -4588,6 +4665,75 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/InsightsSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "requisição fora do contrato (problem+json)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "não autenticado",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/search": {
+      "get": {
+        "tags": [
+          "search"
+        ],
+        "security": [
+          {
+            "clerkAuth": []
+          }
+        ],
+        "summary": "Busca posts pelo texto (paleta de comandos)",
+        "description": "Busca no conteúdo dos posts da organização autenticada. Escopo por organização vem do principal e nunca da requisição. Consulta de 2 a 80 caracteres, até 10 resultados, restrita aos últimos 180 dias. Devolve excerto, estado e canais — nunca credencial.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 80
+            },
+            "required": true,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10,
+              "default": 8
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "resultados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResults"
                 }
               }
             }

@@ -26,6 +26,11 @@ const FeedItemOut = z
     channelId: z.string(),
     state: z.string().openapi({ example: 'PUBLISHED' }),
     publishAt: z.string().datetime().nullable(),
+    publishedAt: z.string().datetime().nullable().openapi({ description: 'quando a entrega aconteceu' }),
+    updatedAt: z
+      .string()
+      .datetime()
+      .openapi({ description: 'última mutação da linha — ordena atividade recente' }),
     text: z.string(),
     mediaCount: z.number().int(),
     externalId: z.string().nullable(),
@@ -93,6 +98,8 @@ const serialize = (p: PublicationFeedItem) => ({
   channelId: p.channelId,
   state: p.state,
   publishAt: p.publishAt?.toISOString() ?? null,
+  publishedAt: p.publishedAt?.toISOString() ?? null,
+  updatedAt: p.updatedAt.toISOString(),
   text: p.content.text,
   mediaCount: p.content.media?.length ?? 0,
   externalId: p.externalId,

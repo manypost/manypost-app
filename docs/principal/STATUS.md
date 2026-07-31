@@ -10,6 +10,20 @@
 > **Como manter:** ao fechar uma fatia, atualize as seções abaixo **e** abra uma entrada nova no
 > topo do changelog. Este arquivo é sobre o presente; o changelog é sobre o passado.
 >
+> **Atualização — onda 34 (2026-07-31):** a **Home v2 e o quadro v2** entraram, com **busca global
+> (⌘K)**. O `/inicio` passou a responder também "o que acontece agora?" (próximas publicações,
+> atividade recente, rascunhos retomáveis, resumo do pipeline e **um** próximo passo contextual), com
+> cada bloco falhando sozinho em vez de derrubar a tela. O `/kanban` ganhou filtros compartilháveis
+> pela URL, seleção múltipla com relatório de falha parcial, menu por card, densidade, `DragOverlay`
+> e teclado — e **deixou de mostrar colunas vazias que não estavam vazias** (o feed era lido com teto
+> de 200 linhas em ordem crescente). O SSE passou a invalidar o resumo da home, que antes só
+> atualizava por `staleTime`. Provas: **1265 testes** (o quadro tinha zero), `check` verde, build de
+> 19 páginas, OpenSpec **27/27**, `e2e-insights` **23 checks** e o novo `e2e-search` **17 checks**
+> contra API e Postgres reais — que pegou um defeito que nenhum teste de rota alcançava (o `ilike`
+> não dobrava acento). **Não verificado em navegador** — o fluxo autenticado na tela (⌘K, arraste,
+> foco, lote) fica para a próxima onda, e por isso as três mudanças OpenSpec seguem abertas. Detalhes:
+> [Onda 34](CHANGELOG_ONDAS.md#onda-34--2026-07-31--home-v2-quadro-v2-e-busca-global).
+>
 > **Atualização de integração — onda 33 (2026-07-27):** o Composer modular foi reconciliado com
 > IA multicanal, contexto de mídia, validação completa, atalho protegido por modal e confirmação
 > real do autosave. `check:ci` passou com **998 testes**, Drizzle válido, build de **19 páginas** e
@@ -33,7 +47,7 @@
 | **Fase** | Fase 1 (MVP): backend completo e verificado, web com toda a superfície da API, billing do Cloud entregue |
 | **Provas** | `bun run check` + CI verdes. E2E reais: `e2e-auth`, `e2e-publish`, `e2e-public`, `e2e-mcp`, `e2e-mcp-oauth`, `e2e-billing`, **`e2e-ai`** (bootstrap humano = sessão Clerk assinada localmente + identidade em Postgres descartável) |
 | **Redes prontas** | Mastodon, Bluesky, **Dev.to**, Telegram, Discord (OAuth2+Bot **e** webhook), LinkedIn, X, TikTok (sandbox — auditoria em revisão), **a família Meta inteira**: Threads, Instagram standalone, Facebook Pages e **Instagram via Facebook Business** (Development Mode), Twitch e Kick (chat ao vivo), **YouTube** (vídeo e Short; público depende da auditoria do Google) + `fake` para testes |
-| **Próxima onda** | A definir. Candidata forte: **coleta de métricas** (`channel_metrics` está vazia) — destrava de uma vez `analytics`, `ai_campaign_reports`, `ai_engagement_alerts` e melhora o `ai_best_time`, que hoje só enxerga o próprio histórico de entrega. Depois: **ingestão de comentários/DMs** (evento `mention.received`), que destrava `ai_inbox` e `ai_triage`. Também em aberto: fila de redes Slack → Pinterest → Reddit → Dribbble (§4) e o **refresh proativo** dos tokens de 60 dias da Meta |
+| **Próxima onda** | **Verificação em navegador autenticado** da onda 34 (pendência declarada) e depois a candidata de sempre: **coleta de métricas** (`channel_metrics` está vazia) — destrava de uma vez `analytics`, `ai_campaign_reports`, `ai_engagement_alerts` e melhora o `ai_best_time`, que hoje só enxerga o próprio histórico de entrega. Depois: **ingestão de comentários/DMs** (evento `mention.received`), que destrava `ai_inbox` e `ai_triage`. Também em aberto: fila de redes Slack → Pinterest → Reddit → Dribbble (§4) e o **refresh proativo** dos tokens de 60 dias da Meta |
 | **Bloqueios externos** | Gates de plataforma — [platform-gates.md](platform-gates.md). Nenhum deles bloqueia o desenvolvimento, só a publicação em produção |
 
 ## 1. O que é o projeto (30 segundos)
@@ -245,11 +259,11 @@ O detalhe de cada onda (1 a 5) está no [changelog](CHANGELOG_ONDAS.md#frontend-
 |---|---|
 | Login / registro / Google (Clerk) | ✅ UI Manypost + hooks Clerk; erros problem+json por código estável no `/me` e demais rotas. Redesenhada na onda 21: placeholder em todo campo, alternância de senha alcançável pelo teclado, palco de altura constante e slide de abertura com o diagrama MCP + API no padrão da landing |
 | Onboarding `/boas-vindas` e `/planos` | ✅ somem quando `billingEnabled=false` (self-hosted) |
-| **Início** | ✅ resumo operacional escopado por organização: atenção, hoje, uso e semana; onboarding sem canal/post; limites civis corretos em DST |
+| **Início** | ✅ resumo operacional escopado por organização: atenção, hoje, uso e semana; **próximas publicações, atividade recente, rascunhos retomáveis, resumo do pipeline e um próximo passo contextual**; cada bloco carrega/falha sozinho; reage ao SSE; onboarding sem canal/post; limites civis corretos em DST |
 | **Conexões** | ✅ OAuth em popup, formulário de credenciais gerado do JSON Schema do provider, reconectar/desconectar. Três blocos: **disponíveis**, **"Precisa de credencial"** (rede pronta sem env — self-hosted vê a variável que falta) e **"Em breve"** (roteiro + redes ainda não habilitadas no gerenciado). Cada cartão tem um **ícone "?"** em accent com relevo que mostra, no **tooltip padrão do app**, só o que a rede publica (onda 13, revista na onda 18); o que **este modo** exige (`.env` no self-host, nada na nuvem) ficou só no diálogo de conexão, onde vira ação |
 | **Calendário** (dia/semana/mês/lista) | ✅ a casa do app: painel de canais, drag para reagendar, "+" por slot vazio |
 | **Composer** (modal 2 colunas) | ✅ canais por avatar, texto por canal, settings por canal (**rótulo, explicação e opções em pt-BR para 100% dos campos de todos os providers** — onda 18), mídia, threads, preview ao vivo por rede, agendar/publicar/exigir aprovação |
-| **Kanban** | ✅ colunas por estado do grupo; arrastar de Falhou → Agendado dispara retry |
+| **Kanban** | ✅ colunas por estado do grupo; **filtros (canal/etapa/texto/período) na URL**, densidade, seleção múltipla com lote e relatório de falha parcial, menu por card, `DragOverlay` e teclado; arrastar de Falhou → Agendado dispara retry, e cancelar tem faixa própria durante o arraste; **lê a janela inteira e avisa quando trunca** |
 | Detalhe do post | ✅ editar texto/horário/settings, cancelar, retry por canal, ciclo do link de aprovação, progresso de thread |
 | Mídia | ✅ dropzone, importar por URL, alt text, exclusão soft e geração de imagem com proveniência, proporção exata e idempotência |
 | Notificações + tempo real | ✅ sino, página, SSE com fallback de polling |

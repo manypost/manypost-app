@@ -46,3 +46,47 @@ export function useInsightsSummary() {
     },
   });
 }
+
+/**
+ * As próximas publicações agendadas.
+ *
+ * Leitura própria, e não uma fatia do feed do pipeline, por duas razões: precisão (o pipeline tem
+ * teto e pode truncar justamente o futuro) e isolamento — se esta falhar, o resto da home continua
+ * de pé, que é o que a spec exige.
+ */
+export function useUpcomingPublications() {
+  return useQuery({
+    queryKey: ['publications', 'upcoming'],
+    staleTime: 20_000,
+    queryFn: async () => {
+      const { data, error } = await api.GET('/v1/publications', {
+        params: {
+          query: { from: new Date().toISOString(), state: 'SCHEDULED', limit: '20' },
+        },
+      });
+      if (error) throw error;
+      return data?.items ?? [];
+    },
+  });
+}
+
+/**
+ * Rascunhos do servidor.
+ *
+ * **Sem `from`, de propósito.** Um grupo em `DRAFT` tem `publishAt = null`, e o feed filtra com
+ * `publishAt >= from` — qualquer janela excluiria exatamente o que se quer ver. É por isso que esta
+ * é uma consulta separada, e não um recorte das outras.
+ */
+export function useDraftGroups() {
+  return useQuery({
+    queryKey: ['publications', 'drafts'],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await api.GET('/v1/publications', {
+        params: { query: { state: 'DRAFT', limit: '50' } },
+      });
+      if (error) throw error;
+      return data?.items ?? [];
+    },
+  });
+}

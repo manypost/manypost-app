@@ -339,6 +339,8 @@ export async function buildContainer(env: Env) {
       // sem orgId de propósito: só chamar com ids vindos de um getGroup org-scoped (como o preview de aprovação)
       listItems: (publicationId: string) => repos.publishing.listItems(publicationId),
       feed: repos.publishing.listPublicationsFeed,
+      // leitura sem regra de domínio: fiada direto, como o feed (design.md add-global-command-palette)
+      search: repos.publishing.searchGroups,
       retry: makeRetryPost({ publishing: repos.publishing, scheduler: runtime.scheduler }),
       cancel: makeCancelPost({
         publishing: repos.publishing,

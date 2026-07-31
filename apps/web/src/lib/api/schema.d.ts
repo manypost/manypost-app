@@ -1945,6 +1945,66 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Busca posts pelo texto (paleta de comandos)
+         * @description Busca no conteúdo dos posts da organização autenticada. Escopo por organização vem do principal e nunca da requisição. Consulta de 2 a 80 caracteres, até 10 resultados, restrita aos últimos 180 dias. Devolve excerto, estado e canais — nunca credencial.
+         */
+        get: {
+            parameters: {
+                query: {
+                    q: string;
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description resultados */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SearchResults"];
+                    };
+                };
+                /** @description requisição fora do contrato (problem+json) */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description não autenticado */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/ai/caption": {
         parameters: {
             query?: never;
@@ -5372,6 +5432,16 @@ export type components = {
             state: string;
             /** Format: date-time */
             publishAt: string | null;
+            /**
+             * Format: date-time
+             * @description quando a entrega aconteceu
+             */
+            publishedAt: string | null;
+            /**
+             * Format: date-time
+             * @description última mutação da linha — ordena atividade recente
+             */
+            updatedAt: string;
             text: string;
             mediaCount: number;
             externalId: string | null;
@@ -5527,6 +5597,22 @@ export type components = {
              * @enum {string|null}
              */
             firstRun: "no_channels" | "no_posts" | null;
+        };
+        SearchHit: {
+            groupId: string;
+            /** @example DRAFT */
+            state: string;
+            /** Format: date-time */
+            publishAt: string | null;
+            /** @description excerto de até 160 caracteres */
+            text: string;
+            channels: {
+                provider: string;
+                name: string;
+            }[];
+        };
+        SearchResults: {
+            items: components["schemas"]["SearchHit"][];
         };
         AiVariant: {
             channelId: string;

@@ -6,6 +6,75 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ## [Unreleased]
 
+### Added
+
+- **A tela inicial passou a responder também "o que acontece agora?".** O `/inicio` ganhou
+  próximas publicações (até 5, com horário local, canal e estado), atividade recente (desfechos de
+  entrega mesclados com decisões de aprovação), rascunhos retomáveis e um resumo do pipeline. Um
+  único próximo passo contextual aparece **só** quando nada precisa de atenção, escolhido por uma
+  escada de prioridade determinística e testada. Todo bloco some quando não tem o que dizer, e
+  nenhum número é de desempenho — a plataforma não coleta engajamento, então tudo continua vindo do
+  registro do que ela pediu e do que entregou.
+  - **Cada bloco falha sozinho.** Antes uma leitura ruim derrubava a tela inteira, inclusive as
+    partes alimentadas por outra fonte; agora carregando e erro são do bloco, com "tentar de novo"
+    dentro dele.
+  - Rascunhos do servidor (grupos em `DRAFT` sem link de aprovação pendente) ficam visíveis pela
+    primeira vez: eles **nunca** são publicados sozinhos. O bloco oferece só o que a API faz —
+    duplicar no composer ou gerar link de aprovação — e deliberadamente **não** oferece agendar,
+    porque não existe operação que agende um rascunho.
+  - `GET /v1/publications` passou a expor `publishedAt` e `updatedAt` (aditivo). Sem eles a
+    atividade recente ordenaria pelo horário *agendado* e mentiria sobre o que falhou e foi
+    retentado.
+  OpenSpec: `add-home-operational-blocks`.
+- **Busca global e paleta de comandos (⌘K / Ctrl+K).** De qualquer tela autenticada, a paleta
+  encontra telas, ações, canais conectados e posts pelo texto. O atalho não dispara enquanto se
+  digita — abrir a paleta no meio de um post seria o pior defeito possível aqui — e um gatilho
+  visível na topbar anuncia o atalho, porque atalho invisível é atalho inexistente.
+  - Novo `GET /v1/search`: escopado pela organização do principal (um `orgId` na query é ignorado,
+    não confiado), consulta de 2 a 80 caracteres, teto de 10 resultados **no schema** (pedir mais é
+    recusado, não cortado em silêncio) e janela obrigatória de 180 dias. Rascunhos vêm primeiro —
+    é o que mais se procura. Devolve excerto, estado e canais; nunca credencial.
+  - A busca dobra acento **nos dois lados** (`translate` portátil, não a extensão `unaccent`): sem
+    isso "lancamento" não achava "Lançamento", enquanto a paleta já dobrava acento nas telas e
+    canais — a busca pareceria quebrada justamente para quem digita rápido. O defeito estava no SQL
+    e nenhum teste de rota o alcançava, porque todos usam repositório falso; foi pego pelo novo
+    `scripts/e2e-search.ts`, agora no CI.
+  - Sem `pg_trgm` de propósito: `CREATE EXTENSION` exige um privilégio que Postgres gerenciado
+    costuma negar, e quebrar a migração de todo mundo para acelerar uma tela é a troca errada. O
+    custo é contido por organização, janela, tamanho mínimo e teto de resultados.
+  - Construída sobre o `Dialog` já existente, sem adicionar `cmdk`: o ranking precisa ser puro e
+    testável, e o motor de pontuação de terceiros é justamente a parte que não daria para afirmar.
+  OpenSpec: `add-global-command-palette`.
+- **O quadro ganhou filtros, ações em lote, menu por card e operação por teclado.** Filtros de
+  canal, etapa, texto e período vivem na URL, então um quadro estreitado cabe num link e sobrevive
+  a voltar da tela de detalhe. Densidade confortável/compacta é preferência do navegador, não da
+  URL. Seleção múltipla com Shift+clique aplica nova tentativa ou cancelamento em leque limitado
+  (concorrência 4, teto de 50) e **reporta falha parcial** — "12 concluídos, 2 com erro" — em vez
+  de um toast verde que ensina a não conferir.
+  - O card deixou de ser um `<button>` e virou `<article>`: um botão não pode conter checkbox nem
+    gatilho de menu, e a marcação inválida quebrava teclado e leitor de tela.
+  - `KeyboardSensor` e `DragOverlay` adicionados — o quadro era inoperável sem ponteiro.
+  - O arraste passou a aceitar cancelamento (faixa que só existe durante o arraste, com
+    confirmação; **não** é uma sexta coluna) e a recusar cada transição inválida com o motivo e a
+    operação que funciona: link de aprovação para aguardando→agendado, duplicar para
+    rascunho→agendado, e o menu do card para publicar agora.
+  OpenSpec: `add-kanban-board-operations`.
+
+### Fixed
+
+- **O quadro mostrava colunas vazias que não estavam vazias.** O feed é ordenado por horário
+  crescente e era lido com teto de 200 linhas numa janela de 30 dias: uma organização com mais que
+  isso recebia as 200 publicações **mais antigas** e via "Agendado" vazio enquanto havia trabalho
+  agendado. A leitura passou a seguir o cursor keyset até 1000 itens e, quando ainda assim não
+  couber, o quadro **diz** que truncou e oferece reduzir o período.
+- **A tela inicial não reagia ao stream de eventos.** Nenhum evento do SSE invalidava o resumo, então
+  uma falha nova ficava invisível e uma falha já resolvida continuava na tela até 20 s de
+  `staleTime` ou o foco da janela — a maneira mais rápida de ensinar alguém a não confiar num
+  painel. O mapa de invalidação virou função pura testada, e entrega e problema de canal agora
+  invalidam também as contagens da home.
+- O quadro passou a distinguir "o filtro excluiu tudo" de "o pipeline está vazio", que eram a mesma
+  mensagem.
+
 ### Changed
 
 - **Geração de imagem ganha modos explícitos de custo e qualidade.** O diálogo, a API e a tool

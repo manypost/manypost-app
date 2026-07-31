@@ -2,6 +2,7 @@ import { AppSidebar } from '@/components/shell/app-sidebar';
 import { Topbar } from '@/components/shell/topbar';
 import { ComposerModal } from '@/features/composer/composer-modal';
 import { RealtimeListener } from '@/features/realtime/realtime-listener';
+import { CommandPalette } from '@/features/search/command-palette';
 
 /** Shell autenticado: sidebar fixa + topbar; conteúdo client-heavy (SPEC §1). */
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -15,6 +16,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
       {/* composer vive num popup global — "Novo post"/"+"/duplicar o abrem sobre a página */}
       <ComposerModal />
+      {/* paleta global: ⌘K de qualquer tela, e o gatilho visível fica na topbar */}
+      <CommandPalette />
     </div>
   );
 }
