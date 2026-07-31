@@ -222,6 +222,7 @@ export function HomeView() {
     <div className="flex w-full flex-col gap-6">
       <PageHeader
         title={nome ? `${saudacao}, ${nome}` : saudacao}
+        titleClassName="text-display"
         description={t('subtitle')}
         actions={
           <>

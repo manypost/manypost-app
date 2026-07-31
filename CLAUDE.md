@@ -40,7 +40,7 @@ Plataforma de agendamento/publicação multicanal. **O wordmark é sempre `manyp
 
 ## Regras visuais (resumo — a fonte é docs/brand/)
 
-- **Brand v1.4, chapado e zero sombras**: `box-shadow`, gradiente de preenchimento, `.bevel-*` e `.inset-field` são proibidos. Hierarquia usa camadas chapadas, espaço, `--line` e `--line-strong` (limites de controles/overlays, mínimo 3:1).
+- **Brand v1.5, editorial e zero sombras**: canvas quente, superfícies brancas e rail escuro 208/64; `box-shadow`, gradiente de preenchimento, `.bevel-*` e `.inset-field` são proibidos. Hierarquia usa camadas chapadas, espaço, `--line` e `--line-strong` (limites de controles/overlays, mínimo 3:1).
 - **Hover estável**: nada de `translateY`/`scale`/`rotate` ou `filter: brightness()`; transicione cor/borda/fill em 0.2s. Superfícies operacionais não animam a própria entrada.
 - **Cursor**: todo botão usa `cursor: pointer`.
 - Cores **somente via tokens CSS**; raio só 4/6/8px (`rounded-full` só Avatar/dot); gaps 4/8/12/16/24/32px, sem margem negativa corretiva.

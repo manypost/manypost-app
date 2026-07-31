@@ -25,6 +25,8 @@ impossible by keyboard.
 - Widen drag to every transition the platform can actually perform, and explain — with the action
   that would work — every transition it cannot.
 - Make the board operable by keyboard.
+- Recompose the board as the approved editorial work surface: five open lanes, visible dividers,
+  media-aware cards and a compact operational toolbar, while preserving every operation above.
 
 ## Non-goals
 
@@ -33,7 +35,8 @@ impossible by keyboard.
   on the board.
 - No approval decision from the board. Approval remains the public link's responsibility.
 - No scheduling of a `DRAFT` group by drag, because no API operation performs it.
-- No change to the publication feed's ordering, cursor semantics or filters.
+- No change to the publication feed's ordering, cursor semantics or filters beyond one additive,
+  nullable preview field derived from content that the feed already reads.
 - No new persistence, migration or background job.
 
 ## What Changes
@@ -55,6 +58,9 @@ impossible by keyboard.
 - Refuse every other transition with a message that names why and offers the operation that does
   work.
 - Add a drag overlay and a keyboard sensor.
+- Rename the visible destination to `Quadro` and render the five states as open lanes rather than
+  rounded column containers. Cards show the first available image preview, a neutral video tile or
+  no reserved media space when the post has no preview.
 
 ## Capabilities
 
@@ -68,15 +74,16 @@ impossible by keyboard.
 ## Compatibility
 
 The board's five columns, their meaning and the existing failed-to-scheduled retry are preserved.
-`CANCELLED` groups remain outside the board. All API contracts, publication state, URL routes and
-translations remain compatible; the board's filters are additive optional query parameters that
-default to the current behavior. No Postiz reference is changed; product-identity classification is
-therefore not applicable.
+`CANCELLED` groups remain outside the board. Publication state and URL routes remain compatible;
+the board's filters are additive optional query parameters that default to the current behavior.
+The publication feed gains only an additive nullable `mediaPreview`, so older clients remain
+compatible. No Postiz reference is changed; product-identity classification is therefore not
+applicable.
 
 ## Rollback
 
-Revert the board feature directory to the single view file and remove its tests. No data, migration
-or API rollback is required, since no server contract changes in this change.
+Revert the board feature directory and the additive preview serializer. No data or migration
+rollback is required; older clients ignore the extra response field.
 
 ## Impact
 
@@ -84,8 +91,8 @@ or API rollback is required, since no server contract changes in this change.
   `apps/web/src/features/publications/` (reuse of existing mutations only).
 - **Documentation:** `CHANGELOG.md`, `docs/principal/STATUS.md`,
   `docs/principal/CHANGELOG_ONDAS.md`, OpenSpec artifacts.
-- **Data and APIs:** no schema, migration, persistence or OpenAPI change. Every read and mutation
-  goes through existing organization-scoped authenticated routes.
+- **Data and APIs:** no schema, migration or persistence change. The existing organization-scoped
+  feed returns an additive nullable media preview and every mutation remains unchanged.
 - **Security:** no auth, authorization, cookie, CORS, upload or secret-handling change. Bulk actions
   reuse per-post authorization; no operation is performed on a post the organization does not own.
 - **Dependencies:** none. `@dnd-kit/core` already provides the drag overlay and keyboard sensor.

@@ -19,12 +19,14 @@ export function PageHeader({
   description,
   actions,
   className,
+  titleClassName,
 }: {
   title: string;
   description?: string;
   /** ação primária da tela; no mobile desce para a própria linha */
   actions?: ReactNode;
   className?: string;
+  titleClassName?: string;
 }) {
   return (
     <div
@@ -34,7 +36,14 @@ export function PageHeader({
       )}
     >
       <div className="min-w-0">
-        <h1 className="text-title font-semibold leading-tight tracking-[-0.015em] text-ink">{title}</h1>
+        <h1
+          className={cn(
+            'font-display text-title font-semibold leading-tight tracking-[-0.025em] text-ink',
+            titleClassName,
+          )}
+        >
+          {title}
+        </h1>
         {description ? (
           <p className="mt-1.5 max-w-reading text-compact leading-relaxed text-graphite">
             {description}

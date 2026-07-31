@@ -1,7 +1,7 @@
 ---
 
 title: "manypost — Sistema de Design: especificação de implementação"
-version: "3.0"
+version: "4.0"
 language: "pt-BR"
 audience:
 
@@ -12,7 +12,7 @@ audience:
 * "marketing"
 * "aplicativo"
 * "analytics"
-  updated_at: "2026-07-26"
+  updated_at: "2026-07-31"
 
 ---
 
@@ -28,7 +28,9 @@ audience:
 
 ### Status
 
-Esta versão é uma **proposta para implementação**. Ela se torna a fonte oficial de verdade após aprovação de Design e Engenharia e publicação dos tokens e componentes na biblioteca adotada pelo produto.
+Esta versão é a **fonte normativa vigente** para mocks e implementação. O mock aprovado do Quadro
+define a composição visual de referência; dados ou destinos fictícios gerados no mock não definem
+capacidade do produto.
 
 | Item                     | Definição                                                                        |
 | ------------------------ | -------------------------------------------------------------------------------- |
@@ -278,21 +280,26 @@ Evite:
 
 ```css
 [data-mp-context="app"] {
-  --mp-bg-canvas: #F8F8FA;
-  --mp-bg-main: #FDFDFD;
+  --mp-bg-canvas: #F5F3EF;
+  --mp-bg-main: #F5F3EF;
   --mp-bg-surface: #FFFFFF;
-  --mp-bg-subtle: #F6F6F8;
-  --mp-bg-muted: #F1F1F4;
-  --mp-bg-selected: #F3F1F8;
+  --mp-bg-subtle: #ECE9E4;
+  --mp-bg-muted: #ECE9E4;
+  --mp-bg-selected: #EDE9FE;
 
   --mp-text-primary: #111217;
   --mp-text-secondary: #686870;
   --mp-text-tertiary: #92929B;
   --mp-text-disabled: #B8B8C0;
 
-  --mp-border-subtle: #ECECF0;
-  --mp-border-default: #DEDEE5;
-  --mp-border-strong: #C8C8D2;
+  --mp-border-subtle: #DDD9D2;
+  --mp-border-default: #DDD9D2;
+  --mp-border-strong: #8D8882;
+
+  --mp-sidebar: #111820;
+  --mp-sidebar-hover: #1B2530;
+  --mp-sidebar-text: #E8EDF2;
+  --mp-sidebar-muted: #AAB4BF;
 
   --mp-accent: #7C3AED;
   --mp-accent-hover: #6D28D9;
@@ -301,7 +308,8 @@ Evite:
 }
 ```
 
-> **Decisão:** o canvas do aplicativo deve usar uma superfície quase branca, enquanto os cards devem permanecer brancos. A separação entre níveis deve depender de diferenças mínimas de superfície e de bordas sutis.
+> **Decisão:** o canvas do aplicativo é porcelana quente e as superfícies de trabalho permanecem
+> brancas. O rail escuro é navegação, não tema escuro global. Hierarquia usa fill, divisores e espaço.
 
 ### 5.4 Estados semânticos
 
@@ -397,7 +405,8 @@ Em telas de produto:
 
 | Papel            |   Tamanho |      Peso | Line-height | Cor padrão        |
 | ---------------- | --------: | --------: | ----------: | ----------------- |
-| Título de página | `18–20px` |     `500` |      `1.25` | primary           |
+| Título de página |    `32px` |     `600` |      `1.15` | primary/display   |
+| Saudação da Home |    `44px` |     `600` |      `1.08` | primary/display   |
 | Título de painel | `15–16px` |     `500` |      `1.35` | primary           |
 | Título de card   | `14–16px` | `500–600` |      `1.35` | primary           |
 | Navegação        |    `13px` | `450–500` |      `18px` | primary/secondary |
@@ -412,7 +421,7 @@ Em telas de produto:
 ### 6.4 Regras tipográficas
 
 * Peso `700` não deve ser usado em títulos de produto.
-* Peso `700` fica permitido em kicker, badge, pequena label uppercase e CTA grande.
+* Peso `700` fica permitido somente no regime editorial de marketing/auth.
 * Títulos de cards analíticos usam `500`, não `600–700`.
 * Números de KPI usam tracking entre `-0.015em` e `-0.025em`.
 * Dados numéricos usam `font-variant-numeric: tabular-nums`.
@@ -501,9 +510,6 @@ Uma mesma tela deve usar no máximo dois modos de densidade. Exemplo: `default` 
   --mp-radius-xs: 4px;
   --mp-radius-sm: 6px;
   --mp-radius-md: 8px;
-  --mp-radius-lg: 10px;
-  --mp-radius-xl: 12px;
-  --mp-radius-shell: 16px;
   --mp-radius-round: 999px;
 }
 ```
@@ -514,13 +520,10 @@ Uma mesma tela deve usar no máximo dois modos de densidade. Exemplo: `default` 
 | ------: | ----------------------------------------------------------------------------- |
 |   `4px` | badges, tags, keycaps, microindicadores                                       |
 |   `6px` | botões, inputs, selects, tooltips pequenos                                    |
-|   `8px` | cards de marketing, modais, code panels, previews                             |
-|  `10px` | cards do app, item ativo de sidebar, dropdowns                                |
-|  `12px` | KPIs, cards analíticos especiais                                              |
-|  `16px` | shell demonstrativo, containers externos isolados                             |
-| `999px` | avatar, switch, busca compacta e barras de gráfico; nunca card ou botão comum |
+|   `8px` | cards, modais, dropdowns, previews e regiões externas                         |
+| `999px` | avatar e pontos de estado pequenos; nunca card ou botão comum                 |
 
-> **Decisão:** raios de `10px` e `12px` devem ficar restritos aos componentes de produto e analytics definidos nesta seção. Marketing deve usar predominantemente `4px`, `6px` e `8px`.
+> **Decisão:** somente 4, 6 e 8px são raios de componente. `999px` é exceção exclusiva de avatar e dot.
 
 ### 8.3 Intensidade de bordas
 
@@ -546,22 +549,14 @@ Use:
 ```css
 :root {
   --mp-shadow-none: none;
-  --mp-shadow-floating:
-    0 10px 28px rgba(17, 18, 23, 0.10),
-    0 2px 8px rgba(17, 18, 23, 0.06);
-  --mp-shadow-tooltip:
-    0 8px 18px rgba(17, 18, 23, 0.16),
-    0 2px 5px rgba(17, 18, 23, 0.10);
 }
 ```
 
 Regras:
 
-* cards, botões, inputs, sidebar, topbar e previews: `shadow-none`;
-* dropdown, combobox, date picker e command palette: `shadow-floating` permitido;
-* tooltip: `shadow-tooltip` permitido;
-* modal: preferir overlay + borda; sombra é opcional apenas se o fundo não fornecer separação suficiente;
-* nunca combinar sombra forte, borda forte e fundo contrastante no mesmo elemento.
+* `box-shadow`, `drop-shadow` e sombras de texto são proibidas em todo componente;
+* flutuantes usam superfície branca e `border-strong`;
+* tooltip usa fundo escuro, e modal usa overlay, sem simular elevação.
 
 ---
 
@@ -622,7 +617,7 @@ Regras:
 AppShell
 ├── Sidebar
 ├── MainColumn
-│   ├── Topbar
+│   ├── MobileTopbar (abaixo de 768px)
 │   └── MainContent
 └── RightRail opcional
 ```
@@ -631,16 +626,15 @@ AppShell
 
 ```css
 :root {
-  --mp-sidebar-width: 224px;
-  --mp-sidebar-collapsed: 72px;
+  --mp-sidebar-width: 208px;
+  --mp-sidebar-collapsed: 64px;
   --mp-topbar-height: 56px;
   --mp-right-rail-width: 280px;
   --mp-page-padding: 24px;
 }
 ```
 
-* sidebar de `224px` equilibra labels em português e mantém densidade controlada;
-* variantes muito densas podem usar `208px`;
+* sidebar de `208px` equilibra labels em português e preserva área útil do Quadro;
 * o right rail só aparece quando houver conteúdo contextual persistente;
 * o conteúdo principal não deve ficar artificialmente estreito para preservar o painel lateral;
 * em demonstrações editoriais, o shell pode usar raio externo de `16px`, sem sombra; esse raio não deve ser aplicado ao shell do produto em produção sem necessidade documentada.
@@ -672,11 +666,11 @@ AppShell
 
 ### 11.1 Estrutura visual
 
-* fundo branco;
-* separador direito `1px solid border-subtle`;
+* fundo `sidebar` escuro;
+* separador direito no próprio tom do rail;
 * sem sombra;
 * grupos separados por espaço, não por caixas;
-* labels de grupo em `12px/400–500`, sem uppercase obrigatório;
+* labels em `12–13px/500`, sem uppercase;
 * itens com altura padrão de `36px`;
 * ícones lineares de `16px` e stroke `1.5–1.75px`.
 
@@ -690,7 +684,7 @@ AppShell
   padding: 0 10px;
   gap: 10px;
   border-radius: var(--mp-radius-lg);
-  color: var(--mp-text-secondary);
+  color: var(--mp-sidebar-muted);
   font-size: 13px;
   font-weight: 450;
   text-decoration: none;
@@ -700,13 +694,13 @@ AppShell
 }
 
 .mp-nav-item:hover {
-  color: var(--mp-text-primary);
-  background: var(--mp-bg-subtle);
+  color: var(--mp-sidebar-text);
+  background: var(--mp-sidebar-hover);
 }
 
 .mp-nav-item[aria-current="page"] {
-  color: var(--mp-text-primary);
-  background: var(--mp-bg-selected);
+  color: var(--mp-accent-on-dark);
+  background: var(--mp-sidebar-hover);
   font-weight: 500;
 }
 ```
@@ -739,9 +733,12 @@ Não usar todos simultaneamente.
 
 ---
 
-## 12. Topbar
+## 12. Topbar móvel e utilidades globais
 
 ### 12.1 Estrutura
+
+No desktop não existe topbar persistente: busca global, notificações e conta pertencem à sidebar.
+A topbar abaixo existe somente abaixo de `768px`.
 
 ```css
 .mp-app-topbar {
@@ -753,9 +750,8 @@ Não usar todos simultaneamente.
   align-items: center;
   justify-content: space-between;
   padding-inline: 24px;
-  background: color-mix(in srgb, var(--mp-bg-main) 94%, transparent);
+  background: var(--mp-bg-surface);
   border-bottom: 1px solid var(--mp-border-subtle);
-  backdrop-filter: blur(8px);
 }
 ```
 
@@ -802,10 +798,11 @@ Não usar todos simultaneamente.
 
 .mp-page-title {
   margin: 0;
-  font-size: 20px;
-  line-height: 1.25;
-  font-weight: 500;
-  letter-spacing: -0.015em;
+  font-family: var(--mp-font-display);
+  font-size: 32px;
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.025em;
 }
 
 .mp-page-description {
@@ -1371,7 +1368,8 @@ Quando for necessário um indicador adicional, usar pseudo-elemento lateral de `
 * ações ficam ocultas até hover apenas quando continuam acessíveis por teclado;
 * cabeçalho sticky precisa de fundo opaco;
 * truncar texto com tooltip quando a informação completa for relevante;
-* não usar divisores verticais em todas as colunas.
+* divisores verticais podem estruturar lanes paralelas quando a comparação horizontal é o propósito
+  central, como no Quadro; não devem ser usados como ornamento em listas comuns.
 
 ### 22.4 Linhas de atividade
 
@@ -1408,6 +1406,20 @@ Quando for necessário um indicador adicional, usar pseudo-elemento lateral de `
 * busca deve receber mais largura do que filtros individuais;
 * toolbars não devem parecer uma segunda navegação principal.
 
+### 23.3 Quadro editorial
+
+O Quadro é a referência de densidade operacional do aplicativo. Em desktop, os cinco estados são
+**lanes abertas** sobre o canvas quente, separados por regras verticais. A lane não recebe fundo,
+raio ou moldura própria; somente o card é um objeto delimitado. O cabeçalho da lane é sticky, opaco
+e contém ponto de estado, label e contagem real. Nunca exibir denominador de capacidade enquanto o
+produto não possuir uma regra de capacidade.
+
+Ordem do card: horário operacional, resumo, preview opcional, canal/conta e ações. Imagem usa o
+primeiro media disponível em corte 4:3; vídeo usa tile neutro com play, sem carregar o player; sem
+preview, nenhum espaço vazio é reservado. Falha mantém causa e retry visíveis. Em telas estreitas,
+as lanes preservam largura legível e rolam horizontalmente. Filtros, densidade, seleção, drag e
+ações mantêm a mesma semântica em qualquer breakpoint.
+
 ---
 
 ## 24. Menus, dropdowns e command palette
@@ -1418,10 +1430,9 @@ Quando for necessário um indicador adicional, usar pseudo-elemento lateral de `
 .mp-menu {
   min-width: 200px;
   padding: 6px;
-  border: 1px solid var(--mp-border-subtle);
-  border-radius: var(--mp-radius-lg);
+  border: 1px solid var(--mp-border-strong);
+  border-radius: var(--mp-radius-md);
   background: var(--mp-bg-surface);
-  box-shadow: var(--mp-shadow-floating);
 }
 
 .mp-menu-item {
@@ -2110,22 +2121,24 @@ textarea,
       "textPrimary": "#111217",
       "textSecondary": "#686870",
       "textTertiary": "#92929B",
-      "canvas": "#F8F8FA",
-      "main": "#FDFDFD",
+      "canvas": "#F5F3EF",
+      "main": "#F5F3EF",
       "surface": "#FFFFFF",
-      "surfaceSubtle": "#F6F6F8",
-      "borderSubtle": "#ECECF0",
-      "borderDefault": "#DEDEE5",
+      "surfaceSubtle": "#ECE9E4",
+      "borderSubtle": "#DDD9D2",
+      "borderDefault": "#DDD9D2",
+      "borderStrong": "#8D8882",
+      "sidebar": "#111820",
+      "sidebarHover": "#1B2530",
+      "sidebarText": "#E8EDF2",
+      "sidebarMuted": "#AAB4BF",
       "chartPrimary": "#7C3AED",
       "chartSecondary": "#14B8A6"
     },
     "radius": {
       "xs": 4,
       "sm": 6,
-      "md": 8,
-      "lg": 10,
-      "xl": 12,
-      "shell": 16
+      "md": 8
     },
     "controlHeight": {
       "compact": 32,
@@ -2236,20 +2249,20 @@ ManypostDesignSystem
 | Componente         | Requisito obrigatório                                         | Critério de aceite                                   |
 | ------------------ | ------------------------------------------------------------- | ---------------------------------------------------- |
 | Card interativo    | Hover neutro; roxo apenas em foco ou seleção explícita        | Hover não altera a borda para `accent`               |
-| Card do aplicativo | Raio `10px`, padding `20–24px`, sem sombra                    | Usa somente tokens e não possui `box-shadow`         |
-| Card de KPI        | Superfície suave, raio `12px`, sem borda e sem sombra         | Valor não quebra linha e usa números tabulares       |
+| Card do aplicativo | Raio `8px`, padding `20–24px`, sem sombra                     | Usa somente tokens e não possui `box-shadow`         |
+| Card de KPI        | Superfície suave, raio `8px`, sem borda e sem sombra          | Valor não quebra linha e usa números tabulares       |
 | Sidebar            | Item ativo por fundo suave e contraste tipográfico            | O roxo aparece em no máximo um indicador             |
 | Topbar             | Altura `56px`, ações compactas e breadcrumb truncável         | Não há quebra de linha nem deslocamento por badge    |
 | Título de card     | `15–16px`, peso `500` em produto e analytics                  | Peso `700` não é utilizado                           |
 | Bordas             | Uso de `subtle`, `default`, `strong` e `accent` por semântica | Não há hex ou intensidade local não documentada      |
-| Tooltip            | Camada flutuante, pequena, escura e com sombra curta          | Não contém ação interativa                           |
-| Dropdown           | Borda sutil, raio `10px` e sombra `floating`                  | Abre com foco gerenciado e fecha com Escape          |
+| Tooltip            | Camada flutuante, pequena, escura, borda forte e sem sombra   | Não contém ação interativa                           |
+| Dropdown           | Borda forte, raio `8px` e superfície distinta, sem sombra     | Abre com foco gerenciado e fecha com Escape          |
 | Input              | Hover neutro; foco com borda accent e ring suave              | Label permanece visível e erro usa mensagem textual  |
 | Tabela             | Linhas de `44px`, divisores horizontais sutis                 | Números comparáveis ficam alinhados e tabulares      |
 | Gráfico            | Linhas finas, no máximo duas cores fortes                     | Há resumo textual ou tabela equivalente              |
 | Filtros            | Controles neutros; accent somente quando ativos               | Não parecem ações primárias                          |
 | Densidade          | Uso de no máximo dois modos por tela                          | Alturas não fogem dos tokens sem exceção registrada  |
-| Raios              | Uso exclusivo da escala oficial                               | `10px`, `12px`, `16px` e `999px` têm contexto válido |
+| Raios              | Uso exclusivo da escala oficial                               | Apenas `4px`, `6px` e `8px`; círculo só para avatar  |
 
 ---
 
@@ -2408,20 +2421,22 @@ Hero H1              56px / 500 / 1.02
 ### 47.2 Dashboard / app
 
 ```txt
-Canvas               #F8F8FA
-Main                  #FDFDFD
+Canvas               #F5F3EF
+Main                  #F5F3EF
 Surface               #FFFFFF
-Surface subtle        #F6F6F8
-Border subtle         #ECECF0
-Border default        #DEDEE5
+Surface subtle        #ECE9E4
+Border subtle         #DDD9D2
+Border strong         #8D8882
 Page padding          24px / 16px
-Card radius           10px
-Analytics radius      12px
+Card radius           8px
+Analytics radius      8px
 Card padding          20–24px
 Row height            36 / 44 / 52px
-Control height        32 / 38 / 44px
-Sidebar               224px
-Topbar                 56px
+Control height        36 / 40 / 44px
+Sidebar               208px / 64px collapsed
+Sidebar surface       #111820
+Desktop topbar        none
+Mobile topbar         56px
 ```
 
 ### 47.3 Analytics
@@ -2435,7 +2450,7 @@ Card title            15–16px / 500
 Axis label            10–11px / 400
 Line stroke           1–1.5px
 Gridlines             hidden or near-invisible
-KPI radius            12px
+KPI radius            8px
 ```
 
 ### 47.4 Autenticação
@@ -2458,18 +2473,19 @@ Overlay/fade          150ms
 
 As decisões abaixo devem ser tratadas como requisitos do sistema:
 
-* superfícies do aplicativo próximas de branco;
-* bordas claras com intensidade semântica;
+* canvas porcelana quente e superfícies de trabalho brancas;
+* sidebar escura como contexto local de navegação;
+* bordas quentes com intensidade semântica e limite forte ≥ 3:1;
 * títulos de analytics com peso `500`;
 * KPIs com superfície suave, sem borda e sem sombra;
-* item ativo da sidebar por fundo sutil;
+* item ativo da sidebar por fundo escuro secundário e um único sinal roxo;
 * iconografia linear;
 * gráficos com gridlines ausentes ou quase invisíveis;
 * teal restrito à diferenciação de séries em analytics;
 * tooltip pequeno, escuro e flutuante;
 * right rail denso, sem card por item;
-* busca em formato pill somente na topbar compacta;
-* raios de `10–12px` somente nos componentes definidos.
+* busca global no rail desktop e na topbar móvel;
+* raios somente de `4`, `6` e `8px`.
 
 ### 48.2 Exceções permitidas
 
@@ -2642,21 +2658,13 @@ Decisões ainda não validadas devem permanecer marcadas como proposta e não de
 
 ---
 
-## 51. Adendo de reconciliação com o brand system (2026-07-27)
+## 51. Registro histórico da reconciliação (não normativo)
 
 ### 51.1 Por que este adendo existe
 
-O §0 declara este documento uma **proposta** que se torna fonte de verdade após aprovação. Entre
-a redação dele e hoje, o aplicativo já implementou uma linguagem visual — `docs/brand/BRAND_SYSTEM.md`,
-os tokens de `apps/web/src/app/globals.css` e o `scripts/check-brand.ts` que reprova o CI — e em
-três pontos as duas discordam de frente. Enquanto isso não estivesse resolvido, "conforme o
-`design.md`" era ambíguo: dava para escrever um componente que passasse nesta especificação e
-**reprovasse o CI**.
-
-Decisão tomada: **onde há conflito, o brand system vence.** As seções abaixo ficam sobrescritas.
-O resto do documento continua valendo integralmente — inclusive, e principalmente, as partes que o
-aplicativo ainda não implementou (§13 cabeçalho de página, §20 KPI, §24.3 command palette, §29
-gráficos, §30 painel direito).
+Esta seção preserva o histórico que levou ao sistema flat. Ela não sobrescreve nenhuma seção
+anterior: desde a versão 4.0, as regras vigentes estão incorporadas diretamente nos capítulos
+principais. Em conflito acidental, prevalece sempre a regra principal mais específica.
 
 ### 51.2 Sombra: proibida, sem exceção de componente flutuante
 

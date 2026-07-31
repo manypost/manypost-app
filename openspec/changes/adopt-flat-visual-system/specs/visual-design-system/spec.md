@@ -244,3 +244,53 @@ defects, not variants.
 
 - **WHEN** a change proposes reducing control density
 - **THEN** the recorded decision and its cost are available to that decision
+
+### Requirement: The authenticated product follows the approved editorial composition
+
+The authenticated product SHALL use a warm page floor, a dark navigation rail and open work regions
+as defined by the approved reference. The accent SHALL remain limited to primary action, focus and
+explicit selection. Product screens MUST NOT regress into a uniform grid of equally weighted cards.
+
+#### Scenario: A desktop product screen is opened
+
+- **WHEN** an authenticated screen is rendered at desktop width
+- **THEN** the persistent dark rail and warm workspace establish the primary hierarchy
+- **AND** alignment, dividers and space group work before cards are introduced
+
+#### Scenario: A narrow screen is opened
+
+- **WHEN** the viewport is narrower than the desktop navigation breakpoint
+- **THEN** navigation becomes a drawer with a compact topbar
+- **AND** every global action remains reachable
+
+### Requirement: Operational media is real and optional
+
+Operational items MAY render the first media reference returned by the publication feed. The
+interface MUST render a stable text-only layout when no preview exists and MUST NOT invent
+placeholder imagery or capacity data.
+
+#### Scenario: An image preview exists
+
+- **WHEN** a feed item contains an image media preview
+- **THEN** the related operational card may show it in a bounded 4:3 frame
+
+#### Scenario: No preview exists
+
+- **WHEN** a feed item contains no media preview
+- **THEN** the card keeps its text hierarchy without reserving an empty image frame
+
+#### Scenario: A video preview exists
+
+- **WHEN** a feed item contains a video media preview
+- **THEN** the card shows a neutral video tile instead of eagerly loading video content
+
+### Requirement: The design document has one normative layer
+
+`design.md` SHALL state current rules in its primary sections. Historical decisions MAY remain as a
+record but MUST NOT override current rules through a trailing addendum.
+
+#### Scenario: A mock or implementation reads the design system
+
+- **WHEN** it follows the applicable primary section in `design.md`
+- **THEN** it receives the current palette, typography, shell and component rules
+- **AND** no later section contradicts those rules

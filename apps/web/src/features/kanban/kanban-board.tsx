@@ -273,7 +273,7 @@ export function KanbanBoard() {
     filtros.colunas.length > 0 || filtros.canais.length > 0 || filtros.busca.trim().length > 0;
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       <KanbanFilters
         estado={filtros}
         onChange={escreverFiltros}
@@ -310,7 +310,7 @@ export function KanbanBoard() {
         <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
           <CancelDropZone ativo={arrastando !== null} />
           {/* desktop: 5 colunas; mobile: rolagem horizontal */}
-          <div className="flex gap-3 overflow-x-auto pb-2 lg:grid lg:grid-cols-5 lg:overflow-visible">
+          <div className="flex overflow-x-auto border-y border-line pb-3 lg:grid lg:grid-cols-5 lg:overflow-visible">
             {COLUNAS.map(({ id, accent }) => (
               <KanbanColumn
                 key={id}

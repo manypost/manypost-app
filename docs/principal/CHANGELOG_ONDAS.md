@@ -10,6 +10,20 @@
 > **Como manter:** ao fechar uma fatia, adicione a onda nova **no topo** e atualize o STATUS.
 > Cada entrada é auto-contida: o que mudou, onde no código, e a prova de que funciona.
 
+## Onda 36 — 2026-07-31 — brand v1.5, shell editorial e Quadro aberto
+
+O mock escolhido pelo owner passou a ser o contrato operacional: canvas quente, rail escuro 208/64,
+topbar somente mobile, título de 32px e saudação da Home em 44px. A rota `/kanban` mantém filtros,
+URL, densidade, seleção, lote, drag e teclado, mas a interface se chama **Quadro** e apresenta cinco
+lanes abertas com divisores e cabeçalhos sticky. Cards ganharam preview opcional derivado do primeiro
+media já persistido — imagem 4:3, vídeo como tile neutro e nenhum retângulo sem mídia — além de retry
+visível em falhas. Nenhum denominador de capacidade foi inventado.
+
+O feed ganhou somente `mediaPreview` nullable e aditivo; não há migration, nova query ou regra de
+domínio. Serializer, agrupamento, variantes do card e shell entraram por RED→GREEN; OpenAPI foi
+regenerado pela API. A revisão visual autenticada local segue indisponível porque não há sessão de
+login; o smoke público e as provas finais são registrados após o deploy exato desta branch.
+
 ## Onda 35 — 2026-07-31 — brand v1.4, superfícies chapadas
 
 **Mudança de direção, não conserto.** A v1.3 implementou corretamente o relevo por gradiente pedido

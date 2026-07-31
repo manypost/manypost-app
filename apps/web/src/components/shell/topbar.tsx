@@ -3,7 +3,6 @@
 import { Bell, CalendarDays, CreditCard, House, Image as ImageIcon, LogOut, Menu, PenSquare, Plug, Search, Settings, SquareKanban } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { Wordmark } from '@/components/brand/wordmark';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -32,26 +31,12 @@ const MOBILE_NAV = [
   { href: '/configuracoes', key: 'settings', icon: Settings },
 ] as const;
 
-const TITLE_BY_PATH: Array<{ prefix: string; key: string }> = [
-  { prefix: '/inicio', key: 'nav.home' },
-  { prefix: '/calendario', key: 'nav.calendar' },
-  { prefix: '/kanban', key: 'nav.kanban' },
-  { prefix: '/conexoes', key: 'nav.connections' },
-  { prefix: '/midia', key: 'nav.media' },
-  { prefix: '/notificacoes', key: 'nav.notifications' },
-  { prefix: '/configuracoes', key: 'nav.settings' },
-  { prefix: '/planos', key: 'nav.plans' },
-  { prefix: '/compor', key: 'nav.compose' },
-];
-
 export function Topbar() {
   const t = useTranslations();
-  const pathname = usePathname();
   const { data: me, isPending } = useMe();
   const logout = useLogout();
   const openComposer = useComposerModal((s) => s.openComposer);
   const abrirPaleta = useCommandPalette((s) => s.abrir);
-  const title = TITLE_BY_PATH.find(({ prefix }) => pathname.startsWith(prefix));
   const { billingEnabled } = usePlanFeatures();
   const mobileNav = billingEnabled
     ? [...MOBILE_NAV, { href: '/planos', key: 'plans', icon: CreditCard } as const]
@@ -65,7 +50,7 @@ export function Topbar() {
     .join('');
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between border-b border-line bg-surface px-4 md:px-6">
+    <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between border-b border-line bg-surface px-4 md:hidden">
       {/* mobile: wordmark + navegação em menu (a sidebar some < md) */}
       <div className="flex items-center gap-2 md:hidden">
         <DropdownMenu>
@@ -92,10 +77,6 @@ export function Topbar() {
         <Wordmark />
       </div>
       {/* contexto persistente; o h1 semântico pertence ao PageHeader da tela */}
-      <p className="hidden text-panel font-semibold tracking-[-0.3px] text-ink md:block">
-        {title ? t(title.key) : ''}
-      </p>
-
       <div className="flex items-center gap-2">
       {/* atalho invisível é atalho inexistente: o gatilho é o que ensina o ⌘K */}
       <button

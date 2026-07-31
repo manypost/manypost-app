@@ -5444,6 +5444,14 @@ export type components = {
             updatedAt: string;
             text: string;
             mediaCount: number;
+            /** @description primeira mídia do conteúdo para reconhecimento visual do card */
+            mediaPreview: {
+                /** @enum {string} */
+                type: "image" | "video";
+                url: string;
+                mime: string | null;
+                alt: string | null;
+            } | null;
             externalId: string | null;
             releaseUrl: string | null;
             errorClass: string | null;

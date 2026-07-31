@@ -30,6 +30,7 @@ const item = (over: Partial<FeedItem> & { state?: string } = {}): FeedItem =>
     publishAt: over.publishAt ?? '2026-07-30T12:00:00.000Z',
     text: over.text ?? 'texto',
     mediaCount: over.mediaCount ?? 0,
+    mediaPreview: over.mediaPreview ?? null,
     externalId: over.externalId ?? null,
     releaseUrl: over.releaseUrl ?? null,
     errorClass: over.errorClass ?? null,
@@ -53,6 +54,7 @@ const card = (over: Partial<GroupCard> = {}): GroupCard => ({
   text: 'texto',
   items: [item()],
   errorMessage: null,
+  mediaPreview: null,
   column: 'scheduled',
   ...over,
 });
@@ -131,6 +133,20 @@ describe('agruparEmCards: uma publicação por canal vira UM card por grupo', ()
       item({ id: 'b', groupId: 'g1', errorMessage: 'token expirado' }),
     ]);
     expect(cards[0]?.errorMessage).toBe('token expirado');
+  });
+
+  test('o card usa o primeiro preview disponível do grupo, mesmo quando não está na primeira publicação', () => {
+    const preview = {
+      type: 'image' as const,
+      url: 'https://cdn.example/post.webp',
+      mime: 'image/webp',
+      alt: 'Post sobre calendário',
+    };
+    const cards = agruparEmCards([
+      item({ id: 'a', groupId: 'g1', mediaPreview: null }),
+      item({ id: 'b', groupId: 'g1', mediaPreview: preview }),
+    ]);
+    expect(cards[0]?.mediaPreview).toEqual(preview);
   });
 
   test('grupo cancelado não vira card', () => {

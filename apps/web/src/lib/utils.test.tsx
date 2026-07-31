@@ -18,6 +18,7 @@ describe('merge dos tokens tipográficos do produto', () => {
     expect(cn('text-compact text-ink').split(/\s+/)).toEqual(['text-compact', 'text-ink']);
     expect(cn('text-axis text-graphite').split(/\s+/)).toEqual(['text-axis', 'text-graphite']);
     expect(cn('text-panel text-mist').split(/\s+/)).toEqual(['text-panel', 'text-mist']);
+    expect(cn('text-display text-ink').split(/\s+/)).toEqual(['text-display', 'text-ink']);
   });
 
   test('continua resolvendo conflitos dentro da própria escala', () => {

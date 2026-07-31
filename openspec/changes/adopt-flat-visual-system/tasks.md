@@ -99,3 +99,38 @@
 - [ ] 7.3 Archive this change together with `add-home-operational-blocks`,
   `add-kanban-board-operations` and `add-global-command-palette`, whose remaining open tasks are the
   same browser verification.
+
+## 8. Brand v1.5 contract and references
+
+- [x] 8.1 Reconcile proposal, design and delta requirements with the approved editorial board
+  reference, preserving the v1.3/v1.4 record while making v1.5 normative.
+- [x] 8.2 Consolidate `design.md`: warm tokens, dark sidebar, display titles, open composition,
+  responsive shell and no trailing normative override; update brand docs and changelog.
+- [ ] 8.3 Generate and inspect fresh standalone references for the remaining screen archetypes before
+  implementing them; never crop the approved board reference.
+
+## 9. Feed preview, test-first
+
+- [x] 9.1 Add failing serializer and contract tests for nullable `FeedItem.mediaPreview`, including
+  first-image, video and no-media cases.
+- [x] 9.2 Expose the first existing media reference through core/API, regenerate OpenAPI through the
+  running API and return the focused tests to green.
+
+## 10. Editorial shell and product surfaces
+
+- [x] 10.1 Add failing structural tests for the 208px/64px dark desktop rail, mobile topbar/drawer,
+  account/search/notification ownership and named page-title roles.
+- [x] 10.2 Implement the shell, warm token scale, wide PageShell variant and responsive navigation.
+- [x] 10.3 Recompose Home and Quadro from open regions, preserving every behavioral contract and
+  rendering real media previews with honest fallbacks.
+- [ ] 10.4 Propagate the same system through calendar, composer, media, connections, notifications,
+  settings, billing, auth, onboarding, approval and OAuth surfaces.
+
+## 11. Final validation and Coolify delivery
+
+- [ ] 11.1 Run focused tests, `bun run check`, `bun run db:check`, `bun run build:web`,
+  `bun run spec:validate`, `git diff --check` and the Docker build.
+- [ ] 11.2 Verify desktop/tablet/mobile interaction and visual states with deterministic
+  non-production data, including drag, filters, bulk actions, overlays, reduced motion and focus.
+- [ ] 11.3 Commit on `feat/ai-image-quality-modes`, push without opening a PR, deploy the exact commit
+  through Coolify without env sync, and verify the public endpoints and deployed commit.

@@ -146,12 +146,16 @@
     "home": "Início",
     "compose": "Novo post",
     "calendar": "Calendário",
-    "kanban": "Kanban",
+    "kanban": "Quadro",
     "connections": "Conexões",
     "media": "Mídia",
     "notifications": "Notificações",
     "settings": "Configurações",
-    "plans": "Planos"
+    "plans": "Planos",
+    "search": "Buscar",
+    "account": "Minha conta",
+    "logout": "Sair",
+    "navigation": "Navegação principal"
   },
   "connections": {
     "title": "Conexões",
@@ -955,6 +959,7 @@
     },
     "cardMenu": "Ações do post",
     "cardSelect": "Selecionar post",
+    "videoPreview": "Preview de vídeo",
     "publishNowTitle": "Publicar agora?",
     "publishNowBody": "O post sai imediatamente em todos os canais do grupo. Não dá para desfazer.",
     "publishNowConfirm": "Publicar agora",

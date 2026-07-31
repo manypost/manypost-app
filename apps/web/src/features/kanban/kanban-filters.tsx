@@ -57,7 +57,7 @@ export function KanbanFilters({
     estado.colunas.length === 0 ? t('filters.allColumns') : t('filters.active', { count: estado.colunas.length });
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-surface p-3">
       <label className="relative flex min-w-48 flex-1 items-center sm:max-w-64 sm:flex-none">
         <Search className="pointer-events-none absolute left-2.5 size-3.5 text-graphite" aria-hidden />
         <span className="sr-only">{t('filters.search')}</span>

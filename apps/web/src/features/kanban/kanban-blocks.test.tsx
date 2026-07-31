@@ -31,6 +31,7 @@ const item = (over: Partial<FeedItem> = {}): FeedItem =>
     publishAt: '2026-07-30T12:00:00.000Z',
     text: 'texto',
     mediaCount: 0,
+    mediaPreview: null,
     externalId: null,
     releaseUrl: null,
     errorClass: null,
@@ -50,6 +51,7 @@ const card = (over: Partial<GroupCard> = {}): GroupCard => ({
   text: 'conteúdo do post',
   items: [item()],
   errorMessage: null,
+  mediaPreview: null,
   column: 'scheduled',
   ...over,
 });
@@ -129,6 +131,37 @@ describe('card: estrutura antes de estética', () => {
   test('post sem texto não renderiza uma linha em branco', () => {
     expect(renderCard({ text: '' })).toContain('…');
   });
+
+  test('preview de imagem usa crop editorial e alt real', () => {
+    const html = renderCard({
+      mediaPreview: {
+        type: 'image',
+        url: 'https://cdn.example/post.webp',
+        mime: 'image/webp',
+        alt: 'Mesa com calendário',
+      },
+    });
+    expect(html).toContain('data-media-kind="image"');
+    expect(html).toContain('alt="Mesa com calendário"');
+    expect(html).toContain('aspect-preview');
+  });
+
+  test('preview de vídeo vira tile neutro e não renderiza <video>', () => {
+    const html = renderCard({
+      mediaPreview: {
+        type: 'video',
+        url: 'https://cdn.example/reel.mp4',
+        mime: 'video/mp4',
+        alt: null,
+      },
+    });
+    expect(html).toContain('data-media-kind="video"');
+    expect(html).not.toContain('<video');
+  });
+
+  test('sem preview não reserva um retângulo vazio', () => {
+    expect(renderCard({ mediaPreview: null })).not.toContain('data-media-kind=');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -151,6 +184,18 @@ describe('coluna', () => {
       </KanbanColumn>,
     );
     expect(html).toContain('>7<');
+  });
+
+  test('lane é aberta, sticky e dividida — não é outro card arredondado', () => {
+    const html = render(
+      <KanbanColumn id="scheduled" accent="bg-state-scheduled" title="Agendado" count={4} compacta={false}>
+        {null}
+      </KanbanColumn>,
+    );
+    expect(html).toContain('border-l');
+    expect(html).toContain('sticky');
+    expect(html).not.toContain('rounded-lg bg-surface-2');
+    expect(html).not.toMatch(/4\s*\/\s*\d+/);
   });
 });
 

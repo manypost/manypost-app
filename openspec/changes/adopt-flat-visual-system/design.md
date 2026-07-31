@@ -1,4 +1,17 @@
-# Design — flat visual system (brand v1.4)
+# Design — editorial flat product system (brand v1.5)
+
+## 0. Approved reference and v1.5 direction
+
+The approved desktop board reference is
+`/home/guilherme/.codex/generated_images/019fb9ab-ed58-7110-ab25-5bdf6fbc90f0/exec-f4c47eef-07ae-4687-8f15-90c9bf07479e.png`.
+It is the source of truth for composition, hierarchy and density. It is not a source of fictional
+product data: invented navigation destinations and capacity denominators in the generated image are
+deliberately excluded.
+
+V1.5 is a warm editorial workspace: `#F5F3EF` page floor, white working surfaces, a `#111820`
+navigation rail, Plus Jakarta Sans for page display roles, Inter for product copy and `#7C3AED`
+only for primary action, focus and selection. Flat fills, zero shadow and the 4/6/8px radius scale
+from v1.4 remain intact.
 
 ## 1. The record: why v1.3 is being reverted
 
@@ -92,6 +105,20 @@ layer 2 (recess)    --surface-2 #eeeeef   tab rail, tile, code block. NO border 
 layer 3 (floating)  --surface   #ffffff   portal content.             border-line-strong
 ```
 
+V1.5 warms the same semantic contract:
+
+```
+layer 0 (floor)     --canvas         #f5f3ef
+layer 1 (surface)   --surface        #ffffff
+layer 2 (recess)    --surface-2      #ece9e4
+divider             --line           #ddd9d2
+component boundary  --line-strong    #8d8882  (3.51:1 against white)
+navigation          --sidebar        #111820
+navigation hover    --sidebar-hover  #1b2530
+navigation text     --sidebar-text   #e8edf2
+navigation muted    --sidebar-muted  #aab4bf
+```
+
 Layer 3 is deliberately the same white as layer 1. What separates it is the stronger border plus, for
 modal overlays, the `bg-night/40` scrim that already exists in `dialog.tsx`, `sheet.tsx` and
 `alert-dialog.tsx`.
@@ -116,7 +143,9 @@ other filled variants; destructive lacked its pair.
 
 ## 3. Package boundaries
 
-Entirely `apps/web`. No core, db, contracts or API involvement — every change is presentational.
+The visual work remains in `apps/web`. The media preview crosses the existing core port and API
+serializer because the feed currently exposes only `mediaCount`; it needs no repository or database
+work because `PublicationFeedItem.content.media` is already loaded.
 Within `apps/web` the ordering is deliberate: tokens in `globals.css` first, then the primitives in
 `components/ui/**`, and only then feature call sites. The primitives are where the system is centrally
 defined; changing them first means most feature files need no edit at all.
@@ -207,6 +236,37 @@ None are regenerated. No API contract changes, so `apps/web/openapi.json` and
 
 ## 10. Compatibility and rollback
 
-All call sites keep working through the change because the classes are removed together with their
-usages, phase by phase, each phase closing green. Rollback is a code revert; because relief was applied
-per call site, a partial rollback of a single component is also possible.
+The feed adds `mediaPreview` as a nullable field serialized from the first existing media reference.
+Images render as a 4:3 preview; video uses a neutral play tile so the board does not eagerly load a
+video per card. `/kanban` and every workflow transition remain unchanged. Rollback is an application
+redeploy to `ab1d114`; no data rollback exists or is needed.
+
+## 11. Shell and responsive composition
+
+Desktop uses a 208px dark sidebar, collapsible to 64px. The rail owns the global command trigger,
+navigation, notifications, settings and account menu. The redundant desktop topbar is removed.
+Below 768px the sidebar becomes the existing drawer pattern and a 56px mobile topbar keeps menu,
+wordmark, search and notifications reachable.
+
+The main canvas uses 24px padding on desktop and 16px on mobile. Standard pages remain bounded by
+the shell; workflow surfaces use a named wide PageShell variant rather than a one-off width. Page
+titles use a 32px named product-display role; the Home greeting may use 44px.
+
+## 12. Board composition
+
+The board keeps five semantic lanes and every existing transition. Lanes are open work areas
+separated by vertical dividers and whitespace, with sticky headers, a state dot and the count of
+items actually read. No capacity denominator or progress percentage is rendered because the product
+has no capacity model.
+
+Cards remain framed draggable objects. Their hierarchy is local date/state, two or three lines of
+copy, optional media preview, channel identity and actions. Failure reason and retry are visible in
+the failed lane. Selection uses one accent edge/tint. Search, channel, status, window and density
+live in one toolbar; URL and localStorage ownership remain unchanged.
+
+## 13. Whole-product propagation
+
+Home uses a prominent next-publication row, horizontal pipeline, open schedule list and activity
+rail. Calendar, composer, media, connections, notifications, settings and billing reuse open-list,
+rail, gallery and form-region patterns. Auth, onboarding, approval and OAuth keep their functional
+contracts while adopting the warm canvas, hierarchy and shared primitives.

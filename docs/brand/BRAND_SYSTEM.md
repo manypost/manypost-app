@@ -1,4 +1,4 @@
-# manypost BRAND & DESIGN SYSTEM · ESPECIFICAÇÃO OFICIAL v1.4
+# manypost BRAND & DESIGN SYSTEM · ESPECIFICAÇÃO OFICIAL v1.5
 
 [← Índice da documentação](../README.md) · [Guia de adaptação para o app](README.md) · [SPEC_FRONTEND](../specs/SPEC_FRONTEND.md) · [README do projeto](../../README.md)
 
@@ -43,7 +43,7 @@ O manypost preenche a lacuna entre o design visual e a engenharia de software, u
 
 1. **Estética Limpa, Profissional e Acolhedora:**
    O manypost é uma plataforma de gestão de redes sociais e automação de IA para quem valoriza seu tempo. Elementos decorativos em excesso, sombras flutuantes, gradientes de relevo e animações de entrada são evitados para manter o foco no conteúdo.
-2. **Superfícies chapadas e zero sombras:** *(brand v1.4 — 2026-07-31)*
+2. **Superfícies chapadas e zero sombras:** *(brand v1.5 — 2026-07-31)*
    `box-shadow` e gradientes de preenchimento são proibidos no app. A hierarquia usa três fills chapados — `--canvas`, `--surface` e `--surface-2` — em quatro papéis: piso, superfície, rebaixo e flutuante. O papel flutuante reutiliza `--surface` e se distingue por `--line-strong`, não por um quarto tom. `--line` separa estrutura; `--line-strong` delimita controles e conteúdo flutuante com contraste mínimo de 3:1. Um elemento não acumula fill, borda e molduras internas para parecer importante.
 3. **Regra de Estabilidade em Botões:**
    Botões e elementos interativos não saltam ou se deslocam no hover. Ao passar o mouse, deve ocorrer apenas uma transição suave de cor (`background-color`, `border-color`, `color` em `0.2s ease`), mantendo o elemento firme e confortável na tela.
@@ -56,7 +56,8 @@ O manypost preenche a lacuna entre o design visual e a engenharia de software, u
 
 Todas as cores devem ser referenciadas via variáveis CSS pré-definidas em `global.css`. Nunca utilize cores hexadecimais *ad-hoc* diretamente nos componentes.
 
-O sistema é **light-first**: a base é o branco, o texto é quase-preto e o roxo entra como acento.
+O sistema é **light-first**: o aplicativo usa canvas quente, superfícies brancas, rail escuro e o
+roxo somente como acento funcional.
 
 ### Tabela de Tokens
 
@@ -70,12 +71,16 @@ O sistema é **light-first**: a base é o branco, o texto é quase-preto e o rox
 | `--ink-soft` | `#262626` | Preto Suave | **Hover de Superfície Escura:** estado `hover` de botões e painéis com fundo `--ink`. Não é cor de texto. |
 | `--graphite` | `#6B6B70` | Cinza | **Texto Editorial & Apoio:** Subtítulos, parágrafos de corpo, sobretítulos em caixa alta, legendas, metadados e badges (5,3:1 sobre branco). |
 | `--mist` | `#8E8E96` | Cinza Claro | **Metadado Decorativo:** 3,2:1 sobre branco — reprova AA para corpo de texto. Nunca use em texto que precise ser lido. |
-| `--canvas` | `#F1F1F4` | Piso | **Fundo da Página:** contraste suficiente para uma superfície branca se distinguir sem sombra. |
+| `--canvas` | `#F5F3EF` | Piso quente | **Fundo da Página:** base editorial acolhedora, distinta da superfície branca sem sombra. |
 | `--paper` / `--surface` | `#FFFFFF` | Branco | **Superfície Principal:** cards, painéis e texto sobre fundo escuro ou roxo. |
-| `--surface-2` | `#EEEEEF` | Cinza-claro | **Rebaixo:** trilhos, tiles e blocos de código; o próprio fill é o limite, sem borda interna. |
+| `--surface-2` | `#ECE9E4` | Cinza quente | **Rebaixo:** trilhos, tiles e blocos de código; o próprio fill é o limite, sem borda interna. |
 | `--night` | `#0A0A0A` | Preto Premium | **Momento Dark (opcional):** seções de alto impacto, com wordmark branco e acento roxo. |
-| `--line` | `#D6D6DF` | Linha / Borda | **Divisores & Estrutura:** bordas decorativas, linhas de tabela e separadores. |
-| `--line-strong` | `#8E8E96` | Limite Forte | **Controle/Overlay:** 3,22:1 contra branco quando a borda é o único identificador. |
+| `--line` | `#DDD9D2` | Linha / Borda | **Divisores & Estrutura:** bordas decorativas, linhas de tabela e separadores. |
+| `--line-strong` | `#8D8882` | Limite Forte | **Controle/Overlay:** pelo menos 3:1 contra branco quando a borda é o único identificador. |
+| `--sidebar` | `#111820` | Rail | **Navegação desktop:** superfície escura contínua, 208px aberta e 64px recolhida. |
+| `--sidebar-hover` | `#1B2530` | Rail ativo | **Hover/seleção:** fill do item ativo e separadores do rail. |
+| `--sidebar-text` | `#E8EDF2` | Texto no rail | **Labels ativos e identidade:** texto principal sobre o rail. |
+| `--sidebar-muted` | `#AAB4BF` | Apoio no rail | **Ícones e labels inativos:** nunca usado no canvas claro. |
 
 ### Exemplo de Implementação CSS
 ```css
@@ -86,15 +91,19 @@ O sistema é **light-first**: a base é o branco, o texto é quase-preto e o rox
   --accent-on-dark: #C4B5FD;
   --paper: #FFFFFF;
   --surface: #FFFFFF;
-  --canvas: #F1F1F4;
-  --surface-2: #EEEEEF;
+  --canvas: #F5F3EF;
+  --surface-2: #ECE9E4;
+  --sidebar: #111820;
+  --sidebar-hover: #1B2530;
+  --sidebar-text: #E8EDF2;
+  --sidebar-muted: #AAB4BF;
   --night: #0A0A0A;
   --ink: #111111;
   --ink-soft: #262626;
   --graphite: #6B6B70;
   --mist: #8E8E96;
-  --line: #D6D6DF;
-  --line-strong: #8E8E96;
+  --line: #DDD9D2;
+  --line-strong: #8D8882;
 }
 ```
 
@@ -110,6 +119,19 @@ O sistema é **light-first**: a base é o branco, o texto é quase-preto e o rox
 | `--line-strong` | limite de controle/overlay; contraste mínimo 3:1 contra a superfície |
 
 Os tokens `--edge-*` e `--bevel-*` e as classes `.bevel-*`/`.inset-field` foram removidos. Reintroduzi-los exige uma nova decisão OpenSpec; não é uma variação local permitida.
+
+### 3.2 Shell editorial e Quadro *(brand v1.5)*
+
+No desktop, o chrome é um rail escuro de 208px (64px recolhido); busca, notificações e conta vivem
+nele. A topbar global existe somente no mobile. O conteúdo usa canvas quente e pode chegar a 96rem
+em superfícies comparativas. Título de página usa Plus Jakarta Sans em 32px; a saudação da Home pode
+usar 44px.
+
+O Quadro apresenta cinco lanes abertas separadas por linhas verticais. A lane não recebe fill,
+moldura nem raio; cards preservam a própria borda. Cabeçalhos são sticky e contagens são reais, sem
+denominador de capacidade. Cards usam preview opcional do primeiro media: imagem em 4:3, vídeo como
+tile neutro sem player, e nenhum espaço reservado quando não há media. Em mobile, as lanes rolam
+horizontalmente com largura legível.
 
 ---
 
@@ -211,7 +233,7 @@ Para garantir uma navegação agradável e equilibrada, nosso sistema adota exat
 ### A. Cards Interativos (`.card`)
 Cards estruturais devem ter altura igualizada (`height: 100%` em grids com `align-items: stretch`).
 * **Estado Normal:** fill `--surface`, `border-radius: 8px`; use uma borda `--line` somente quando ela for necessária para identificar o objeto.
-* **Estado Hover (cards clicáveis):** `border-color: var(--accent)` ou mudança chapada de fill, sem sombra, filtro ou movimento.
+* **Estado Hover (cards clicáveis):** borda forte neutra ou mudança chapada de fill; roxo fica para foco e seleção explícita, sem sombra, filtro ou movimento.
 * **Framing:** uma região carrega um nível de borda. Objetos arrastáveis/selecionáveis mantêm frame; o container vira um palco sem borda.
 
 ### B. Badges de Indicadores (`.badge`)

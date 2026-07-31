@@ -10,6 +10,14 @@
 > **Como manter:** ao fechar uma fatia, atualize as seções abaixo **e** abra uma entrada nova no
 > topo do changelog. Este arquivo é sobre o presente; o changelog é sobre o passado.
 >
+> **Atualização — brand v1.5 (2026-07-31):** o mock aprovado do Quadro virou contrato e
+> implementação: canvas quente, rail escuro 208/64, topbar só mobile, títulos editoriais, largura
+> ampla e cinco lanes abertas. Cards usam preview aditivo real do feed (imagem 4:3, tile de vídeo ou
+> nenhum espaço), falhas mantêm retry visível e não há capacidade inventada. A rota `/kanban` e toda
+> a operação v2 foram preservadas. Contrato/serializer/agrupamento/card e shell foram desenvolvidos
+> test-first; OpenAPI foi regenerado. A inspeção autenticada segue limitada pela ausência de login
+> local, portanto as mudanças OpenSpec continuam abertas até o smoke público pós-deploy.
+>
 > **Atualização — brand v1.4 (2026-07-31):** a interface operacional voltou deliberadamente a
 > superfícies chapadas. A v1.3 de relevo por gradiente foi removida como mudança de direção, não como
 > correção de defeito: hierarquia agora vem de camadas, espaço e `--line`/`--line-strong`; tipografia,

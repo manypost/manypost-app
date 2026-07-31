@@ -13,6 +13,7 @@ import type { components } from '@/lib/api/schema';
  */
 
 export type FeedItem = components['schemas']['FeedItem'];
+export type MediaPreview = FeedItem['mediaPreview'];
 
 export type ColumnId = 'draft' | 'awaiting' | 'scheduled' | 'published' | 'failed';
 
@@ -36,6 +37,7 @@ export interface GroupCard {
   text: string;
   items: FeedItem[];
   errorMessage: string | null;
+  mediaPreview: MediaPreview | null;
   column: ColumnId;
 }
 
@@ -86,6 +88,7 @@ export function agruparEmCards(items: FeedItem[]): GroupCard[] {
       text: primeiro.text,
       items: doGrupo,
       errorMessage: doGrupo.find((i) => i.errorMessage)?.errorMessage ?? null,
+      mediaPreview: doGrupo.find((i) => i.mediaPreview)?.mediaPreview ?? null,
       column,
     });
   }

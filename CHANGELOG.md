@@ -8,6 +8,11 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Added
 
+- **O feed de publicações ganhou `mediaPreview` aditivo e opcional.** O serializer projeta somente
+  a primeira mídia que já existe no conteúdo, com tipo, URL, MIME e alt; imagem, vídeo e ausência
+  de mídia têm contrato e testes próprios. O cliente OpenAPI foi regenerado pela API, sem mudança
+  de banco ou de domínio.
+
 - **A tela inicial passou a responder também "o que acontece agora?".** O `/inicio` ganhou
   próximas publicações (até 5, com horário local, canal e estado), atividade recente (desfechos de
   entrega mesclados com decisões de aprovação), rascunhos retomáveis e um resumo do pipeline. Um
@@ -76,6 +81,14 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
   mensagem.
 
 ### Changed
+
+- **Brand v1.5: o app adotou a composição editorial aprovada.** O shell autenticado agora combina
+  canvas quente com rail escuro 208/64, busca/notificações/conta no rail, topbar somente mobile,
+  largura ampla nomeada e títulos Plus Jakarta de 32px (44px na saudação da Home). `/kanban`
+  permanece a rota, mas a interface se chama **Quadro** e usa cinco lanes abertas com divisores,
+  cabeçalhos sticky, cards com preview opcional, retry visível e nenhuma capacidade fictícia.
+  Filtros, URL, densidade, seleção, drag, teclado, lote e confirmações foram preservados.
+  OpenSpec: `adopt-flat-visual-system` + `add-kanban-board-operations`.
 
 - **O sistema visual voltou deliberadamente a superfícies chapadas (brand v1.4).** A direção de
   relevo por gradiente da v1.3 foi revogada — não era um defeito de implementação, mas deixou de ser

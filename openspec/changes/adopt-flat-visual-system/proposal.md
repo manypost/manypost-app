@@ -23,6 +23,12 @@ against white. WCAG 1.4.11 requires 3:1 where a border is the only thing identif
 Today a white dropdown over a white card is separated by that hairline plus a gradient; the gradient
 is doing work the border should be doing, and doing it without meeting the contrast floor.
 
+After v1.4 shipped, the owner reviewed the result in production and found that flatness alone did
+not solve the hierarchy. The interface still reads as a collection of equally weighted grey boxes.
+The board makes this most visible: five identical tubs, detached filters and text-first cards do not
+communicate the rhythm of a publishing operation. Brand v1.5 keeps the flat foundation and gives it
+an authored composition, using the approved board reference as the visual source of truth.
+
 ## Goals
 
 - Remove gradient relief from the product and rebuild hierarchy from background layering, border
@@ -31,21 +37,23 @@ is doing work the border should be doing, and doing it without meeting the contr
 - Reduce the interface to one typographic scale, three weights and one spacing scale.
 - Make frames carry information: one level of border per region.
 - Lock the usable content width once, in the shell.
+- Establish a warm editorial canvas with a dark navigation rail and open work regions.
+- Recompose Home and the board around the real publishing workflow, including optional media
+  previews, without inventing analytics or capacity data.
+- Consolidate `design.md` so its primary sections form one normative source.
 
 ## Non-goals
 
 - **`box-shadow` remains forbidden.** Zero-shadow is the brand's identity pillar and is untouched by
   this change; this is not a step toward reintroducing elevation.
-- No change to control density (38/36/56). This is recorded as a deliberate decision to keep, with
-  its cost, so it is not re-litigated.
-- No change to the accent hue, the state palette, the radius scale (4/6/8) or the editorial regime
-  used by auth and onboarding.
+- No reduction below the established accessible control targets; compact board controls remain at
+  least 36px.
+- No change to the accent hue, the state palette or the radius scale (4/6/8).
 - No normalization of typography inside provider post simulations. Those previews reproduce an
   external network's content rather than the Manypost product chrome; changing their scale or weight
   would make the preview less faithful. This is a named, file-scoped representational exception, not
   a second product scale.
-- No copy change beyond removing decorative emoji from seeded example content. The greeting heading,
-  the empty-state phrasing and toast punctuation stay as they are, by the owner's explicit decision.
+- No new route or navigation destination. Existing routes may receive clearer Portuguese labels.
 - No dark mode. The product remains light-first.
 - No new dependency.
 
@@ -65,6 +73,13 @@ is doing work the border should be doing, and doing it without meeting the contr
 - Introduce container tokens and lock the shell width once.
 - Remove the Home's staggered entrance animation.
 - Remove the dead `enterprise` button variant.
+- Replace the cold application neutrals with the approved warm scale and introduce semantic tokens
+  for the dark sidebar.
+- Replace the desktop topbar with a persistent 208px/64px navigation rail that owns global search,
+  notifications and the account menu; retain a compact mobile topbar and drawer.
+- Recompose Home, board and the remaining product surfaces from open lists, rails and work areas.
+- Rename the board label to `Quadro` while preserving `/kanban`.
+- Add a nullable first-media preview to the publication feed.
 
 ## Capabilities
 
@@ -76,11 +91,9 @@ is doing work the border should be doing, and doing it without meeting the contr
 
 ## Compatibility
 
-No route, API contract, translation key, publication state or interaction semantic changes. Every
-change is presentational. The radius scale, the accent and state palettes, the editorial typography
-regime and the zero-shadow rule are preserved. Because the visual system had no specification until
-now, this change creates one rather than modifying an existing contract; `product-identity` covers
-wordmark and naming only and is unaffected. No Postiz reference is changed, so product-identity
+No route, publication state or interaction semantic changes. The publication feed receives one
+additive nullable field; clients that ignore it remain compatible. The radius scale, accent/state
+palettes and zero-shadow rule remain. No Postiz reference is changed, so product-identity
 classification does not apply.
 
 **Overlap:** `add-home-operational-blocks`, `add-kanban-board-operations` and
@@ -90,19 +103,19 @@ those three are archived at that point rather than before.
 
 ## Rollback
 
-Restore the relief tokens and the `.bevel-*` classes in `globals.css` and revert the primitives.
-Because the classes are applied at call sites, a partial rollback is possible per component. No
-data, migration or generated contract is involved.
+Redeploy commit `ab1d114` to restore the production v1.4 interface. The feed addition is nullable
+and requires no data rollback. No migration, environment or volume change is involved.
 
 ## Impact
 
 - **Code:** `apps/web/src/app/globals.css`, `apps/web/src/components/ui/**`,
   `apps/web/src/components/shell/**`, `apps/web/src/lib/utils.ts`, `apps/web/src/features/**`,
   `apps/web/src/app/(app)/layout.tsx`, `apps/web/src/messages/pt-BR.json`.
-- **Documentation:** `docs/brand/BRAND_SYSTEM.md` (to v1.4), `design.md` §51.4, `docs/brand/README.md`,
+- **Documentation:** `docs/brand/BRAND_SYSTEM.md` (to v1.5), consolidated `design.md`, `docs/brand/README.md`,
   `CLAUDE.md`, `CHANGELOG.md`, `docs/principal/STATUS.md`, `docs/principal/CHANGELOG_ONDAS.md`.
-- **Data and APIs:** none. No schema, migration, persistence or OpenAPI change.
+- **Data and APIs:** additive `FeedItem.mediaPreview`; generated OpenAPI client change, with no
+  schema migration or persistence change.
 - **Security:** none. No auth, authorization, cookie, CORS, upload or secret-handling change.
   Accessibility improves: component boundaries reach the 3:1 floor that WCAG 1.4.11 requires.
 - **Dependencies:** none added; one dead component variant removed.
-- **Railway:** no service, variable, volume, domain, build-system or deployment-topology change.
+- **Coolify:** application-only deployment; no service, variable, volume, domain or topology change.

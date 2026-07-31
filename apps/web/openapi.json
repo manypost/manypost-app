@@ -743,6 +743,43 @@
           "mediaCount": {
             "type": "integer"
           },
+          "mediaPreview": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "image",
+                  "video"
+                ]
+              },
+              "url": {
+                "type": "string"
+              },
+              "mime": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "alt": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "url",
+              "mime",
+              "alt"
+            ],
+            "description": "primeira mídia do conteúdo para reconhecimento visual do card"
+          },
           "externalId": {
             "type": [
               "string",
@@ -830,6 +867,7 @@
           "updatedAt",
           "text",
           "mediaCount",
+          "mediaPreview",
           "externalId",
           "releaseUrl",
           "errorClass",

@@ -84,3 +84,14 @@
   `docs/principal/CHANGELOG_ONDAS.md` with the board's new capability, its evidence and its rollback.
 - [ ] 8.2 Review the full diff for generated files, secrets and product identity, then archive
   `add-kanban-board-operations` only once every requirement above is satisfied.
+
+## 9. Approved editorial redesign
+
+- [x] 9.1 Add failing focused tests for the feed's nullable media preview and the board's image,
+  video and no-preview card variants.
+- [x] 9.2 Add the typed additive feed projection, regenerate OpenAPI artifacts from the running API
+  and make grouped cards select the first available preview.
+- [x] 9.3 Recompose `/kanban` as `Quadro`: five open divided lanes, compact toolbar, sticky lane
+  headers, media-aware cards, visible failure recovery and no fictional capacity figures.
+- [ ] 9.4 Verify the redesigned board at desktop and mobile sizes without regressing filters,
+  density, selection, drag, card actions, empty states or reduced motion.

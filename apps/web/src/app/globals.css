@@ -20,12 +20,15 @@
    *   2 rebaixo   --surface-2 trilho, tile, bloco de código  → SEM borda (o fill é o limite)
    *   3 flutuante --surface   conteúdo em portal             → border-line-strong
    *
-   * `--canvas` era `#f6f6f9`, a 1,07:1 do branco — ruído, não camada: um card branco não parecia
-   * pousado em nada. A `#f1f1f4` o degrau vai a 1,115:1, o que quase dobra a separação percebida.
-   * É o que faz a superfície "subir" sem sombra e sem gradiente.
+   * A v1.5 aquece o piso sem colorir os objetos: o canvas editorial diferencia o branco dos cards
+   * e o surface-2 permanece um rebaixo neutro-quente, sempre sem sombra ou gradiente.
    */
-  --canvas: #f1f1f4;
-  --surface-2: #eeeeef;
+  --canvas: #f5f3ef;
+  --surface-2: #ece9e4;
+  --sidebar: #111820;
+  --sidebar-hover: #1b2530;
+  --sidebar-text: #e8edf2;
+  --sidebar-muted: #aab4bf;
   --night: #0a0a0a;
   --ink: #111111;
   --ink-soft: #262626;
@@ -46,8 +49,8 @@
    * (b) limite de controle de entrada — input, textarea, gatilho de select, botão outline. Os dois
    * são o mesmo problema: uma caixa branca dentro de outra caixa branca.
    */
-  --line: #d6d6df;
-  --line-strong: #8e8e96;
+  --line: #ddd9d2;
+  --line-strong: #8d8882;
 
   /* estados de publicação (rascunho é neutro: --graphite/--surface-2) */
   --state-scheduled: #7c3aed;
@@ -135,6 +138,10 @@
   --color-night: var(--night);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-text: var(--sidebar-text);
+  --color-sidebar-muted: var(--sidebar-muted);
 
   --color-state-scheduled: var(--state-scheduled);
   --color-state-scheduled-tint: var(--state-scheduled-tint);
@@ -156,6 +163,7 @@
 
   /* medida global: o shell limita a tela; textos descritivos compartilham uma linha de leitura */
   --container-app: 80rem;
+  --container-wide: 96rem;
   --container-reading: 42.5rem;
 
   --radius-*: initial;
@@ -188,8 +196,10 @@
   --text-compact--line-height: 18px;
   --text-panel: 15px; /* título de painel/card/diálogo (§6.3: 15–16px) */
   --text-panel--line-height: 1.35;
-  --text-title: 20px; /* H1 de tela (§6.3: título de página 18–20px) — brand v1.4 */
-  --text-title--line-height: 1.25;
+  --text-title: 32px; /* H1 operacional editorial — brand v1.5 */
+  --text-title--line-height: 1.15;
+  --text-display: 44px; /* saudação da Home; nunca em painéis ou controles */
+  --text-display--line-height: 1.08;
   --text-figure: 24px; /* SÓ numeral grande, KPI (§6.3: KPI value 22–24px) — brand v1.4 */
   --text-figure--line-height: 1.15;
 
@@ -246,6 +256,10 @@
     font-size: var(--text-calendar-hour);
     line-height: var(--text-calendar-hour--line-height);
   }
+}
+
+@utility aspect-preview {
+  aspect-ratio: 4 / 3;
 }
 
 /*

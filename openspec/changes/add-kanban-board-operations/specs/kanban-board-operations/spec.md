@@ -226,3 +226,31 @@ describes the person rather than the view being shared.
 
 - **WHEN** a narrowed board's address is opened by another person
 - **THEN** the filters apply and the recipient's own density preference is used
+
+### Requirement: The board renders an honest editorial work surface
+
+The system SHALL present the five operational states as open lanes separated by visible rules,
+SHALL keep empty lanes visible, SHALL NOT display a capacity denominator without a real capacity
+model, and SHALL use optional feed media to improve recognition without hiding operational text or
+actions.
+
+#### Scenario: A post has an image preview
+
+- **WHEN** a card's first available preview is an image
+- **THEN** the card renders it in a compact 4:3 crop with meaningful alternative text when present
+
+#### Scenario: A post has a video preview
+
+- **WHEN** a card's first available preview is a video
+- **THEN** the card renders a neutral play tile without eagerly loading the video
+
+#### Scenario: A post has no preview
+
+- **WHEN** no usable preview is available
+- **THEN** the card reserves no empty media area
+
+#### Scenario: A lane has no cards
+
+- **WHEN** a lane is empty in the current view
+- **THEN** its header and zero count remain visible
+- **AND** no fictional capacity value is shown

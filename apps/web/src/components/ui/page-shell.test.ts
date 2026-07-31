@@ -31,4 +31,31 @@ describe('shell único de página', () => {
       expect(await source(route)).not.toContain('PageHeader');
     }
   });
+
+  test('o shell editorial tem rail escuro 208/64, e a topbar pertence somente ao mobile', async () => {
+    const sidebar = await source('../shell/app-sidebar.tsx');
+    const topbar = await source('../shell/topbar.tsx');
+    const css = await source('../../app/globals.css');
+
+    expect(css).toContain('--sidebar:');
+    expect(css).toContain('--container-wide:');
+    expect(sidebar).toContain("isCollapsed ? 'w-16");
+    expect(sidebar).toContain(": 'w-52'");
+    expect(sidebar).toContain('bg-sidebar');
+    expect(sidebar).toContain('abrirPaleta');
+    expect(sidebar).toContain('useMe');
+    expect(topbar).toContain('md:hidden');
+    expect(topbar).not.toContain('md:block');
+  });
+
+  test('PageShell possui variante wide nomeada e título de página usa display 32px', async () => {
+    const shell = await source('./page-shell.tsx');
+    const header = await source('./page-header.tsx');
+    const css = await source('../../app/globals.css');
+
+    expect(shell).toContain("size?: 'standard' | 'wide'");
+    expect(shell).toContain('max-w-wide');
+    expect(header).toContain('font-display');
+    expect(css).toContain('--text-title: 32px');
+  });
 });

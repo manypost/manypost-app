@@ -1,7 +1,7 @@
 'use client';
 
 import { useDraggable } from '@dnd-kit/core';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, Play } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -71,7 +71,7 @@ export function KanbanCard({
       ref={setNodeRef}
       className={cn(
         'group/card relative flex flex-col rounded-md border bg-surface transition-colors duration-200',
-        'focus-within:border-accent hover:border-accent',
+        'focus-within:border-accent hover:border-line-strong',
         compacta ? 'gap-1.5 p-2' : 'gap-2 p-3',
         selecionado ? 'border-accent bg-accent-tint' : 'border-line',
         isDragging && 'opacity-40',
@@ -124,6 +124,22 @@ export function KanbanCard({
           arrastavel ? 'cursor-grab' : 'cursor-pointer',
         )}
       >
+        {quando ? (
+          <span
+            className={cn(
+              'text-meta font-medium tabular-nums',
+              card.column === 'failed'
+                ? 'text-state-failed'
+                : card.column === 'published'
+                  ? 'text-state-published'
+                  : card.column === 'scheduled'
+                    ? 'text-state-scheduled'
+                    : 'text-graphite',
+            )}
+          >
+            {quando}
+          </span>
+        ) : null}
         <p
           className={cn(
             'text-compact leading-relaxed text-ink',
@@ -136,6 +152,30 @@ export function KanbanCard({
           <p className="line-clamp-2 text-meta leading-relaxed text-state-failed">
             {card.errorMessage}
           </p>
+        ) : null}
+        {card.mediaPreview && !compacta ? (
+          card.mediaPreview.type === 'image' ? (
+            <span
+              data-media-kind="image"
+              className="aspect-preview mt-1 block w-full overflow-hidden rounded-sm bg-surface-2"
+            >
+              <img
+                src={card.mediaPreview.url}
+                alt={card.mediaPreview.alt ?? ''}
+                className="size-full object-cover"
+                loading="lazy"
+                draggable={false}
+              />
+            </span>
+          ) : (
+            <span
+              data-media-kind="video"
+              aria-label={t('videoPreview')}
+              className="aspect-preview mt-1 grid w-full place-items-center rounded-sm border border-line bg-surface-2 text-graphite"
+            >
+              <Play className="size-5" aria-hidden />
+            </span>
+          )
         ) : null}
       </button>
 
@@ -173,7 +213,15 @@ export function KanbanCard({
         </span>
         <span className="ml-auto flex items-center gap-1.5">
           {card.origin !== 'WEB' ? <Badge className="px-1.5 py-0.5">{card.origin}</Badge> : null}
-          {quando ? <span className="text-meta tabular-nums text-graphite">{quando}</span> : null}
+          {card.column === 'failed' ? (
+            <button
+              type="button"
+              onClick={() => onAcao('retry', card)}
+              className="cursor-pointer text-meta font-medium text-state-failed outline-none hover:underline focus-visible:outline-2 focus-visible:outline-accent"
+            >
+              {t('retry')}
+            </button>
+          ) : null}
         </span>
       </div>
     </article>
