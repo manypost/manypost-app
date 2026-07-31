@@ -61,7 +61,7 @@ export function ComposerNetworkTabs({ resolvedTab }: { resolvedTab: string }) {
     cn(
       'relative flex w-12 shrink-0 cursor-pointer flex-col items-center gap-1.5 rounded-md border p-1.5 outline-none transition-colors duration-200',
       'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
-      ativo ? 'bevel-surface border-accent' : 'border-transparent hover:bg-surface',
+      ativo ? 'bg-surface border-accent' : 'border-transparent hover:bg-surface',
     );
 
   const globalLen = text.trim().length;

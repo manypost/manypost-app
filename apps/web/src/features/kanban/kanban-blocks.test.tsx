@@ -136,7 +136,7 @@ describe('card: estrutura antes de estética', () => {
 describe('coluna', () => {
   test('coluna sem cards ainda declara sua contagem — zero é informação', () => {
     const html = render(
-      <KanbanColumn id="draft" accent="border-t-mist" title="Rascunho" count={0} compacta={false}>
+      <KanbanColumn id="draft" accent="bg-mist" title="Rascunho" count={0} compacta={false}>
         {null}
       </KanbanColumn>,
     );
@@ -146,7 +146,7 @@ describe('coluna', () => {
 
   test('a contagem reflete o que foi passado, não o número de filhos', () => {
     const html = render(
-      <KanbanColumn id="failed" accent="border-t-state-failed" title="Falhou" count={7} compacta={false}>
+      <KanbanColumn id="failed" accent="bg-state-failed" title="Falhou" count={7} compacta={false}>
         {null}
       </KanbanColumn>,
     );

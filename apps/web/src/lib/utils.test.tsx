@@ -27,10 +27,12 @@ describe('merge dos tokens tipográficos do produto', () => {
     ]);
   });
 
+  // `enterprise` saiu na brand v1.4 (código morto: um único uso, dentro do próprio button.tsx).
+  // Os três tamanhos continuam cobertos, distribuídos entre as duas variantes preenchidas que restam.
   test('botões preenchidos mantêm texto branco em todos os tamanhos tipográficos', () => {
     for (const [variant, size, token] of [
       ['primary', 'md', 'text-compact'],
-      ['enterprise', 'sm', 'text-meta'],
+      ['primary', 'sm', 'text-meta'],
       ['destructive', 'lg', 'text-panel'],
     ] as const) {
       const classes = classesFrom(

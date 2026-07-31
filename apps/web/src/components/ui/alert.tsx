@@ -3,7 +3,7 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 const alertVariants = cva(
-  'relative w-full rounded-lg border p-4 text-sm [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:size-4 [&>svg+div]:pl-7',
+  'relative w-full rounded-lg border p-4 text-compact [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:size-4 [&>svg+div]:pl-7',
   {
     variants: {
       variant: {
@@ -47,7 +47,7 @@ function AlertDescription({ className, ...props }: React.ComponentProps<'div'>) 
   return (
     <div
       data-slot="alert-description"
-      className={cn('text-sm leading-relaxed [&_p]:leading-relaxed', className)}
+      className={cn('text-compact leading-relaxed [&_p]:leading-relaxed', className)}
       {...props}
     />
   );

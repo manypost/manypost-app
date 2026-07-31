@@ -2671,37 +2671,31 @@ gráficos, §30 painel direito).
 | §8.4 | "Elevação" como eixo de hierarquia | substituído por §51.4 |
 
 Motivo: zero sombra não é preferência, é o pilar de identidade da marca (BRAND §2.2) e a regra
-que o `check-brand.ts` verifica arquivo por arquivo. Um flutuante se separa do fundo por **borda +
-mudança de superfície + relevo por gradiente**, que é suficiente e já está implementado.
+que o `check-brand.ts` verifica arquivo por arquivo. Um flutuante se separa do fundo por **borda
+forte + mudança de superfície**, sem simular elevação.
 
 ### 51.3 Raio: somente 4, 6 e 8px
 
 | Seção sobrescrita | O que dizia | O que vale |
 | --- | --- | --- |
-| §8.1, §46.5 | escala 4/6/8/10/12/16/999px | **4/6/8px**; `999px` (`rounded-full`) apenas em avatar |
+| §8.1, §46.5 | escala 4/6/8/10/12/16/999px | **4/6/8px**; `rounded-full` apenas no Avatar e em pontos de estado pequenos |
 | §47.2 | card 10px, analytics 12px | 8px |
 | §47.3 | KPI 12px | 8px |
 | §20.1 | `--mp-radius-xl` no card de KPI | 8px (`rounded-lg`) |
 
 O `check-brand.ts` reprova qualquer coisa fora disso, incluindo valor arbitrário (`rounded-[10px]`).
 
-### 51.4 Profundidade: gradiente, não elevação
+### 51.4 Profundidade revogada: camadas chapadas (brand v1.4, 2026-07-31)
 
-O §8.4 fala de elevação; o brand v1.3 resolve profundidade por **gradiente de preenchimento +
-cor de borda por lado**, e a direção codifica a função:
+O texto anterior dizia que “o brand v1.3 resolve profundidade por gradiente de preenchimento + cor
+de borda por lado”. Essa decisão está **revogada**. Nenhum componente simula profundidade com
+gradiente, brilho, sombra ou filtro. A hierarquia usa `--canvas`, `--surface` e `--surface-2`; o
+papel flutuante reutiliza `--surface` e ganha `--line-strong`. `--line` separa estrutura e a borda
+forte delimita controles e overlays quando é o único identificador. As classes `.bevel-*` e `.inset-field` e os tokens
+`--edge-*`/`--bevel-*` foram removidos.
 
-| Intenção | Classe | Direção |
-| --- | --- | --- |
-| Superfície/controle que sobe (botão, card, overlay, sidebar, aba ativa) | `.bevel-surface`, `.bevel-primary`, `.bevel-outline` | topo claro, base escura |
-| Badge, chip, caixa de tint, **card de KPI** | `.bevel-chip` | brilho sobre a cor de fundo que o elemento já tem |
-| Campo de entrada | `.inset-field` | invertida (afunda) |
-| Estado selecionado em acento | `.bevel-accent` | contorno de acento com bevel na borda |
-
-Só o fundo da página e o texto puro ficam sem volume. Hover de relevo é `filter: brightness()`,
-nunca `translate`/`scale` (§34.2 e §43.13 já concordam com isso).
-
-**Card de KPI (§20) na linguagem do brand:** não precisa de classe nova. É
-`bg-<tint> bevel-chip rounded-lg border border-line`, com o tint escolhido conforme §51.6.
+**Card de KPI (§20):** usa fill de estado chapado, `rounded-lg` e no máximo uma borda uniforme.
+Estado e hierarquia vêm de fill, texto, um pequeno ponto semântico e espaçamento — não de ornamento.
 
 ### 51.5 Mapa de nomes: `--mp-*` → tokens reais
 
@@ -2713,10 +2707,12 @@ autorizada:
 | `--mp-bg-canvas` | `--canvas` | `bg-canvas` |
 | `--mp-bg-surface` | `--surface` | `bg-surface` |
 | `--mp-bg-subtle`, `--mp-bg-muted` | `--surface-2` | `bg-surface-2` |
+| superfície de overlay | `--surface` + `--line-strong` | `bg-surface border-line-strong` |
 | `--mp-text-primary` | `--ink` | `text-ink` |
 | `--mp-text-secondary` | `--ink-soft` | `text-ink-soft` |
 | `--mp-text-tertiary` | `--graphite` | `text-graphite` |
 | `--mp-border-subtle`, `--mp-border-default` | `--line` | `border-line` |
+| limite de controle/overlay | `--line-strong` | `border-line-strong` |
 | `--mp-accent`, roxo `#7C3AED` | `--accent` | `text-accent`, `bg-accent` |
 | `--mp-accent-soft` | `--accent-tint` | `bg-accent-tint` |
 | `--mp-radius-xs`/`sm` | `--radius-sm` (4px) | `rounded-sm` |
@@ -2751,13 +2747,16 @@ colide com a semântica dos estados de publicação (âmbar = publicando, verde 
 três KPIs usa `--accent-tint`, `--data-2-tint` e `--surface-2` — três tons suaves, dois deles já
 com significado no produto, sem introduzir um matiz que a marca não tem.
 
-### 51.7 Tipografia: o piso de 11px ganhou nome
+### 51.7 Tipografia, spacing e largura do produto (brand v1.4)
 
-O §6.4 fixa 11px como piso da interface compacta e o §43.20 proíbe valor arbitrário fora dos
-tokens. As duas regras juntas condenam o `text-[11px]` avulso, que já havia se espalhado. Existe
-agora a classe **`.text-meta`** (11px/1.4) para o papel "Metadado" da tabela §6.3. Nenhum
-componente novo deve escrever tamanho de fonte arbitrário; se um papel novo aparecer, ele ganha
-classe e entra nesta tabela.
+O produto usa apenas `text-axis|meta|compact|panel|title|figure`; papel novo ganha nome em vez de
+utility crua. Corpo usa peso padrão, labels/controles `medium`, títulos/ativos `semibold`; bold e
+uppercase ficam fora do chrome autenticado. Auth/onboarding preservam o regime editorial e
+`network-preview.tsx` é a única exceção representacional nomeada para tipografia externa.
+
+Gaps de layout usam 4/8/12/16/24/32px e margens negativas não corrigem ritmo. O shell aplica uma
+única largura `--container-app`; texto descritivo usa `--container-reading`. Uma tela pode se
+estreitar dentro desse limite, mas não substituí-lo.
 
 ### 51.8 O que o `check-brand.ts` verifica hoje
 
@@ -2767,13 +2766,18 @@ Para a especificação não ser confundida com o portão, o que o CI realmente i
 | --- | --- |
 | hex fora de `globals.css` | contraste real |
 | `box-shadow` e utilities de sombra | ordem de foco e navegação por teclado |
-| `translate`/`scale`/`rotate` em `:hover` | densidade e espaçamento |
+| `translate`/`scale`/`rotate` em `:hover` | densidade de controles |
 | raio fora de 4/6/8 | uso correto de token semântico |
 | wordmark `manypost` minúsculo | string literal fora do i18n |
 | tamanho de fonte arbitrário (`text-[Npx]`) | — |
 | `<button>` sem `cursor-pointer` | — |
 | `animate-*` sem `motion-reduce` | — |
+| classes/tokens de relevo e gradiente vertical de preenchimento | gradientes decorativos autorizados em `globals.css` |
+| escala tipográfica crua, bold e uppercase no produto | papel semântico correto do texto |
+| borda tracejada fora dos drop targets nomeados | hierarquia visual de estados vazios |
+| gaps fora de 4/8/12/16/24/32px e margem negativa corretiva | padding/geometria interna do kit de componentes |
+| `rounded-full` fora do Avatar e de dots pequenos | semântica visual além da classe |
 
-As três últimas linhas entraram com este adendo. O resto do checklist do §44 continua sendo
-**revisão humana** — dizer "verificado por `check:brand`" cobre estas oito regras, não as vinte
-do §43.
+As regras tipográficas, de superfície, framing, spacing e raio foram ampliadas pela brand v1.4. O
+resto do checklist do §44 continua sendo **revisão humana** — o gate executa 18 regras linha a linha
+e um check estrutural de cursor; não substitui inspeção visual ou acessibilidade no navegador.

@@ -1,14 +1,6 @@
 'use client';
 
-import {
-  ArrowRight,
-  CheckCircle2,
-  CircleAlert,
-  Clock,
-  FileText,
-  Sparkles,
-  XCircle,
-} from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
@@ -87,14 +79,6 @@ export function BlocoAssincrono({
 
 // ---------------------------------------------------------------------------
 
-const ICONE_ACAO: Record<ProximaAcao['kind'], typeof Sparkles> = {
-  resumeLocalDraft: FileText,
-  orphanDraft: CircleAlert,
-  scheduleSomething: Sparkles,
-  emptyDays: Clock,
-  planAtLimit: CircleAlert,
-};
-
 /**
  * O próximo passo — um só, e só quando não há nada errado.
  *
@@ -103,26 +87,20 @@ const ICONE_ACAO: Record<ProximaAcao['kind'], typeof Sparkles> = {
 export function NextActionBlock({ acao }: { acao: ProximaAcao | null }) {
   const t = useTranslations('home');
   if (!acao) return null;
-  const Icone = ICONE_ACAO[acao.kind];
   const dados = acao.dados ?? {};
 
   return (
     <Card title={t('nextAction.title')}>
-      <div className="flex items-start gap-3">
-        <span className="bevel-chip mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-accent-tint">
-          <Icone className="size-3.5 text-accent" aria-hidden />
-        </span>
-        <div className="flex min-w-0 flex-col items-start gap-1.5">
+      <div className="flex min-w-0 flex-col items-start gap-1.5">
           <p className="text-compact font-semibold text-ink">
             {t(`nextAction.${acao.kind}Title`, dados)}
           </p>
-          <p className="max-w-[520px] text-compact leading-relaxed text-graphite">
+          <p className="max-w-reading text-compact leading-relaxed text-graphite">
             {t(`nextAction.${acao.kind}Body`, dados)}
           </p>
           <Button asChild size="sm" className="mt-0.5 cursor-pointer">
             <Link href={acao.href}>{t(`nextAction.${acao.kind}Cta`, dados)}</Link>
           </Button>
-        </div>
       </div>
     </Card>
   );
@@ -193,18 +171,11 @@ export function UpcomingBlock({
 
 // ---------------------------------------------------------------------------
 
-const ICONE_ATIVIDADE: Record<string, typeof CheckCircle2> = {
-  PUBLISHED: CheckCircle2,
-  FAILED: XCircle,
-  CANCELLED: XCircle,
-  NEEDS_REVIEW: CircleAlert,
-};
-
 const COR_ATIVIDADE: Record<string, string> = {
-  PUBLISHED: 'text-state-published',
-  FAILED: 'text-state-failed',
-  CANCELLED: 'text-graphite',
-  NEEDS_REVIEW: 'text-state-review',
+  PUBLISHED: 'bg-state-published',
+  FAILED: 'bg-state-failed',
+  CANCELLED: 'bg-graphite',
+  NEEDS_REVIEW: 'bg-state-review',
 };
 
 const CHAVE_ATIVIDADE: Record<string, string> = {
@@ -242,23 +213,22 @@ export function ActivityBlock({
         {entradas.map((e) => {
           if (e.tipo === 'notification') {
             return (
-              <li key={e.chave} className="flex items-baseline gap-2 py-1.5 first:pt-0 last:pb-0">
-                <CheckCircle2 className="size-3 shrink-0 translate-y-0.5 text-state-review" aria-hidden />
+              <li key={e.chave} className="flex items-center gap-2 py-1.5 first:pt-0 last:pb-0">
+                <span className="size-1.5 shrink-0 rounded-full bg-state-review" aria-hidden />
                 <span className="min-w-0 flex-1 truncate text-meta text-ink">{e.title}</span>
                 <span className="shrink-0 text-meta text-graphite">{haQuantoTempo(e.em)}</span>
               </li>
             );
           }
-          const Icone = ICONE_ATIVIDADE[e.state] ?? CheckCircle2;
           return (
             <li key={e.chave} className="py-1.5 first:pt-0 last:pb-0">
               <button
                 type="button"
                 onClick={() => onOpen(e.groupId)}
-                className="flex w-full cursor-pointer items-baseline gap-2 rounded-sm text-left outline-none transition-colors duration-200 hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                className="flex w-full cursor-pointer items-center gap-2 rounded-sm text-left outline-none transition-colors duration-200 hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
-                <Icone
-                  className={cn('size-3 shrink-0 translate-y-0.5', COR_ATIVIDADE[e.state])}
+                <span
+                  className={cn('size-1.5 shrink-0 rounded-full', COR_ATIVIDADE[e.state] ?? 'bg-mist')}
                   aria-hidden
                 />
                 <span className="min-w-0 flex-1 truncate text-meta text-ink">
@@ -305,7 +275,7 @@ export function DraftsBlock({
       <ul className="flex flex-col divide-y divide-line">
         {local ? (
           <li className="flex flex-col items-start gap-1.5 py-2 first:pt-0 last:pb-0">
-            <span className="text-meta font-semibold uppercase tracking-wide text-graphite">
+            <span className="text-meta font-medium text-graphite">
               {t('draftsLocal')}
             </span>
             <p className="line-clamp-2 text-compact leading-relaxed text-ink">
@@ -382,15 +352,17 @@ export function PipelineBlock({ cards }: { cards: GroupCard[] }) {
             <Link
               href={`/kanban?col=${id}`}
               className={cn(
-                'flex cursor-pointer flex-col gap-0.5 rounded-md border border-line border-t-2 bg-surface-2 p-2.5 transition-colors duration-200',
-                'hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
-                accent,
+                'flex cursor-pointer flex-col gap-1 rounded-md bg-surface-2 p-2.5 transition-colors duration-200',
+                'hover:bg-accent-tint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
               )}
             >
-              <span className="text-lg font-medium tabular-nums leading-none text-ink">
+              <span className="text-panel font-medium tabular-nums leading-none text-ink">
                 {contagem(id)}
               </span>
-              <span className="truncate text-meta text-graphite">{tk(`columns.${id}`)}</span>
+              <span className="flex items-center gap-1.5 truncate text-meta text-graphite">
+                <span className={cn('size-1.5 shrink-0 rounded-full', accent)} aria-hidden />
+                {tk(`columns.${id}`)}
+              </span>
             </Link>
           </li>
         ))}

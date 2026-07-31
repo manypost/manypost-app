@@ -412,7 +412,7 @@ function ListView({
 
   if (items.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-line bg-surface-2 px-6 py-12 text-center">
+      <div className="rounded-lg bg-surface-2 px-6 py-12 text-center">
         <p className="text-compact leading-relaxed text-graphite">{t('empty')}</p>
         <Button size="sm" className="mt-4" onClick={() => openComposer()}>
           {t('newPost')}

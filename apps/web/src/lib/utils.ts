@@ -10,7 +10,7 @@ import { extendTailwindMerge } from 'tailwind-merge';
 const twMerge = extendTailwindMerge({
   extend: {
     theme: {
-      text: ['calendar-hour', 'axis', 'meta', 'compact', 'panel'],
+      text: ['calendar-hour', 'axis', 'meta', 'compact', 'panel', 'title', 'figure'],
     },
   },
 });

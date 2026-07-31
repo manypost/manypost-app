@@ -49,7 +49,7 @@ export function Calendar({
         >
           <ChevronLeft className="size-4" aria-hidden />
         </button>
-        <span className="text-sm font-semibold text-ink">
+        <span className="text-compact font-semibold text-ink">
           {(() => {
             const title = titleFmt.format(viewMonth);
             return title.charAt(0).toUpperCase() + title.slice(1);
@@ -66,7 +66,7 @@ export function Calendar({
       </div>
       <div className="mt-2 grid grid-cols-7 text-center">
         {cells.slice(0, 7).map((d, i) => (
-          <span key={i} className="py-1 text-meta font-semibold uppercase text-mist">
+          <span key={i} className="py-1 text-meta font-medium text-mist">
             {weekdayFmt.format(d).replace('.', '').slice(0, 3)}
           </span>
         ))}
@@ -89,14 +89,14 @@ export function Calendar({
                 'mx-auto my-0.5 grid size-8 place-items-center rounded-md text-compact tabular-nums outline-none transition-colors duration-200',
                 'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
                 isSelected
-                  ? 'bevel-primary border font-semibold text-paper'
+                  ? 'border border-accent bg-accent font-semibold text-paper'
                   : isDisabled
                     ? 'cursor-not-allowed text-mist/50'
                     : cn(
                         'hover:bg-surface-2',
                         outside ? 'text-mist' : 'text-ink',
-                        // hoje: círculo accent, como na visão de mês do calendário
-                        isToday && 'rounded-full border border-accent font-semibold text-accent',
+                        // hoje: bloco accent na escala 4/6/8, como na visão de mês
+                        isToday && 'rounded-lg border border-accent font-semibold text-accent',
                       ),
               )}
             >

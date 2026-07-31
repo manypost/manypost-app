@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMe } from '@/features/auth/hooks';
 import { useCapabilities } from '@/features/billing/hooks';
@@ -65,10 +66,10 @@ const ALL_EVENTS: WebhookEvent[] = [
   'mention.received',
 ];
 
-function SectionTitle({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
+function SectionTitle({ icon: Icon, children }: { icon?: React.ElementType; children: React.ReactNode }) {
   return (
-    <h2 className="flex items-center gap-2 text-base font-semibold tracking-[-0.2px] text-ink">
-      <Icon className="size-4 text-graphite" aria-hidden />
+    <h2 className="flex items-center gap-2 text-panel font-semibold tracking-[-0.2px] text-ink">
+      {Icon ? <Icon className="size-4 text-graphite" aria-hidden /> : null}
       {children}
     </h2>
   );
@@ -79,9 +80,9 @@ function SecretOnce({ value, onDismiss }: { value: string; onDismiss: () => void
   const t = useTranslations('settings');
   return (
     <div className="flex flex-col gap-2 rounded-md border border-accent bg-accent-tint p-3">
-      <p className="text-xs font-semibold uppercase tracking-wide text-accent">{t('secretOnce')}</p>
+      <p className="text-meta font-medium text-accent">{t('secretOnce')}</p>
       <div className="flex items-center gap-2">
-        <code className="min-w-0 flex-1 truncate rounded-sm border border-line bg-surface px-2 py-1.5 text-xs text-ink">
+        <code className="min-w-0 flex-1 truncate rounded-sm bg-surface px-2 py-1.5 text-meta text-ink">
           {value}
         </code>
         <Button
@@ -126,8 +127,8 @@ function MachineEndpoints() {
           <li key={row.label} className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-3 last:border-b-0">
             <div className="min-w-0 flex-1">
               <p className="text-compact font-semibold text-ink">{row.label}</p>
-              <code className="mt-0.5 block truncate text-xs text-graphite">{row.value}</code>
-              <p className="mt-1 text-xs text-graphite">{row.hint}</p>
+              <code className="mt-0.5 block truncate text-meta text-graphite">{row.value}</code>
+              <p className="mt-1 text-meta text-graphite">{row.hint}</p>
             </div>
             <CopyButton value={row.value} />
           </li>
@@ -212,7 +213,7 @@ function ConnectAgent({ mcpUrl, restBaseUrl }: { mcpUrl: string; restBaseUrl: st
         <ChevronDown className={`size-4 text-graphite ${open ? 'rotate-180' : ''}`} aria-hidden />
       </button>
       {open ? (
-        <div className="flex flex-col gap-5 border-t border-line px-4 py-4">
+        <div className="flex flex-col gap-6 border-t border-line px-4 py-4">
           <p className="text-compact leading-relaxed text-graphite">{t('agentIntro')}</p>
 
           <div className="flex flex-col gap-2">
@@ -220,8 +221,8 @@ function ConnectAgent({ mcpUrl, restBaseUrl }: { mcpUrl: string; restBaseUrl: st
               <p className="text-compact font-semibold text-ink">{t('agentPromptTitle')}</p>
               <CopyButton value={prompt} label={t('agentCopyPrompt')} />
             </div>
-            <p className="text-xs text-graphite">{t('agentPromptHint')}</p>
-            <pre className="overflow-x-auto whitespace-pre-wrap rounded-md border border-line bg-surface-2 p-3 text-xs leading-relaxed text-ink">
+            <p className="text-meta text-graphite">{t('agentPromptHint')}</p>
+            <pre className="overflow-x-auto whitespace-pre-wrap rounded-md bg-surface-2 p-3 text-meta leading-relaxed text-ink">
               {prompt}
             </pre>
           </div>
@@ -231,14 +232,14 @@ function ConnectAgent({ mcpUrl, restBaseUrl }: { mcpUrl: string; restBaseUrl: st
               <p className="text-compact font-semibold text-ink">{t('agentManualTitle')}</p>
               <CopyButton value={config} label={t('agentCopyConfig')} />
             </div>
-            <p className="text-xs text-graphite">{t('agentManualHint')}</p>
-            <pre className="overflow-x-auto rounded-md border border-line bg-surface-2 p-3 text-xs leading-relaxed text-ink">
+            <p className="text-meta text-graphite">{t('agentManualHint')}</p>
+            <pre className="overflow-x-auto rounded-md bg-surface-2 p-3 text-meta leading-relaxed text-ink">
               {config}
             </pre>
-            <pre className="overflow-x-auto rounded-md border border-line bg-surface-2 p-3 text-xs leading-relaxed text-ink">
+            <pre className="overflow-x-auto rounded-md bg-surface-2 p-3 text-meta leading-relaxed text-ink">
               {configCursorStatic}
             </pre>
-            <pre className="overflow-x-auto rounded-md border border-line bg-surface-2 p-3 text-xs leading-relaxed text-ink">
+            <pre className="overflow-x-auto rounded-md bg-surface-2 p-3 text-meta leading-relaxed text-ink">
               {configWithKey}
             </pre>
           </div>
@@ -280,10 +281,11 @@ export function SettingsView() {
   const user = me.data?.user;
 
   return (
-    <div className="flex max-w-3xl flex-col gap-10">
+    <div className="flex max-w-3xl flex-col gap-8">
+      <PageHeader title={t('title')} description={t('subtitle')} />
       {/* perfil */}
       <section className="flex flex-col gap-4">
-        <SectionTitle icon={KeyRound}>{t('profileTitle')}</SectionTitle>
+        <SectionTitle>{t('profileTitle')}</SectionTitle>
         {me.isPending ? (
           <Skeleton className="h-16 rounded-lg" />
         ) : (
@@ -293,7 +295,7 @@ export function SettingsView() {
               <AvatarFallback>{(user?.name ?? user?.email ?? '?').charAt(0)}</AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-ink">{user?.name}</p>
+              <p className="truncate text-compact font-semibold text-ink">{user?.name}</p>
               <p className="truncate text-compact text-graphite">{user?.email}</p>
             </div>
             {me.data?.role ? <Badge variant="accent">{me.data.role}</Badge> : null}
@@ -303,19 +305,21 @@ export function SettingsView() {
 
       {/* API keys */}
       <section className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <SectionTitle icon={KeyRound}>{t('apiKeysTitle')}</SectionTitle>
-          <Button
-            size="sm"
-            className="gap-1.5"
-            disabled={apiLocked}
-            onClick={() => setKeyDialogOpen(true)}
-          >
-            <Plus aria-hidden />
-            {t('newKey')}
-          </Button>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center justify-between">
+            <SectionTitle icon={KeyRound}>{t('apiKeysTitle')}</SectionTitle>
+            <Button
+              size="sm"
+              className="gap-1.5"
+              disabled={apiLocked}
+              onClick={() => setKeyDialogOpen(true)}
+            >
+              <Plus aria-hidden />
+              {t('newKey')}
+            </Button>
+          </div>
+          <p className="text-compact leading-relaxed text-graphite">{t('apiKeysHint')}</p>
         </div>
-        <p className="-mt-2 text-compact leading-relaxed text-graphite">{t('apiKeysHint')}</p>
         <PlanLockNotice feature="public_api" />
         <MachineEndpoints />
 
@@ -328,7 +332,7 @@ export function SettingsView() {
             {errorMessage(apiKeys.error)}
           </p>
         ) : apiKeys.data.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line bg-surface-2 px-3 py-6 text-center text-compact text-graphite">
+          <p className="rounded-md bg-surface-2 px-3 py-6 text-center text-compact text-graphite">
             {t('noKeys')}
           </p>
         ) : (
@@ -341,12 +345,12 @@ export function SettingsView() {
                 <div className="min-w-0 flex-1">
                   <p className="flex flex-wrap items-center gap-2 text-compact font-semibold text-ink">
                     {key.name}
-                    <code className="rounded-sm border border-line bg-surface-2 px-1.5 py-0.5 text-meta font-normal text-graphite">
+                    <code className="rounded-sm bg-surface-2 px-1.5 py-0.5 text-meta font-normal text-graphite">
                       {key.prefix}…
                     </code>
                     {key.revokedAt ? <Badge>{t('revoked')}</Badge> : null}
                   </p>
-                  <p className="mt-0.5 text-xs text-graphite">
+                  <p className="mt-0.5 text-meta text-graphite">
                     {key.scopes.join(' · ')}
                     {key.lastUsedAt
                       ? ` — ${t('lastUsed', { when: relativeTime(key.lastUsedAt, locale) })}`
@@ -372,19 +376,21 @@ export function SettingsView() {
 
       {/* webhooks */}
       <section className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <SectionTitle icon={WebhookIcon}>{t('webhooksTitle')}</SectionTitle>
-          <Button
-            size="sm"
-            className="gap-1.5"
-            disabled={apiLocked}
-            onClick={() => setHookDialogOpen(true)}
-          >
-            <Plus aria-hidden />
-            {t('newWebhook')}
-          </Button>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center justify-between">
+            <SectionTitle icon={WebhookIcon}>{t('webhooksTitle')}</SectionTitle>
+            <Button
+              size="sm"
+              className="gap-1.5"
+              disabled={apiLocked}
+              onClick={() => setHookDialogOpen(true)}
+            >
+              <Plus aria-hidden />
+              {t('newWebhook')}
+            </Button>
+          </div>
+          <p className="text-compact leading-relaxed text-graphite">{t('webhooksHint')}</p>
         </div>
-        <p className="-mt-2 text-compact leading-relaxed text-graphite">{t('webhooksHint')}</p>
         <PlanLockNotice feature="public_api" />
 
         {freshSecret ? <SecretOnce value={freshSecret} onDismiss={() => setFreshSecret(null)} /> : null}
@@ -396,7 +402,7 @@ export function SettingsView() {
             {errorMessage(webhooks.error)}
           </p>
         ) : webhooks.data.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line bg-surface-2 px-3 py-6 text-center text-compact text-graphite">
+          <p className="rounded-md bg-surface-2 px-3 py-6 text-center text-compact text-graphite">
             {t('noWebhooks')}
           </p>
         ) : (
@@ -411,8 +417,8 @@ export function SettingsView() {
                     {hook.name}
                     {hook.disabledAt ? <Badge>{t('disabled')}</Badge> : null}
                   </p>
-                  <p className="mt-0.5 truncate text-xs text-graphite">{hook.url}</p>
-                  <p className="mt-0.5 text-xs text-graphite">{hook.events.join(' · ')}</p>
+                  <p className="mt-0.5 truncate text-meta text-graphite">{hook.url}</p>
+                  <p className="mt-0.5 text-meta text-graphite">{hook.events.join(' · ')}</p>
                 </div>
                 <Button
                   variant="ghost"
@@ -458,7 +464,7 @@ export function SettingsView() {
                       )
                     }
                   />
-                  <code className="text-xs">{scope}</code>
+                  <code className="text-meta">{scope}</code>
                 </label>
               ))}
             </div>
@@ -524,7 +530,7 @@ export function SettingsView() {
                       )
                     }
                   />
-                  <code className="text-xs">{event}</code>
+                  <code className="text-meta">{event}</code>
                 </label>
               ))}
             </div>

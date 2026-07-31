@@ -20,11 +20,11 @@ export type ColumnId = 'draft' | 'awaiting' | 'scheduled' | 'published' | 'faile
 export type DropTarget = ColumnId | 'cancel';
 
 export const COLUNAS: ReadonlyArray<{ id: ColumnId; accent: string }> = [
-  { id: 'draft', accent: 'border-t-mist' },
-  { id: 'awaiting', accent: 'border-t-state-review' },
-  { id: 'scheduled', accent: 'border-t-state-scheduled' },
-  { id: 'published', accent: 'border-t-state-published' },
-  { id: 'failed', accent: 'border-t-state-failed' },
+  { id: 'draft', accent: 'bg-mist' },
+  { id: 'awaiting', accent: 'bg-state-review' },
+  { id: 'scheduled', accent: 'bg-state-scheduled' },
+  { id: 'published', accent: 'bg-state-published' },
+  { id: 'failed', accent: 'bg-state-failed' },
 ];
 
 export interface GroupCard {

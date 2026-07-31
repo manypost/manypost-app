@@ -117,7 +117,7 @@ export function CalendarChip({
       {hasActions && !isDragging ? (
         <span
           className={cn(
-            'absolute right-0 top-0 bottom-0 flex items-center gap-0.5 bg-surface px-1',
+        'absolute right-0 top-0 bottom-0 flex items-center gap-1 bg-surface px-1',
             'pointer-events-none opacity-0 transition-opacity duration-200 motion-reduce:transition-none',
             'focus-within:pointer-events-auto focus-within:opacity-100 group-hover/chip:pointer-events-auto group-hover/chip:opacity-100 group-hover/chip:bg-surface',
           )}
@@ -175,7 +175,7 @@ function SlotAddButton({ date, onSchedule }: { date: Date; onSchedule: (date: Da
     >
       <span
         aria-hidden
-        className="bevel-primary grid size-6 place-items-center rounded-md border text-paper opacity-30 md:opacity-0 transition-[opacity,filter] duration-200 hover:brightness-95 group-hover/add:opacity-100 group-focus-visible/add:opacity-100 active:opacity-100 motion-reduce:transition-none"
+        className="grid size-6 place-items-center rounded-md border border-accent bg-accent text-paper opacity-30 md:opacity-0 transition-[opacity,background-color,border-color] duration-200 hover:border-accent-hover hover:bg-accent-hover group-hover/add:opacity-100 group-focus-visible/add:opacity-100 active:opacity-100 motion-reduce:transition-none"
       >
         <Plus className="size-3.5" strokeWidth={2.5} />
       </span>
@@ -258,7 +258,7 @@ export function MonthGrid({
           {days.slice(0, 7).map((d) => (
             <span
               key={dayKey(d)}
-              className="border-r border-line px-2 py-1.5 text-center text-meta font-semibold uppercase tracking-wide text-graphite last:border-r-0"
+              className="border-r border-line px-2 py-1.5 text-center text-meta font-medium text-graphite last:border-r-0"
             >
               {weekdayFmt.format(d)}
             </span>
@@ -286,7 +286,7 @@ export function MonthGrid({
                     className={cn(
                       'self-end text-meta font-semibold tabular-nums',
                       isToday
-                        ? 'grid size-5 place-items-center rounded-full bevel-primary border text-paper'
+                        ? 'grid size-5 place-items-center rounded-lg border-accent bg-accent border text-paper'
                         : inMonth
                           ? 'text-ink'
                           : 'text-mist',
@@ -343,7 +343,7 @@ export function MonthGrid({
             {days.slice(0, 7).map((d) => (
               <span
                 key={dayKey(d)}
-                className="text-center text-meta font-semibold uppercase tracking-wide text-graphite"
+                className="text-center text-meta font-medium text-graphite"
               >
                 {weekdayFmt.format(d)}
               </span>
@@ -372,18 +372,18 @@ export function MonthGrid({
                 >
                   <span
                     className={cn(
-                      'flex size-6 items-center justify-center rounded-full text-compact font-semibold tabular-nums',
+                      'flex size-6 items-center justify-center rounded-lg text-compact font-semibold tabular-nums',
                       isToday
-                        ? 'bevel-primary border text-paper'
+                        ? 'border-accent bg-accent border text-paper'
                         : isSelected
-                          ? 'text-accent font-bold'
+                          ? 'text-accent font-semibold'
                           : 'text-ink',
                     )}
                   >
                     {date.getDate()}
                   </span>
                   {items.length > 0 ? (
-                    <div className="flex items-center justify-center gap-0.5 mt-1 flex-wrap max-w-full px-0.5">
+                    <div className="flex items-center justify-center gap-1 mt-1 flex-wrap max-w-full px-0.5">
                       {items.slice(0, 4).map((item, idx) => {
                         const variant = stateBadgeVariant(item.state);
                         const bgColors: Record<typeof variant, string> = {
@@ -416,20 +416,20 @@ export function MonthGrid({
         <section aria-label="Agenda do Dia" className="flex flex-col gap-2.5 rounded-lg border border-line bg-surface p-3">
           <div className="flex items-center justify-between border-b border-line pb-2.5">
             <div className="flex flex-col">
-              <span className="text-meta font-semibold uppercase tracking-wide text-graphite">
+              <span className="text-meta font-medium text-graphite">
                 {t.has('mobileAgendaTitle') ? t('mobileAgendaTitle') : 'Agenda do Dia'}
               </span>
               <h3 className="text-compact font-semibold capitalize text-ink">
                 {new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long' }).format(selectedDate)}
               </h3>
             </div>
-            <span className="rounded-full bg-surface-2 px-2.5 py-1 text-meta font-semibold text-graphite">
+            <span className="rounded-md bg-surface-2 px-2.5 py-1 text-meta font-semibold text-graphite">
               {selectedItems.length} {selectedItems.length === 1 ? 'post' : 'posts'}
             </span>
           </div>
 
           {selectedItems.length === 0 ? (
-            <div className="rounded-md border border-dashed border-line bg-surface-2 px-4 py-8 text-center">
+            <div className="rounded-md bg-surface-2 px-4 py-8 text-center">
               <p className="text-compact leading-relaxed text-graphite">
                 {t.has('mobileAgendaEmpty') ? t('mobileAgendaEmpty') : 'Nenhum post agendado para este dia.'}
               </p>
@@ -593,14 +593,14 @@ export function TimeGrid({
                   key={dayKey(date)}
                   className="flex items-baseline justify-center gap-1.5 border-r border-line px-2 py-2 last:border-r-0"
                 >
-                  <span className="text-meta font-semibold uppercase tracking-wide text-graphite">
+                  <span className="text-meta font-medium text-graphite">
                     {weekdayFmt.format(date)}
                   </span>
                   <span
                     className={cn(
                       'text-compact font-semibold tabular-nums',
                       isToday
-                        ? 'grid size-6 -translate-y-0.5 place-items-center rounded-full bevel-primary border text-paper'
+                        ? 'grid size-6 -translate-y-0.5 place-items-center rounded-lg border-accent bg-accent border text-paper'
                         : 'text-ink',
                     )}
                   >
@@ -621,7 +621,7 @@ export function TimeGrid({
               <div key={hour} className="grid" style={{ gridTemplateColumns: colsDesktop }}>
                 <span
                   className={cn(
-                    '-mt-2 calendar-hour-label border-r border-line px-2 pt-2 text-right tabular-nums text-mist transition-colors',
+                    'calendar-hour-label border-r border-line px-2 pt-2 text-right tabular-nums text-mist transition-colors',
                     isPastRow && 'cal-past opacity-80',
                   )}
                 >
@@ -677,23 +677,23 @@ export function TimeGrid({
                       !isSelected && 'hover:bg-surface-2',
                     )}
                   >
-                    <span className="text-meta font-semibold uppercase tracking-wide text-graphite mb-0.5">
+                    <span className="mb-0.5 text-meta font-medium text-graphite">
                       {weekdayFmt.format(date)}
                     </span>
                     <span
                       className={cn(
-                        'flex size-6 items-center justify-center rounded-full text-compact font-semibold tabular-nums',
+                        'flex size-6 items-center justify-center rounded-lg text-compact font-semibold tabular-nums',
                         isToday
-                          ? 'bevel-primary border text-paper'
+                          ? 'border-accent bg-accent border text-paper'
                           : isSelected
-                            ? 'text-accent font-extrabold'
+                            ? 'text-accent font-semibold'
                             : 'text-ink',
                       )}
                     >
                       {date.getDate()}
                     </span>
                     {items.length > 0 ? (
-                      <div className="flex items-center justify-center gap-0.5 mt-1 flex-wrap max-w-full px-0.5">
+                      <div className="flex items-center justify-center gap-1 mt-1 flex-wrap max-w-full px-0.5">
                         {items.slice(0, 3).map((item, idx) => {
                           const variant = stateBadgeVariant(item.state);
                           const bgColors: Record<typeof variant, string> = {
@@ -723,15 +723,12 @@ export function TimeGrid({
         {/* Cabeçalho compacto do dia ativo */}
         <div className="flex items-center justify-between rounded-lg border border-line bg-surface p-3">
           <div className="flex flex-col min-w-0">
-            <span className="text-meta font-semibold uppercase tracking-wide text-accent">
-              {isWeekView ? 'Linha do Tempo 24h' : 'Visão do Dia'}
-            </span>
-            <h3 className="mt-0.5 truncate text-compact font-semibold capitalize text-ink">
+            <h3 className="truncate text-compact font-semibold capitalize text-ink">
               {activeDateFormatted}
             </h3>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <span className="rounded-full bg-surface-2 px-2.5 py-1 text-meta font-semibold text-graphite">
+            <span className="rounded-md bg-surface-2 px-2.5 py-1 text-meta font-semibold text-graphite">
               {activeDateItems.length} {activeDateItems.length === 1 ? 'post' : 'posts'}
             </span>
             <Button

@@ -38,10 +38,10 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
               </div>
             </div>
 
-            <div className="bevel-surface rounded-lg border p-6 sm:p-8">{children}</div>
+            <div className="bg-surface rounded-lg border p-6 sm:p-8">{children}</div>
 
             {/* rodapé de projeto aberto — no desktop ele vive no palco escuro */}
-            <p className="flex items-center justify-center gap-2 text-xs text-mist lg:hidden">
+            <p className="flex items-center justify-center gap-2 text-meta text-mist lg:hidden">
               <a
                 href="https://github.com/manypost/manypost"
                 target="_blank"

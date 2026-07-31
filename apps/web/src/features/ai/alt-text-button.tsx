@@ -75,7 +75,7 @@ export function AltTextButton({
           <TooltipTrigger asChild>
             <span className="w-fit">{botao}</span>
           </TooltipTrigger>
-          <TooltipContent side="top" sideOffset={6} className="text-xs font-semibold">
+          <TooltipContent side="top" sideOffset={6} className="text-meta font-semibold">
             {motivo}
           </TooltipContent>
         </Tooltip>

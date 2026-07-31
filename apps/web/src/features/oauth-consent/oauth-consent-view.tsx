@@ -173,7 +173,7 @@ export function OAuthConsentView() {
         ) : (
           <select
             id="oauth-org"
-            className="inset-field w-full rounded-md border border-line bg-surface px-3 py-2 text-compact text-ink"
+            className="border-line-strong bg-surface w-full rounded-md border border-line bg-surface px-3 py-2 text-compact text-ink"
             value={orgId}
             onChange={(e) => setOrgId(e.target.value)}
           >

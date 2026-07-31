@@ -246,7 +246,7 @@ export function PostDetailSheet({
             ) : null}
           </DialogTitle>
           {dateLabel ? (
-            <DialogDescription className="text-xs first-letter:uppercase sm:text-sm">{dateLabel}</DialogDescription>
+            <DialogDescription className="text-meta first-letter:uppercase sm:text-compact">{dateLabel}</DialogDescription>
           ) : (
             <DialogDescription className="sr-only">{t('title')}</DialogDescription>
           )}
@@ -256,10 +256,10 @@ export function PostDetailSheet({
         <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
             {/* coluna do "post preenchido" (view mode) */}
-            <div className="flex min-w-0 flex-col gap-5">
+            <div className="flex min-w-0 flex-col gap-6">
               {/* canais (avatares — como o composer, porém só leitura) */}
               {previewList.length > 0 ? (
-                <div className="bevel-surface rounded-lg border p-3">
+                <div className="bg-surface rounded-lg border p-3">
                   <ul className="flex flex-wrap gap-2.5">
                     {previewList.map((c) => (
                       <li key={c.id}>
@@ -286,7 +286,7 @@ export function PostDetailSheet({
               {/* conteúdo */}
               <section className="flex flex-col gap-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold uppercase tracking-wide text-graphite">
+                  <h3 className="text-compact font-semibold text-graphite">
                     {t('content')}
                   </h3>
                   {!editing && EDITABLE_STATES.has(groupState) ? (
@@ -300,7 +300,7 @@ export function PostDetailSheet({
                 {editing ? (
                   <div className="flex flex-col gap-3">
                     {hasOverrides ? (
-                      <p className="bevel-chip rounded-md border border-line bg-state-review-tint px-3 py-2 text-xs leading-relaxed text-state-review">
+                      <p className="rounded-md border border-line bg-state-review-tint px-3 py-2 text-meta leading-relaxed text-state-review">
                         {t('editResetsOverrides')}
                       </p>
                     ) : null}
@@ -322,7 +322,7 @@ export function PostDetailSheet({
                     {/* settings por canal (mesmo acordeão do composer, reusa ChannelSettingsCard) */}
                     {publications.length > 0 ? (
                       <div className="flex flex-col gap-2">
-                        <h4 className="text-xs font-semibold uppercase tracking-wide text-graphite">
+                        <h4 className="text-meta font-medium text-graphite">
                           {t('settings')}
                         </h4>
                         {publications.map((pub) => {
@@ -359,17 +359,17 @@ export function PostDetailSheet({
                     </div>
                   </div>
                 ) : (
-                  <div className="bevel-surface rounded-md border">
+                  <div className="bg-surface rounded-md border">
                     {texts.length <= 1 ? (
-                      <p className="whitespace-pre-wrap px-3 py-2.5 text-sm leading-relaxed text-ink">
+                      <p className="whitespace-pre-wrap px-3 py-2.5 text-compact leading-relaxed text-ink">
                         {items[0]?.text ?? '…'}
                       </p>
                     ) : (
                       <ul className="divide-y divide-line">
                         {items.map((item) => (
                           <li key={item.id} className="px-3 py-2.5">
-                            <span className="text-xs font-semibold text-graphite">{item.channel.name}</span>
-                            <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-ink">
+                            <span className="text-meta font-semibold text-graphite">{item.channel.name}</span>
+                            <p className="mt-1 whitespace-pre-wrap text-compact leading-relaxed text-ink">
                               {item.text}
                             </p>
                           </li>
@@ -396,7 +396,7 @@ export function PostDetailSheet({
 
               {/* canais (estados + ações por canal) */}
               <section className="flex flex-col gap-3">
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-graphite">
+                <h3 className="text-compact font-semibold text-graphite">
                   {t('channels')}
                 </h3>
                 {group.isPending ? (
@@ -416,7 +416,7 @@ export function PostDetailSheet({
                       return (
                         <li
                           key={pub.id}
-                          className="bevel-surface flex flex-col gap-2.5 rounded-md border p-3 sm:flex-row sm:items-center sm:gap-3"
+                          className="bg-surface flex flex-col gap-2.5 rounded-md border p-3 sm:flex-row sm:items-center sm:gap-3"
                         >
                           <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:shrink-0">
                             <div className="flex items-center gap-2">
@@ -471,7 +471,7 @@ export function PostDetailSheet({
 
                           <span className="w-full min-w-0 flex-1 sm:w-auto">
                             <span className="hidden truncate text-compact font-semibold text-ink sm:block">{name}</span>
-                            <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-graphite">
+                            <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-meta text-graphite">
                               {pub.itemCount > 1 ? (
                                 <span>
                                   {t('threadProgress', {
@@ -485,7 +485,7 @@ export function PostDetailSheet({
                               ) : null}
                             </span>
                             {pub.errorMessage && RETRYABLE_STATES.has(pub.state) ? (
-                              <span className="mt-0.5 block break-words text-xs leading-relaxed text-state-failed">
+                              <span className="mt-0.5 block break-words text-meta leading-relaxed text-state-failed">
                                 {pub.errorMessage}
                               </span>
                             ) : null}
@@ -538,7 +538,7 @@ export function PostDetailSheet({
 
             {/* preview ao vivo por rede */}
             <aside className="flex flex-col gap-3 self-start lg:sticky lg:top-0 lg:border-l lg:border-line lg:pl-6">
-              <h3 className="text-base font-semibold tracking-[-0.2px] text-ink">{t('preview')}</h3>
+              <h3 className="text-panel font-semibold tracking-[-0.2px] text-ink">{t('preview')}</h3>
               {previewList.length > 0 ? (
                 <div className="flex flex-col gap-3">
                   {previewList.map((c) => (
@@ -555,14 +555,14 @@ export function PostDetailSheet({
                   ))}
                 </div>
               ) : (
-                <p className="text-sm leading-relaxed text-graphite">{t('previewEmpty')}</p>
+                <p className="text-compact leading-relaxed text-graphite">{t('previewEmpty')}</p>
               )}
             </aside>
           </div>
         </div>
 
         {/* rodapé de ações mobile-first */}
-        <footer className="bevel-surface shrink-0 border-t border-line px-4 py-3 sm:px-6 sm:py-4">
+        <footer className="bg-surface shrink-0 border-t border-line px-4 py-3 sm:px-6 sm:py-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <Button
               variant="outline"
@@ -663,7 +663,7 @@ function ApprovalLinkSection({ groupId }: { groupId: string }) {
 
   return (
     <section className="flex flex-col gap-3">
-      <h3 className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-graphite">
+      <h3 className="flex items-center gap-1.5 text-compact font-semibold text-graphite">
         <Link2 className="size-4" aria-hidden />
         {t('title')}
       </h3>
@@ -673,12 +673,12 @@ function ApprovalLinkSection({ groupId }: { groupId: string }) {
       ) : (
         <>
           {link?.status === 'CHANGES_REQUESTED' ? (
-            <div className="bevel-chip rounded-md border border-line bg-state-review-tint px-3 py-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-state-review">
+            <div className="rounded-md border border-line bg-state-review-tint px-3 py-2">
+              <p className="text-meta font-medium text-state-review">
                 {t('changesRequested', { name: link.approverName ?? t('anonymous') })}
               </p>
               {link.feedback ? (
-                <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-ink">
+                <p className="mt-1 whitespace-pre-wrap text-compact leading-relaxed text-ink">
                   {link.feedback}
                 </p>
               ) : null}
@@ -686,7 +686,7 @@ function ApprovalLinkSection({ groupId }: { groupId: string }) {
           ) : null}
 
           {freshUrl ? (
-            <div className="bevel-chip flex items-center gap-2 rounded-md border border-accent bg-accent-tint px-3 py-2">
+            <div className="flex items-center gap-2 rounded-md border border-accent bg-accent-tint px-3 py-2">
               <span className="min-w-0 flex-1 truncate text-compact text-accent">{freshUrl}</span>
               <Button variant="ghost" size="icon-sm" aria-label={t('copy')} onClick={() => copy(freshUrl)}>
                 <Copy aria-hidden />
@@ -730,7 +730,7 @@ function ApprovalLinkSection({ groupId }: { groupId: string }) {
 
           <div className={cn('flex flex-wrap items-center gap-2', pending && 'opacity-90')}>
             <Select value={expiry} onValueChange={setExpiry}>
-              <SelectTrigger className="h-8 w-40 text-xs" aria-label={t('expiry')}>
+              <SelectTrigger className="h-8 w-40 text-meta" aria-label={t('expiry')}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -763,7 +763,7 @@ function ApprovalLinkSection({ groupId }: { groupId: string }) {
               {pending ? t('regenerate') : t('create')}
             </Button>
           </div>
-          <p className="text-xs leading-relaxed text-graphite">
+          <p className="text-meta leading-relaxed text-graphite">
             {pending ? t('regenerateHint') : t('createHint')}
           </p>
         </>

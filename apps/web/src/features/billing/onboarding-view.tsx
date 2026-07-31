@@ -37,10 +37,10 @@ import {
 function TrustItem({ icon: Icon, children }: { icon: typeof Check; children: React.ReactNode }) {
   return (
     <li className="flex items-center gap-2.5">
-      <span className="grid size-6 shrink-0 place-items-center rounded-full bg-accent-tint">
+      <span className="grid size-6 shrink-0 place-items-center rounded-lg bg-accent-tint">
         <Icon className="size-3.5 text-accent" aria-hidden />
       </span>
-      <span className="text-sm leading-snug text-ink-soft">{children}</span>
+      <span className="text-compact leading-snug text-ink-soft">{children}</span>
     </li>
   );
 }
@@ -55,7 +55,7 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
         aria-expanded={open}
         className="flex w-full items-center justify-between gap-3 py-3 text-left outline-none transition-colors duration-200 hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
-        <span className="text-sm font-semibold text-ink">{question}</span>
+        <span className="text-compact font-semibold text-ink">{question}</span>
         <ChevronDown
           className={cn(
             'size-4 shrink-0 text-graphite transition-transform duration-200',
@@ -122,7 +122,7 @@ export function OnboardingView() {
   return (
     <div className="mx-auto grid max-w-[1600px] pb-24 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
       {/* ---------------- argumento ---------------- */}
-      <div className="flex flex-col gap-7 px-5 py-8 md:px-10 lg:py-12">
+      <div className="flex flex-col gap-8 px-5 py-8 md:px-10 lg:py-12">
         <div className="flex flex-col gap-3">
           <span className="flex w-fit items-center gap-1.5 rounded-sm bg-accent-tint px-2.5 py-1 text-meta font-semibold uppercase tracking-wide text-accent">
             <PartyPopper className="size-3.5" aria-hidden />
@@ -145,8 +145,8 @@ export function OnboardingView() {
           <span className="grid size-9 shrink-0 place-items-center rounded-md bg-accent-tint">
             <TrendingDown className="size-4.5 text-accent" aria-hidden />
           </span>
-          <div className="flex min-w-0 flex-col gap-0.5">
-            <p className="text-sm font-semibold text-ink">{t('compareTitle')}</p>
+          <div className="flex min-w-0 flex-col gap-1">
+            <p className="text-compact font-semibold text-ink">{t('compareTitle')}</p>
             <p className="text-compact leading-relaxed text-graphite">{t('compareBody')}</p>
           </div>
         </div>
@@ -164,7 +164,7 @@ export function OnboardingView() {
       </div>
 
       {/* ---------------- escolha do plano ---------------- */}
-      <aside className="flex flex-col gap-5 border-t border-line bg-canvas px-5 py-8 md:px-10 lg:border-l lg:border-t-0 lg:py-12">
+      <aside className="flex flex-col gap-6 border-t border-line bg-canvas px-5 py-8 md:px-10 lg:border-l lg:border-t-0 lg:py-12">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-xl font-bold tracking-[-0.4px] text-ink">
             {t('chooseTitle')}

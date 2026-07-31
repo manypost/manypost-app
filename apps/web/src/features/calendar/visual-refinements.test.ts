@@ -51,6 +51,13 @@ describe('proporções visuais do calendário', () => {
     expect(grids).not.toContain('text-sm');
   });
 
+  test('não renderiza o nome decorativo e não traduzido da visualização', async () => {
+    const grids = await source('./calendar-grids.tsx');
+
+    expect(grids).not.toContain('Linha do Tempo 24h');
+    expect(grids).not.toContain('Visão do Dia');
+  });
+
   test('horários da grade usam a escala exclusiva do calendário em desktop e mobile', async () => {
     const grids = await source('./calendar-grids.tsx');
     const hourLabels = [

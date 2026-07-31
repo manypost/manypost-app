@@ -95,6 +95,15 @@ describe('conformidade visual do quadro', () => {
     expect(src).toContain('motion-reduce:transition-none');
   });
 
+  test('coluna é palco sem borda; card arrastável preserva a moldura', async () => {
+    const coluna = await source('./kanban-column.tsx');
+    const card = await source('./kanban-card.tsx');
+
+    expect(coluna).not.toContain('border border-line border-t-2');
+    expect(coluna).toContain("'size-1.5 shrink-0 rounded-full'");
+    expect(card).toContain('rounded-md border bg-surface');
+  });
+
   test.each(ARQUIVOS)('%s não usa animate-* sem desligar sob reduced motion', async (arquivo) => {
     const src = await source(`./${arquivo}`);
     const linhas = src.split('\n').filter((l) => /\banimate-(spin|pulse|ping|bounce)\b/.test(l));

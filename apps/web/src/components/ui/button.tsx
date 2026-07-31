@@ -5,28 +5,35 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 /**
- * Sistema de botões do brand (BRAND §6): 5 variantes × 3 tamanhos, radius 6px,
- * foco por outline (não ring, que é box-shadow). Variantes preenchidas têm
- * relevo 3D sem sombra (classes `.bevel-*` em globals.css): topo claro, base
- * escura, bordas por lado. Hover só escurece/clareia (`brightness`) — nunca
- * translate/scale, o elemento fica firme. Ghost e link seguem flat.
+ * Sistema de botões do brand (BRAND §6, v1.4): 5 variantes × 3 tamanhos, radius 6px, foco por
+ * outline (não ring, que é box-shadow).
+ *
+ * **Preenchimento chapado.** A v1.3 dava relevo por gradiente às variantes preenchidas; a v1.4
+ * removeu. O hover volta a ser transição de `background-color` em 200ms — que é o que o BRAND §2.3
+ * sempre pediu — em vez de `filter: brightness()`, que só existia porque não dá para transicionar
+ * um `linear-gradient` com `background-color`.
+ *
+ * `outline` carrega `border-line-strong`: sem relevo, a borda é o único limite do controle, e o
+ * piso de 3:1 da WCAG 1.4.11 se aplica. Ghost e link não têm limite desenhado — são texto.
+ *
+ * A variante `enterprise` foi removida na v1.4: tinha um único uso, aqui dentro.
  */
 const buttonVariants = cva(
-  'inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md border font-semibold transition duration-200 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:size-4',
+  'inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md border font-medium transition-colors duration-200 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:size-4',
   {
     variants: {
       variant: {
-        primary: 'bevel-primary text-paper hover:brightness-95',
-        enterprise: 'bevel-enterprise text-paper hover:brightness-150',
-        outline: 'bevel-outline text-ink hover:brightness-90',
+        primary: 'border-accent bg-accent text-paper hover:border-accent-hover hover:bg-accent-hover',
+        outline: 'border-line-strong bg-surface text-ink hover:bg-surface-2',
         ghost: 'border-transparent text-ink hover:bg-surface-2 hover:text-accent',
         link: 'h-auto border-0 p-0 text-accent underline-offset-4 hover:text-accent-hover hover:underline',
-        destructive: 'bevel-destructive text-paper hover:brightness-95',
+        destructive:
+          'border-destructive bg-destructive text-paper hover:border-destructive-hover hover:bg-destructive-hover',
       },
       size: {
         sm: 'h-8 px-3.5 text-meta',
         md: 'h-[38px] px-5 text-compact',
-        lg: 'h-11 px-7 text-panel font-bold',
+        lg: 'h-11 px-7 text-panel font-semibold',
         icon: 'size-[38px]',
         'icon-sm': 'size-8',
       },

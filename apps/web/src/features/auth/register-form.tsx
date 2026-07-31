@@ -91,7 +91,7 @@ function ClerkRegisterForm() {
             maxLength={6}
             required
           />
-          <p className="text-xs leading-relaxed text-graphite">{t('verificationHint')}</p>
+          <p className="text-meta leading-relaxed text-graphite">{t('verificationHint')}</p>
         </div>
         {errors.fields.code || notice ? (
           <Alert variant="destructive">

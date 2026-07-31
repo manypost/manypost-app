@@ -64,7 +64,7 @@ export function ComposerThread() {
             <span aria-hidden className="absolute bottom-0 left-2.5 top-0 w-px bg-line" />
             <span
               aria-hidden
-              className="bevel-surface absolute left-0 top-2 grid size-5 place-items-center rounded-full border text-axis font-semibold tabular-nums text-graphite"
+              className="bg-surface absolute left-0 top-2 grid size-5 place-items-center rounded-lg border text-axis font-semibold tabular-nums text-graphite"
             >
               {i + 1}
             </span>
@@ -113,7 +113,7 @@ export function ComposerThread() {
                         <Trash2 aria-hidden />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent side="top" sideOffset={6} className="text-xs font-semibold">
+                    <TooltipContent side="top" sideOffset={6} className="text-meta font-semibold">
                       {t('threadRemove')}
                     </TooltipContent>
                   </Tooltip>
@@ -137,7 +137,7 @@ export function ComposerThread() {
         <Button
           variant="ghost"
           size="sm"
-          className="bevel-accent w-fit gap-1.5 border-accent text-accent hover:text-accent-hover"
+          className="w-fit gap-1.5 border-accent bg-accent-tint text-accent hover:text-accent-hover"
           disabled={thread.length >= MAX_ITENS}
           onClick={() => addThreadItem()}
         >
@@ -173,7 +173,7 @@ function EsperaSelect({ valor, onChange }: { valor: number; onChange: (sec: numb
             <SelectValue />
           </SelectTrigger>
         </TooltipTrigger>
-        <TooltipContent side="top" sideOffset={6} className="max-w-56 text-xs font-semibold">
+        <TooltipContent side="top" sideOffset={6} className="max-w-56 text-meta font-semibold">
           {t('hint')}
         </TooltipContent>
       </Tooltip>

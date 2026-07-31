@@ -287,7 +287,7 @@ export function KanbanBoard() {
       ) : null}
 
       {todos.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-line bg-surface-2 px-6 py-12 text-center">
+        <div className="rounded-lg bg-surface-2 px-6 py-12 text-center">
           <p className="text-compact leading-relaxed text-graphite">{t('empty')}</p>
           <Button size="sm" className="mt-4 cursor-pointer" onClick={() => openComposer()}>
             {t('newPost')}
@@ -295,7 +295,7 @@ export function KanbanBoard() {
         </div>
       ) : cards.length === 0 && temFiltro ? (
         // vazio POR FILTRO é diferente de pipeline vazio — dizer o contrário faria a tela mentir
-        <div className="rounded-lg border border-dashed border-line bg-surface-2 px-6 py-12 text-center">
+        <div className="rounded-lg bg-surface-2 px-6 py-12 text-center">
           <p className="text-compact leading-relaxed text-graphite">{t('filteredEmpty')}</p>
           <Button
             variant="outline"
@@ -403,7 +403,7 @@ function ConfirmarAcao({
         <AlertDialogFooter>
           <AlertDialogCancel className="cursor-pointer">{t('actions.cancel')}</AlertDialogCancel>
           <AlertDialogAction
-            className={cn('cursor-pointer', destrutivo && 'bevel-destructive text-paper')}
+            className={cn('cursor-pointer', destrutivo && 'border-destructive bg-destructive text-paper')}
             onClick={onConfirmar}
           >
             {destrutivo ? t('cancelConfirm') : t('publishNowConfirm')}

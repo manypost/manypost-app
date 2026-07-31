@@ -202,7 +202,7 @@ export function CommandPalette() {
 
           {secoes.map((secao) => (
             <li key={secao.tipo}>
-              <p className="px-2 pb-1 pt-2 text-meta font-semibold uppercase tracking-wide text-graphite">
+              <p className="px-2 pb-1 pt-2 text-meta font-medium text-graphite">
                 {t(`sections.${secao.tipo}`)}
               </p>
               <ul>

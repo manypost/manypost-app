@@ -49,11 +49,11 @@ export function ComposerPreviewPane() {
         aria-expanded={previewOpen}
         className="mb-2.5 flex w-full cursor-pointer items-center gap-2 rounded-sm outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:pointer-events-none"
       >
-        <span className="text-meta font-semibold uppercase tracking-wide text-graphite">
+        <span className="text-meta font-medium text-graphite">
           {t('preview.title')}
         </span>
         {nome ? (
-          <span className="min-w-0 flex-1 truncate text-left text-xs font-medium text-mist lg:flex-none">
+          <span className="min-w-0 flex-1 truncate text-left text-meta font-medium text-mist lg:flex-none">
             {nome}
           </span>
         ) : null}

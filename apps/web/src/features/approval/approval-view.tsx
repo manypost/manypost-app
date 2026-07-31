@@ -99,8 +99,8 @@ export function ApprovalView({ token }: { token: string }) {
           // mensagem neutra — não vaza existência do conteúdo (SPEC §3.6)
           <div className="flex flex-col items-center gap-3 rounded-lg border border-line bg-surface px-6 py-16 text-center">
             <CircleAlert className="size-8 text-mist" aria-hidden />
-            <h1 className="text-lg font-semibold tracking-[-0.2px] text-ink">{t('notFoundTitle')}</h1>
-            <p className="max-w-sm text-sm leading-relaxed text-graphite">{t('notFoundBody')}</p>
+            <h1 className="text-panel font-semibold tracking-[-0.2px] text-ink">{t('notFoundTitle')}</h1>
+            <p className="max-w-sm text-compact leading-relaxed text-graphite">{t('notFoundBody')}</p>
           </div>
         ) : (
           <ApprovalContent
@@ -169,7 +169,7 @@ function ApprovalContent({
       <div className="flex flex-col gap-1">
         <h1 className="font-display text-2xl font-bold tracking-[-0.3px] text-ink">{t('title')}</h1>
         {when ? (
-          <p className="text-sm leading-relaxed text-graphite">
+          <p className="text-compact leading-relaxed text-graphite">
             {t('scheduledFor', { when })}{' '}
             <span className="text-mist">({Intl.DateTimeFormat().resolvedOptions().timeZone})</span>
           </p>
@@ -188,13 +188,13 @@ function ApprovalContent({
         >
           {approved ? <Check className="mt-0.5 size-5 shrink-0" aria-hidden /> : <MessageSquareText className="mt-0.5 size-5 shrink-0" aria-hidden />}
           <div>
-            <p className="text-sm font-semibold">
+            <p className="text-compact font-semibold">
               {approved
                 ? t('resolvedApproved', { name: data.approverName ?? t('someone') })
                 : t('resolvedChanges', { name: data.approverName ?? t('someone') })}
             </p>
             {data.feedback ? (
-              <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-ink">{data.feedback}</p>
+              <p className="mt-1 whitespace-pre-wrap text-compact leading-relaxed text-ink">{data.feedback}</p>
             ) : null}
           </div>
         </div>
@@ -266,7 +266,7 @@ function ApprovalContent({
         </div>
       ) : null}
 
-      <p className="mt-auto pt-4 text-center text-xs text-mist">{t('poweredBy')}</p>
+      <p className="mt-auto pt-4 text-center text-meta text-mist">{t('poweredBy')}</p>
     </>
   );
 }
