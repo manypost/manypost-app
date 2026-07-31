@@ -28,15 +28,17 @@ export function KanbanColumn({
       ref={setNodeRef}
       aria-label={title}
       className={cn(
-        'flex min-h-64 w-72 shrink-0 flex-col rounded-lg border border-line border-t-2 bg-surface-2 transition-colors duration-200 lg:w-auto lg:flex-1',
+        'flex min-h-64 w-72 shrink-0 flex-col rounded-lg bg-surface-2 transition-colors duration-200 lg:w-auto lg:flex-1',
         compacta ? 'gap-1.5 p-1.5' : 'gap-2 p-2',
-        accent,
         isOver && 'bg-accent-tint',
       )}
     >
-      <h2 className="flex items-center justify-between px-1 pt-1 text-meta font-semibold uppercase tracking-wide text-graphite">
-        {title}
-        <span className="rounded-sm border border-line bg-surface px-1.5 tabular-nums">{count}</span>
+      <h2 className="flex items-center justify-between px-1 pt-1 text-meta font-semibold text-graphite">
+        <span className="flex items-center gap-1.5">
+          <span className={cn('size-1.5 shrink-0 rounded-full', accent)} aria-hidden />
+          {title}
+        </span>
+        <span className="rounded-sm bg-surface px-1.5 tabular-nums">{count}</span>
       </h2>
       {children}
     </section>

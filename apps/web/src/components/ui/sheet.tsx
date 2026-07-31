@@ -36,7 +36,7 @@ function SheetContent({
       <SheetPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          'bevel-surface fixed inset-y-0 z-50 flex w-full max-w-lg animate-fade-in flex-col',
+          'border-line-strong bg-surface fixed inset-y-0 z-50 flex w-full max-w-lg animate-fade-in flex-col',
           side === 'right' ? 'right-0 border-l border-line' : 'left-0 border-r border-line',
           className,
         )}
@@ -76,7 +76,7 @@ function SheetTitle({ className, ...props }: React.ComponentProps<typeof SheetPr
   return (
     <SheetPrimitive.Title
       data-slot="sheet-title"
-      className={cn('text-lg font-semibold tracking-[-0.2px] text-ink', className)}
+      className={cn('text-panel font-semibold tracking-[-0.2px] text-ink', className)}
       {...props}
     />
   );
@@ -89,7 +89,7 @@ function SheetDescription({
   return (
     <SheetPrimitive.Description
       data-slot="sheet-description"
-      className={cn('text-sm leading-relaxed text-graphite', className)}
+      className={cn('text-compact leading-relaxed text-graphite', className)}
       {...props}
     />
   );

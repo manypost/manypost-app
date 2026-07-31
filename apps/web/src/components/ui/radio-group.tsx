@@ -5,7 +5,7 @@ import { Circle } from 'lucide-react';
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
-/** RadioGroup do kit adaptado ao brand (círculo é exceção permitida, como avatar). */
+/** RadioGroup do kit adaptado à escala de raio 4/6/8 do brand. */
 function RadioGroup({ className, ...props }: React.ComponentProps<typeof RadioGroupPrimitive.Root>) {
   return (
     <RadioGroupPrimitive.Root
@@ -24,7 +24,7 @@ function RadioGroupItem({
     <RadioGroupPrimitive.Item
       data-slot="radio-group-item"
       className={cn(
-        'aspect-square size-4 shrink-0 rounded-full border border-line bg-surface text-accent transition-colors duration-200',
+        'aspect-square size-4 shrink-0 rounded-lg border border-line bg-surface text-accent transition-colors duration-200',
         'outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
         'data-[state=checked]:border-accent disabled:cursor-not-allowed disabled:opacity-50',
         className,

@@ -42,7 +42,7 @@ export function ClerkSessionComplete({ destination }: { destination: string }) {
   return (
     <div className="flex min-h-36 flex-col items-center justify-center gap-3 text-center">
       <Loader2 className="size-5 animate-spin text-accent motion-reduce:animate-none" aria-hidden />
-      <p className="text-sm text-graphite">{t('finishingSession')}</p>
+      <p className="text-compact text-graphite">{t('finishingSession')}</p>
     </div>
   );
 }

@@ -2,8 +2,6 @@
 
 import {
   CalendarDays,
-  CircleAlert,
-  Clock,
   Plug,
   PenSquare,
   Sparkles,
@@ -27,7 +25,7 @@ import { diasVazios, linhasDeAtencao, medidor, type AttentionRow } from './logic
  *  2. **Nenhum número aqui é de desempenho.** A plataforma não coleta engajamento, então tudo o
  *     que aparece vem do nosso registro do que foi pedido e do que foi entregue.
  *
- * Visual: relevo por gradiente (`bevel-surface`, `bevel-chip`), zero sombra, raio 8px, e a escala
+ * Visual: superfície chapada (fill branco + borda 1px), zero sombra, raio 8px, e a escala
  * tipográfica nomeada do §6.3 — nunca valor arbitrário.
  */
 
@@ -46,7 +44,7 @@ export function Card({
   return (
     <section
       className={cn(
-        'home-surface bevel-surface flex flex-col gap-3 rounded-lg border p-4 transition-[border-color,filter] duration-200 hover:brightness-[0.99] motion-reduce:transition-none sm:p-5',
+        'flex flex-col gap-3 rounded-lg border bg-surface p-4 sm:p-5',
         tone === 'alert' ? 'border-state-failed' : 'border-line',
       )}
     >
@@ -68,14 +66,6 @@ export function Card({
 }
 
 // ---------------------------------------------------------------------------
-
-const ICONE_ATENCAO: Record<AttentionRow['kind'], typeof CircleAlert> = {
-  failed: CircleAlert,
-  channel: Plug,
-  partial: TriangleAlert,
-  needsReview: CircleAlert,
-  awaitingApproval: Clock,
-};
 
 /**
  * "Precisa de atenção" — a resposta para "está tudo bem?".
@@ -119,16 +109,12 @@ export function AttentionBlock({ attention }: { attention: InsightsSummary['atte
     <Card title={t('attentionTitle')} tone="alert">
       <ul className="flex flex-col divide-y divide-line">
         {linhas.map((l, i) => {
-          const Icone = ICONE_ATENCAO[l.kind];
           return (
             <li
               key={`${l.kind}-${l.channel?.channelId ?? i}`}
               className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 py-2 first:pt-0 last:pb-0"
             >
-              <span className="flex min-w-0 items-center gap-2">
-                <Icone className="size-3.5 shrink-0 text-graphite" aria-hidden />
-                <span className="min-w-0 truncate text-compact text-ink">{textoDaLinha(l)}</span>
-              </span>
+              <span className="min-w-0 truncate text-compact text-ink">{textoDaLinha(l)}</span>
               <Button asChild size="sm" variant="outline" className="h-7 shrink-0 cursor-pointer px-2.5 text-meta">
                 <Link href={l.href}>{ctaDaLinha(l)}</Link>
               </Button>
@@ -164,9 +150,9 @@ export function TodayBlock({ today }: { today: InsightsSummary['today'] }) {
           </Button>
         </div>
       ) : (
-        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-2">
+        <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
           <p className="flex items-baseline gap-2">
-            <span className="text-2xl font-medium tabular-nums tracking-[-0.02em] text-ink">
+            <span className="text-figure font-medium tabular-nums tracking-[-0.02em] text-ink">
               {today.scheduled}
             </span>
             <span className="text-compact text-graphite">{t('todayScheduled', { count: today.scheduled })}</span>
@@ -210,7 +196,7 @@ function Meter({
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-meta font-semibold uppercase tracking-wide text-graphite">{label}</span>
+        <span className="text-meta font-medium text-graphite">{label}</span>
         <span
           className={cn(
             'text-compact font-semibold tabular-nums',
@@ -335,7 +321,7 @@ export function WeekBlock({ week }: { week: InsightsSummary['week'] }) {
                   <div
                     className={cn(
                       'w-full rounded-sm',
-                      n === 0 ? 'bg-data-track' : 'bevel-chip bg-data-1',
+                      n === 0 ? 'bg-data-track' : 'bg-data-1',
                     )}
                     style={{ height: n === 0 ? '3px' : `${Math.max(12, (n / pico) * 100)}%` }}
                   />
@@ -406,12 +392,12 @@ export function FirstRunBlock({
       <ol className="flex flex-col gap-4">
         {passos.map((p) => (
           <li key={p.title} className="flex items-start gap-3">
-            <span className="bevel-chip mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-accent-tint">
+            <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-accent-tint">
               <p.icon className="size-3.5 text-accent" aria-hidden />
             </span>
             <div className="flex min-w-0 flex-col items-start gap-1.5">
               <p className="text-compact font-semibold text-ink">{p.title}</p>
-              <p className="max-w-[440px] text-compact leading-relaxed text-graphite">{p.body}</p>
+              <p className="max-w-reading text-compact leading-relaxed text-graphite">{p.body}</p>
               {p.cta ? (
                 <Button asChild size="sm" className="mt-0.5 cursor-pointer">
                   <Link href={p.cta.href}>{p.cta.label}</Link>

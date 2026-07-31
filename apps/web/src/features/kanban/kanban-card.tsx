@@ -163,7 +163,7 @@ export function KanbanCard({
           {card.items.length > 4 ? (
             <span
               className={cn(
-                'grid place-items-center rounded-full border border-surface bg-surface-2 text-axis font-semibold text-graphite',
+                'grid place-items-center rounded-lg border border-surface bg-surface-2 text-axis font-semibold text-graphite',
                 compacta ? 'size-5' : 'size-6',
               )}
             >

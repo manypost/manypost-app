@@ -130,7 +130,7 @@ export function ComposerEditor({
       className={cn(
         'cursor-text rounded-md border border-line bg-surface px-3 py-2 transition-colors duration-200',
         'focus-within:border-accent',
-        '[&_.tiptap]:min-h-28 [&_.tiptap]:text-sm [&_.tiptap]:leading-relaxed [&_.tiptap]:text-ink [&_.tiptap]:outline-none',
+        '[&_.tiptap]:min-h-28 [&_.tiptap]:text-compact [&_.tiptap]:leading-relaxed [&_.tiptap]:text-ink [&_.tiptap]:outline-none',
         className,
       )}
     >

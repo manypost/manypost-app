@@ -86,7 +86,7 @@ export function DateTimePicker({
           type="button"
           aria-label={ariaLabel ?? t('pick')}
           className={cn(
-            'flex h-9 cursor-pointer items-center gap-2 rounded-md border border-line bg-surface px-3 text-sm text-ink outline-none transition-colors duration-200',
+            'flex h-[38px] cursor-pointer items-center gap-2 rounded-md border border-line-strong bg-surface px-3 text-compact text-ink outline-none transition-colors duration-200',
             'hover:border-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
             !date && 'text-graphite',
             className,
@@ -104,7 +104,7 @@ export function DateTimePicker({
         />
         <div className="mt-2 flex items-center gap-2 border-t border-line pt-3">
           <Clock className="size-4 shrink-0 text-graphite" aria-hidden />
-          <label htmlFor={id ? `${id}-time` : undefined} className="text-xs font-medium text-graphite">
+          <label htmlFor={id ? `${id}-time` : undefined} className="text-meta font-medium text-graphite">
             {t('time')}
           </label>
           <Input
@@ -112,7 +112,7 @@ export function DateTimePicker({
             type="time"
             value={timeValue}
             onChange={(e) => changeTime(e.target.value)}
-            className="ml-auto h-8 w-28 text-sm"
+            className="ml-auto h-8 w-28 text-compact"
           />
         </div>
       </PopoverContent>

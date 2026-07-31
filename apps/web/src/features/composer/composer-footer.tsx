@@ -83,7 +83,7 @@ export function ComposerFooter({
   }, []);
 
   return (
-    <footer className="bevel-surface shrink-0 border-t border-line px-4 py-3 sm:px-6 sm:py-4">
+    <footer className="bg-surface shrink-0 border-t border-line px-4 py-3 sm:px-6 sm:py-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-6">
         <div className="flex min-w-0 flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-2">

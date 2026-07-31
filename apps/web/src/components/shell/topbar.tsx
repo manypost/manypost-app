@@ -92,7 +92,7 @@ export function Topbar() {
         <Wordmark />
       </div>
       {/* contexto persistente; o h1 semântico pertence ao PageHeader da tela */}
-      <p className="hidden text-lg font-semibold tracking-[-0.3px] text-ink md:block">
+      <p className="hidden text-panel font-semibold tracking-[-0.3px] text-ink md:block">
         {title ? t(title.key) : ''}
       </p>
 
@@ -102,7 +102,7 @@ export function Topbar() {
         type="button"
         onClick={abrirPaleta}
         aria-label={t('commandPalette.open')}
-        className="inset-field hidden cursor-pointer items-center gap-2 rounded-md border px-2.5 py-1.5 text-meta text-graphite outline-none transition-colors duration-200 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:flex"
+        className="border-line-strong bg-surface hidden cursor-pointer items-center gap-2 rounded-md border px-2.5 py-1.5 text-meta text-graphite outline-none transition-colors duration-200 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:flex"
       >
         <Search className="size-3.5" aria-hidden />
         <span>{t('commandPalette.open')}</span>
@@ -120,13 +120,13 @@ export function Topbar() {
       </button>
       <NotificationsMenu />
       {isPending ? (
-        <Skeleton className="size-8 rounded-full" />
+        <Skeleton className="size-8 rounded-lg" />
       ) : (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="cursor-pointer rounded-full outline-none transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className="cursor-pointer rounded-lg outline-none transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               aria-label={user?.name ?? user?.email ?? 'menu do usuário'}
             >
               <Avatar>
@@ -136,7 +136,7 @@ export function Topbar() {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-52">
-            <DropdownMenuLabel className="flex flex-col gap-0.5">
+            <DropdownMenuLabel className="flex flex-col gap-1">
               <span className="text-compact font-semibold text-ink">{user?.name}</span>
               <span className="font-normal">{user?.email}</span>
             </DropdownMenuLabel>

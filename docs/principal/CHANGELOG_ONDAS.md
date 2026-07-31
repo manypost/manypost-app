@@ -10,6 +10,30 @@
 > **Como manter:** ao fechar uma fatia, adicione a onda nova **no topo** e atualize o STATUS.
 > Cada entrada é auto-contida: o que mudou, onde no código, e a prova de que funciona.
 
+## Onda 35 — 2026-07-31 — brand v1.4, superfícies chapadas
+
+**Mudança de direção, não conserto.** A v1.3 implementou corretamente o relevo por gradiente pedido
+na onda 14. A linguagem, porém, passou a dominar o produto e competir com o trabalho real. A v1.4
+revoga aquela decisão: zero sombra continua inviolável, e agora também não há gradiente de fill,
+bevel, inset ou filtro de brilho. Hierarquia usa `canvas`/`surface`/`surface-2`; o papel flutuante
+reutiliza `surface` com `--line-strong` (3,22:1). `--line` fica para estrutura decorativa.
+
+**Sistema fechado.** O chrome autenticado usa escala tipográfica nomeada, pesos normal/medium/
+semibold e sentence case; auth/onboarding continuam editoriais e o preview de provider é a exceção
+representacional nomeada. Uma região tem um nível de border, tracejado promete drop real, gaps usam
+4/8/12/16/24/32px, o shell limita largura uma vez e a Home não anima a própria chegada. O gate de
+brand passou a 18 regras linha a linha mais cursor estrutural, incluindo radius full apenas para
+Avatar/dots. Os exemplos semânticos do composer perderam emoji decorativo.
+
+**Provas e limite conhecido.** `bun install --frozen-lockfile` não alterou dependências; `bun run
+check` passou com **1314 testes**, 18 skips de Postgres, typechecks, fronteiras, providers e brand;
+`db:check`, build Next de **19 páginas** e OpenSpec **29/29** passaram. Login em 1440×900 e 375×812
+não teve overflow ou erro de console; a inspeção encontrou e eliminou um warning de proporção do
+logo. Sem sessão autenticada e sem API local, não foi possível abrir os overlays sobre cards ou
+repetir os fluxos da Home/quadro/⌘K. Por isso `adopt-flat-visual-system`,
+`enforce-visual-system-lint` e as três mudanças da onda 34 continuam abertas; nenhum arquivo foi
+arquivado. Rollback é revert do diff de UI/tokens/docs, sem banco, API ou estado persistido.
+
 ## Onda 34 — 2026-07-31 — Home v2, quadro v2 e busca global
 
 **O que motivou.** A onda 30 entregou uma `/inicio` que respondia bem *uma* pergunta — "está tudo

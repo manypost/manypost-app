@@ -97,7 +97,7 @@ export function DraftFromIdea({
 
         {travado ? (
           <div className="flex flex-col gap-3">
-            <p className="text-sm text-graphite">{t('lockedPremium')}</p>
+            <p className="text-compact text-graphite">{t('lockedPremium')}</p>
             <Button asChild className="w-full cursor-pointer">
               <Link href="/planos">{t('seePlans')}</Link>
             </Button>

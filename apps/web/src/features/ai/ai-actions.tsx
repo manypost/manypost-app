@@ -304,7 +304,7 @@ export function AiActions({
               </Button>
             </DropdownMenuTrigger>
           </TooltipTrigger>
-          <TooltipContent side="top" sideOffset={6} className="text-xs font-semibold">
+          <TooltipContent side="top" sideOffset={6} className="text-meta font-semibold">
             {t('triggerLabel')}
           </TooltipContent>
         </Tooltip>
@@ -317,7 +317,7 @@ export function AiActions({
           <DropdownMenuLabel className="flex items-center justify-between gap-2">
             <span>{t('menuTitle')}</span>
             {ai.credits?.enforced ? (
-              <span className="bevel-chip rounded-sm px-1.5 py-0.5 text-meta font-semibold tabular-nums text-graphite">
+              <span className="rounded-sm px-1.5 py-0.5 text-meta font-semibold tabular-nums text-graphite">
                 {t('credits', { count: ai.credits.remaining })}
               </span>
             ) : null}
@@ -326,7 +326,7 @@ export function AiActions({
 
           {motivoBloqueio ? (
             <div className="px-2 py-2">
-              <p className="text-xs text-graphite">{motivoBloqueio}.</p>
+              <p className="text-meta text-graphite">{motivoBloqueio}.</p>
               {travado ? (
                 <Button asChild size="sm" className="mt-2 w-full cursor-pointer">
                   <Link href="/planos">{t('seePlans')}</Link>
@@ -370,13 +370,13 @@ export function AiActions({
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />
-              <DropdownMenuLabel className="text-meta font-semibold uppercase tracking-wide text-graphite">
+              <DropdownMenuLabel className="text-meta font-medium text-graphite">
                 {t('rewriteGroup')}
               </DropdownMenuLabel>
               {REWRITE_EDIT_IDS.map(itemReescrita)}
 
               <DropdownMenuSeparator />
-              <DropdownMenuLabel className="text-meta font-semibold uppercase tracking-wide text-graphite">
+              <DropdownMenuLabel className="text-meta font-medium text-graphite">
                 {t('toneGroup')}
               </DropdownMenuLabel>
               {REWRITE_TONE_IDS.map(itemReescrita)}

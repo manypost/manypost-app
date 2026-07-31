@@ -46,7 +46,7 @@ export function ProviderIcon({
       <span
         aria-hidden
         className={cn(
-          'grid shrink-0 place-items-center rounded-md border border-line bg-surface-2 text-sm font-bold text-ink',
+          'grid shrink-0 place-items-center rounded-md border border-line bg-surface-2 text-compact font-semibold text-ink',
           className,
         )}
       >

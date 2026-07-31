@@ -37,7 +37,7 @@ export function NotificationsMenu() {
           {unread > 0 ? (
             <span
               aria-hidden
-              className="bevel-chip absolute -right-0.5 -top-0.5 grid min-w-4 place-items-center rounded-full bg-accent px-1 text-axis font-bold leading-4 text-paper"
+              className="absolute -right-0.5 -top-0.5 grid min-w-4 place-items-center rounded-sm bg-accent px-1 text-axis font-semibold leading-4 text-paper"
             >
               {unread > 9 ? '9+' : unread}
             </span>
@@ -87,11 +87,11 @@ export function NotificationsMenu() {
                       {n.title}
                     </span>
                     {n.body ? (
-                      <span className="mt-0.5 line-clamp-2 block text-xs leading-relaxed text-graphite">
+                      <span className="mt-0.5 line-clamp-2 block text-meta leading-relaxed text-graphite">
                         {n.body}
                       </span>
                     ) : null}
-                    <span className="mt-0.5 block text-xs text-mist">
+                    <span className="mt-0.5 block text-meta text-mist">
                       {relativeTime(n.createdAt, locale)}
                     </span>
                   </span>

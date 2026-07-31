@@ -29,16 +29,16 @@ export function ChannelPicker({
   if (channels.isPending) {
     return (
       <div className="flex gap-2">
-        <Skeleton className="size-11 rounded-full" />
-        <Skeleton className="size-11 rounded-full" />
-        <Skeleton className="size-11 rounded-full" />
+        <Skeleton className="size-11 rounded-lg" />
+        <Skeleton className="size-11 rounded-lg" />
+        <Skeleton className="size-11 rounded-lg" />
       </div>
     );
   }
   if (channels.isError || !channels.data || channels.data.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-line bg-surface-2 px-6 py-8 text-center">
-        <p className="text-sm leading-relaxed text-graphite">{t('noChannels')}</p>
+      <div className="rounded-lg bg-surface-2 px-6 py-8 text-center">
+        <p className="text-compact leading-relaxed text-graphite">{t('noChannels')}</p>
         <Button asChild variant="outline" size="sm" className="mt-3">
           <Link href="/conexoes">{t('goConnect')}</Link>
         </Button>
@@ -47,7 +47,7 @@ export function ChannelPicker({
   }
 
   return (
-    <div className="bevel-surface rounded-lg border p-3">
+    <div className="bg-surface rounded-lg border p-3">
       <ul className="flex flex-wrap gap-2.5">
         {channels.data.map((ch) => {
           const active = ch.status === 'ACTIVE';
@@ -64,7 +64,7 @@ export function ChannelPicker({
                     aria-label={name}
                     onClick={() => onToggle(ch.id)}
                     className={cn(
-                      'relative block rounded-full outline-none transition-colors duration-200',
+                      'relative block rounded-lg outline-none transition-colors duration-200',
                       'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
                       !active && 'cursor-not-allowed',
                     )}
@@ -94,7 +94,7 @@ export function ChannelPicker({
                     {selected ? (
                       <span
                         aria-hidden
-                        className="absolute -right-1 -top-1 grid size-4 place-items-center rounded-full bg-accent text-paper shadow-none"
+                        className="absolute -right-1 -top-1 grid size-4 place-items-center rounded-lg bg-accent text-paper shadow-none"
                       >
                         <Check className="size-2.5" strokeWidth={3} />
                       </span>

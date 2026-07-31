@@ -12,14 +12,42 @@
   --accent-on-dark: #c4b5fd;
   --paper: #ffffff;
   --surface: #ffffff;
-  --canvas: #f6f6f9;
+  /*
+   * CAMADAS DE FUNDO (brand v1.4) — a hierarquia primária, agora que não há relevo.
+   *
+   *   0 chão      --canvas    fundo de página; nunca recebe borda
+   *   1 superfície --surface  card, sidebar, topbar          → border-line
+   *   2 rebaixo   --surface-2 trilho, tile, bloco de código  → SEM borda (o fill é o limite)
+   *   3 flutuante --surface   conteúdo em portal             → border-line-strong
+   *
+   * `--canvas` era `#f6f6f9`, a 1,07:1 do branco — ruído, não camada: um card branco não parecia
+   * pousado em nada. A `#f1f1f4` o degrau vai a 1,115:1, o que quase dobra a separação percebida.
+   * É o que faz a superfície "subir" sem sombra e sem gradiente.
+   */
+  --canvas: #f1f1f4;
   --surface-2: #eeeeef;
   --night: #0a0a0a;
   --ink: #111111;
   --ink-soft: #262626;
   --graphite: #6b6b70;
   --mist: #8e8e96;
+  /*
+   * ESCALA DE BORDAS, DOIS DEGRAUS (brand v1.4).
+   *
+   * `--line` é DIVISOR: estrutura decorativa (borda de card, divide-y, separador). 1,44:1 contra
+   * branco — sem piso de contraste, porque nunca é a única coisa que identifica um componente.
+   *
+   * `--line-strong` é LIMITE DE COMPONENTE, e existe por acessibilidade, não por estética. Sem
+   * sombra e sem gradiente, um dropdown branco sobre um card branco tinha só o hairline de 1,44:1
+   * separando os dois — e a WCAG 1.4.11 pede 3:1 quando a borda é o único identificador. Este tom
+   * dá **3,22:1**; abaixo de ~#909096 a regra quebra, então ele não pode ser clareado em silêncio.
+   *
+   * Obrigatório em (a) conteúdo em portal — dropdown, popover, select, dialog, sheet, paleta — e
+   * (b) limite de controle de entrada — input, textarea, gatilho de select, botão outline. Os dois
+   * são o mesmo problema: uma caixa branca dentro de outra caixa branca.
+   */
   --line: #d6d6df;
+  --line-strong: #8e8e96;
 
   /* estados de publicação (rascunho é neutro: --graphite/--surface-2) */
   --state-scheduled: #7c3aed;
@@ -29,6 +57,10 @@
   --state-published: #15803d;
   --state-published-tint: #dcfce7;
   --state-failed: #b91c1c;
+  /* par de hover do destrutivo — os outros preenchidos já tinham (`--accent-hover`, `--ink-soft`).
+     Sem ele o hover ficava em `filter: brightness()`, resíduo de quando a face era gradiente e não
+     dava para transicionar `background-color` (que é o que o BRAND §2.3 sempre pediu). */
+  --state-failed-hover: #991b1b;
   --state-failed-tint: #fee2e2;
   --state-review: #a16207;
   --state-review-tint: #fef9c3;
@@ -53,23 +85,12 @@
   --data-2-tint: #ccfbf1;
   /* trilha de medidor/barra: o "vazio" atrás do preenchimento */
   --data-track: #eeeeef;
-
-  /*
-   * Profundidade sem sombra (brand v1.3 — 2026-07-23): relevo por
-   * gradiente de preenchimento + cor de borda por lado (topo claro, base
-   * escura). NENHUM box-shadow — mantém o pilar "zero sombras" (BRAND §2.2).
-   * Estes 4 tokens governam a intensidade globalmente (aqui: média).
-   */
-  --edge-light: 22%; /* branco misturado na borda de topo */
-  --edge-dark: 16%; /* preto misturado na borda de base */
-  --bevel-gloss: 0.16; /* alpha do brilho fino logo abaixo da borda de topo */
-  --bevel-lift: 9%; /* rebaixo do fundo entre o topo e a base */
 }
 
 /*
  * Tema Tailwind mapeado 1:1 dos tokens do brand (docs/brand/README.md §2):
- * - radius somente 4/6/8px (BRAND §4); `rounded-full` segue existindo, mas é
- *   permitido apenas em avatares
+ * - radius somente 4/6/8px (BRAND §4); `rounded-full` existe apenas no Avatar
+ *   e em pequenos pontos de estado
  * - namespaces de sombra zerados: NENHUMA utility de shadow ou drop-shadow
  *   existe neste app (BRAND §2.2 — hierarquia por borda e camada de fundo)
  */
@@ -97,6 +118,7 @@
   --color-accent-tint: var(--accent-tint);
   --color-accent-on-dark: var(--accent-on-dark);
   --color-destructive: var(--state-failed);
+  --color-destructive-hover: var(--state-failed-hover);
   --color-destructive-tint: var(--state-failed-tint);
   --color-destructive-foreground: var(--paper);
   --color-border: var(--line);
@@ -112,6 +134,7 @@
   --color-surface-2: var(--surface-2);
   --color-night: var(--night);
   --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
 
   --color-state-scheduled: var(--state-scheduled);
   --color-state-scheduled-tint: var(--state-scheduled-tint);
@@ -130,6 +153,10 @@
   --color-data-2: var(--data-2);
   --color-data-2-tint: var(--data-2-tint);
   --color-data-track: var(--data-track);
+
+  /* medida global: o shell limita a tela; textos descritivos compartilham uma linha de leitura */
+  --container-app: 80rem;
+  --container-reading: 42.5rem;
 
   --radius-*: initial;
   --radius-sm: 4px;
@@ -159,8 +186,12 @@
   --text-meta--line-height: 1.4;
   --text-compact: 13px; /* navegação, label de campo, corpo de produto (§6.3) */
   --text-compact--line-height: 18px;
-  --text-panel: 15px; /* título de painel (§6.3: 15–16px) */
+  --text-panel: 15px; /* título de painel/card/diálogo (§6.3: 15–16px) */
   --text-panel--line-height: 1.35;
+  --text-title: 20px; /* H1 de tela (§6.3: título de página 18–20px) — brand v1.4 */
+  --text-title--line-height: 1.25;
+  --text-figure: 24px; /* SÓ numeral grande, KPI (§6.3: KPI value 22–24px) — brand v1.4 */
+  --text-figure--line-height: 1.15;
 
   --shadow-*: initial;
   --inset-shadow-*: initial;
@@ -195,13 +226,15 @@
 }
 
 /*
- * Relevo 3D sem sombra (BRAND §2.2 · §6 · §7). Camada `components` (perde
- * para utilitários, então um `bg-*`/`border-*` passado por um caller ainda
- * vence). Face: topo claro → base escura via gradiente; bordas por lado
- * (topo clareado, base escurecida); brilho fino de 1–3px sob o topo. Toda a
- * matemática de cor deriva dos tokens do brand (único arquivo com hex).
- * Escopo: botões preenchidos + cards. Ghost/link, inputs, badges e overlays
- * permanecem flat (relevo = elemento elevado/clicável).
+ * Camada `components` (perde para utilitários, então um `bg-*`/`border-*` passado por um caller
+ * ainda vence).
+ *
+ * Aqui viviam as nove classes de relevo por gradiente da brand v1.3. A v1.4 as removeu: superfície
+ * é fill chapado, e a hierarquia volta a sair de camada de fundo (`--canvas`/`--surface`/
+ * `--surface-2`), força de borda (`--line`/`--line-strong`) e espaço. O pilar "zero sombras"
+ * (BRAND §2.2) não mudou — nunca houve `box-shadow` aqui e continua não havendo.
+ *
+ * Sobra uma classe, e ela não é de relevo.
  */
 @layer components {
   /*
@@ -213,101 +246,19 @@
     font-size: var(--text-calendar-hour);
     line-height: var(--text-calendar-hour--line-height);
   }
-
-  .bevel-primary {
-    background:
-      linear-gradient(180deg, rgb(255 255 255 / var(--bevel-gloss)) 0, rgb(255 255 255 / 0) 3px),
-      linear-gradient(180deg, var(--accent), var(--accent-hover));
-    border-color: color-mix(in srgb, var(--accent), #fff var(--edge-light)) var(--accent)
-      color-mix(in srgb, var(--accent-hover), #000 var(--edge-dark)) var(--accent);
-  }
-
-  .bevel-enterprise {
-    background:
-      linear-gradient(180deg, rgb(255 255 255 / var(--bevel-gloss)) 0, rgb(255 255 255 / 0) 3px),
-      linear-gradient(180deg, color-mix(in srgb, var(--ink), #fff 9%), var(--ink));
-    border-color: color-mix(in srgb, var(--ink), #fff 30%) var(--ink-soft) #000 var(--ink-soft);
-  }
-
-  /*
-   * Outline: a face é clara, então o relevo vem sobretudo das BORDAS + um
-   * degradê mais perceptível. Usa valores próprios (mais fortes que os
-   * globais) para a tecla secundária "subir" de verdade — senão outline lê
-   * como flat ao lado do primary. Ainda assim, mais quieto que o primary.
-   */
-  .bevel-outline {
-    background: linear-gradient(180deg, var(--surface), color-mix(in srgb, var(--surface), var(--line) 26%));
-    border-color: color-mix(in srgb, var(--line), #fff 45%) var(--line)
-      color-mix(in srgb, var(--line), #000 32%) var(--line);
-  }
-
-  .bevel-destructive {
-    background:
-      linear-gradient(180deg, rgb(255 255 255 / var(--bevel-gloss)) 0, rgb(255 255 255 / 0) 3px),
-      linear-gradient(180deg, color-mix(in srgb, var(--state-failed), #fff 12%), var(--state-failed));
-    border-color: color-mix(in srgb, var(--state-failed), #fff var(--edge-light)) var(--state-failed)
-      color-mix(in srgb, var(--state-failed), #000 var(--edge-dark)) var(--state-failed);
-  }
-
-  /* Superfície clara subtil — cards, tiles E overlays (popover, dropdown,
-     dialog, sheet, select) e a sidebar. Superfície grande pede degradê mínimo. */
-  .bevel-surface {
-    background:
-      linear-gradient(180deg, rgb(255 255 255 / calc(var(--bevel-gloss) * 2.4)) 0, rgb(255 255 255 / 0) 2px),
-      linear-gradient(180deg, var(--surface), color-mix(in srgb, var(--surface), var(--line) var(--bevel-lift)));
-    border-color: color-mix(in srgb, var(--line), #fff var(--edge-light)) var(--line)
-      color-mix(in srgb, var(--line), #000 var(--edge-dark)) var(--line);
-  }
-
-  /* Superfície ESCURA subtil — tooltip e overlays sobre --ink. */
-  .bevel-ink {
-    background: linear-gradient(180deg, color-mix(in srgb, var(--ink), #fff 12%), var(--ink));
-    border-color: color-mix(in srgb, var(--ink), #fff 22%) var(--ink-soft) #000 var(--ink-soft);
-  }
-
-  /*
-   * Estado ativo/selecionado em acento (nav ativa, chip/plano selecionado,
-   * notificação não lida). Contorno de acento DE VERDADE (é o que marca a
-   * seleção) com bevel na própria borda — topo clareado, base em `--accent-hover`
-   * — sobre um tint legível. Sem contorno roxo o item "não fica selecionado".
-   */
-  .bevel-accent {
-    background: linear-gradient(180deg, color-mix(in srgb, var(--accent-tint), #fff 25%), var(--accent-tint));
-    border-color: color-mix(in srgb, var(--accent), #fff 35%) var(--accent) var(--accent-hover) var(--accent);
-  }
-
-  /*
-   * CAMPO AFUNDADO (input/select/textarea e caixas de digitação). Profundidade
-   * pra DENTRO — topo mais escuro (lábio sombreado), base mais clara (a luz bate
-   * no fundo do poço). É o oposto de um botão: campo é recuo, não relevo. Sem
-   * sombra; só gradiente + borda por lado invertida.
-   */
-  .inset-field {
-    background: linear-gradient(180deg, color-mix(in srgb, var(--surface), var(--line) 16%), var(--surface));
-    border-color: color-mix(in srgb, var(--line), #000 12%) var(--line)
-      color-mix(in srgb, var(--line), #fff 40%) var(--line);
-  }
-
-  /*
-   * BRILHO UNIVERSAL para qualquer superfície colorida (badges, chips e caixas
-   * de tint de qualquer estado). Só background-IMAGE translúcido — topo clareia,
-   * base escurece — então compõe sobre a `background-color` que o elemento já
-   * tem, seja qual for o tom. Dá volume de "pastilha" sem tocar na cor base.
-   */
-  .bevel-chip {
-    background-image: linear-gradient(180deg, rgb(255 255 255 / 0.32), rgb(255 255 255 / 0) 55%, rgb(0 0 0 / 0.06));
-  }
 }
 
 /*
- * Aba ativa dos seletores (Tabs) = tecla elevada sobre o trilho --surface-2.
- * Regra sem camada (bate o utilitário de fundo do kit); o gatilho ganha
- * `border border-transparent` para não deslocar ao ativar.
+ * Aba ativa dos seletores (Tabs): tecla branca sobre o trilho --surface-2. Regra sem camada (bate o
+ * utilitário de fundo do kit); o gatilho mantém `border border-transparent` para não deslocar ao ativar.
+ *
+ * SEM borda, de propósito. O fill branco sobre o trilho dá só 1,16:1, abaixo do piso de 3:1 — mas o
+ * estado é codificado REDUNDANTEMENTE pela cor do texto (`text-graphite` → `text-ink`, degrau de
+ * ~4,9:1), e é isso que satisfaz a WCAG 1.4.11 aqui. Adicionar uma borda "para ficar mais visível"
+ * devolveria a moldura que a v1.4 tirou sem ganhar acessibilidade nenhuma.
  */
 [data-slot='tabs-trigger'][data-state='active'] {
-  background: linear-gradient(180deg, var(--surface), color-mix(in srgb, var(--surface), var(--line) 12%));
-  border-color: color-mix(in srgb, var(--line), #fff 40%) var(--line)
-    color-mix(in srgb, var(--line), #000 24%) var(--line);
+  background: var(--surface);
 }
 
 /* Grade sutil do palco escuro — evoca o calendário/agenda do produto (tokens
@@ -331,27 +282,6 @@
  */
 
 @media (prefers-reduced-motion: no-preference) {
-  /* A Home ganha vida sem alterar layout: entrada curta, uma única vez, por
-     opacity/transform. Com reduced motion o seletor inteiro deixa de existir. */
-  .home-surface {
-    animation: home-surface-enter 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
-    /* escalonado pela posição do bloco (`--i`, vindo de ordemDosBlocos): a tela se compõe de
-       cima para baixo em vez de piscar inteira, e o teto de 6 impede que a última fila do
-       celular apareça tarde demais para ser lida como parte da mesma entrada. */
-    animation-delay: calc(min(var(--i, 0), 6) * 40ms);
-  }
-
-  @keyframes home-surface-enter {
-    from {
-      opacity: 0;
-      transform: translateY(4px);
-    }
-    to {
-      opacity: 1;
-      transform: none;
-    }
-  }
-
   /* Entrada escalonada do slide: kicker → linhas do título → subtítulo → arte. */
   .auth-enter {
     animation: auth-enter 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;

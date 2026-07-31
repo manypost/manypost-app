@@ -114,7 +114,7 @@ export function GenerateImageDialog({
 
         {travado ? (
           <div className="flex flex-col gap-3">
-            <p className="text-sm text-graphite">{t('lockedPremium')}</p>
+            <p className="text-compact text-graphite">{t('lockedPremium')}</p>
             <Button asChild className="w-full cursor-pointer">
               <Link href="/planos">{t('seePlans')}</Link>
             </Button>
@@ -167,7 +167,7 @@ export function GenerateImageDialog({
               </div>
 
               <fieldset className="flex flex-col gap-1.5">
-                <legend className="text-meta font-semibold uppercase tracking-wide text-graphite">
+                <legend className="text-meta font-medium text-graphite">
                   {t('imageModeLabel')}
                 </legend>
                 <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
@@ -183,7 +183,7 @@ export function GenerateImageDialog({
                           'cursor-pointer rounded-md border px-3 py-2 text-left outline-none transition-colors duration-200',
                           'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
                           ativo
-                            ? 'bevel-accent border-accent text-ink'
+                            ? 'border-accent bg-accent-tint text-ink'
                             : 'border-line bg-surface text-graphite hover:border-accent hover:text-ink',
                         )}
                       >
@@ -203,7 +203,7 @@ export function GenerateImageDialog({
               </fieldset>
 
               <div className="flex flex-col gap-1.5">
-                <span className="text-meta font-semibold uppercase tracking-wide text-graphite">
+                <span className="text-meta font-medium text-graphite">
                   {t('imageAspectLabel')}
                 </span>
                 <div className="flex flex-wrap gap-1.5">
@@ -219,7 +219,7 @@ export function GenerateImageDialog({
                           'cursor-pointer rounded-md border px-2.5 py-1 text-meta font-semibold outline-none transition-colors duration-200',
                           'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
                           ativo
-                            ? 'bevel-accent text-ink'
+                            ? 'border-accent bg-accent-tint text-ink'
                             : 'border-line bg-surface text-graphite hover:text-ink',
                         )}
                       >

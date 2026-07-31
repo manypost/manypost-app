@@ -69,13 +69,13 @@ export function ProviderNoteHelp({
           aria-label={t('help', { provider: provider.name })}
           onClick={(e) => e.stopPropagation()}
           className={cn(
-            // Pastilha de acento igual ao botão primário (`bevel-primary`: face em gradiente
+            // Pastilha de acento igual ao botão primário (`border-accent bg-accent`: face em gradiente
             // accent→accent-hover, hover por brightness) com a interrogação em branco no centro.
             // O glifo é texto, não `CircleHelp`: o ícone traz o próprio círculo e desenharia um
             // segundo anel dentro da pastilha.
-            'bevel-primary grid size-5 cursor-pointer place-items-center rounded-full border',
-            'text-meta font-bold leading-none text-paper outline-none',
-            'transition duration-200 hover:brightness-95',
+            'border-accent bg-accent grid size-5 cursor-pointer place-items-center rounded-lg border',
+            'text-meta font-semibold leading-none text-paper outline-none',
+            'transition-colors duration-200 hover:border-accent-hover hover:bg-accent-hover',
             'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
             className,
           )}

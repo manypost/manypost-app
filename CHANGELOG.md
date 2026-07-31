@@ -77,6 +77,19 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Changed
 
+- **O sistema visual voltou deliberadamente a superfícies chapadas (brand v1.4).** A direção de
+  relevo por gradiente da v1.3 foi revogada — não era um defeito de implementação, mas deixou de ser
+  a linguagem desejada. Botões, campos, cards, overlays, sidebar, tabs, badges e estados selecionados
+  agora usam fill uniforme, camadas de fundo e duas forças de borda; `--line-strong` mantém pelo
+  menos 3:1 quando a borda é o único limite de um controle ou overlay. Sombras continuam proibidas.
+  - O produto usa uma escala tipográfica nomeada, três pesos, sentence case, seis gaps de layout,
+    um shell de largura única e um nível de borda por região. `rounded-full` ficou restrito a Avatar
+    e pequenos dots; tracejado, apenas a drop targets reais; a Home deixou de animar a entrada.
+  - `check:brand` agora executa 18 regras linha a linha mais o check estrutural de cursor, cobrindo
+    relevo residual, tipografia crua/bold/uppercase, framing, spacing, raio e as regras anteriores.
+  - Exemplos semânticos do composer deixaram de trazer emoji decorativo. O preview de provider
+    preserva tipografia representacional por uma exceção explícita e limitada ao arquivo.
+  OpenSpec: `adopt-flat-visual-system` + `enforce-visual-system-lint`.
 - **Geração de imagem ganha modos explícitos de custo e qualidade.** O diálogo, a API e a tool
   MCP agora oferecem `economy` (renderização `low`, 2 créditos) e `quality` (renderização `high`,
   5 créditos), sempre sobre o `AI_IMAGE_MODEL` configurado. O padrão é econômico, os dois

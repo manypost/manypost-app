@@ -145,14 +145,12 @@ export function HomeView() {
     return fontes.filter((i) => i.groupId === openGroupId);
   }, [cardsDoPipeline, openGroupId, upcoming.data, drafts.data]);
 
-  const bloco = (id: BlocoId, indice: number): React.ReactNode => {
+  const bloco = (id: BlocoId): React.ReactNode => {
     if (!estado || !resumo.data) return null;
-    // `--i` escalona a entrada; sob movimento reduzido a animação inteira deixa de existir
-    const style = { '--i': indice } as React.CSSProperties;
 
     const envolver = (node: React.ReactNode) =>
       node ? (
-        <div key={id} style={style} className="contents">
+        <div key={id} className="contents">
           {node}
         </div>
       ) : null;
@@ -221,7 +219,7 @@ export function HomeView() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-6xl pb-8">
+    <div className="flex w-full flex-col gap-6">
       <PageHeader
         title={nome ? `${saudacao}, ${nome}` : saudacao}
         description={t('subtitle')}
@@ -241,8 +239,8 @@ export function HomeView() {
       />
 
       {resumo.isPending ? (
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="flex flex-col gap-5">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="flex flex-col gap-6">
             <Skeleton className="h-32 rounded-lg" />
             <Skeleton className="h-28 rounded-lg" />
           </div>
@@ -253,12 +251,12 @@ export function HomeView() {
           {t('loadError')}
         </p>
       ) : (
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="flex min-w-0 flex-col gap-5">
-            {ordem.principal.map((id, i) => bloco(id, i))}
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="flex min-w-0 flex-col gap-6">
+            {ordem.principal.map((id) => bloco(id))}
           </div>
-          <div className="flex min-w-0 flex-col gap-5">
-            {ordem.lateral.map((id, i) => bloco(id, ordem.principal.length + i))}
+          <div className="flex min-w-0 flex-col gap-6">
+            {ordem.lateral.map((id) => bloco(id))}
           </div>
         </div>
       )}

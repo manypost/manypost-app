@@ -682,15 +682,15 @@
       "snippets": {
         "signature": {
           "label": "Assinatura",
-          "text": "— Equipe manypost\n🌐 www.manypost.com"
+          "text": "— Equipe manypost\nwww.manypost.com"
         },
         "cta": {
           "label": "Chamada para ação",
-          "text": "👉 Confira o link na bio para saber mais!"
+          "text": "Confira o link na bio para saber mais!"
         },
         "engagement": {
           "label": "Convite a compartilhar",
-          "text": "📌 Gostou? Salve este post e compartilhe com sua rede!"
+          "text": "Gostou? Salve este post e compartilhe com sua rede!"
         }
       }
     },

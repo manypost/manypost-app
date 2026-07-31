@@ -107,7 +107,7 @@ export function ConnectionsView() {
     <div className="flex flex-col gap-8">
       <PageHeader title={t('title')} description={t('pageDescription')} />
       <section aria-labelledby="channels-title" className="flex flex-col gap-4">
-        <h2 id="channels-title" className="text-base font-semibold tracking-[-0.2px] text-ink">
+        <h2 id="channels-title" className="text-panel font-semibold tracking-[-0.2px] text-ink">
           {t('channelsTitle')}
           {channels.data ? (
             <span className="ml-1.5 font-normal text-graphite">({channels.data.length})</span>
@@ -130,8 +130,8 @@ export function ConnectionsView() {
             </AlertDescription>
           </Alert>
         ) : channels.data.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-line bg-surface-2 px-6 py-10 text-center">
-            <p className="text-sm leading-relaxed text-graphite">{t('empty')}</p>
+          <div className="rounded-lg bg-surface-2 px-6 py-10 text-center">
+            <p className="text-compact leading-relaxed text-graphite">{t('empty')}</p>
           </div>
         ) : (
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -160,7 +160,7 @@ export function ConnectionsView() {
                         <p className="truncate text-compact font-medium text-ink">
                           {ch.name ?? ch.username ?? ch.id}
                         </p>
-                        <Badge variant={STATUS_VARIANT[ch.status] ?? 'neutral'} className="h-4 px-1 text-meta uppercase tracking-wider">
+                        <Badge variant={STATUS_VARIANT[ch.status] ?? 'neutral'} className="h-4 px-1 text-meta">
                           {t.has(`status.${ch.status}`) ? t(`status.${ch.status}`) : ch.status}
                         </Badge>
                       </div>
@@ -202,7 +202,7 @@ export function ConnectionsView() {
       </section>
 
       <section aria-labelledby="catalog-title" className="flex flex-col gap-4">
-        <h2 id="catalog-title" className="text-base font-semibold tracking-[-0.2px] text-ink">
+        <h2 id="catalog-title" className="text-panel font-semibold tracking-[-0.2px] text-ink">
           {t('catalogTitle')}
         </h2>
         {providers.isPending ? (
@@ -222,8 +222,8 @@ export function ConnectionsView() {
             </AlertDescription>
           </Alert>
         ) : connectable.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-line bg-surface-2 px-6 py-10 text-center">
-            <p className="text-sm leading-relaxed text-graphite">{t('catalogEmpty')}</p>
+          <div className="rounded-lg bg-surface-2 px-6 py-10 text-center">
+            <p className="text-compact leading-relaxed text-graphite">{t('catalogEmpty')}</p>
           </div>
         ) : (
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
@@ -239,7 +239,7 @@ export function ConnectionsView() {
                     disabled={connecting}
                     aria-label={t('connectTitle', { provider: p.name })}
                     className={cn(
-                      'group bevel-surface flex h-full w-full items-center gap-3 rounded-lg border p-3 pr-8 text-left outline-none transition-colors duration-200',
+                      'group bg-surface flex h-full w-full items-center gap-3 rounded-lg border p-3 pr-8 text-left outline-none transition-colors duration-200',
                       'hover:border-accent/40 hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
                       'disabled:cursor-progress disabled:opacity-60',
                     )}
@@ -254,7 +254,7 @@ export function ConnectionsView() {
                           <Lock className="size-3 shrink-0 text-accent" aria-hidden />
                         ) : null}
                       </span>
-                      <span className="truncate text-xs text-graphite">
+                      <span className="truncate text-meta text-graphite">
                         {locked
                           ? bt('lockedFeature', { plan: 'Pro' })
                           : p.threads
@@ -312,10 +312,10 @@ function NeedsSetupSection({
   return (
     <section aria-labelledby="setup-title" className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <h2 id="setup-title" className="text-base font-semibold tracking-[-0.2px] text-ink">
+        <h2 id="setup-title" className="text-panel font-semibold tracking-[-0.2px] text-ink">
           {t('setupTitle')}
         </h2>
-        <p className="text-sm leading-relaxed text-graphite">{t('setupSubtitle')}</p>
+        <p className="text-compact leading-relaxed text-graphite">{t('setupSubtitle')}</p>
       </div>
       <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {providers.map((p) => (
@@ -326,7 +326,7 @@ function NeedsSetupSection({
               </div>
               <div className="flex flex-1 flex-col overflow-hidden">
                 <span className="truncate text-compact font-medium text-ink">{p.name}</span>
-                <span className="truncate text-xs text-graphite" title={p.setupEnv?.join(', ')}>
+                <span className="truncate text-meta text-graphite" title={p.setupEnv?.join(', ')}>
                   {t('setupHint', { vars: (p.setupEnv ?? []).join(', ') })}
                 </span>
               </div>
@@ -365,22 +365,22 @@ function UpcomingSection({
   return (
     <section aria-labelledby="upcoming-title" className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <h2 id="upcoming-title" className="text-base font-semibold tracking-[-0.2px] text-ink">
+        <h2 id="upcoming-title" className="text-panel font-semibold tracking-[-0.2px] text-ink">
           {t('upcomingTitle')}
         </h2>
-        <p className="text-sm leading-relaxed text-graphite">{t('upcomingSubtitle')}</p>
+        <p className="text-compact leading-relaxed text-graphite">{t('upcomingSubtitle')}</p>
       </div>
       <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {pending.map((p) => (
           <li key={p.id}>
-            <div className="flex h-full w-full items-center gap-3 rounded-lg border border-dashed border-line bg-surface-2 p-3">
+            <div className="flex h-full w-full items-center gap-3 rounded-lg border border-line bg-surface-2 p-3">
               <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-line bg-surface">
                 {/* logo em cinza: sinaliza "ainda não dá para conectar" sem inventar cor */}
                 <ProviderIcon provider={p.id} name={p.name} className="size-5 opacity-60 grayscale" />
               </div>
               <div className="flex flex-1 flex-col overflow-hidden">
                 <span className="truncate text-compact font-medium text-graphite">{p.name}</span>
-                <Badge variant="neutral" className="mt-1 h-4 w-fit px-1 text-meta uppercase tracking-wider">
+                <Badge variant="neutral" className="mt-1 h-4 w-fit px-1 text-meta">
                   {t('upcomingBadge')}
                 </Badge>
               </div>

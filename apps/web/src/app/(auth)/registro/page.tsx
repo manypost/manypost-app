@@ -11,13 +11,13 @@ export default async function RegistroPage() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-accent">
+        <p className="mb-2 text-meta font-semibold uppercase tracking-[0.12em] text-accent">
           {t('registerKicker')}
         </p>
         <h1 className="font-display text-[26px] font-semibold tracking-[-0.5px] text-ink">
           {t('registerTitle')}
         </h1>
-        <p className="mt-1 text-sm leading-relaxed text-graphite">{t('registerSubtitle')}</p>
+        <p className="mt-1 text-compact leading-relaxed text-graphite">{t('registerSubtitle')}</p>
       </header>
       <SocialButtons mode="sign-up" />
       <RegisterForm />

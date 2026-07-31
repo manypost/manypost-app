@@ -1,4 +1,4 @@
-# manypost BRAND & DESIGN SYSTEM · ESPECIFICAÇÃO OFICIAL
+# manypost BRAND & DESIGN SYSTEM · ESPECIFICAÇÃO OFICIAL v1.4
 
 [← Índice da documentação](../README.md) · [Guia de adaptação para o app](README.md) · [SPEC_FRONTEND](../specs/SPEC_FRONTEND.md) · [README do projeto](../../README.md)
 
@@ -42,19 +42,13 @@ O manypost preenche a lacuna entre o design visual e a engenharia de software, u
 ## 2. Princípios Fundamentais de Design & Experiência
 
 1. **Estética Limpa, Profissional e Acolhedora:**
-   O manypost é uma plataforma de gestão de redes sociais e automação de IA para quem valoriza seu tempo. Elementos decorativos em excesso (como globos 3D giratórios, **sombras flutuantes** ou animações exageradas) são evitados para manter o foco no conteúdo. Profundidade é permitida, mas **assentada na superfície** (relevo por gradiente, ver princípio 2) — nunca uma sombra pairando sob o elemento.
-2. **Regra do Zero Sombras + Profundidade por Gradiente (`box-shadow` continua proibido):** *(brand v1.3 — 2026-07-23)*
-   Inspirado no padrão visual da Zapier, **abolimos todas as sombras artificiais (`box-shadow`)** — a proibição de `box-shadow` é inviolável e vale para o app inteiro. A separação de blocos continua vindo de **bordas** e **sobreposição de cores de fundo** (ex: `--surface-2` sobre `--surface`). O que mudou: a profundidade agora é **linguagem pervasiva — nada de superfície flat**, construída por **gradiente de preenchimento** e **cor de borda por lado** + brilho fino sob o topo, sempre sem `box-shadow`. A **direção** codifica a função: superfícies e controles **sobem** (topo claro, base escura); campos **afundam** (topo escuro, base clara). Quatro tratamentos:
-   - **Relevo forte (controle elevado):** botões preenchidos (`primary`/`enterprise`/`outline`/`destructive`), aba ativa dos seletores, pílula do dia atual/selecionado. Classes `.bevel-primary|enterprise|outline|destructive`.
-   - **Relevo sutil (superfície elevada):** cards, tiles clicáveis, **todos os overlays** (popover, dropdown, dialog, sheet, tooltip, select), a **sidebar**, cabeçalhos/rodapés de painel; estados **ativos/selecionados** de acento (nav ativa, chip selecionado, notificação não lida) via `.bevel-accent`. Classes `.bevel-surface` (claro), `.bevel-ink` (escuro, tooltip), `.bevel-accent` (tint elevado).
-   - **Pastilha (brilho universal):** badges/chips de estado e caixas de tint de qualquer estado — `.bevel-chip` (só `background-image` translúcido: topo clareia, base escurece, compõe sobre qualquer cor sem alterá-la).
-   - **Profundidade pra dentro (campo afundado):** input/select/textarea e caixas de digitação — `.inset-field` (recuo: topo escuro/lábio, base clara). Campo é recuo, não relevo — daí a direção invertida.
-
-   **Único plano de referência (não recebe volume):** o fundo da página e o texto puro — o "chão" contra o qual tudo o mais tem profundidade. Anatomia técnica em §6 (botões) e §7 (cards); tokens de intensidade `--edge-light`/`--edge-dark`/`--bevel-gloss`/`--bevel-lift` no §3.1.
+   O manypost é uma plataforma de gestão de redes sociais e automação de IA para quem valoriza seu tempo. Elementos decorativos em excesso, sombras flutuantes, gradientes de relevo e animações de entrada são evitados para manter o foco no conteúdo.
+2. **Superfícies chapadas e zero sombras:** *(brand v1.4 — 2026-07-31)*
+   `box-shadow` e gradientes de preenchimento são proibidos no app. A hierarquia usa três fills chapados — `--canvas`, `--surface` e `--surface-2` — em quatro papéis: piso, superfície, rebaixo e flutuante. O papel flutuante reutiliza `--surface` e se distingue por `--line-strong`, não por um quarto tom. `--line` separa estrutura; `--line-strong` delimita controles e conteúdo flutuante com contraste mínimo de 3:1. Um elemento não acumula fill, borda e molduras internas para parecer importante.
 3. **Regra de Estabilidade em Botões:**
    Botões e elementos interativos não saltam ou se deslocam no hover. Ao passar o mouse, deve ocorrer apenas uma transição suave de cor (`background-color`, `border-color`, `color` em `0.2s ease`), mantendo o elemento firme e confortável na tela.
 4. **Alinhamento e Espaçamento Harmoniosos (`align-items: stretch`):**
-   Todos os cards ou colunas em uma mesma linha ou grid devem compartilhar a mesma altura. O espaçamento interno (padding) e externo (gap) segue múltiplos de 8px ou 4px (ex: 8px, 12px, 16px, 24px, 32px, 40px, 48px).
+   Todos os cards ou colunas em uma mesma linha ou grid devem compartilhar a mesma altura. Gaps de layout usam a escala fechada de `4/8/12/16/24/32px`; margens negativas não corrigem agrupamento.
 
 ---
 
@@ -76,10 +70,12 @@ O sistema é **light-first**: a base é o branco, o texto é quase-preto e o rox
 | `--ink-soft` | `#262626` | Preto Suave | **Hover de Superfície Escura:** estado `hover` de botões e painéis com fundo `--ink`. Não é cor de texto. |
 | `--graphite` | `#6B6B70` | Cinza | **Texto Editorial & Apoio:** Subtítulos, parágrafos de corpo, sobretítulos em caixa alta, legendas, metadados e badges (5,3:1 sobre branco). |
 | `--mist` | `#8E8E96` | Cinza Claro | **Metadado Decorativo:** 3,2:1 sobre branco — reprova AA para corpo de texto. Nunca use em texto que precise ser lido. |
-| `--paper` / `--surface` | `#FFFFFF` | Branco | **Fundo Principal:** Fundo geral da página (`body`), painéis e badges. Também é o texto sobre fundo escuro ou roxo. |
-| `--surface-2` | `#F5F5F7` | Cinza-claro | **Superfície Base:** Cards de conteúdo, caixas de destaque, barras laterais e seções alternadas. |
+| `--canvas` | `#F1F1F4` | Piso | **Fundo da Página:** contraste suficiente para uma superfície branca se distinguir sem sombra. |
+| `--paper` / `--surface` | `#FFFFFF` | Branco | **Superfície Principal:** cards, painéis e texto sobre fundo escuro ou roxo. |
+| `--surface-2` | `#EEEEEF` | Cinza-claro | **Rebaixo:** trilhos, tiles e blocos de código; o próprio fill é o limite, sem borda interna. |
 | `--night` | `#0A0A0A` | Preto Premium | **Momento Dark (opcional):** seções de alto impacto, com wordmark branco e acento roxo. |
-| `--line` | `#E2E2E7` | Linha / Borda | **Divisores & Estrutura:** Bordas de cards (`1px solid var(--line)`), linhas divisórias em tabelas e separadores de seções. |
+| `--line` | `#D6D6DF` | Linha / Borda | **Divisores & Estrutura:** bordas decorativas, linhas de tabela e separadores. |
+| `--line-strong` | `#8E8E96` | Limite Forte | **Controle/Overlay:** 3,22:1 contra branco quando a borda é o único identificador. |
 
 ### Exemplo de Implementação CSS
 ```css
@@ -90,34 +86,36 @@ O sistema é **light-first**: a base é o branco, o texto é quase-preto e o rox
   --accent-on-dark: #C4B5FD;
   --paper: #FFFFFF;
   --surface: #FFFFFF;
-  --surface-2: #F5F5F7;
+  --canvas: #F1F1F4;
+  --surface-2: #EEEEEF;
   --night: #0A0A0A;
   --ink: #111111;
   --ink-soft: #262626;
   --graphite: #6B6B70;
   --mist: #8E8E96;
-  --line: #E2E2E7;
+  --line: #D6D6DF;
+  --line-strong: #8E8E96;
 }
 ```
 
-### 3.1 Tokens de Profundidade · Relevo 3D sem Sombra *(brand v1.3)*
+### 3.1 Camadas e bordas chapadas *(brand v1.4)*
 
-O relevo dos elementos elevados (botões preenchidos e cards, ver §2.2, §6, §7) é derivado dos tokens de cor acima — **nenhuma cor nova, nenhum `box-shadow`**. Quatro tokens governam a **intensidade** de todo o app (padrão: média). Ajuste-os em um único ponto (`globals.css`) para deixar o relevo mais sutil ou mais forte.
+| Token CSS | Papel |
+| :--- | :--- |
+| `--canvas` | piso da página |
+| `--surface` | superfície principal |
+| `--surface-2` | região recuada, delimitada pelo próprio fill |
+| `--surface` + `--line-strong` | papel flutuante: overlay sem sombra ou gradiente |
+| `--line` | divisor e estrutura decorativa |
+| `--line-strong` | limite de controle/overlay; contraste mínimo 3:1 contra a superfície |
 
-| Token CSS | Valor (médio) | O que controla |
-| :--- | :--- | :--- |
-| `--edge-light` | `22%` | Quanto de branco entra na **borda de topo** (o lado que "pega luz"). Maior = topo mais claro. |
-| `--edge-dark` | `16%` | Quanto de preto entra na **borda de base** (o lado assentado). Maior = base mais funda. |
-| `--bevel-gloss` | `0.16` | Alpha do **brilho fino de 1–3px** logo abaixo da borda de topo (o realce "vidro"). |
-| `--bevel-lift` | `9%` | Rebaixo do **fundo do topo para a base** no gradiente de preenchimento. |
-
-Regra de contraste: no `primary`, a face vai de `--accent` (topo) a `--accent-hover` (base) — **os dois já passam AA com texto branco**, então o relevo nunca custa legibilidade. `--edge-light`/`--edge-dark` afetam só bordas (decorativas), nunca o texto.
+Os tokens `--edge-*` e `--bevel-*` e as classes `.bevel-*`/`.inset-field` foram removidos. Reintroduzi-los exige uma nova decisão OpenSpec; não é uma variação local permitida.
 
 ---
 
 ## 4. Estrutura Visual & Cantos Suaves (Border Radius)
 
-O manypost evita formatos pílula (`border-radius: 9999px`) em botões, cards ou containers, exceto em avatares circulares. O arredondamento dos cantos segue uma escala simples e natural em 3 níveis:
+O manypost evita formatos pílula (`border-radius: 9999px`) em botões, cards ou containers. `rounded-full` fica restrito ao componente Avatar e a pontos de estado pequenos. O arredondamento dos cantos segue uma escala simples e natural em 3 níveis:
 
 * **`4px` (Small Radius):** Badges, tags, tooltips, toolbars, pequenas pílulas de status e ícones de marca.
 * **`6px` (Medium Radius):** Botões padrão (todas as variações), campos de formulário (inputs, selects, textareas) e modais pequenos.
@@ -154,14 +152,15 @@ A fonte proprietária **Degular Display** (da fundição OH no Type Co.) é a as
 
 * **Padrão Exato da LP para Manchetes (Hero H1 / Display):** `font-family: var(--font-display)`, `font-size: 44px a 56px`, `font-weight: 500` (equivalente ao `font-medium` do Tailwind/LP), `line-height: 1.02`, `letter-spacing: -0.5px` (`tracking-[-0.5px]`), `color: var(--ink)`.
 * **Títulos Principais de Seções (H2 / CTAs):** `font-family: var(--font-display)`, `font-size: 32px a 48px`, `font-weight: 500`, `letter-spacing: -0.5px`, `color: var(--ink)`.
-* **Kickers (Sobretítulos de Seção):** `font-size: 12px`, `font-weight: 700`, `letter-spacing: 0.05em a 0.08em`, `color: var(--accent) ou var(--graphite)`, `text-transform: uppercase`.
+* **Kickers editoriais (auth/onboarding/marketing):** podem usar caixa alta e peso de display. Essa exceção não se aplica às superfícies autenticadas do produto.
 
 ### B. Inter UI (`var(--font-sans)`) · Cards ($\le 22\text{px}$), UI, Corpo & Dados
 O padrão imutável para todo o restante do sistema: subtítulos de cards, botões, navegação, tabelas, formulários e parágrafos de corpo.
 * **Títulos de Cards de Funcionalidade (H3 / H4 em Cards):** `font-family: var(--font-sans)`, `font-size: 18px a 22px`, `font-weight: 600`, `letter-spacing: -0.2px a -0.3px`, `color: var(--ink)`. (Exemplo exacto das seções *EveryTeam* e *Outcomes*).
 * **Corpo de Texto (`.body-lg` / Parágrafos):** `font-size: 14px a 16px`, `font-weight: 400`, `line-height: 1.6`, `color: var(--graphite)`.
-* **Textos de UI / Botões (`ZapButton`) / Form Labels:** `font-size: 11px, 13px ou 15px`, `font-weight: 600` (ou `700` no botão large).
-* **Metadados / Legendas / Carimbos de Tempo:** `font-size: 12px a 15px`, `font-weight: 600`, `color: var(--graphite)`.
+* **Textos de UI / Botões / Form Labels:** usam os papéis nomeados `text-axis|meta|compact|panel|title|figure`; labels e controles usam `font-medium`.
+* **Títulos e estados ativos:** `font-semibold`. Corpo e valores lidos ficam no peso padrão. `font-bold` não pertence ao chrome do produto.
+* **Metadados / Legendas / Carimbos de Tempo:** usam `text-meta`, peso padrão ou médio e `color: var(--graphite)`.
 * **Exceção do eixo horário do calendário:** `font-size: 9px`, `line-height: 12px`, restrito aos rótulos `00:00–23:00` das grades de dia/semana; não reutilizar em metadados, botões ou conteúdo.
 
 ---
@@ -173,19 +172,19 @@ Para garantir uma navegação agradável e equilibrada, nosso sistema adota exat
 ### Escala de Tamanhos (`size`)
 * **Small (`sm`):** `font-size: 11px`, `padding: 6px 14px`, `height: ~32px`. (Para toolbars, tabelas, filtros e ações em listas densas).
 * **Medium (`md`):** `font-size: 13px`, `padding: 10px 20px`, `height: ~38px`. (Padrão universal para formulários, cards e modais).
-* **Large (`lg`):** `font-size: 15px`, `padding: 14px 28px`, `height: ~44px`, `font-weight: 700`. (CTAs principais em cabeçalhos ou destaques de página).
+* **Large (`lg`):** `font-size: 15px`, `padding: 14px 28px`, `height: ~44px`, `font-weight: 600`. (CTAs principais em cabeçalhos ou destaques de página).
 
-> **Relevo 3D nas variantes preenchidas (brand v1.3):** `primary`, `enterprise`, `outline` e `destructive` usam **relevo por gradiente + borda por lado** (classes `.bevel-*` em `globals.css`), nunca cor de fundo chapada. `ghost` e `link` **permanecem flat** (não têm preenchimento a biselar). Todos os botões usam `cursor: pointer`.
+> Todas as variantes têm preenchimento chapado, borda uniforme e `cursor: pointer`. Nenhuma usa gradiente, brilho, sombra ou filtro de luminosidade.
 
 ### Variações de Estilo (`variant`)
-1. **Primary (`primary`):** Face em gradiente `--accent` (topo) → `--accent-hover` (base), texto branco; borda de topo = `--accent` clareado, borda de base = `--accent-hover` escurecido; brilho fino no topo. Hover: `filter: brightness(.95)` (escurece — sem mover). Ação principal da tela.
-2. **Enterprise (`enterprise`):** Face `--ink` clareado (topo) → `--ink` (base), texto `--paper`; base preta, topo clareado. Hover: `brightness(1.5)` (clareia rumo a `--ink-soft`). Ações corporativas ou secundárias de alta relevância.
-3. **Outline (`outline`):** Face `--surface` → `--surface` rebaixado com `--line`, texto `--ink`; borda de topo clara, de base escura. Hover: `brightness(.9)`. Ação secundária.
+1. **Primary (`primary`):** `--accent` chapado, texto branco; hover em `--accent-hover`. Ação principal da tela.
+2. **Enterprise (`enterprise`):** `--ink` chapado, texto `--paper`; hover em `--ink-soft`.
+3. **Outline (`outline`):** `--surface` chapado, texto `--ink`, borda `--line-strong`; hover em `--surface-2`.
 4. **Ghost (`ghost`):** **Flat.** Fundo transparente, texto `--ink`. Hover: Fundo `--surface-2`, texto `--accent`.
 5. **Link (`link`):** **Flat.** Fundo transparente, texto `--accent`, sem borda ou padding. Hover: Texto `--accent-hover`.
-6. **Destructive (`destructive`):** Face `--state-failed` clareado (topo) → `--state-failed` (base), texto branco; mesmas bordas por lado. Hover: `brightness(.95)`. Ações destrutivas.
+6. **Destructive (`destructive`):** `--state-failed` chapado, texto branco; hover em `--state-failed-hover`.
 
-> **Hover sem deslocamento (BRAND §2.3 permanece):** como não dá para transicionar um `linear-gradient` com `background-color`, o hover das variantes preenchidas usa `filter: brightness()` — escurece/clareia suavemente em `0.2s`, **sem** `translate`/`scale`. O elemento continua firme.
+> **Hover estável:** variantes transicionam `background-color`, `border-color` e `color` em `0.2s`, sem `filter`, `translate`, `scale` ou `rotate`.
 
 ### Especificação de Estilo CSS (Botões Firmes e Estáveis)
 ```css
@@ -211,12 +210,12 @@ Para garantir uma navegação agradável e equilibrada, nosso sistema adota exat
 
 ### A. Cards Interativos (`.card`)
 Cards estruturais devem ter altura igualizada (`height: 100%` em grids com `align-items: stretch`).
-* **Estado Normal:** **relevo 3D sutil e sem sombra** (`.bevel-surface`): face em gradiente `--surface` (topo levemente claro) → `--surface` rebaixado com `--line` (base assentada), borda de topo clara e borda de base escura, `border-radius: 8px`. O degradê é **mínimo** de propósito — superfície grande com relevo forte vira "plástico".
-* **Estado Hover (cards clicáveis):** `border-color: var(--accent)` — a borda ilumina em roxo, sem criar sombras nem saltos verticais. (Ao pintar as 4 bordas de roxo, o relevo cede lugar ao destaque de foco; é o comportamento desejado no hover.)
-* **`box-shadow` continua proibido** — a profundidade do card vem só do gradiente + bordas.
+* **Estado Normal:** fill `--surface`, `border-radius: 8px`; use uma borda `--line` somente quando ela for necessária para identificar o objeto.
+* **Estado Hover (cards clicáveis):** `border-color: var(--accent)` ou mudança chapada de fill, sem sombra, filtro ou movimento.
+* **Framing:** uma região carrega um nível de borda. Objetos arrastáveis/selecionáveis mantêm frame; o container vira um palco sem borda.
 
 ### B. Badges de Indicadores (`.badge`)
-* **Especificação:** `font-size: 11px`, `font-weight: 600`, `padding: 4px 10px`, `border-radius: 4px`, `background: var(--surface)`, `border: 1px solid var(--line)`, `color: var(--graphite)`, `text-transform: uppercase`.
+* **Especificação:** `text-meta`, `font-medium`, `padding: 4px 10px`, `border-radius: 4px`, fill/tinta sem gradiente e texto em sentence case.
 
 ### C. Logo Oficial (SVG)
 * **Completa** (`public/images/logo.svg` / `apps/web/public/images/logo.svg`): horizontal com ícone + wordmark **`manypost`** em curvas (não depende de fonte). Usar sozinha — **não** duplicar o texto ao lado.
@@ -232,7 +231,7 @@ Cards estruturais devem ter altura igualizada (`height: 100%` em grids com `alig
 1. **Sempre importe o CSS Global:** Certifique-se de que `../styles/global.css` (ou equivalente) está importado na página ou layout principal.
 2. **Utilize o Componente `<Button />`:** Ao criar botões em arquivos `.astro`, prefira usar o componente pré-construído `<Button variant="..." size="...">Texto</Button>`.
 3. **Não invente classes utilitárias *ad-hoc*:** Evite adicionar `box-shadow`, `border-radius: 20px`, ou fontes gigantes nas tags inline. Utilize sempre os tokens e classes documentados acima.
-4. **Respeite o Espaçamento:** Em layouts de grade (`grid-2`, `grid-3`, `grid-4`), mantenha o gap em `24px`, `36px` ou `40px` e padding de seções em `88px 0` (`.section-block`).
+4. **Respeite o Espaçamento:** No app, gaps usam 4/8/12/16/24/32px. Landing pages podem ampliar o respiro de seção, mas não inventam degraus de gap dentro do produto.
 5. **Simplicidade e Clareza:** Em caso de dúvida sobre animações ou decorações excessivas, opte sempre pela **simplicidade limpa e funcional**. A elegância do sistema vem do contraste e da facilidade de uso, não do excesso.
 
 ---

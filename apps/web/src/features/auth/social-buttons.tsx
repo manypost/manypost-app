@@ -47,13 +47,13 @@ function ClerkSocialButtons({ mode }: { mode: 'sign-in' | 'sign-up' }) {
         {t('continueGoogle')}
       </Button>
       {error ? (
-        <p className="text-sm text-state-failed" role="alert">
+        <p className="text-compact text-state-failed" role="alert">
           {error}
         </p>
       ) : null}
       <div className="flex items-center gap-3">
         <Separator className="flex-1" />
-        <span className="text-xs text-graphite">{t('socialDividerEmail')}</span>
+        <span className="text-meta text-graphite">{t('socialDividerEmail')}</span>
         <Separator className="flex-1" />
       </div>
     </div>

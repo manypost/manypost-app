@@ -32,7 +32,7 @@ export function BrandStage() {
     <div className="auth-grid flex flex-1 flex-col justify-center overflow-hidden bg-night px-8 py-12 text-paper xl:px-16">
       {/* uma medida só para palco e rodapé, centrada no painel — senão a
           composição encosta à esquerda e sobra um vão morto à direita */}
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-10">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
         <section
           aria-roledescription="carrossel"
           aria-label={t('carouselLabel')}
@@ -60,7 +60,7 @@ export function BrandStage() {
           />
         </section>
 
-        <p className="flex items-center gap-2 text-xs text-paper/50">
+        <p className="flex items-center gap-2 text-meta text-paper/50">
           <a
             href="https://github.com/manypost/manypost"
             target="_blank"

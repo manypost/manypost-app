@@ -21,7 +21,7 @@ function PopoverContent({
         align={align}
         sideOffset={sideOffset}
         className={cn(
-          'bevel-surface z-50 w-72 animate-fade-in rounded-md border p-4 text-ink outline-none',
+          'border-line-strong bg-surface z-50 w-72 animate-fade-in rounded-md border p-4 text-ink outline-none',
           className,
         )}
         {...props}

@@ -68,7 +68,7 @@ function RailItem({
         'relative flex items-center gap-2.5 rounded-md border border-transparent outline-none transition-colors duration-200',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
         collapsed ? 'h-9 w-9 justify-center mx-auto' : 'w-full h-9 px-2.5',
-        active ? 'bevel-accent text-accent font-semibold' : 'text-graphite hover:bg-surface-2 hover:text-ink',
+        active ? 'bg-accent-tint text-accent font-semibold' : 'text-graphite hover:bg-surface-2 hover:text-ink',
       )}
     >
       <Icon className="size-4 shrink-0" aria-hidden />
@@ -130,7 +130,7 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        'bevel-surface sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-line transition-[width] duration-300 ease-in-out md:flex',
+        'bg-surface sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-line transition-[width] duration-300 ease-in-out md:flex',
         isCollapsed ? 'w-20 items-center' : 'w-60',
       )}
     >
@@ -192,7 +192,7 @@ export function AppSidebar() {
       {/* Itens de navegação */}
       <nav
         className={cn(
-          'flex flex-1 flex-col gap-0.5 overflow-y-auto py-3',
+          'flex flex-1 flex-col gap-1 overflow-y-auto py-3',
           isCollapsed ? 'w-full px-2 items-center' : 'w-full px-3',
         )}
         aria-label={t('calendar')}
@@ -210,7 +210,7 @@ export function AppSidebar() {
 
         <div
           className={cn(
-            'mt-auto flex flex-col gap-0.5 border-t border-line pt-3',
+            'mt-auto flex flex-col gap-1 border-t border-line pt-3',
             isCollapsed ? 'w-full items-center' : 'w-full',
           )}
         >

@@ -4,10 +4,10 @@ import { cn } from '@/lib/utils';
 
 /**
  * Badge do brand (§7B) + chips de estado de publicação (§3.1): tint de fundo
- * com a cor cheia como texto, radius 4px, 11px semibold uppercase.
+ * com a cor cheia como texto, radius 4px, 11px medium em sentence case.
  */
 const badgeVariants = cva(
-  'bevel-chip inline-flex items-center gap-1 rounded-sm border border-transparent px-2.5 py-1 text-meta font-semibold uppercase tracking-wide transition-colors duration-200',
+  'inline-flex items-center gap-1 rounded-sm border border-transparent px-2 py-0.5 text-meta font-medium transition-colors duration-200',
   {
     variants: {
       variant: {

@@ -10,6 +10,17 @@
 > **Como manter:** ao fechar uma fatia, atualize as seções abaixo **e** abra uma entrada nova no
 > topo do changelog. Este arquivo é sobre o presente; o changelog é sobre o passado.
 >
+> **Atualização — brand v1.4 (2026-07-31):** a interface operacional voltou deliberadamente a
+> superfícies chapadas. A v1.3 de relevo por gradiente foi removida como mudança de direção, não como
+> correção de defeito: hierarquia agora vem de camadas, espaço e `--line`/`--line-strong`; tipografia,
+> pesos, sentence case, framing, raio, gaps e largura do shell têm contratos executáveis. Provas:
+> `bun install --frozen-lockfile` sem mudanças; **1314 testes** (18 de Postgres ignorados sem banco),
+> typechecks, fronteiras, providers e 19 checks de brand verdes; Drizzle válido; build de **19
+> páginas**; OpenSpec **29/29**. Login foi verificado em 1440×900 e 375×812, sem overflow ou erro de
+> console; o warning de proporção do logo foi corrigido. As telas autenticadas não puderam ser
+> inspecionadas porque não havia sessão/API local e o login não estava disponível, portanto as duas
+> mudanças e as três mudanças da onda 34 permanecem abertas e não arquivadas.
+>
 > **Atualização — onda 34 (2026-07-31):** a **Home v2 e o quadro v2** entraram, com **busca global
 > (⌘K)**. O `/inicio` passou a responder também "o que acontece agora?" (próximas publicações,
 > atividade recente, rascunhos retomáveis, resumo do pipeline e **um** próximo passo contextual), com

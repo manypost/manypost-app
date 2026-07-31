@@ -74,10 +74,10 @@ export function UploadZone({
       )}
     >
       <UploadCloud className={cn('text-graphite', compact ? 'size-5' : 'size-7')} aria-hidden />
-      <span className="text-sm font-semibold text-ink">
+      <span className="text-compact font-semibold text-ink">
         {busy ? t('uploading', { count: busyCount }) : t('dropHere')}
       </span>
-      {!compact ? <span className="text-xs text-graphite">{t('dropHint')}</span> : null}
+      {!compact ? <span className="text-meta text-graphite">{t('dropHint')}</span> : null}
       <input
         ref={inputRef}
         type="file"

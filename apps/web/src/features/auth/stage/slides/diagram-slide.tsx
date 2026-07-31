@@ -78,7 +78,7 @@ export function DiagramSlide() {
                 className="size-[52px]"
               />
             </div>
-            <p className="mb-3 text-center text-xs font-medium leading-[16px] tracking-[-0.2px] text-paper">
+            <p className="mb-3 text-center text-meta font-medium leading-[16px] tracking-[-0.2px] text-paper">
               {t('diagramHubTitle')} <span className="font-semibold text-accent-on-dark">+</span>{' '}
               {t('diagramHubTitleApi')}
             </p>

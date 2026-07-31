@@ -43,7 +43,7 @@ export function HubBlocks() {
 
   return (
     <div className="flex h-[18px] w-full items-center justify-center overflow-hidden" aria-hidden>
-      <span className="block select-none whitespace-nowrap text-center font-mono text-xs leading-[18px] tracking-[-0.5px] text-accent-on-dark">
+      <span className="block select-none whitespace-nowrap text-center font-mono text-meta leading-[18px] tracking-[-0.5px] text-accent-on-dark">
         {blocks}
       </span>
     </div>

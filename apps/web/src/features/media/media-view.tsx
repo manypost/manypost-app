@@ -95,7 +95,7 @@ export function MediaView() {
       <div className="flex flex-col gap-3">
         <UploadZone />
         <div className="flex items-center justify-between">
-          <span className="text-xs text-graphite">{t('urlHint')}</span>
+          <span className="text-meta text-graphite">{t('urlHint')}</span>
           <div className="flex items-center gap-2">
             {/* some inteiro quando a instalação não desenha — botão que responderia 501 é pior
                 que botão nenhum */}
@@ -125,9 +125,9 @@ export function MediaView() {
           </AlertDescription>
         </Alert>
       ) : media.data.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-line bg-surface-2 px-6 py-16 text-center">
+        <div className="flex flex-col items-center gap-3 rounded-lg bg-surface-2 px-6 py-16 text-center">
           <ImageOff className="size-8 text-mist" aria-hidden />
-          <p className="text-sm leading-relaxed text-graphite">{t('empty')}</p>
+          <p className="text-compact leading-relaxed text-graphite">{t('empty')}</p>
         </div>
       ) : (
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
@@ -143,7 +143,7 @@ export function MediaView() {
                 {item.source === 'ai' ? (
                   <span
                     title={tAi('imageBadgeTitle')}
-                    className="bevel-chip absolute left-1.5 top-1.5 rounded-sm bg-accent-tint px-1.5 py-0.5 text-meta font-semibold text-accent"
+                    className="absolute left-1.5 top-1.5 rounded-sm bg-accent-tint px-1.5 py-0.5 text-meta font-semibold text-accent"
                   >
                     {tAi('imageBadge')}
                   </span>
@@ -151,7 +151,7 @@ export function MediaView() {
               </div>
               <div className="flex items-center justify-between gap-1 border-t border-line px-2.5 py-1.5">
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-xs text-graphite">
+                  <span className="block truncate text-meta text-graphite">
                     {item.alt ? item.alt : t('noAlt')}
                   </span>
                   <span className="block text-meta text-mist">

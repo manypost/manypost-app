@@ -31,11 +31,13 @@
 ## 2. Adaptação para o app (Next.js + shadcn/ui + Tailwind)
 
 - **Tokens**: as CSS vars do BRAND_SYSTEM entram em `globals.css` como estão; o tema shadcn referencia elas (`--background: var(--surface)`, `--foreground: var(--ink)`, `--primary: var(--accent)`, `--muted: var(--surface-2)`, `--border: var(--line)`, `--radius: 8px` com botões/inputs em 6px e badges em 4px).
-- **Zero sombras (`box-shadow` proibido) + profundidade pervasiva por gradiente** *(brand v1.3)*: nenhum componente usa `shadow-*`/`box-shadow`. **Nada de superfície flat** — a direção codifica a função (BRAND §2.2): **relevo forte** = botões preenchidos, aba ativa, pílula do dia (`.bevel-primary|enterprise|outline|destructive`); **relevo sutil** = cards, tiles, **overlays**, **sidebar**, cabeçalhos/rodapés e estados selecionados de acento (`.bevel-surface`/`.bevel-ink`/`.bevel-accent`); **pastilha** = badges e caixas de tint (`.bevel-chip`, brilho sobre qualquer cor); **campo afundado** = input/select/textarea (`.inset-field`, recuo com direção invertida). Só o **fundo da página** e o texto puro ficam sem volume (o plano de referência).
-- **Hover estável**: proibido `translate`/`scale`/`rotate` em hover. Variantes flat transicionam `background-color/border-color/color` 0.2s; variantes com relevo (gradiente) usam `filter: brightness()` 0.2s — também sem deslocar o elemento (regra da marca; vira regra de lint de classe Tailwind).
+- **Superfícies chapadas e zero sombras** *(brand v1.4)*: nenhum componente usa `shadow-*`, `box-shadow`, gradiente de preenchimento, `.bevel-*` ou `.inset-field`. Hierarquia vem de `--canvas`/`--surface`/`--surface-2`, espaço e borda uniforme. O papel flutuante reutiliza `--surface`; `--line-strong` identifica controles e overlays com contraste mínimo de 3:1.
+- **Hover estável**: proibido `translate`/`scale`/`rotate`, `filter: brightness()` e animação de entrada em superfícies operacionais. O hover transiciona `background-color`, `border-color` e `color` em 0.2s.
 - **Cursor**: todo botão usa `cursor: pointer` (base do `<Button>`); `disabled` cai para `pointer-events: none`.
 - **Botões**: `primary|enterprise|outline|ghost|link` (+`destructive`) × `sm|md|lg` exatamente como BRAND §6 (11/13/15px, radius 6px).
-- **Densidade do app** (substitui as métricas de landing): páginas com padding 24px; cards de app com padding 16–24px; linhas de tabela/lista 40–48px; gaps 8/12/16/24px — sempre múltiplos de 4/8 (princípio da marca preservado, escala reduzida).
+- **Densidade do app** (substitui as métricas de landing): o shell limita a largura em `--container-app`, descrições usam `--container-reading`, e gaps de layout usam somente 4/8/12/16/24/32px. Margens negativas não corrigem agrupamento.
+- **Tipografia do produto**: utilities semânticas `text-axis|meta|compact|panel|title|figure`; peso padrão para leitura, `medium` para labels/controles e `semibold` para títulos/ativos. Sem bold e sem uppercase no produto. Auth/onboarding preservam o regime editorial; `network-preview.tsx` é a exceção representacional nomeada.
+- **Framing e raio**: uma região carrega um nível de borda; tracejado só sinaliza drop real. Raio 4/6/8px; `rounded-full` apenas no componente Avatar e em pontos de estado pequenos.
 - **Fontes**: `next/font` self-hosted — Inter 400/500/600/700 e Plus Jakarta Sans 600/700/800.
 - **Wordmark**: `manypost` sempre minúsculo (UI, `<title>`, e-mails, docs). Logos SVG em `apps/web/public/images/`: `logo.svg` (completa, ícone + texto) e `logoSimplificada.svg` (mark quadrado). Header usa a completa via `Wordmark` (~28px de altura); espaços apertados usam a simplificada.
 
@@ -63,12 +65,13 @@ Uso: badge/chip de estado = `tint` de fundo + cor como texto/borda (padrão `.ba
 
 ## 4. Critérios de aceite de conformidade (entram no CI/review do web)
 
-1. Nenhum hex fora de `globals.css` (lint: cores só via token — inclui a matemática de cor do relevo via `color-mix`).
-2. Nenhum `shadow-*`/`box-shadow` e nenhum `translate`/`scale`/`rotate` em hover (lint de classes). Relevo 3D é permitido **apenas** por gradiente + borda por lado; hover de relevo usa `filter: brightness()`.
-3. Radius apenas 4/6/8px (e `9999px` só em avatar).
-4. Fontes só Inter/Plus Jakarta Sans via `next/font`.
-5. Wordmark minúsculo em 100% das ocorrências (grep no CI: `Manypost|MANYPOST` proibidos em UI/docs voltados a usuário).
-6. Screenshot test das telas principais comparado após mudanças de tema.
+1. Nenhum hex fora de `globals.css`; nenhuma classe/token de relevo ou gradiente vertical de preenchimento.
+2. Nenhum `shadow-*`/`box-shadow` e nenhum `translate`/`scale`/`rotate` em hover.
+3. Radius apenas 4/6/8px; `rounded-full` só no Avatar e em pontos de estado pequenos.
+4. Produto sem escala tipográfica crua, bold ou uppercase; exceções editoriais e de preview são nomeadas.
+5. Gaps na escala 4/8/12/16/24/32px, sem margem negativa corretiva; tracejado só em drop target.
+6. Fontes só Inter/Plus Jakarta Sans via `next/font`; wordmark `manypost` minúsculo.
+7. `bun run check:brand`, testes focados e inspeção visual das telas principais após mudanças de tema.
 
 ---
 

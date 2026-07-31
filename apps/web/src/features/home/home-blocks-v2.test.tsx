@@ -149,7 +149,7 @@ describe('atividade recente', () => {
     ];
     const html = render(<ActivityBlock entradas={entradas} agora={AGORA} onOpen={noop} />);
     expect(html).toContain('falhou em Perfil');
-    expect(html).toContain('text-state-failed');
+    expect(html).toContain('bg-state-failed');
   });
 
   test('aprovação (notificação) aparece na mesma lista', () => {

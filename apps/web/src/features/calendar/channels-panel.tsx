@@ -64,13 +64,13 @@ export function ChannelsPanel({
             </div>
           </div>
         ) : (channels.data ?? []).length === 0 ? (
-          <p className="mt-1 rounded-md border border-dashed border-line bg-surface-2 px-3 py-2.5 text-center text-meta leading-relaxed text-graphite">
+          <p className="mt-1 rounded-md bg-surface-2 px-3 py-2.5 text-center text-meta leading-relaxed text-graphite">
             {t('empty')}
           </p>
         ) : (
           <div className="flex flex-col gap-2 mt-0.5 border-t border-line pt-3">
             <div className="flex items-center justify-between">
-              <span className="text-meta font-semibold uppercase tracking-wide text-graphite">{t('title')}</span>
+              <span className="text-meta font-medium text-graphite">{t('title')}</span>
               {selectedIds.length > 0 ? (
                 <button
                   type="button"
@@ -82,7 +82,7 @@ export function ChannelsPanel({
               ) : null}
             </div>
 
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 pt-1 -mx-1 px-1">
+          <div className="flex items-center gap-2 overflow-x-auto px-1 pb-2 pt-1">
               {channels.data!.map((ch) => {
                 const selected = selectedIds.includes(ch.id);
                 const needsAttention = ch.status !== 'ACTIVE';
@@ -96,8 +96,8 @@ export function ChannelsPanel({
                       'flex min-h-8 shrink-0 items-center gap-2 rounded-md border px-2.5 py-1 text-left outline-none transition-all duration-200',
                       'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent active:scale-[0.98]',
                       selected
-                        ? 'bevel-accent font-bold text-accent'
-                        : 'bevel-surface hover:bg-surface-2 text-ink',
+                        ? 'border-accent bg-accent-tint font-medium text-accent'
+                        : 'bg-surface hover:bg-surface-2 text-ink',
                     )}
                   >
                     <span className="relative shrink-0">
@@ -159,7 +159,7 @@ export function ChannelsPanel({
             <Skeleton className="h-10 rounded-md" />
           </div>
         ) : (channels.data ?? []).length === 0 ? (
-          <p className="rounded-md border border-dashed border-line bg-surface-2 px-3 py-4 text-center text-xs leading-relaxed text-graphite">
+          <p className="rounded-md bg-surface-2 px-3 py-4 text-center text-meta leading-relaxed text-graphite">
             {t('empty')}
           </p>
         ) : (
@@ -177,7 +177,7 @@ export function ChannelsPanel({
                       'flex w-full items-center gap-2.5 rounded-md border px-2 py-1.5 text-left outline-none transition-colors duration-200',
                       'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
                       selected
-                        ? 'bevel-accent'
+                        ? 'border-accent bg-accent-tint'
                         : 'border-transparent hover:bg-surface-2',
                     )}
                   >

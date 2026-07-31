@@ -94,7 +94,7 @@ export function BulkBar({
 
   return (
     <>
-      <div className="sticky bottom-3 z-20 flex flex-wrap items-center gap-2 rounded-lg border border-line bevel-surface p-2">
+      <div className="sticky bottom-3 z-20 flex flex-wrap items-center gap-2 rounded-lg border border-line bg-surface p-2">
         <span className="px-1 text-compact font-semibold tabular-nums text-ink">
           {t('bulk.selected', { count: selecionados.length })}
         </span>
@@ -141,7 +141,7 @@ export function BulkBar({
           <AlertDialogFooter>
             <AlertDialogCancel className="cursor-pointer">{t('actions.cancel')}</AlertDialogCancel>
             <AlertDialogAction
-              className="cursor-pointer bevel-destructive text-paper"
+              className="cursor-pointer border-destructive bg-destructive text-paper"
               onClick={() => {
                 setConfirmarCancel(false);
                 void executar('cancel');

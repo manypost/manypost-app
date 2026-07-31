@@ -64,7 +64,7 @@ export function ComposerEditorCard({
   return (
     <div
       className={cn(
-        'bevel-surface rounded-md border transition-colors duration-200 focus-within:border-accent',
+        'bg-surface rounded-md border transition-colors duration-200 focus-within:border-accent',
         className,
       )}
     >

@@ -200,8 +200,15 @@ describe('conformidade visual dos blocos (o que o check:brand não vê)', () => 
     expect(todos).not.toContain('shadow');
   });
 
-  test('profundidade vem de bevel (gradiente), como o adendo §51.4 manda', () => {
-    expect(todos).toContain('bevel-');
+  /**
+   * Invertido na brand v1.4. Até aqui este teste exigia `bevel-` — a v1.3 mandava que NADA fosse
+   * chapado. A v1.4 reverteu a direção: superfície é fill + borda, e a profundidade vem da camada
+   * de fundo. O teste continua no mesmo lugar de propósito, agora prendendo o oposto, para que a
+   * remoção não volte por descuido.
+   */
+  test('superfície é chapada: fill + borda, sem relevo por gradiente', () => {
+    expect(todos).not.toContain('bevel-');
+    expect(todos).toContain('border');
   });
 
   test('raio só na escala 4/6/8 (rounded-sm|md|lg)', () => {

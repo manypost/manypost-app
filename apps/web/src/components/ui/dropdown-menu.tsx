@@ -20,7 +20,7 @@ function DropdownMenuContent({
         data-slot="dropdown-menu-content"
         sideOffset={sideOffset}
         className={cn(
-          'bevel-surface z-50 min-w-[8rem] animate-fade-in overflow-hidden rounded-md border p-1 text-ink',
+          'border-line-strong bg-surface z-50 min-w-[8rem] animate-fade-in overflow-hidden rounded-md border p-1 text-ink',
           className,
         )}
         {...props}
@@ -54,7 +54,7 @@ function DropdownMenuLabel({
   return (
     <DropdownMenuPrimitive.Label
       data-slot="dropdown-menu-label"
-      className={cn('px-2 py-1.5 text-xs font-semibold text-graphite', className)}
+      className={cn('px-2 py-1.5 text-meta font-semibold text-graphite', className)}
       {...props}
     />
   );
