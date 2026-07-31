@@ -384,6 +384,11 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Documentation
 
+- **README renovado.** A página inicial do repositório ganhou uma apresentação
+  mais visual e escaneável, demonstração animada do calendário multicanal,
+  diagrama de arquitetura regenerável com `mingrammer/diagrams`, início rápido,
+  recursos e integrações atualizados e rotas mais claras para usuários,
+  integradores e contribuidores.
 - Alinhamento docs↔código: inventário de **28 tabelas** / migrations `0000..0005`,
   `maxConcurrent` como entregue, mapa de contracts/providers, Clerk-only em SPEC_API_MCP,
   wordmark `manypost` no BRAND_SYSTEM, banners de verdade em SPECs legados.
