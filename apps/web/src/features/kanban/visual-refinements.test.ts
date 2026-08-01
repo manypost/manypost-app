@@ -58,11 +58,19 @@ describe('conformidade visual do quadro', () => {
     expect(src).not.toMatch(/hover:(translate|scale|rotate)/);
   });
 
-  test.each(ARQUIVOS)('%s usa só a escala de raio 4/6/8', async (arquivo) => {
+  test.each(ARQUIVOS)('%s usa somente raios semânticos do sistema', async (arquivo) => {
     const src = await source(`./${arquivo}`);
     const raios = src.match(/\brounded-[a-z[\]0-9.-]+/g) ?? [];
     for (const r of raios) {
-      expect(['rounded-sm', 'rounded-md', 'rounded-lg', 'rounded-full']).toContain(r);
+      expect([
+        'rounded-key',
+        'rounded-compact',
+        'rounded-tooltip',
+        'rounded-control',
+        'rounded-card',
+        'rounded-kpi',
+        'rounded-full',
+      ]).toContain(r);
     }
   });
 
@@ -95,13 +103,18 @@ describe('conformidade visual do quadro', () => {
     expect(src).toContain('motion-reduce:transition-none');
   });
 
-  test('coluna é palco sem borda; card arrastável preserva a moldura', async () => {
+  test('colunas compartilham uma superfície de trabalho; card preserva moldura leve', async () => {
+    const board = await source('./kanban-board.tsx');
     const coluna = await source('./kanban-column.tsx');
     const card = await source('./kanban-card.tsx');
 
-    expect(coluna).not.toContain('border border-line border-t-2');
+    expect(board).toContain('rounded-card border border-line bg-surface');
+    expect(board).not.toMatch(/\d+\s*\/\s*\d+/);
+    expect(coluna).toContain('border-l');
+    expect(coluna).toContain('top-[59px]');
+    expect(coluna).not.toContain('lg:top-0');
     expect(coluna).toContain("'size-1.5 shrink-0 rounded-full'");
-    expect(card).toContain('rounded-md border bg-surface');
+    expect(card).toContain('rounded-card border bg-surface');
   });
 
   test.each(ARQUIVOS)('%s não usa animate-* sem desligar sob reduced motion', async (arquivo) => {

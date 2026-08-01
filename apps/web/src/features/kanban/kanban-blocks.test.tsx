@@ -186,7 +186,7 @@ describe('coluna', () => {
     expect(html).toContain('>7<');
   });
 
-  test('lane é aberta, sticky e dividida — não é outro card arredondado', () => {
+  test('lane é aberta, sticky e dividida dentro da superfície única', () => {
     const html = render(
       <KanbanColumn id="scheduled" accent="bg-state-scheduled" title="Agendado" count={4} compacta={false}>
         {null}
@@ -194,7 +194,7 @@ describe('coluna', () => {
     );
     expect(html).toContain('border-l');
     expect(html).toContain('sticky');
-    expect(html).not.toContain('rounded-lg bg-surface-2');
+    expect(html).not.toContain('rounded-card bg-surface-2');
     expect(html).not.toMatch(/4\s*\/\s*\d+/);
   });
 });

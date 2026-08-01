@@ -32,30 +32,38 @@ describe('shell único de página', () => {
     }
   });
 
-  test('o shell editorial tem rail escuro 208/64, e a topbar pertence somente ao mobile', async () => {
+  test('o shell branco/lilás tem rail cinza-preto 181/64 e topbar de 59px no desktop', async () => {
     const sidebar = await source('../shell/app-sidebar.tsx');
     const topbar = await source('../shell/topbar.tsx');
     const css = await source('../../app/globals.css');
 
     expect(css).toContain('--sidebar:');
     expect(css).toContain('--container-wide:');
+    expect(css).toContain('--sidebar: #242629');
+    expect(css).toContain('--sidebar-hover: #303236');
     expect(sidebar).toContain("isCollapsed ? 'w-16");
-    expect(sidebar).toContain(": 'w-52'");
+    expect(sidebar).toContain(": 'w-[181px]'");
     expect(sidebar).toContain('bg-sidebar');
-    expect(sidebar).toContain('abrirPaleta');
     expect(sidebar).toContain('useMe');
-    expect(topbar).toContain('md:hidden');
-    expect(topbar).not.toContain('md:block');
+    expect(sidebar).toMatch(/hidden[^']*lg:flex/);
+    expect(topbar).toContain('h-[59px]');
+    expect(topbar).toContain('lg:flex');
+    expect(topbar).toContain('abrirPaleta');
+    expect(topbar).toContain('NotificationsMenu');
+    expect(topbar).toContain('size-11 lg:size-8');
+    expect(topbar).toContain('size-11 cursor-pointer');
   });
 
-  test('PageShell possui variante wide nomeada e título de página usa display 32px', async () => {
+  test('PageShell possui variante wide e o título de produto usa Inter 18px/500', async () => {
     const shell = await source('./page-shell.tsx');
     const header = await source('./page-header.tsx');
     const css = await source('../../app/globals.css');
 
     expect(shell).toContain("size?: 'standard' | 'wide'");
     expect(shell).toContain('max-w-wide');
-    expect(header).toContain('font-display');
-    expect(css).toContain('--text-title: 32px');
+    expect(header).toContain('font-sans text-title font-medium');
+    expect(header).not.toContain('font-display');
+    expect(css).toContain('--text-title: 18px');
+    expect(css).toContain('--text-figure: 23px');
   });
 });

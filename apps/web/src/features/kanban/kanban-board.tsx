@@ -249,7 +249,7 @@ export function KanbanBoard() {
     return (
       <div className="grid gap-3 lg:grid-cols-5">
         {COLUNAS.map((c) => (
-          <Skeleton key={c.id} className="h-64 rounded-lg" />
+          <Skeleton key={c.id} className="h-64 rounded-card" />
         ))}
       </div>
     );
@@ -273,7 +273,7 @@ export function KanbanBoard() {
     filtros.colunas.length > 0 || filtros.canais.length > 0 || filtros.busca.trim().length > 0;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col overflow-clip rounded-card border border-line bg-surface">
       <KanbanFilters
         estado={filtros}
         onChange={escreverFiltros}
@@ -281,13 +281,13 @@ export function KanbanBoard() {
       />
 
       {feed.data?.truncado ? (
-        <p role="status" className="rounded-md border border-line bg-surface-2 px-3 py-2 text-meta text-graphite">
+        <p role="status" className="m-3 rounded-control border border-line bg-surface-2 px-3 py-2 text-meta text-graphite">
           {t('truncated', { count: TETO_DO_QUADRO })}
         </p>
       ) : null}
 
       {todos.length === 0 ? (
-        <div className="rounded-lg bg-surface-2 px-6 py-12 text-center">
+        <div className="m-3 rounded-card bg-surface-2 px-6 py-12 text-center">
           <p className="text-compact leading-relaxed text-graphite">{t('empty')}</p>
           <Button size="sm" className="mt-4 cursor-pointer" onClick={() => openComposer()}>
             {t('newPost')}
@@ -295,7 +295,7 @@ export function KanbanBoard() {
         </div>
       ) : cards.length === 0 && temFiltro ? (
         // vazio POR FILTRO é diferente de pipeline vazio — dizer o contrário faria a tela mentir
-        <div className="rounded-lg bg-surface-2 px-6 py-12 text-center">
+        <div className="m-3 rounded-card bg-surface-2 px-6 py-12 text-center">
           <p className="text-compact leading-relaxed text-graphite">{t('filteredEmpty')}</p>
           <Button
             variant="outline"
@@ -310,7 +310,7 @@ export function KanbanBoard() {
         <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
           <CancelDropZone ativo={arrastando !== null} />
           {/* desktop: 5 colunas; mobile: rolagem horizontal */}
-          <div className="flex overflow-x-auto border-y border-line pb-3 lg:grid lg:grid-cols-5 lg:overflow-visible">
+          <div className="flex overflow-x-auto pb-3 lg:grid lg:grid-cols-5 lg:overflow-visible">
             {COLUNAS.map(({ id, accent }) => (
               <KanbanColumn
                 key={id}
@@ -337,7 +337,7 @@ export function KanbanBoard() {
           </div>
           <DragOverlay>
             {cardArrastado ? (
-              <div className="w-72 rounded-md border border-accent bg-surface p-3">
+              <div className="w-72 rounded-card border border-accent bg-surface p-3">
                 <p className="line-clamp-3 text-compact leading-relaxed text-ink">
                   {cardArrastado.text || '…'}
                 </p>

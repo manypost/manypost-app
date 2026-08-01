@@ -9,8 +9,8 @@ import { cn } from '@/lib/utils';
  * chegou aqui pela primeira vez, e o §36.4 pede exatamente isso ("empty states descrevem o
  * próximo passo"; a mesma lógica vale para a tela cheia).
  *
- * Regras do §13 implementadas aqui:
- *  - título 20px/500, alinhado à esquerda, **sem** ponto final;
+ * Regras do contrato branco/lilás implementadas aqui:
+ *  - título 18px/500 em Inter, alinhado à esquerda, **sem** ponto final;
  *  - descrição na medida única de leitura, em texto secundário;
  *  - ações à direita no desktop e **abaixo** no mobile — nunca encolhendo o título (§37).
  */
@@ -38,7 +38,7 @@ export function PageHeader({
       <div className="min-w-0">
         <h1
           className={cn(
-            'font-display text-title font-semibold leading-tight tracking-[-0.025em] text-ink',
+            'font-sans text-title font-medium text-ink',
             titleClassName,
           )}
         >

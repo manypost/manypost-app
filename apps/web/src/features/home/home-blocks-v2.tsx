@@ -56,7 +56,7 @@ export function BlocoAssincrono({
   if (isError) {
     return (
       <Card title={titulo}>
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-3">
           <p className="text-compact text-graphite">{t('blockError')}</p>
           <Button
             size="sm"
@@ -91,7 +91,7 @@ export function NextActionBlock({ acao }: { acao: ProximaAcao | null }) {
 
   return (
     <Card title={t('nextAction.title')}>
-      <div className="flex min-w-0 flex-col items-start gap-1.5">
+      <div className="flex min-w-0 flex-col items-start gap-2">
           <p className="text-compact font-semibold text-ink">
             {t(`nextAction.${acao.kind}Title`, dados)}
           </p>
@@ -154,7 +154,7 @@ export function UpcomingBlock({
             <button
               type="button"
               onClick={() => onOpen(p.groupId)}
-              className="flex w-full cursor-pointer items-center gap-2.5 rounded-sm text-left outline-none transition-colors duration-200 hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className="flex w-full cursor-pointer items-center gap-3 rounded-sm text-left outline-none transition-colors duration-200 hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               <span className="w-24 shrink-0 text-meta tabular-nums text-graphite">
                 {p.publishAt ? quando(p.publishAt) : ''}
@@ -274,7 +274,7 @@ export function DraftsBlock({
     <Card title={t('draftsTitle')}>
       <ul className="flex flex-col divide-y divide-line">
         {local ? (
-          <li className="flex flex-col items-start gap-1.5 py-2 first:pt-0 last:pb-0">
+          <li className="flex flex-col items-start gap-2 py-2 first:pt-0 last:pb-0">
             <span className="text-meta font-medium text-graphite">
               {t('draftsLocal')}
             </span>
@@ -292,10 +292,10 @@ export function DraftsBlock({
         ) : null}
 
         {orfaos.map((d) => (
-          <li key={d.groupId} className="flex flex-col items-start gap-1.5 py-2 first:pt-0 last:pb-0">
+          <li key={d.groupId} className="flex flex-col items-start gap-2 py-2 first:pt-0 last:pb-0">
             <p className="line-clamp-2 text-compact leading-relaxed text-ink">{d.texto || '…'}</p>
             <p className="text-meta leading-relaxed text-graphite">{t('draftsServerHint')}</p>
-            <span className="mt-0.5 flex flex-wrap gap-1.5">
+            <span className="mt-0.5 flex flex-wrap gap-2">
               <Button
                 size="sm"
                 variant="outline"
@@ -347,19 +347,20 @@ export function PipelineBlock({ cards }: { cards: GroupCard[] }) {
     >
       {/* estreito: só contagens, com rolagem — mesmo padrão do quadro em mobile */}
       <ul className="flex gap-2 overflow-x-auto pb-1">
-        {COLUNAS.map(({ id, accent }) => (
+        {COLUNAS.map(({ id, accent }, index) => (
           <li key={id} className="min-w-28 flex-1 shrink-0">
             <Link
               href={`/kanban?col=${id}`}
               className={cn(
-                'flex cursor-pointer flex-col gap-1 rounded-md bg-surface-2 p-2.5 transition-colors duration-200',
-                'hover:bg-accent-tint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+                'flex cursor-pointer flex-col gap-1 rounded-kpi p-3 transition-colors duration-200',
+                index % 2 === 0 ? 'bg-kpi-lilac' : 'bg-kpi-blue',
+                'hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
               )}
             >
               <span className="text-panel font-medium tabular-nums leading-none text-ink">
                 {contagem(id)}
               </span>
-              <span className="flex items-center gap-1.5 truncate text-meta text-graphite">
+              <span className="flex items-center gap-2 truncate text-meta text-graphite">
                 <span className={cn('size-1.5 shrink-0 rounded-full', accent)} aria-hidden />
                 {tk(`columns.${id}`)}
               </span>

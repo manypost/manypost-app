@@ -28,17 +28,17 @@ export function KanbanColumn({
       ref={setNodeRef}
       aria-label={title}
       className={cn(
-        'flex min-h-64 w-72 shrink-0 flex-col border-l border-line transition-colors duration-200 first:border-l-0 lg:w-auto lg:min-w-0 lg:flex-1',
+        'flex min-h-64 w-60 shrink-0 flex-col border-l border-line transition-colors duration-200 first:border-l-0 lg:w-auto lg:min-w-0 lg:flex-1',
         compacta ? 'gap-2 px-2' : 'gap-3 px-3',
         isOver && 'bg-accent-tint',
       )}
     >
-      <h2 className="sticky top-14 z-10 flex min-h-11 items-center justify-between border-b border-line bg-canvas px-1 text-compact font-semibold text-ink md:top-0">
-        <span className="flex items-center gap-1.5">
+      <h2 className="sticky top-[59px] z-10 flex min-h-11 items-center justify-between border-b border-line bg-surface px-1 text-panel font-medium text-ink">
+        <span className="flex items-center gap-2">
           <span className={cn('size-1.5 shrink-0 rounded-full', accent)} aria-hidden />
           {title}
         </span>
-        <span className="rounded-sm bg-surface-2 px-1.5 py-0.5 text-meta tabular-nums text-graphite">{count}</span>
+        <span className="rounded-key bg-surface-2 px-1.5 py-0.5 text-meta tabular-nums text-graphite">{count}</span>
       </h2>
       {children}
     </section>
@@ -60,7 +60,7 @@ export function CancelDropZone({ ativo }: { ativo: boolean }) {
     <div
       ref={setNodeRef}
       className={cn(
-        'flex items-center justify-center gap-2 rounded-lg border border-dashed py-3 text-compact font-semibold transition-colors duration-200',
+        'flex items-center justify-center gap-2 rounded-card border border-dashed py-3 text-compact font-semibold transition-colors duration-200',
         isOver
           ? 'border-state-failed bg-state-failed/10 text-state-failed'
           : 'border-line text-graphite',

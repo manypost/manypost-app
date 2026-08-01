@@ -5,21 +5,19 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 /**
- * Sistema de botões do brand (BRAND §6, v1.4): 5 variantes × 3 tamanhos, radius 6px, foco por
- * outline (não ring, que é box-shadow).
+ * Sistema de botões do brand (v2.0): 5 variantes × 3 tamanhos, raio de controle de 10px e foco por
+ * outline (a única sombra autorizada pertence ao tooltip).
  *
- * **Preenchimento chapado.** A v1.3 dava relevo por gradiente às variantes preenchidas; a v1.4
- * removeu. O hover volta a ser transição de `background-color` em 200ms — que é o que o BRAND §2.3
- * sempre pediu — em vez de `filter: brightness()`, que só existia porque não dá para transicionar
- * um `linear-gradient` com `background-color`.
+ * **Preenchimento chapado.** O hover usa transição de cor em 200ms, sem gradiente decorativo,
+ * deslocamento ou escala.
  *
  * `outline` carrega `border-line-strong`: sem relevo, a borda é o único limite do controle, e o
  * piso de 3:1 da WCAG 1.4.11 se aplica. Ghost e link não têm limite desenhado — são texto.
  *
- * A variante `enterprise` foi removida na v1.4: tinha um único uso, aqui dentro.
+ * A variante histórica `enterprise` permanece removida: não existe papel visual separado para ela.
  */
 const buttonVariants = cva(
-  'inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md border font-medium transition-colors duration-200 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:size-4',
+  'inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-control border font-medium transition-colors duration-200 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:size-4',
   {
     variants: {
       variant: {

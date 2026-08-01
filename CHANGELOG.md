@@ -82,6 +82,16 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Changed
 
+- **Brand v2.0: o dashboard adotou o sistema branco/lilás aprovado.** O shell autenticado agora
+  usa main `#FDFDFD`, sidebar cinza-preta 181/64 e topbar funcional de 59px no desktop e mobile.
+  Inter compacta substitui títulos display no produto; cards usam bordas finas e raios por função;
+  lilás/azul identificam somente KPIs reais; sombra pertence apenas ao tooltip e gradientes apenas
+  a visualizações de dados nomeadas. A Home mostra três resumos reais do dia e rail de 260px. O
+  Quadro reúne filtros e cinco lanes numa única superfície branca sem alterar URL, filtros,
+  densidade, seleção, drag, teclado, ações em lote, retry ou confirmações. Não houve mudança de API,
+  banco, ambiente ou dados. Rollback: reverter o commit visual e redeployar a imagem anterior.
+  OpenSpec: `adopt-white-lilac-dashboard-system`.
+
 - **Brand v1.5: o app adotou a composição editorial aprovada.** O shell autenticado agora combina
   canvas quente com rail escuro 208/64, busca/notificações/conta no rail, topbar somente mobile,
   largura ampla nomeada e títulos Plus Jakarta de 32px (44px na saudação da Home). `/kanban`

@@ -70,9 +70,9 @@ export function KanbanCard({
     <article
       ref={setNodeRef}
       className={cn(
-        'group/card relative flex flex-col rounded-md border bg-surface transition-colors duration-200',
+        'group/card relative flex flex-col rounded-card border bg-surface transition-colors duration-200',
         'focus-within:border-accent hover:border-line-strong',
-        compacta ? 'gap-1.5 p-2' : 'gap-2 p-3',
+        compacta ? 'gap-2 p-2' : 'gap-2 p-3',
         selecionado ? 'border-accent bg-accent-tint' : 'border-line',
         isDragging && 'opacity-40',
       )}
@@ -94,7 +94,7 @@ export function KanbanCard({
         <DropdownMenu>
           <DropdownMenuTrigger
             aria-label={t('cardMenu')}
-            className="grid size-6 cursor-pointer place-items-center rounded-sm border border-line bg-surface text-graphite outline-none transition-colors duration-200 hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className="grid size-6 cursor-pointer place-items-center rounded-key border border-line bg-surface text-graphite outline-none transition-colors duration-200 hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             <MoreHorizontal className="size-3.5" aria-hidden />
           </DropdownMenuTrigger>
@@ -157,7 +157,7 @@ export function KanbanCard({
           card.mediaPreview.type === 'image' ? (
             <span
               data-media-kind="image"
-              className="aspect-preview mt-1 block w-full overflow-hidden rounded-sm bg-surface-2"
+              className="aspect-preview mt-1 block w-full overflow-hidden rounded-control bg-surface-2"
             >
               <img
                 src={card.mediaPreview.url}
@@ -171,7 +171,7 @@ export function KanbanCard({
             <span
               data-media-kind="video"
               aria-label={t('videoPreview')}
-              className="aspect-preview mt-1 grid w-full place-items-center rounded-sm border border-line bg-surface-2 text-graphite"
+              className="aspect-preview mt-1 grid w-full place-items-center rounded-control border border-line bg-surface-2 text-graphite"
             >
               <Play className="size-5" aria-hidden />
             </span>
@@ -195,7 +195,7 @@ export function KanbanCard({
                   src={PROVIDER_ICONS[item.channel.provider]}
                   alt=""
                   aria-hidden
-                  className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-sm"
+                  className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-key"
                 />
               ) : null}
             </span>
@@ -203,7 +203,7 @@ export function KanbanCard({
           {card.items.length > 4 ? (
             <span
               className={cn(
-                'grid place-items-center rounded-lg border border-surface bg-surface-2 text-axis font-semibold text-graphite',
+                'grid place-items-center rounded-full border border-surface bg-surface-2 text-axis font-semibold text-graphite',
                 compacta ? 'size-5' : 'size-6',
               )}
             >
@@ -211,7 +211,7 @@ export function KanbanCard({
             </span>
           ) : null}
         </span>
-        <span className="ml-auto flex items-center gap-1.5">
+        <span className="ml-auto flex items-center gap-2">
           {card.origin !== 'WEB' ? <Badge className="px-1.5 py-0.5">{card.origin}</Badge> : null}
           {card.column === 'failed' ? (
             <button

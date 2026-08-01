@@ -165,7 +165,7 @@ export function HomeView() {
       case 'nextAction':
         return envolver(<NextActionBlock acao={proximaAcao(estado)} />);
       case 'today':
-        return envolver(<TodayBlock today={resumo.data.today} />);
+        return null;
       case 'upcoming':
         return envolver(
           <BlocoAssincrono
@@ -222,13 +222,12 @@ export function HomeView() {
     <div className="flex w-full flex-col gap-6">
       <PageHeader
         title={nome ? `${saudacao}, ${nome}` : saudacao}
-        titleClassName="text-display"
         description={t('subtitle')}
         actions={
           <>
             <Button
               type="button"
-              className="cursor-pointer gap-1.5 text-paper"
+              className="cursor-pointer gap-2 text-paper"
               onClick={() => openComposer()}
             >
               <PenSquare className="size-3.5" aria-hidden />
@@ -240,19 +239,29 @@ export function HomeView() {
       />
 
       {resumo.isPending ? (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3" aria-hidden>
+          <Skeleton className="h-24 rounded-kpi" />
+          <Skeleton className="h-24 rounded-kpi" />
+          <Skeleton className="h-24 rounded-kpi" />
+        </div>
+      ) : resumo.data && !resumo.data.firstRun ? (
+        <TodayBlock today={resumo.data.today} />
+      ) : null}
+
+      {resumo.isPending ? (
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
           <div className="flex flex-col gap-6">
-            <Skeleton className="h-32 rounded-lg" />
-            <Skeleton className="h-28 rounded-lg" />
+            <Skeleton className="h-32 rounded-card" />
+            <Skeleton className="h-28 rounded-card" />
           </div>
-          <Skeleton className="h-56 rounded-lg" />
+          <Skeleton className="h-56 rounded-card" />
         </div>
       ) : resumo.isError || !ordem ? (
         <p role="alert" className="text-compact text-graphite">
           {t('loadError')}
         </p>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
           <div className="flex min-w-0 flex-col gap-6">
             {ordem.principal.map((id) => bloco(id))}
           </div>

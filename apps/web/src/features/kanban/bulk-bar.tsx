@@ -94,14 +94,14 @@ export function BulkBar({
 
   return (
     <>
-      <div className="sticky bottom-3 z-20 flex flex-wrap items-center gap-2 rounded-lg border border-line bg-surface p-2">
+      <div className="sticky bottom-3 z-20 m-3 flex flex-wrap items-center gap-2 rounded-card border border-line bg-surface p-2">
         <span className="px-1 text-compact font-semibold tabular-nums text-ink">
           {t('bulk.selected', { count: selecionados.length })}
         </span>
         <Button
           variant="outline"
           size="sm"
-          className="cursor-pointer gap-1.5"
+          className="cursor-pointer gap-2"
           isLoading={rodando}
           onClick={() => void executar('retry')}
         >
@@ -111,7 +111,7 @@ export function BulkBar({
         <Button
           variant="outline"
           size="sm"
-          className="cursor-pointer gap-1.5 text-state-failed"
+          className="cursor-pointer gap-2 text-state-failed"
           disabled={rodando}
           onClick={() => setConfirmarCancel(true)}
         >
@@ -121,7 +121,7 @@ export function BulkBar({
         <Button
           variant="ghost"
           size="sm"
-          className="ml-auto cursor-pointer gap-1.5"
+          className="ml-auto cursor-pointer gap-2"
           disabled={rodando}
           onClick={onLimpar}
         >

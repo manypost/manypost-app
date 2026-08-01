@@ -18,7 +18,7 @@ import {
 } from './hooks';
 
 /** Sino do topbar: contagem de não lidas + últimas notificações. */
-export function NotificationsMenu() {
+export function NotificationsMenu({ className }: { className?: string }) {
   const t = useTranslations('notifications');
   const locale = useLocale();
   const notifications = useNotifications();
@@ -32,7 +32,12 @@ export function NotificationsMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon-sm" aria-label={t('bell', { count: unread })} className="relative">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={t('bell', { count: unread })}
+          className={cn('relative', className)}
+        >
           <Bell aria-hidden />
           {unread > 0 ? (
             <span

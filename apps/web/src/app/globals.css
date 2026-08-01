@@ -6,34 +6,27 @@
  * hex é permitido (critério de aceite docs/brand/README.md §4.1).
  */
 :root {
-  --accent: #7c3aed;
-  --accent-hover: #6d28d9;
-  --accent-tint: #ede9fe;
-  --accent-on-dark: #c4b5fd;
+  --accent: #7c56cd;
+  --accent-hover: #6e44c7;
+  --accent-tint: #edeefc;
+  --accent-on-dark: #d0c4ea;
   --paper: #ffffff;
   --surface: #ffffff;
-  /*
-   * CAMADAS DE FUNDO (brand v1.4) — a hierarquia primária, agora que não há relevo.
-   *
-   *   0 chão      --canvas    fundo de página; nunca recebe borda
-   *   1 superfície --surface  card, sidebar, topbar          → border-line
-   *   2 rebaixo   --surface-2 trilho, tile, bloco de código  → SEM borda (o fill é o limite)
-   *   3 flutuante --surface   conteúdo em portal             → border-line-strong
-   *
-   * A v1.5 aquece o piso sem colorir os objetos: o canvas editorial diferencia o branco dos cards
-   * e o surface-2 permanece um rebaixo neutro-quente, sempre sem sombra ou gradiente.
-   */
-  --canvas: #f5f3ef;
-  --surface-2: #ece9e4;
-  --sidebar: #111820;
-  --sidebar-hover: #1b2530;
-  --sidebar-text: #e8edf2;
-  --sidebar-muted: #aab4bf;
-  --night: #0a0a0a;
-  --ink: #111111;
-  --ink-soft: #262626;
-  --graphite: #6b6b70;
-  --mist: #8e8e96;
+  /* Sistema branco/lilás: canvas externo, main quase branco e superfícies brancas silenciosas. */
+  --canvas: #d9dbdd;
+  --main: #fdfdfd;
+  --surface-2: #f5f5f5;
+  --kpi-lilac: #edeefc;
+  --kpi-blue: #e6f1fd;
+  --sidebar: #242629;
+  --sidebar-hover: #303236;
+  --sidebar-text: #f3f3f4;
+  --sidebar-muted: #aeb1b5;
+  --night: #0c0f17;
+  --ink: #0c0f17;
+  --ink-soft: #26282d;
+  --graphite: #74767c;
+  --mist: #9b9da2;
   /*
    * ESCALA DE BORDAS, DOIS DEGRAUS (brand v1.4).
    *
@@ -49,12 +42,16 @@
    * (b) limite de controle de entrada — input, textarea, gatilho de select, botão outline. Os dois
    * são o mesmo problema: uma caixa branca dentro de outra caixa branca.
    */
-  --line: #ddd9d2;
-  --line-strong: #8d8882;
+  --line: #ededed;
+  --line-strong: #8b8b8b;
+
+  /* único relevo do produto: conteúdo temporário acima da interface */
+  --tooltip-shadow:
+    0 8px 18px rgba(12, 15, 23, 0.18), 0 2px 5px rgba(12, 15, 23, 0.12);
 
   /* estados de publicação (rascunho é neutro: --graphite/--surface-2) */
-  --state-scheduled: #7c3aed;
-  --state-scheduled-tint: #ede9fe;
+  --state-scheduled: #7c56cd;
+  --state-scheduled-tint: #edeefc;
   --state-publishing: #b45309;
   --state-publishing-tint: #fef3c7;
   --state-published: #15803d;
@@ -82,20 +79,19 @@
    * próprio design.md (§2.1: acessibilidade antes de preferência visual) obriga essa troca, e
    * ela fica registrada aqui e no §51 como exceção (§46.15).
    */
-  --data-1: #7c3aed;
-  --data-1-tint: #ede9fe;
-  --data-2: #0f766e;
-  --data-2-tint: #ccfbf1;
+  --data-1: #7c56cd;
+  --data-1-tint: #edeefc;
+  --data-2: #00866c;
+  --data-2-bright: #00f3bc;
+  --data-2-tint: #d7fff5;
   /* trilha de medidor/barra: o "vazio" atrás do preenchimento */
   --data-track: #eeeeef;
 }
 
 /*
  * Tema Tailwind mapeado 1:1 dos tokens do brand (docs/brand/README.md §2):
- * - radius somente 4/6/8px (BRAND §4); `rounded-full` existe apenas no Avatar
- *   e em pequenos pontos de estado
- * - namespaces de sombra zerados: NENHUMA utility de shadow ou drop-shadow
- *   existe neste app (BRAND §2.2 — hierarquia por borda e camada de fundo)
+ * - raios por função em 4/5/8/10/11/12px; full apenas para pills, avatares e pontos
+ * - namespaces de sombra zerados, exceto `shadow-tooltip`
  */
 @theme inline {
   --font-sans:
@@ -103,6 +99,7 @@
   --font-display: var(--font-jakarta), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
   --color-canvas: var(--canvas);
+  --color-main: var(--main);
   --color-background: var(--canvas);
   --color-foreground: var(--ink);
   --color-card: var(--surface);
@@ -135,6 +132,8 @@
   --color-paper: var(--paper);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
+  --color-kpi-lilac: var(--kpi-lilac);
+  --color-kpi-blue: var(--kpi-blue);
   --color-night: var(--night);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
@@ -158,6 +157,7 @@
   --color-data-1: var(--data-1);
   --color-data-1-tint: var(--data-1-tint);
   --color-data-2: var(--data-2);
+  --color-data-2-bright: var(--data-2-bright);
   --color-data-2-tint: var(--data-2-tint);
   --color-data-track: var(--data-track);
 
@@ -167,10 +167,17 @@
   --container-reading: 42.5rem;
 
   --radius-*: initial;
+  --radius-key: 4px;
+  --radius-compact: 5px;
+  --radius-tooltip: 8px;
+  --radius-control: 10px;
+  --radius-card: 11px;
+  --radius-kpi: 12px;
+  /* aliases de compatibilidade: os primitives existentes herdam os papéis novos */
   --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 8px;
+  --radius-md: 10px;
+  --radius-lg: 11px;
+  --radius-xl: 12px;
 
   /*
    * ESCALA DE PRODUTO (design.md §6.3) como utilities de verdade.
@@ -196,17 +203,18 @@
   --text-compact--line-height: 18px;
   --text-panel: 15px; /* título de painel/card/diálogo (§6.3: 15–16px) */
   --text-panel--line-height: 1.35;
-  --text-title: 32px; /* H1 operacional editorial — brand v1.5 */
-  --text-title--line-height: 1.15;
-  --text-display: 44px; /* saudação da Home; nunca em painéis ou controles */
-  --text-display--line-height: 1.08;
-  --text-figure: 24px; /* SÓ numeral grande, KPI (§6.3: KPI value 22–24px) — brand v1.4 */
-  --text-figure--line-height: 1.15;
+  --text-title: 18px;
+  --text-title--line-height: 22px;
+  --text-display: 18px;
+  --text-display--line-height: 22px;
+  --text-figure: 23px;
+  --text-figure--line-height: 27px;
 
   --shadow-*: initial;
   --inset-shadow-*: initial;
   --drop-shadow-*: initial;
   --text-shadow-*: initial;
+  --shadow-tooltip: var(--tooltip-shadow);
 }
 
 /* entrada de overlays: só fade (nada de zoom/slide — simplicidade, BRAND §8.5) */
@@ -239,10 +247,8 @@
  * Camada `components` (perde para utilitários, então um `bg-*`/`border-*` passado por um caller
  * ainda vence).
  *
- * Aqui viviam as nove classes de relevo por gradiente da brand v1.3. A v1.4 as removeu: superfície
- * é fill chapado, e a hierarquia volta a sair de camada de fundo (`--canvas`/`--surface`/
- * `--surface-2`), força de borda (`--line`/`--line-strong`) e espaço. O pilar "zero sombras"
- * (BRAND §2.2) não mudou — nunca houve `box-shadow` aqui e continua não havendo.
+ * Superfícies persistentes continuam chapadas. A única sombra pertence ao tooltip e gradientes
+ * pertencem exclusivamente às utilities nomeadas de visualização de dados.
  *
  * Sobra uma classe, e ela não é de relevo.
  */
@@ -260,6 +266,19 @@
 
 @utility aspect-preview {
   aspect-ratio: 4 / 3;
+}
+
+/* Gradientes são codificação de dados, nunca decoração de superfície. */
+@utility viz-active-bar {
+  background: linear-gradient(180deg, rgba(208, 196, 234, 0.7) 0%, #a389dc 24%, #7c56cd 72%, #6e44c7 100%);
+}
+
+@utility viz-donut-segment {
+  background: linear-gradient(145deg, #d8cfef 0%, #a389dc 38%, #7c56cd 72%, #6e44c7 100%);
+}
+
+@utility viz-area-fill {
+  background: linear-gradient(180deg, rgba(124, 86, 205, 0.055) 0%, rgba(124, 86, 205, 0.01) 72%, rgba(124, 86, 205, 0) 100%);
 }
 
 /*

@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 
 /**
  * Card de app (densidade docs/brand/README.md §2): fill branco chapado, borda 1px em `--line`,
- * radius 8 (BRAND §7, v1.4).
+ * raio de cartão de 11px (sistema branco/lilás v2.0).
  *
  * O que o faz parecer elevado não é relevo — é a camada: `--surface` branco sobre o `--canvas` da
  * página. Borda decorativa, sem piso de contraste, porque o card nunca é a única coisa que
@@ -13,7 +13,7 @@ function Card({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="card"
-      className={cn('rounded-lg border border-line bg-surface text-card-foreground', className)}
+      className={cn('rounded-card border border-line bg-surface text-card-foreground', className)}
       {...props}
     />
   );
@@ -33,7 +33,7 @@ function CardTitle({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="card-title"
-      className={cn('text-panel font-semibold tracking-[-0.2px] text-ink', className)}
+      className={cn('text-panel font-medium text-ink', className)}
       {...props}
     />
   );

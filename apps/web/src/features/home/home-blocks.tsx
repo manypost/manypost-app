@@ -2,6 +2,8 @@
 
 import {
   CalendarDays,
+  CircleCheckBig,
+  Clock3,
   Plug,
   PenSquare,
   Sparkles,
@@ -44,14 +46,14 @@ export function Card({
   return (
     <section
       className={cn(
-        'flex flex-col gap-3 rounded-lg border bg-surface p-4 sm:p-5',
+        'flex flex-col gap-3 rounded-card border bg-surface p-4 sm:p-5',
         tone === 'alert' ? 'border-state-failed' : 'border-line',
       )}
     >
       <div className="flex items-center justify-between gap-3">
         <h2
           className={cn(
-            'flex items-center gap-2 text-compact font-semibold',
+            'flex items-center gap-2 text-panel font-medium',
             tone === 'alert' ? 'text-state-failed' : 'text-ink',
           )}
         >
@@ -112,7 +114,7 @@ export function AttentionBlock({ attention }: { attention: InsightsSummary['atte
           return (
             <li
               key={`${l.kind}-${l.channel?.channelId ?? i}`}
-              className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 py-2 first:pt-0 last:pb-0"
+              className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 py-2 first:pt-0 last:pb-0"
             >
               <span className="min-w-0 truncate text-compact text-ink">{textoDaLinha(l)}</span>
               <Button asChild size="sm" variant="outline" className="h-7 shrink-0 cursor-pointer px-2.5 text-meta">
@@ -131,48 +133,68 @@ export function AttentionBlock({ attention }: { attention: InsightsSummary['atte
 /** "Sai hoje" — a segunda pergunta da manhã, depois de "está tudo bem?" */
 export function TodayBlock({ today }: { today: InsightsSummary['today'] }) {
   const t = useTranslations('home');
-  const nada = today.scheduled === 0 && today.published === 0 && today.failed === 0;
+  const nadaHoje = today.scheduled === 0 && today.published === 0 && today.failed === 0;
+  const metrics = [
+    {
+      value: today.scheduled,
+      label: t('todayScheduledLabel'),
+      icon: Clock3,
+      tone: 'bg-kpi-lilac',
+      iconTone: 'text-accent',
+      href: '/calendario',
+    },
+    {
+      value: today.published,
+      label: t('todayPublishedLabel'),
+      icon: CircleCheckBig,
+      tone: 'bg-kpi-blue',
+      iconTone: 'text-state-published',
+      href: '/kanban?col=published',
+    },
+    {
+      value: today.failed,
+      label: t('todayFailedLabel'),
+      icon: TriangleAlert,
+      tone: 'bg-kpi-lilac',
+      iconTone: 'text-state-failed',
+      href: '/kanban?col=failed',
+    },
+  ] as const;
 
   return (
-    <Card
-      title={t('todayTitle')}
-      action={
-        <Button asChild size="sm" variant="ghost" className="h-7 cursor-pointer px-2 text-meta">
-          <Link href="/calendario">{t('openCalendar')}</Link>
-        </Button>
-      }
-    >
-      {nada ? (
-        <div className="flex flex-col items-start gap-2.5">
-          <p className="text-compact text-graphite">{t('todayEmpty')}</p>
-          <Button asChild size="sm" className="cursor-pointer">
+    <section aria-labelledby="today-summary-title">
+      <h2 id="today-summary-title" className="sr-only">
+        {t('todayTitle')}
+      </h2>
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        {metrics.map(({ value, label, icon: Icon, tone, iconTone, href }) => (
+          <Link
+            key={label}
+            href={href}
+            className={cn(
+              'relative min-h-24 cursor-pointer rounded-kpi p-5 outline-none transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+              tone,
+            )}
+          >
+            <span className="text-compact font-medium text-ink">{label}</span>
+            <p className="mt-2 text-figure font-medium tabular-nums tracking-[-0.02em] text-ink">
+              {value}
+            </p>
+            <span className="absolute right-4 top-4 grid size-[34px] place-items-center rounded-control bg-surface">
+              <Icon className={cn('size-[18px]', iconTone)} aria-hidden />
+            </span>
+          </Link>
+        ))}
+      </div>
+      {nadaHoje ? (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-compact text-graphite">
+          <p>{t('todayEmpty')}</p>
+          <Button asChild size="sm" variant="outline">
             <Link href="/compor">{t('todayEmptyCta')}</Link>
           </Button>
         </div>
-      ) : (
-        <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
-          <p className="flex items-baseline gap-2">
-            <span className="text-figure font-medium tabular-nums tracking-[-0.02em] text-ink">
-              {today.scheduled}
-            </span>
-            <span className="text-compact text-graphite">{t('todayScheduled', { count: today.scheduled })}</span>
-          </p>
-          {today.published > 0 ? (
-            <p className="text-compact text-graphite">
-              {t('todayPublished', { count: today.published })}
-            </p>
-          ) : null}
-          {today.failed > 0 ? (
-            <Link
-              href="/kanban"
-              className="text-compact font-semibold text-state-failed underline-offset-2 hover:underline"
-            >
-              {t('todayFailed', { count: today.failed })}
-            </Link>
-          ) : null}
-        </div>
-      )}
-    </Card>
+      ) : null}
+    </section>
   );
 }
 
@@ -194,7 +216,7 @@ function Meter({
 }) {
   const m = medidor(used, limit);
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between gap-2">
         <span className="text-meta font-medium text-graphite">{label}</span>
         <span
@@ -251,7 +273,7 @@ export function UsageBlock({
         </Button>
       }
     >
-      <div className="flex flex-col gap-3.5">
+      <div className="flex flex-col gap-4">
         <Meter
           label={t('usagePosts')}
           used={usage.postsThisMonth}
@@ -313,9 +335,9 @@ export function WeekBlock({ week }: { week: InsightsSummary['week'] }) {
         <p className="text-compact text-graphite">{t('weekNothing')}</p>
       ) : (
         <>
-          <ul className="flex items-end justify-between gap-1.5">
+          <ul className="flex items-end justify-between gap-2">
             {week.byDay.map((n, i) => (
-              <li key={i} className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
+              <li key={i} className="flex min-w-0 flex-1 flex-col items-center gap-2">
                 <span className="text-meta tabular-nums text-graphite">{n > 0 ? n : ''}</span>
                 <div className="flex h-14 w-full items-end">
                   <div
@@ -392,10 +414,10 @@ export function FirstRunBlock({
       <ol className="flex flex-col gap-4">
         {passos.map((p) => (
           <li key={p.title} className="flex items-start gap-3">
-            <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-accent-tint">
+            <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-control bg-accent-tint">
               <p.icon className="size-3.5 text-accent" aria-hidden />
             </span>
-            <div className="flex min-w-0 flex-col items-start gap-1.5">
+            <div className="flex min-w-0 flex-col items-start gap-2">
               <p className="text-compact font-semibold text-ink">{p.title}</p>
               <p className="max-w-reading text-compact leading-relaxed text-graphite">{p.body}</p>
               {p.cta ? (
@@ -417,7 +439,7 @@ export function FirstRunBlock({
 export function CalendarShortcut() {
   const t = useTranslations('home');
   return (
-    <Button asChild variant="outline" size="sm" className="cursor-pointer gap-1.5">
+    <Button asChild variant="outline" size="sm" className="cursor-pointer gap-2">
       <Link href="/calendario">
         <CalendarDays className="size-3.5" aria-hidden />
         {t('openCalendar')}

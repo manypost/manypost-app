@@ -40,10 +40,10 @@ Plataforma de agendamento/publicação multicanal. **O wordmark é sempre `manyp
 
 ## Regras visuais (resumo — a fonte é docs/brand/)
 
-- **Brand v1.5, editorial e zero sombras**: canvas quente, superfícies brancas e rail escuro 208/64; `box-shadow`, gradiente de preenchimento, `.bevel-*` e `.inset-field` são proibidos. Hierarquia usa camadas chapadas, espaço, `--line` e `--line-strong` (limites de controles/overlays, mínimo 3:1).
+- **Brand v2.0, branco/lilás**: canvas `#D9DBDD`, main `#FDFDFD`, superfícies brancas, KPIs lilás/azul e rail cinza-preto 181/64. Sombra só no tooltip; gradientes só em dados nomeados. Hierarquia usa camadas chapadas, espaço, `--line` e `--line-strong`.
 - **Hover estável**: nada de `translateY`/`scale`/`rotate` ou `filter: brightness()`; transicione cor/borda/fill em 0.2s. Superfícies operacionais não animam a própria entrada.
 - **Cursor**: todo botão usa `cursor: pointer`.
-- Cores **somente via tokens CSS**; raio só 4/6/8px (`rounded-full` só Avatar/dot); gaps 4/8/12/16/24/32px, sem margem negativa corretiva.
+- Cores **somente via tokens CSS**; raios por função 4/5/8/10/11/12px (`rounded-full` só busca/Avatar/dot); gaps 4/8/12/16/20/24/28/32px, sem margem negativa corretiva.
 - Produto usa escala tipográfica nomeada, sentence case e pesos normal/medium/semibold. Auth/onboarding são editoriais; preview de provider é exceção representacional nomeada.
 - Fontes: Inter (UI/corpo) + Plus Jakarta Sans (títulos/marca), self-hosted via `next/font`.
 - Light-first: o app v1 é light-only.

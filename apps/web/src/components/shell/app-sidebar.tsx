@@ -10,7 +10,6 @@ import {
   PanelLeftOpen,
   PenSquare,
   Plug,
-  Search,
   House,
   Settings,
   SquareKanban,
@@ -34,7 +33,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useLogout, useMe } from '@/features/auth/hooks';
 import { usePlanFeatures } from '@/features/billing/hooks';
 import { useNotifications } from '@/features/notifications/hooks';
-import { useCommandPalette } from '@/features/search/hooks';
 import { cn } from '@/lib/utils';
 import type { IconType } from '@/types';
 
@@ -81,11 +79,11 @@ function RailItem({
       href={href}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'relative flex items-center gap-2.5 rounded-md border border-transparent outline-none transition-colors duration-200',
+        'relative flex items-center gap-3 rounded-control border border-transparent outline-none transition-colors duration-200',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
         collapsed ? 'h-9 w-9 justify-center mx-auto' : 'w-full h-9 px-2.5',
         active
-          ? 'bg-sidebar-hover text-sidebar-text font-semibold'
+          ? 'bg-sidebar-hover text-sidebar-text font-medium'
           : 'text-sidebar-muted hover:bg-sidebar-hover hover:text-sidebar-text',
       )}
     >
@@ -128,7 +126,6 @@ export function AppSidebar() {
   const { billingEnabled } = usePlanFeatures();
   const { data: me, isPending: mePending } = useMe();
   const logout = useLogout();
-  const abrirPaleta = useCommandPalette((s) => s.abrir);
   const footerNav = billingEnabled ? [BILLING_NAV, ...FOOTER_NAV] : FOOTER_NAV;
   const user = me?.user;
   const initials = (user?.name ?? user?.email ?? '?')
@@ -157,14 +154,14 @@ export function AppSidebar() {
   return (
     <aside
       className={cn(
-        'bg-sidebar sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-sidebar-hover transition-[width] duration-300 ease-in-out md:flex',
-        isCollapsed ? 'w-16 items-center' : 'w-52',
+        'sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-sidebar-hover bg-sidebar transition-[width] duration-300 ease-in-out lg:flex',
+        isCollapsed ? 'w-16 items-center' : 'w-[181px]',
       )}
     >
       {/* Cabeçalho / Logo + Botão de recolher/expandir */}
       <div
         className={cn(
-          'group/header relative flex h-16 shrink-0 items-center border-b border-sidebar-hover transition-colors',
+          'group/header relative flex h-[59px] shrink-0 items-center border-b border-sidebar-hover transition-colors',
           isCollapsed ? 'w-full justify-center' : 'justify-between px-4',
         )}
       >
@@ -187,7 +184,7 @@ export function AppSidebar() {
                 type="button"
                 onClick={() => toggleCollapsed(false)}
                 aria-label="Expandir menu"
-                className="absolute grid size-8 place-items-center rounded-md bg-sidebar text-sidebar-muted opacity-0 transition-all duration-200 group-hover/header:opacity-100 hover:bg-sidebar-hover hover:text-sidebar-text focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-accent-on-dark outline-none"
+                className="absolute grid size-8 place-items-center rounded-control bg-sidebar text-sidebar-muted opacity-0 outline-none transition-all duration-200 group-hover/header:opacity-100 hover:bg-sidebar-hover hover:text-sidebar-text focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-accent-on-dark"
               >
                 <PanelLeftOpen className="size-4.5" />
               </button>
@@ -204,7 +201,7 @@ export function AppSidebar() {
                 type="button"
                 onClick={() => toggleCollapsed(true)}
                 aria-label="Recolher menu"
-                className="grid size-8 shrink-0 place-items-center rounded-md text-sidebar-muted transition-colors hover:bg-sidebar-hover hover:text-sidebar-text outline-none focus-visible:outline-2 focus-visible:outline-accent-on-dark"
+                className="grid size-8 shrink-0 place-items-center rounded-control text-sidebar-muted outline-none transition-colors hover:bg-sidebar-hover hover:text-sidebar-text focus-visible:outline-2 focus-visible:outline-accent-on-dark"
               >
                 <PanelLeftClose className="size-4.5" />
               </button>
@@ -224,18 +221,6 @@ export function AppSidebar() {
         )}
         aria-label={t('navigation')}
       >
-        <button
-          type="button"
-          onClick={abrirPaleta}
-          aria-label={t('search')}
-          className={cn(
-            'mb-2 flex h-9 cursor-pointer items-center rounded-md border border-sidebar-hover text-sidebar-muted outline-none transition-colors hover:bg-sidebar-hover hover:text-sidebar-text focus-visible:outline-2 focus-visible:outline-accent-on-dark',
-            isCollapsed ? 'w-9 justify-center' : 'w-full gap-2.5 px-2.5',
-          )}
-        >
-          <Search className="size-4 shrink-0" aria-hidden />
-          {!isCollapsed ? <span className="truncate text-compact font-medium">{t('search')}</span> : null}
-        </button>
         {MAIN_NAV.map(({ href, key, icon }) => (
           <RailItem
             key={href}
@@ -269,15 +254,15 @@ export function AppSidebar() {
 
       <div className="border-t border-sidebar-hover p-2">
         {mePending ? (
-          <Skeleton className="h-10 rounded-md bg-sidebar-hover" />
+          <Skeleton className="h-10 rounded-control bg-sidebar-hover" />
         ) : (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
                 className={cn(
-                  'flex h-11 w-full cursor-pointer items-center rounded-md text-left text-sidebar-muted outline-none transition-colors hover:bg-sidebar-hover hover:text-sidebar-text focus-visible:outline-2 focus-visible:outline-accent-on-dark',
-                  isCollapsed ? 'justify-center' : 'gap-2.5 px-2',
+                  'flex h-11 w-full cursor-pointer items-center rounded-control text-left text-sidebar-muted outline-none transition-colors hover:bg-sidebar-hover hover:text-sidebar-text focus-visible:outline-2 focus-visible:outline-accent-on-dark',
+                  isCollapsed ? 'justify-center' : 'gap-3 px-2',
                 )}
                 aria-label={user?.name ?? user?.email ?? t('account')}
               >
@@ -297,7 +282,7 @@ export function AppSidebar() {
             </DropdownMenuTrigger>
             <DropdownMenuContent side="right" align="end" className="min-w-52">
               <DropdownMenuLabel className="flex flex-col gap-1">
-                <span className="text-compact font-semibold text-ink">{user?.name}</span>
+                <span className="text-compact font-medium text-ink">{user?.name}</span>
                 <span className="font-normal">{user?.email}</span>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />

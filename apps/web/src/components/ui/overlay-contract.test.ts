@@ -54,8 +54,12 @@ describe('o relevo por gradiente não volta pela porta dos fundos', () => {
     expect(src).not.toMatch(/\binset-field\b/);
   });
 
-  test.each(TODOS)('%s não usa sombra', async (arquivo) => {
+  test.each(TODOS.filter((arquivo) => arquivo !== 'tooltip.tsx'))('%s não usa sombra', async (arquivo) => {
     expect(await source(`./${arquivo}`)).not.toMatch(/\bshadow-(?!none\b)/);
+  });
+
+  test('tooltip usa a única sombra nomeada do sistema', async () => {
+    expect(await source('./tooltip.tsx')).toContain('shadow-tooltip');
   });
 
   test('o hover dos preenchidos é transição de cor, não filtro de brilho', async () => {
