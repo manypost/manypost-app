@@ -3,16 +3,14 @@ import { describe, expect, test } from 'bun:test';
 const source = () => Bun.file(new URL('./connections-view.tsx', import.meta.url)).text();
 
 describe('ênfase visual das redes em Conexões', () => {
-  test('o catálogo usa cards amplos e o provider como âncora visual dominante', async () => {
+  test('o catálogo deixa o logo ocupar o espaço sem um tile de fundo concorrente', async () => {
     const view = await source();
+    const catalog = view.slice(view.indexOf('data-provider-card'));
 
-    expect(view).toContain('data-provider-card');
-    expect(view).toContain('min-h-40');
-    expect(view).toContain('size-16');
-    expect(view).toContain('size-10');
-    expect(view).toContain('text-title font-medium');
-    expect(view).toContain('xl:grid-cols-4');
-    expect(view).not.toContain('xl:grid-cols-5');
+    expect(catalog).toContain('min-h-36');
+    expect(catalog).toContain('data-provider-mark');
+    expect(catalog).toContain('className="size-14"');
+    expect(catalog).not.toContain('size-16 shrink-0 items-center justify-center rounded-control border border-line bg-main');
   });
 
   test('contas conectadas não reduzem a rede a um selo sobre o avatar', async () => {

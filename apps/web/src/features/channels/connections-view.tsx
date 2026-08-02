@@ -234,14 +234,14 @@ export function ConnectionsView() {
                     disabled={connecting}
                     aria-label={t('connectTitle', { provider: p.name })}
                     className={cn(
-                      'group flex min-h-40 w-full flex-col items-start gap-4 rounded-card border bg-surface p-5 pr-10 text-left outline-none transition-colors duration-200',
+                      'group flex min-h-36 w-full flex-col items-start gap-3 rounded-card border bg-surface p-4 pr-10 text-left outline-none transition-colors duration-200',
                       'hover:border-accent/40 hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
                       'disabled:cursor-progress disabled:opacity-60',
                     )}
                   >
-                    <div className="flex size-16 shrink-0 items-center justify-center rounded-control border border-line bg-main transition-colors group-hover:bg-surface">
-                      <ProviderIcon provider={p.id} name={p.name} className="size-10" />
-                    </div>
+                    <span data-provider-mark className="grid size-14 shrink-0 place-items-center">
+                      <ProviderIcon provider={p.id} name={p.name} className="size-14" />
+                    </span>
                     <div className="mt-auto flex w-full flex-col overflow-hidden">
                       <span className="flex items-center gap-2 truncate text-title font-medium text-ink">
                         {p.name}

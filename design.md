@@ -405,10 +405,11 @@ Calendário, composer, mídia, conexões, notificações, configurações e plan
 - roxo como ação/seleção;
 - ausência de sombra e gradiente decorativo.
 
-Em Conexões, cada rede é conteúdo primário: o catálogo desktop usa quatro colunas, cards de
-`160px`, tile de `64px` com logo de `40px` e nome em `18px/500`. Contas conectadas usam três
-colunas, tile de `56px` com logo de `36px`, plataforma no primeiro nível e conta no segundo. As
-cores oficiais ficam restritas ao arquivo do logo — o card continua branco e neutro.
+Em Conexões, cada rede é conteúdo primário: o catálogo desktop usa quatro colunas e cards de
+`144px`; o logo oficial fica direto sobre a superfície neutra, com `56px`, sem tile/card aninhado,
+e o nome usa `18px/500`. Contas conectadas usam três colunas, tile de `56px` com logo de `36px`,
+plataforma no primeiro nível e conta no segundo. As cores oficiais ficam restritas ao arquivo do
+logo — o card continua branco e neutro.
 
 Autenticação, onboarding, aprovação pública e previews de provider mantêm exceções documentadas de
 composição e tipografia, mas continuam usando os mesmos tokens de cor e geometria onde aplicável.

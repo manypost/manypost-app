@@ -94,6 +94,10 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
   colunas e também receberam marca maior. Os chips do Quadro seguem compactos para não disputar
   leitura com o conteúdo da publicação. OpenSpec: `adopt-white-lilac-dashboard-system`.
 
+- **O catálogo de redes removeu o card aninhado atrás dos logos.** O logo agora ocupa 56px direto
+  sobre o card neutro, enquanto o card externo foi reduzido de 160px para 144px. OpenSpec:
+  `adopt-white-lilac-dashboard-system`.
+
 - **Brand v2.0: o dashboard adotou o sistema branco/lilás aprovado.** O shell autenticado agora
   usa main `#FDFDFD`, sidebar cinza-preta 181/64 e topbar funcional de 59px no desktop e mobile.
   Inter compacta substitui títulos display no produto; cards usam bordas finas e raios por função;

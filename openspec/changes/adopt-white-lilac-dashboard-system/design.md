@@ -124,6 +124,11 @@ columns with a 56px tile and a 36px mark. The larger rhythm is intentionally res
 network-selection surface; post cards keep compact channel chips so publication content remains
 primary.
 
+The provider tile is intentionally removed from the connectable catalog after visual review: the
+official logo itself grows to 56px and sits directly on the neutral card, while the outer card
+reduces to 144px. This avoids the logo reading as a card inside another card. Connected accounts
+retain their smaller tile because it separates a provider mark from account status and actions.
+
 Alternative considered: tint every card with each provider's brand color. Rejected because it
 would fragment the white/lilac system, reduce text contrast and make multi-channel posts ambiguous.
 

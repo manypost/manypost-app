@@ -46,3 +46,9 @@
 - [x] 9.1 Escrever testes que falhem para catálogo em quatro colunas, cards de 160px e tiles maiores de provider; confirmar o RED.
 - [x] 9.2 Ampliar catálogo e contas conectadas usando o espaço disponível sem alterar os chips compactos do Quadro; confirmar o GREEN.
 - [x] 9.3 Atualizar contrato visual e changelog, executar validações relevantes, commitar, enviar a branch e redeployar no Coolify sem sincronizar ambiente.
+
+## 10. Hierarquia sem card aninhado no catálogo
+
+- [x] 10.1 Escrever teste que falhe para logo direto de 56px, sem tile de fundo, e card externo de 144px; confirmar o RED.
+- [x] 10.2 Remover o tile aninhado do catálogo e ajustar a escala do card externo sem alterar contas conectadas; confirmar o GREEN.
+- [x] 10.3 Atualizar contrato visual e changelog, executar validações relevantes, commitar, enviar a branch e redeployar no Coolify sem sincronizar ambiente.
