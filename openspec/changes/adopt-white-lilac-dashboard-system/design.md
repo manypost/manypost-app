@@ -118,6 +118,12 @@ readable channel chips with a 16px provider mark and account label; multi-channe
 to two identities and a truthful overflow count. These elements remain solid, bordered and quiet:
 emphasis comes from size, hierarchy and authentic logos, not provider-colored card backgrounds.
 
+At desktop width, the connectable catalog uses four columns rather than five so each card can hold a
+160px-tall composition with a 64px provider tile and a 40px mark. Connected accounts use three
+columns with a 56px tile and a 36px mark. The larger rhythm is intentionally reserved for this
+network-selection surface; post cards keep compact channel chips so publication content remains
+primary.
+
 Alternative considered: tint every card with each provider's brand color. Rejected because it
 would fragment the white/lilac system, reduce text contrast and make multi-channel posts ambiguous.
 

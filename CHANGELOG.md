@@ -89,6 +89,11 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
   As superfícies continuam brancas e neutras; as cores oficiais permanecem restritas aos logos.
   OpenSpec: `adopt-white-lilac-dashboard-system`.
 
+- **O catálogo de redes passou a usar o espaço do desktop.** A grade de conexão fica em quatro
+  colunas, com cards de 160px, tiles de 64px e logos de 40px; contas conectadas ficam em três
+  colunas e também receberam marca maior. Os chips do Quadro seguem compactos para não disputar
+  leitura com o conteúdo da publicação. OpenSpec: `adopt-white-lilac-dashboard-system`.
+
 - **Brand v2.0: o dashboard adotou o sistema branco/lilás aprovado.** O shell autenticado agora
   usa main `#FDFDFD`, sidebar cinza-preta 181/64 e topbar funcional de 59px no desktop e mobile.
   Inter compacta substitui títulos display no produto; cards usam bordas finas e raios por função;

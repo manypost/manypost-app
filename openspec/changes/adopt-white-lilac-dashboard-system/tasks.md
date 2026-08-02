@@ -40,3 +40,9 @@
 - [x] 8.1 Escrever testes que falhem para identidade legível de provider/conta nos cards de Conexões e chips de canal no Quadro; confirmar o RED.
 - [x] 8.2 Implementar a nova hierarquia de identidade social sem alterar ações, dados ou superfícies neutras; confirmar o GREEN.
 - [x] 8.3 Atualizar o contrato visual e changelog, executar validações relevantes, commitar, enviar a branch e redeployar no Coolify sem sincronizar ambiente.
+
+## 9. Escala ampliada para seleção de rede
+
+- [x] 9.1 Escrever testes que falhem para catálogo em quatro colunas, cards de 160px e tiles maiores de provider; confirmar o RED.
+- [x] 9.2 Ampliar catálogo e contas conectadas usando o espaço disponível sem alterar os chips compactos do Quadro; confirmar o GREEN.
+- [x] 9.3 Atualizar contrato visual e changelog, executar validações relevantes, commitar, enviar a branch e redeployar no Coolify sem sincronizar ambiente.
