@@ -128,6 +128,32 @@ describe('card: estrutura antes de estética', () => {
     expect(renderCard({ origin: 'WEB' })).not.toContain('>WEB<');
   });
 
+  test('a rede e a conta são identidade legível, não um selo minúsculo no avatar', () => {
+    const html = renderCard({
+      items: [item({ channel: { provider: 'x', name: 'manypost', username: '@manypost', avatarUrl: null } })],
+    });
+
+    expect(html).toContain('data-channel-identity="true"');
+    expect(html).toContain('/social/X.svg');
+    expect(html).toContain('@manypost');
+    expect(html).toContain('size-4');
+    expect(html).not.toContain('-space-x-1.5');
+  });
+
+  test('grupos multicanal mostram duas identidades e uma contagem fiel do restante', () => {
+    const items = [
+      item({ id: 'p1', channel: { provider: 'instagram', name: 'Insta', username: '@um', avatarUrl: null } }),
+      item({ id: 'p2', channel: { provider: 'linkedin', name: 'LinkedIn', username: '@dois', avatarUrl: null } }),
+      item({ id: 'p3', channel: { provider: 'x', name: 'X', username: '@tres', avatarUrl: null } }),
+    ];
+    const html = renderCard({ items });
+
+    expect(html).toContain('@um');
+    expect(html).toContain('@dois');
+    expect(html).not.toContain('@tres');
+    expect(html).toContain('+1');
+  });
+
   test('post sem texto não renderiza uma linha em branco', () => {
     expect(renderCard({ text: '' })).toContain('…');
   });

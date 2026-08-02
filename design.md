@@ -376,6 +376,8 @@ O Quadro preserva as cinco colunas reais e todas as operações existentes.
 - data/status em `11px`, corpo em `13px`;
 - preview real opcional; sem mídia não reserva caixa vazia;
 - ações, seleção, canal, retry e erro continuam visíveis;
+- canal é identidade primária: chip com logo oficial de `16px` e conta legível, nunca apenas um selo minúsculo sobre avatar;
+- grupos multicanal mostram até duas identidades e uma contagem real do restante;
 - vermelho é semântico apenas em falhas e ação destrutiva;
 - card publicado não promete arraste;
 - nenhuma capacidade `n / limite` é mostrada porque esse dado não existe.
@@ -402,6 +404,10 @@ Calendário, composer, mídia, conexões, notificações, configurações e plan
 - bordas claras;
 - roxo como ação/seleção;
 - ausência de sombra e gradiente decorativo.
+
+Em Conexões, cada rede é conteúdo primário: o catálogo usa tile de `48px` com logo de `28px` e nome
+em `15px/500`; contas conectadas mantêm a plataforma no primeiro nível e a conta no segundo. As
+cores oficiais ficam restritas ao arquivo do logo — o card continua branco e neutro.
 
 Autenticação, onboarding, aprovação pública e previews de provider mantêm exceções documentadas de
 composição e tipografia, mas continuam usando os mesmos tokens de cor e geometria onde aplicável.

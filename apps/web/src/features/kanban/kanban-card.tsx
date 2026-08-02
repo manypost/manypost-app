@@ -3,7 +3,6 @@
 import { useDraggable } from '@dnd-kit/core';
 import { MoreHorizontal, Play } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -12,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { PROVIDER_ICONS } from '@/features/channels/provider-icon';
+import { ProviderIcon } from '@/features/channels/provider-icon';
 import { cn } from '@/lib/utils';
 import { acoesDoCard, type AcaoDoCard, type GroupCard } from './logic';
 import type { Densidade } from './use-kanban-prefs';
@@ -179,39 +178,37 @@ export function KanbanCard({
         ) : null}
       </button>
 
-      <div className="flex items-center gap-2">
-        {/* avatares dos canais empilhados */}
-        <span className="flex -space-x-1.5">
-          {card.items.slice(0, 4).map((item) => (
-            <span key={item.id} className="relative">
-              <Avatar className={cn('border border-surface', compacta ? 'size-5' : 'size-6')}>
-                {item.channel.avatarUrl ? <AvatarImage src={item.channel.avatarUrl} alt="" /> : null}
-                <AvatarFallback className="text-axis">
-                  {(item.channel.name ?? item.channel.provider).charAt(0)}
-                </AvatarFallback>
-              </Avatar>
-              {PROVIDER_ICONS[item.channel.provider] ? (
-                <img
-                  src={PROVIDER_ICONS[item.channel.provider]}
-                  alt=""
-                  aria-hidden
-                  className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-key"
+      <div className="flex items-end justify-between gap-2 border-t border-line pt-2">
+        <span className="flex min-w-0 flex-wrap gap-1">
+          {card.items.slice(0, 2).map((item) => {
+            const account = item.channel.username
+              ? `@${item.channel.username.replace(/^@/, '')}`
+              : (item.channel.name ?? item.channel.provider);
+            return (
+              <span
+                key={item.id}
+                data-channel-identity="true"
+                aria-label={`${item.channel.provider}: ${account}`}
+                className="flex min-w-0 max-w-full items-center gap-1 rounded-control border border-line bg-main px-2 py-1"
+              >
+                <ProviderIcon
+                  provider={item.channel.provider}
+                  name={item.channel.name ?? item.channel.provider}
+                  className="size-4"
                 />
-              ) : null}
-            </span>
-          ))}
-          {card.items.length > 4 ? (
+                <span className="max-w-20 truncate text-meta font-medium text-ink">{account}</span>
+              </span>
+            );
+          })}
+          {card.items.length > 2 ? (
             <span
-              className={cn(
-                'grid place-items-center rounded-full border border-surface bg-surface-2 text-axis font-semibold text-graphite',
-                compacta ? 'size-5' : 'size-6',
-              )}
+              className="grid min-h-7 min-w-7 place-items-center rounded-control border border-line bg-surface-2 px-1 text-meta font-medium text-graphite"
             >
-              +{card.items.length - 4}
+              +{card.items.length - 2}
             </span>
           ) : null}
         </span>
-        <span className="ml-auto flex items-center gap-2">
+        <span className="flex shrink-0 items-center gap-2">
           {card.origin !== 'WEB' ? <Badge className="px-1.5 py-0.5">{card.origin}</Badge> : null}
           {card.column === 'failed' ? (
             <button

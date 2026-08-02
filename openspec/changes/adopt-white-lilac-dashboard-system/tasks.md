@@ -34,3 +34,9 @@
 - [x] 7.1 Executar testes focados, `bun run check`, `bun run db:check`, `bun run build:web`, `bun run spec:validate`, `git diff --check` e validação Docker aplicável.
 - [x] 7.2 Inspecionar a interface em desktop e mobile no navegador, verificando regressões visuais, console e fluxos públicos possíveis sem autenticação.
 - [x] 7.3 Criar commit Conventional Commit na branch atual, enviar a branch e implantar no Coolify sem sincronizar ambiente, confirmando commit e saúde operacional.
+
+## 8. Ênfase das redes sociais
+
+- [x] 8.1 Escrever testes que falhem para identidade legível de provider/conta nos cards de Conexões e chips de canal no Quadro; confirmar o RED.
+- [x] 8.2 Implementar a nova hierarquia de identidade social sem alterar ações, dados ou superfícies neutras; confirmar o GREEN.
+- [x] 8.3 Atualizar o contrato visual e changelog, executar validações relevantes, commitar, enviar a branch e redeployar no Coolify sem sincronizar ambiente.

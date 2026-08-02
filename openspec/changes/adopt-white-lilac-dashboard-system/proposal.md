@@ -15,6 +15,8 @@ desktop shell that feels lighter while keeping the sidebar in a deliberately gra
   explicitly recompose the Home and Quadro as the highest-information surfaces.
 - Preserve real Manypost data, operations, accessibility and URL behavior while changing visual
   hierarchy.
+- Give connected social networks clear visual ownership in connection cards and post cards, using
+  their real provider marks and account labels instead of tiny decorative overlays.
 
 ## Non-goals
 
@@ -38,6 +40,8 @@ desktop shell that feels lighter while keeping the sidebar in a deliberately gra
   and teal accents, fine borders, two-series graph treatment and tooltip-only shadow allowance.
 - Recompose Home and Quadro using aligned analytical regions, low-noise cards, compact headers and
   a denser right-rail-ready content grid without changing their data or operations.
+- Promote provider identity in Conexões and in the Quadro card footer through larger brand marks,
+  readable platform/account labels and bounded overflow for multi-channel groups.
 - Update `design.md`, brand documentation, executable visual checks and regression tests so one
   normative layer describes the shipped product.
 

@@ -109,6 +109,18 @@ no reason to touch contracts, core, repositories, providers or API. No generated
 file changes. Documentation changes belong to root `design.md`, `docs/brand/`, `CHANGELOG.md` and the
 living OpenSpec change.
 
+### 10. Provider identity is content, not decoration
+
+Social-provider marks keep their official third-party colors and become the primary visual anchor
+inside connection catalog cards. Connected-account cards pair a clear provider tile with account
+identity instead of reducing the provider to a tiny avatar overlay. Quadro cards show compact,
+readable channel chips with a 16px provider mark and account label; multi-channel groups expose up
+to two identities and a truthful overflow count. These elements remain solid, bordered and quiet:
+emphasis comes from size, hierarchy and authentic logos, not provider-colored card backgrounds.
+
+Alternative considered: tint every card with each provider's brand color. Rejected because it
+would fragment the white/lilac system, reduce text contrast and make multi-channel posts ambiguous.
+
 ## Risks / Trade-offs
 
 - **[Dark sidebar diverges from the white reference]** → Treat it as an explicit token-level owner

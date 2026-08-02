@@ -82,6 +82,13 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Changed
 
+- **Redes sociais ganharam identidade visual explícita nos cards.** Em Conexões, o logotipo da
+  plataforma agora é a âncora de 48px e o nome da rede ocupa o primeiro nível, com a conta logo
+  abaixo. No Quadro, o rodapé do post deixou de usar avatares sobrepostos com selos minúsculos e
+  passou a mostrar até dois chips com logo e conta, além da contagem real dos canais restantes.
+  As superfícies continuam brancas e neutras; as cores oficiais permanecem restritas aos logos.
+  OpenSpec: `adopt-white-lilac-dashboard-system`.
+
 - **Brand v2.0: o dashboard adotou o sistema branco/lilás aprovado.** O shell autenticado agora
   usa main `#FDFDFD`, sidebar cinza-preta 181/64 e topbar funcional de 59px no desktop e mobile.
   Inter compacta substitui títulos display no produto; cards usam bordas finas e raios por função;

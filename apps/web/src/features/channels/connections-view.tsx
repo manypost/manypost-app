@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
@@ -32,7 +31,7 @@ import { cn } from '@/lib/utils';
 import { ConnectDialog } from './connect-dialog';
 import { useChannels, useConnectChannel, useDisconnectChannel, useProviders } from './hooks';
 import { connectionFields } from './provider-fields';
-import { PROVIDER_ICONS, ProviderIcon } from './provider-icon';
+import { ProviderIcon } from './provider-icon';
 import { ProviderNoteHelp } from './provider-note';
 import { UPCOMING_PROVIDERS } from './upcoming';
 import { useOauthFlow } from './use-oauth-flow';
@@ -139,33 +138,27 @@ export function ConnectionsView() {
               const provider = providers.data?.find((p) => p.id === ch.provider);
               return (
                 <li key={ch.id}>
-                  <Card className="group flex items-center gap-3 p-3 transition-colors duration-200 hover:border-accent/40 hover:bg-surface-2/30">
-                    <span className="relative shrink-0">
-                      <Avatar className="size-10">
-                        {ch.avatarUrl ? <AvatarImage src={ch.avatarUrl} alt="" /> : null}
-                        <AvatarFallback>{(ch.name ?? ch.username ?? '?').charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      {PROVIDER_ICONS[ch.provider] ? (
-                        <img
-                          src={PROVIDER_ICONS[ch.provider]}
-                          alt=""
-                          aria-hidden
-                          className="absolute -bottom-0.5 -right-0.5 size-4 rounded-sm border-2 border-surface bg-surface"
-                        />
-                      ) : null}
+                  <Card
+                    data-connected-provider
+                    className="group flex items-center gap-3 p-3 transition-colors duration-200 hover:border-accent/40 hover:bg-surface-2/30"
+                  >
+                    <span className="grid size-12 shrink-0 place-items-center rounded-control border border-line bg-main">
+                      <ProviderIcon
+                        provider={ch.provider}
+                        name={provider?.name ?? ch.provider}
+                        className="size-7"
+                      />
                     </span>
-                    
+
                     <div className="flex min-w-0 flex-1 flex-col justify-center">
                       <div className="flex items-center gap-2">
-                        <p className="truncate text-compact font-medium text-ink">
-                          {ch.name ?? ch.username ?? ch.id}
-                        </p>
+                        <p className="truncate text-panel font-medium text-ink">{provider?.name ?? ch.provider}</p>
                         <Badge variant={STATUS_VARIANT[ch.status] ?? 'neutral'} className="h-4 px-1 text-meta">
                           {t.has(`status.${ch.status}`) ? t(`status.${ch.status}`) : ch.status}
                         </Badge>
                       </div>
                       <p className="mt-0.5 truncate text-meta text-graphite">
-                        {provider?.name ?? ch.provider}
+                        {ch.name ?? ch.id}
                         {ch.username ? ` · @${ch.username.replace(/^@/, '')}` : ''}
                       </p>
                     </div>
@@ -234,21 +227,22 @@ export function ConnectionsView() {
               return (
                 <li key={p.id} className="relative">
                   <button
+                    data-provider-card
                     type="button"
                     onClick={() => (locked ? router.push('/planos') : startConnect(p as ProviderInfo))}
                     disabled={connecting}
                     aria-label={t('connectTitle', { provider: p.name })}
                     className={cn(
-                      'group bg-surface flex h-full w-full items-center gap-3 rounded-lg border p-3 pr-8 text-left outline-none transition-colors duration-200',
+                      'group flex min-h-28 w-full flex-col items-start gap-3 rounded-card border bg-surface p-4 pr-8 text-left outline-none transition-colors duration-200',
                       'hover:border-accent/40 hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
                       'disabled:cursor-progress disabled:opacity-60',
                     )}
                   >
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-line bg-surface-2 transition-colors group-hover:bg-surface">
-                      <ProviderIcon provider={p.id} name={p.name} className="size-5" />
+                    <div className="flex size-12 shrink-0 items-center justify-center rounded-control border border-line bg-main transition-colors group-hover:bg-surface">
+                      <ProviderIcon provider={p.id} name={p.name} className="size-7" />
                     </div>
                     <div className="flex flex-1 flex-col overflow-hidden">
-                      <span className="flex items-center gap-1.5 truncate text-compact font-medium text-ink">
+                      <span className="flex items-center gap-2 truncate text-panel font-medium text-ink">
                         {p.name}
                         {locked ? (
                           <Lock className="size-3 shrink-0 text-accent" aria-hidden />

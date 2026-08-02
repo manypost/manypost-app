@@ -117,3 +117,20 @@ The system MUST preserve the reference's visual proportions responsively and MUS
 #### Scenario: Product runs on mobile
 - **WHEN** the viewport is below 768px
 - **THEN** content becomes one column where appropriate while colors, typography, borders and hierarchy remain consistent
+
+### Requirement: Social provider identity remains prominent and legible
+
+The system SHALL treat the real social provider and connected account as primary operational
+information in connection and publication cards. Provider marks SHALL be large enough to recognize
+at a glance and SHALL be paired with a readable platform or account label. Official logo colors MAY
+remain inside the provider asset, but persistent card surfaces MUST remain neutral.
+
+#### Scenario: A provider is available to connect
+- **WHEN** a provider catalog card renders
+- **THEN** its provider mark is the leading visual anchor and its provider name remains readable
+- **AND** the card does not use the provider brand color as its surface
+
+#### Scenario: A publication targets one or more channels
+- **WHEN** a Quadro card renders channel identity
+- **THEN** it shows compact labeled channel chips rather than only tiny overlapping avatars
+- **AND** groups with more identities than fit expose a truthful overflow count
