@@ -58,3 +58,9 @@
 - [x] 11.1 Escrever teste que falhe para cards de catálogo de 128px e logos diretos de 48px; confirmar o RED.
 - [x] 11.2 Reduzir apenas o catálogo de redes, preservando a identidade oficial sem restaurar um card aninhado; confirmar o GREEN.
 - [x] 11.3 Atualizar contrato visual e changelog, executar validações relevantes, commitar, enviar a branch e redeployar no Coolify sem sincronizar ambiente.
+
+## 12. Resumos operacionais no modelo leve da Home
+
+- [x] 12.1 Escrever teste que falhe para a composição clara do modelo 2 nos três resumos de hoje, sem variação fictícia; confirmar o RED.
+- [x] 12.2 Reestruturar os resumos com ícone pastel, valor, textura pontilhada e superfícies de estado claras, preservando dados e links reais; confirmar o GREEN.
+- [x] 12.3 Atualizar contrato visual e changelog, executar validações relevantes, commitar, enviar a branch e redeployar no Coolify sem sincronizar ambiente.

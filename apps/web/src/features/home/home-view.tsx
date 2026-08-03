@@ -240,9 +240,9 @@ export function HomeView() {
 
       {resumo.isPending ? (
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3" aria-hidden>
-          <Skeleton className="h-24 rounded-kpi" />
-          <Skeleton className="h-24 rounded-kpi" />
-          <Skeleton className="h-24 rounded-kpi" />
+          <Skeleton className="h-32 rounded-kpi" />
+          <Skeleton className="h-32 rounded-kpi" />
+          <Skeleton className="h-32 rounded-kpi" />
         </div>
       ) : resumo.data && !resumo.data.firstRun ? (
         <TodayBlock today={resumo.data.today} />

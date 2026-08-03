@@ -140,6 +140,8 @@ export function TodayBlock({ today }: { today: InsightsSummary['today'] }) {
       label: t('todayScheduledLabel'),
       icon: Clock3,
       tone: 'bg-kpi-lilac',
+      iconSurface: 'bg-accent-tint',
+      dotsTone: 'bg-accent/15',
       iconTone: 'text-accent',
       href: '/calendario',
     },
@@ -148,6 +150,8 @@ export function TodayBlock({ today }: { today: InsightsSummary['today'] }) {
       label: t('todayPublishedLabel'),
       icon: CircleCheckBig,
       tone: 'bg-kpi-blue',
+      iconSurface: 'bg-data-2-tint',
+      dotsTone: 'bg-data-2/15',
       iconTone: 'text-state-published',
       href: '/kanban?col=published',
     },
@@ -155,7 +159,9 @@ export function TodayBlock({ today }: { today: InsightsSummary['today'] }) {
       value: today.failed,
       label: t('todayFailedLabel'),
       icon: TriangleAlert,
-      tone: 'bg-kpi-lilac',
+      tone: 'bg-state-failed-tint/45',
+      iconSurface: 'bg-state-failed-tint',
+      dotsTone: 'bg-state-failed/12',
       iconTone: 'text-state-failed',
       href: '/kanban?col=failed',
     },
@@ -167,21 +173,32 @@ export function TodayBlock({ today }: { today: InsightsSummary['today'] }) {
         {t('todayTitle')}
       </h2>
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-        {metrics.map(({ value, label, icon: Icon, tone, iconTone, href }) => (
+        {metrics.map(({ value, label, icon: Icon, tone, iconSurface, dotsTone, iconTone, href }) => (
           <Link
             key={label}
             href={href}
             className={cn(
-              'relative min-h-24 cursor-pointer rounded-kpi p-5 outline-none transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+              'relative isolate flex min-h-32 cursor-pointer flex-col gap-3 overflow-hidden rounded-kpi p-4 outline-none transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
               tone,
             )}
           >
-            <span className="text-compact font-medium text-ink">{label}</span>
-            <p className="mt-2 text-figure font-medium tabular-nums tracking-[-0.02em] text-ink">
+            <span className="relative z-10 flex items-center gap-3 text-compact font-medium text-ink">
+              <span className={cn('grid size-12 shrink-0 place-items-center rounded-control', iconSurface)}>
+                <Icon className={cn('size-5', iconTone)} aria-hidden />
+              </span>
+              {label}
+            </span>
+            <p className="relative z-10 mt-auto text-figure font-medium tabular-nums tracking-[-0.02em] text-ink">
               {value}
             </p>
-            <span className="absolute right-4 top-4 grid size-[34px] place-items-center rounded-control bg-surface">
-              <Icon className={cn('size-[18px]', iconTone)} aria-hidden />
+            <span
+              data-today-dots
+              aria-hidden
+              className="absolute bottom-4 right-4 grid grid-cols-4 gap-2 opacity-70"
+            >
+              {Array.from({ length: 20 }, (_, index) => (
+                <span key={index} className={cn('size-1 rounded-full', dotsTone)} />
+              ))}
             </span>
           </Link>
         ))}

@@ -411,6 +411,11 @@ e o nome usa `18px/500`. Contas conectadas usam três colunas, tile de `56px` co
 plataforma no primeiro nível e conta no segundo. As cores oficiais ficam restritas ao arquivo do
 logo — o card continua branco e neutro.
 
+Na Home, os três resumos de hoje seguem a composição operacional clara: cards de `128px`, ícone
+pastel de `48px`, rótulo compacto, valor tabular e trama de pontos no canto inferior direito. Os
+tons são lilás para agendados, azul para publicados e rosa suave para falhas. Não exibir tendência
+ou percentual quando não houver uma comparação real disponível.
+
 Autenticação, onboarding, aprovação pública e previews de provider mantêm exceções documentadas de
 composição e tipografia, mas continuam usando os mesmos tokens de cor e geometria onde aplicável.
 

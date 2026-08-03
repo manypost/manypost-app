@@ -130,6 +130,14 @@ This keeps the mark as the leading visual anchor without the catalog consuming u
 space or reading as a card inside another card. Connected accounts retain their smaller tile because
 it separates a provider mark from account status and actions.
 
+### 11. Today summaries use the light operational composition
+
+The three real “today” summaries use the supplied light model: a 128px tinted surface, a 48px
+pastel icon tile, compact label, tabular operational count and a quiet dotted field anchored in the
+lower right. Scheduled is lilac, published is pale blue and failed is pale red. There is no trend
+percentage or miniature chart because the product does not calculate a comparable historical delta;
+inventing `0%` would make the dashboard look informative while communicating no real fact.
+
 Alternative considered: tint every card with each provider's brand color. Rejected because it
 would fragment the white/lilac system, reduce text contrast and make multi-channel posts ambiguous.
 

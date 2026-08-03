@@ -28,6 +28,17 @@ describe('Home no sistema branco/lilás', () => {
     expect(blocks).toContain('grid gap-3 md:grid-cols-2 lg:grid-cols-3');
     expect(blocks).not.toContain('sm:grid-cols-3');
     expect(view).toContain('grid gap-3 md:grid-cols-2 lg:grid-cols-3');
-    expect(view.match(/h-24 rounded-kpi/g)?.length).toBe(3);
+    expect(view.match(/h-32 rounded-kpi/g)?.length).toBe(3);
+  });
+
+  test('resumos de hoje seguem a composição leve do modelo 2, sem inventar variação', async () => {
+    const blocks = await source('./home-blocks.tsx');
+
+    expect(blocks).toContain('min-h-32');
+    expect(blocks).toContain('size-12');
+    expect(blocks).toContain('data-today-dots');
+    expect(blocks).toContain('bg-kpi-lilac');
+    expect(blocks).toContain('bg-kpi-blue');
+    expect(blocks).not.toContain('0%');
   });
 });
