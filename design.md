@@ -406,7 +406,7 @@ Calendário, composer, mídia, conexões, notificações, configurações e plan
 - ausência de sombra e gradiente decorativo.
 
 Em Conexões, cada rede é conteúdo primário: o catálogo desktop usa quatro colunas e cards de
-`144px`; o logo oficial fica direto sobre a superfície neutra, com `56px`, sem tile/card aninhado,
+`128px`; o logo oficial fica direto sobre a superfície neutra, com `48px`, sem tile/card aninhado,
 e o nome usa `18px/500`. Contas conectadas usam três colunas, tile de `56px` com logo de `36px`,
 plataforma no primeiro nível e conta no segundo. As cores oficiais ficam restritas ao arquivo do
 logo — o card continua branco e neutro.

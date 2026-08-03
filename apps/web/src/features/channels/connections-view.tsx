@@ -200,10 +200,10 @@ export function ConnectionsView() {
         </h2>
         {providers.isPending ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            <Skeleton className="h-40 rounded-card" />
-            <Skeleton className="h-40 rounded-card" />
-            <Skeleton className="h-40 rounded-card" />
-            <Skeleton className="h-40 rounded-card" />
+            <Skeleton className="h-32 rounded-card" />
+            <Skeleton className="h-32 rounded-card" />
+            <Skeleton className="h-32 rounded-card" />
+            <Skeleton className="h-32 rounded-card" />
           </div>
         ) : providers.isError ? (
           <Alert variant="destructive">
@@ -234,13 +234,13 @@ export function ConnectionsView() {
                     disabled={connecting}
                     aria-label={t('connectTitle', { provider: p.name })}
                     className={cn(
-                      'group flex min-h-36 w-full flex-col items-start gap-3 rounded-card border bg-surface p-4 pr-10 text-left outline-none transition-colors duration-200',
+                      'group flex min-h-32 w-full flex-col items-start gap-3 rounded-card border bg-surface p-4 pr-10 text-left outline-none transition-colors duration-200',
                       'hover:border-accent/40 hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
                       'disabled:cursor-progress disabled:opacity-60',
                     )}
                   >
-                    <span data-provider-mark className="grid size-14 shrink-0 place-items-center">
-                      <ProviderIcon provider={p.id} name={p.name} className="size-14" />
+                    <span data-provider-mark className="grid size-12 shrink-0 place-items-center">
+                      <ProviderIcon provider={p.id} name={p.name} className="size-12" />
                     </span>
                     <div className="mt-auto flex w-full flex-col overflow-hidden">
                       <span className="flex items-center gap-2 truncate text-title font-medium text-ink">

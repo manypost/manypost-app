@@ -52,3 +52,9 @@
 - [x] 10.1 Escrever teste que falhe para logo direto de 56px, sem tile de fundo, e card externo de 144px; confirmar o RED.
 - [x] 10.2 Remover o tile aninhado do catálogo e ajustar a escala do card externo sem alterar contas conectadas; confirmar o GREEN.
 - [x] 10.3 Atualizar contrato visual e changelog, executar validações relevantes, commitar, enviar a branch e redeployar no Coolify sem sincronizar ambiente.
+
+## 11. Escala compacta do catálogo de redes
+
+- [x] 11.1 Escrever teste que falhe para cards de catálogo de 128px e logos diretos de 48px; confirmar o RED.
+- [x] 11.2 Reduzir apenas o catálogo de redes, preservando a identidade oficial sem restaurar um card aninhado; confirmar o GREEN.
+- [x] 11.3 Atualizar contrato visual e changelog, executar validações relevantes, commitar, enviar a branch e redeployar no Coolify sem sincronizar ambiente.

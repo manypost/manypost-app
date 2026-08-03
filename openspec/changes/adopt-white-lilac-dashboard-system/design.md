@@ -125,9 +125,10 @@ network-selection surface; post cards keep compact channel chips so publication 
 primary.
 
 The provider tile is intentionally removed from the connectable catalog after visual review: the
-official logo itself grows to 56px and sits directly on the neutral card, while the outer card
-reduces to 144px. This avoids the logo reading as a card inside another card. Connected accounts
-retain their smaller tile because it separates a provider mark from account status and actions.
+official logo itself sits directly on the neutral card at 48px, while the outer card is 128px.
+This keeps the mark as the leading visual anchor without the catalog consuming unnecessary vertical
+space or reading as a card inside another card. Connected accounts retain their smaller tile because
+it separates a provider mark from account status and actions.
 
 Alternative considered: tint every card with each provider's brand color. Rejected because it
 would fragment the white/lilac system, reduce text contrast and make multi-channel posts ambiguous.

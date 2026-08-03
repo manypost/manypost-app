@@ -98,6 +98,10 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
   sobre o card neutro, enquanto o card externo foi reduzido de 160px para 144px. OpenSpec:
   `adopt-white-lilac-dashboard-system`.
 
+- **O catálogo de redes ficou mais compacto.** Os cards de conexão passaram de 144px para 128px e
+  os logos diretos de 56px para 48px, preservando a leitura imediata da plataforma sem ocupar altura
+  demais. OpenSpec: `adopt-white-lilac-dashboard-system`.
+
 - **Brand v2.0: o dashboard adotou o sistema branco/lilás aprovado.** O shell autenticado agora
   usa main `#FDFDFD`, sidebar cinza-preta 181/64 e topbar funcional de 59px no desktop e mobile.
   Inter compacta substitui títulos display no produto; cards usam bordas finas e raios por função;
