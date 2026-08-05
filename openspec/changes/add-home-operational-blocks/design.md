@@ -33,10 +33,11 @@ endpoint would have to reproduce that rule in SQL, and two implementations of th
 Sharing the *client* query means the Home and the board cannot disagree, because they are literally
 reading the same cached result.
 
-The cost is that the Home issues six reads instead of three. This is mitigated by: `staleTime` on
-each; the pipeline read being shared with the board, so navigating between them costs nothing; and
-no `refetchInterval` on the Home, which refreshes on realtime events and window focus instead of on
-a timer.
+The cost is that the Home issues six reads instead of three. This is mitigated by `staleTime` on
+each and by the pipeline read being shared with the board, so navigating between them costs nothing.
+Realtime remains the primary freshness path. A bounded 60-second `refetchInterval` is also required
+for Home reads because Redis is optional at the queue boundary: without pub/sub the SSE connection
+keeps alive but carries no delivery events, and `staleTime` alone does not schedule a refetch.
 
 ## Ordering recent activity: why `publishedAt ?? updatedAt`, and what it costs
 
@@ -98,12 +99,13 @@ per-block keys.
 
 The composer persists its draft under `mp-composer-draft` via zustand's `persist`, with no notion of
 when it was last touched. The resumable-drafts block must say how long ago the draft was edited —
-"you left something unfinished" without a time is not actionable. A single `updatedAt: number` is
-added, written by the content setters only, so that opening the composer without typing does not
-make a stale draft look fresh.
+"you left something unfinished" without a time is not actionable. A single
+`contentUpdatedAt: number` is added, written by every setter that materially changes the draft
+(text, overrides, channel settings, main/thread media and thread structure), so that opening the
+composer without editing does not make a stale draft look fresh.
 
-Migration of persisted state: the field is optional on read. An existing stored draft without it
-renders without the relative time rather than failing to load.
+Migration of persisted state: an existing stored draft without the field still loads, but remains
+absent from the Home until its next material edit supplies a truthful timestamp.
 
 ## Observability and security
 

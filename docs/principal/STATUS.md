@@ -10,6 +10,20 @@
 > **Como manter:** ao fechar uma fatia, atualize as seções abaixo **e** abra uma entrada nova no
 > topo do changelog. Este arquivo é sobre o presente; o changelog é sobre o passado.
 >
+> **Atualização — fechamento auditado da Home v2 (2026-08-05):** a revisão encontrou que a promessa
+> de falha por bloco estava incompleta: o erro do summary ainda apagava a grade e pending/error das
+> demais fontes podiam sumir da própria ordem. A composição agora mantém cada fonte independente,
+> oferece retry local e usa polling de 60 s quando o SSE não entrega eventos. Próximas publicações
+> mostram estado sem card aninhado; drafts mostram idade e reconhecem override/settings/mídia de
+> thread; notificações novas e históricas abrem conteúdo legível/editável no detalhe existente no
+> Quadro, inclusive para rascunhos fora da janela do feed; atividade parcial
+> permanece visível; pipeline truncado assume contagens parciais; o relógio avança a cada minuto; e
+> controles da Home respeitam 32px. Provas desta árvore: **107 regressões da revisão** e **174 testes
+> focados** anteriores, `bun run check` com **1359 passes e 18 skips de Postgres**,
+> fronteiras/providers/brand verdes, Drizzle válido, build de **19 páginas**,
+> OpenSpec **30/30** e diff check limpo. O E2E de insights não foi repetido por ausência de stack
+> descartável, e a tela autenticada continua sem smoke local; por isso a mudança permanece aberta.
+>
 > **Atualização — brand v1.5 (2026-07-31):** o mock aprovado do Quadro virou contrato e
 > implementação: canvas quente, rail escuro 208/64, topbar só mobile, títulos editoriais, largura
 > ampla e cinco lanes abertas. Cards usam preview aditivo real do feed (imagem 4:3, tile de vídeo ou

@@ -119,9 +119,14 @@ export const useComposerStore = create<ComposerState>()(
           if (s.channelIds.includes(id)) {
             const { [id]: _, ...overrides } = s.overrides;
             const { [id]: __, ...channelSettings } = s.channelSettings;
-            return { channelIds: s.channelIds.filter((c) => c !== id), overrides, channelSettings };
+            return {
+              channelIds: s.channelIds.filter((c) => c !== id),
+              overrides,
+              channelSettings,
+              contentUpdatedAt: Date.now(),
+            };
           }
-          return { channelIds: [...s.channelIds, id] };
+          return { channelIds: [...s.channelIds, id], contentUpdatedAt: Date.now() };
         }),
       setOverride: (id, text) =>
         set((s) => ({ overrides: { ...s.overrides, [id]: text }, contentUpdatedAt: Date.now() })),
@@ -133,12 +138,12 @@ export const useComposerStore = create<ComposerState>()(
           const channelSettings = { ...s.channelSettings };
           if (Object.keys(current).length === 0) delete channelSettings[id];
           else channelSettings[id] = current;
-          return { channelSettings };
+          return { channelSettings, contentUpdatedAt: Date.now() };
         }),
       clearOverride: (id) =>
         set((s) => {
           const { [id]: _, ...overrides } = s.overrides;
-          return { overrides };
+          return { overrides, contentUpdatedAt: Date.now() };
         }),
       toggleMedia: (id) =>
         set((s) => ({
@@ -147,10 +152,12 @@ export const useComposerStore = create<ComposerState>()(
             : [...s.mediaIds, id],
           contentUpdatedAt: Date.now(),
         })),
-      removeMedia: (id) => set((s) => ({ mediaIds: s.mediaIds.filter((m) => m !== id) })),
+      removeMedia: (id) =>
+        set((s) => ({ mediaIds: s.mediaIds.filter((m) => m !== id), contentUpdatedAt: Date.now() })),
       addThreadItem: () =>
         set((s) => ({
           thread: [...s.thread, { key: newKey(), text: '', delaySec: 0, mediaIds: [] }],
+          contentUpdatedAt: Date.now(),
         })),
       setThreadText: (key, text) =>
         set((s) => ({
@@ -160,6 +167,7 @@ export const useComposerStore = create<ComposerState>()(
       setThreadDelay: (key, delaySec) =>
         set((s) => ({
           thread: s.thread.map((item) => (item.key === key ? { ...item, delaySec } : item)),
+          contentUpdatedAt: Date.now(),
         })),
       toggleThreadMedia: (key, mediaId) =>
         set((s) => ({
@@ -173,9 +181,13 @@ export const useComposerStore = create<ComposerState>()(
                 }
               : item,
           ),
+          contentUpdatedAt: Date.now(),
         })),
       removeThreadItem: (key) =>
-        set((s) => ({ thread: s.thread.filter((item) => item.key !== key) })),
+        set((s) => ({
+          thread: s.thread.filter((item) => item.key !== key),
+          contentUpdatedAt: Date.now(),
+        })),
       setMode: (mode) => set({ mode }),
       setPublishAtLocal: (publishAtLocal) => set({ publishAtLocal }),
       setRequireApproval: (requireApproval) => set({ requireApproval }),

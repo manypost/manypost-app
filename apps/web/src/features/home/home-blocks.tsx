@@ -117,7 +117,7 @@ export function AttentionBlock({ attention }: { attention: InsightsSummary['atte
               className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 py-2 first:pt-0 last:pb-0"
             >
               <span className="min-w-0 truncate text-compact text-ink">{textoDaLinha(l)}</span>
-              <Button asChild size="sm" variant="outline" className="h-7 shrink-0 cursor-pointer px-2.5 text-meta">
+              <Button asChild size="sm" variant="outline" className="shrink-0 cursor-pointer">
                 <Link href={l.href}>{ctaDaLinha(l)}</Link>
               </Button>
             </li>
@@ -285,7 +285,7 @@ export function UsageBlock({
     <Card
       title={t('usageTitle')}
       action={
-        <Button asChild size="sm" variant="ghost" className="h-7 cursor-pointer px-2 text-meta">
+        <Button asChild size="sm" variant="ghost" className="cursor-pointer">
           <Link href="/planos">{t('seePlans')}</Link>
         </Button>
       }

@@ -5,6 +5,7 @@ import messages from '@/messages/pt-BR.json';
 import type { GroupCard } from '@/features/kanban/logic';
 import {
   ActivityBlock,
+  BlocoAssincrono,
   DraftsBlock,
   NextActionBlock,
   PipelineBlock,
@@ -98,6 +99,24 @@ describe('próximas publicações', () => {
     expect(html).toContain('conteúdo agendado');
   });
 
+  test('mostra explicitamente o estado agendado prometido pelo contrato', () => {
+    expect(render(<UpcomingBlock items={[item()]} onOpen={noop} />)).toContain('Agendado');
+  });
+
+  test('sucesso assíncrono mantém exatamente um cartão e um título', () => {
+    const html = render(
+      <BlocoAssincrono
+        titulo="Próximas publicações"
+        isPending={false}
+        isError={false}
+        onRetry={noop}
+      >
+        <UpcomingBlock items={[item()]} onOpen={noop} />
+      </BlocoAssincrono>,
+    );
+    expect((html.match(/Próximas publicações/g) ?? []).length).toBe(1);
+  });
+
   test('no máximo 5 entradas, e oferece o calendário para o resto', () => {
     const muitos = Array.from({ length: 12 }, (_, i) =>
       item({ id: `p${i}`, groupId: `g${i}`, text: `post ${i}` }),
@@ -159,6 +178,39 @@ describe('atividade recente', () => {
     expect(render(<ActivityBlock entradas={entradas} agora={AGORA} onOpen={noop} />)).toContain(
       'Post aprovado',
     );
+  });
+
+  test('notificação com destino é acionável', () => {
+    const entradas: EntradaDeAtividade[] = [
+      {
+        tipo: 'notification',
+        chave: 'n1',
+        title: 'Post aprovado',
+        link: '/notificacoes?open=n1',
+        em: AGORA.getTime(),
+      },
+    ];
+    expect(render(<ActivityBlock entradas={entradas} agora={AGORA} onOpen={noop} />)).toContain(
+      'href="/notificacoes?open=n1"',
+    );
+  });
+
+  test('mantém atividade disponível e avisa quando uma fonte falhou', () => {
+    const entradas: EntradaDeAtividade[] = [
+      { tipo: 'notification', chave: 'n1', title: 'Post aprovado', link: null, em: AGORA.getTime() },
+    ];
+    const html = render(
+      <ActivityBlock
+        entradas={entradas}
+        agora={AGORA}
+        onOpen={noop}
+        incompleta
+        onRetry={noop}
+      />,
+    );
+    expect(html).toContain('Algumas atividades não puderam ser carregadas');
+    expect(html).toContain('Post aprovado');
+    expect(html).toContain('Tentar de novo');
   });
 });
 
@@ -225,12 +277,27 @@ describe('rascunhos retomáveis', () => {
       <DraftsBlock
         local={{ texto: 'meio escrito', atualizadoEm: AGORA.getTime() }}
         servidor={[]}
+        agora={AGORA}
         onResumeLocal={noop}
         onDuplicate={noop}
         onApproval={noop}
       />,
     );
     expect(html).toContain('meio escrito');
+  });
+
+  test('rascunho local informa há quanto tempo foi editado', () => {
+    const html = render(
+      <DraftsBlock
+        local={{ texto: 'meio escrito', atualizadoEm: AGORA.getTime() - 2 * 60 * 60_000 }}
+        servidor={[]}
+        agora={AGORA}
+        onResumeLocal={noop}
+        onDuplicate={noop}
+        onApproval={noop}
+      />,
+    );
+    expect(html).toContain('Editado há 2 horas');
   });
 });
 
@@ -266,5 +333,11 @@ describe('pipeline', () => {
     const html = render(<PipelineBlock cards={[card()]} />);
     expect(html).not.toContain('cursor-grab');
     expect(html).not.toContain('type="checkbox"');
+  });
+
+  test('avisa quando as contagens vieram de um feed truncado', () => {
+    const html = render(<PipelineBlock cards={[card()]} truncado />);
+    expect(html).toContain('Mais de 1.000 itens');
+    expect(html).toContain('/kanban');
   });
 });

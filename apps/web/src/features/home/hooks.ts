@@ -36,6 +36,7 @@ export function useInsightsSummary() {
   return useQuery({
     queryKey: ['insights', 'summary', timezone],
     staleTime: 20_000,
+    refetchInterval: 60_000,
     refetchOnWindowFocus: true,
     queryFn: async () => {
       const { data, error } = await api.GET('/v1/insights/summary', {
@@ -58,6 +59,7 @@ export function useUpcomingPublications() {
   return useQuery({
     queryKey: ['publications', 'upcoming'],
     staleTime: 20_000,
+    refetchInterval: 60_000,
     queryFn: async () => {
       const { data, error } = await api.GET('/v1/publications', {
         params: {
@@ -81,6 +83,7 @@ export function useDraftGroups() {
   return useQuery({
     queryKey: ['publications', 'drafts'],
     staleTime: 60_000,
+    refetchInterval: 60_000,
     queryFn: async () => {
       const { data, error } = await api.GET('/v1/publications', {
         params: { query: { state: 'DRAFT', limit: '50' } },

@@ -2,7 +2,7 @@
 
 import { PenSquare } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
@@ -42,8 +42,15 @@ import {
   proximaAcao,
   resumoDoRascunhoLocal,
   type BlocoId,
+  type EstadoDeFonte,
   type EstadoDaHome,
 } from './logic';
+
+const estadoDaFonte = (isPending: boolean, isError: boolean, hasContent: boolean): EstadoDeFonte => {
+  if (isPending) return 'pending';
+  if (isError) return 'error';
+  return hasContent ? 'ready' : 'empty';
+};
 
 /**
  * Tela inicial (SPEC home-operational-overview).
@@ -72,9 +79,15 @@ export function HomeView() {
   const upcoming = useUpcomingPublications();
   const drafts = useDraftGroups();
   const notifications = useNotifications();
-  const pipeline = usePipelineFeed(30);
+  const pipeline = usePipelineFeed(30, { refetchInterval: 60_000 });
 
   const [openGroupId, setOpenGroupId] = useState<string | null>(null);
+  const [agora, setAgora] = useState(() => new Date());
+
+  useEffect(() => {
+    const intervalo = setInterval(() => setAgora(new Date()), 60_000);
+    return () => clearInterval(intervalo);
+  }, []);
 
   const nome = primeiroNome(me.data?.user?.name);
   const saudacao = t(
@@ -84,7 +97,7 @@ export function HomeView() {
         afternoon: 'greetingAfternoon',
         evening: 'greetingEvening',
       } as const
-    )[periodoDoDia(new Date().getHours())],
+    )[periodoDoDia(agora.getHours())],
   );
 
   const plano = capabilities.data?.plan;
@@ -100,13 +113,13 @@ export function HomeView() {
   const rascunhoLocal = useComposerStore((s) =>
     resumoDoRascunhoLocal({
       text: s.text,
+      overrides: s.overrides,
+      channelSettings: s.channelSettings,
       thread: s.thread,
       mediaIds: s.mediaIds,
       contentUpdatedAt: s.contentUpdatedAt,
     }),
   );
-
-  const agora = useMemo(() => new Date(), []);
 
   const atividade = useMemo(
     () => atividadeRecente(pipeline.data?.items ?? [], notifications.data ?? [], agora),
@@ -131,7 +144,26 @@ export function HomeView() {
       }
     : null;
 
-  const ordem = estado ? ordemDosBlocos(estado) : null;
+  const fontes = {
+    upcoming: estadoDaFonte(upcoming.isPending, upcoming.isError, (upcoming.data?.length ?? 0) > 0),
+    drafts: estadoDaFonte(
+      drafts.isPending,
+      drafts.isError,
+      Boolean(rascunhoLocal) || (drafts.data?.length ?? 0) > 0,
+    ),
+    pipeline: estadoDaFonte(pipeline.isPending, pipeline.isError, cardsDoPipeline.length > 0),
+    activity: estadoDaFonte(
+      pipeline.isPending || notifications.isPending,
+      pipeline.isError || notifications.isError,
+      atividade.length > 0,
+    ),
+  } as const;
+
+  const ordem = ordemDosBlocos(estado, fontes);
+  const atividadeSemConteudo = atividade.length === 0;
+  const atividadePendente = pipeline.isPending || notifications.isPending;
+  const atividadeComErro = pipeline.isError || notifications.isError;
+  const atividadeIncompleta = !atividadeSemConteudo && atividadeComErro;
 
   const abrirAprovacao = (groupId: string) => {
     setOpenGroupId(groupId);
@@ -146,8 +178,6 @@ export function HomeView() {
   }, [cardsDoPipeline, openGroupId, upcoming.data, drafts.data]);
 
   const bloco = (id: BlocoId): React.ReactNode => {
-    if (!estado || !resumo.data) return null;
-
     const envolver = (node: React.ReactNode) =>
       node ? (
         <div key={id} className="contents">
@@ -157,13 +187,15 @@ export function HomeView() {
 
     switch (id) {
       case 'firstRun':
-        return envolver(
-          <FirstRunBlock step={resumo.data.firstRun!} aiEnabled={ai?.enabled ?? false} />,
-        );
+        return resumo.data?.firstRun
+          ? envolver(
+              <FirstRunBlock step={resumo.data.firstRun} aiEnabled={ai?.enabled ?? false} />,
+            )
+          : null;
       case 'attention':
-        return envolver(<AttentionBlock attention={estado.atencao} />);
+        return estado ? envolver(<AttentionBlock attention={estado.atencao} />) : null;
       case 'nextAction':
-        return envolver(<NextActionBlock acao={proximaAcao(estado)} />);
+        return estado ? envolver(<NextActionBlock acao={proximaAcao(estado)} />) : null;
       case 'today':
         return null;
       case 'upcoming':
@@ -178,22 +210,53 @@ export function HomeView() {
           </BlocoAssincrono>,
         );
       case 'pipeline':
-        return envolver(<PipelineBlock cards={cardsDoPipeline} />);
+        return envolver(
+          <BlocoAssincrono
+            titulo={t('pipelineTitle')}
+            isPending={pipeline.isPending}
+            isError={pipeline.isError}
+            onRetry={() => pipeline.refetch()}
+          >
+            <PipelineBlock cards={cardsDoPipeline} truncado={pipeline.data?.truncado ?? false} />
+          </BlocoAssincrono>,
+        );
       case 'drafts':
         return envolver(
           <DraftsBlock
             local={rascunhoLocal}
             servidor={drafts.data ?? []}
+            serverPending={drafts.isPending}
+            serverError={drafts.isError}
+            onRetryServer={() => drafts.refetch()}
             onResumeLocal={() => openComposer()}
             onDuplicate={duplicate}
             onApproval={abrirAprovacao}
           />,
         );
       case 'week':
-        return envolver(<WeekBlock week={resumo.data.week} />);
+        return resumo.data ? envolver(<WeekBlock week={resumo.data.week} />) : null;
       case 'activity':
         return envolver(
-          <ActivityBlock entradas={atividade} agora={agora} onOpen={setOpenGroupId} />,
+          <BlocoAssincrono
+            titulo={t('activityTitle')}
+            isPending={atividadeSemConteudo && atividadePendente}
+            isError={atividadeSemConteudo && atividadeComErro}
+            onRetry={() => {
+              void pipeline.refetch();
+              void notifications.refetch();
+            }}
+          >
+            <ActivityBlock
+              entradas={atividade}
+              agora={agora}
+              onOpen={setOpenGroupId}
+              incompleta={atividadeIncompleta}
+              onRetry={() => {
+                void pipeline.refetch();
+                void notifications.refetch();
+              }}
+            />
+          </BlocoAssincrono>,
         );
       case 'usage':
         return plano
@@ -248,28 +311,24 @@ export function HomeView() {
         <TodayBlock today={resumo.data.today} />
       ) : null}
 
-      {resumo.isPending ? (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
-          <div className="flex flex-col gap-6">
-            <Skeleton className="h-32 rounded-card" />
-            <Skeleton className="h-28 rounded-card" />
-          </div>
-          <Skeleton className="h-56 rounded-card" />
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
+        <div className="flex min-w-0 flex-col gap-6">
+          {resumo.isPending || resumo.isError ? (
+            <BlocoAssincrono
+              titulo={t('title')}
+              isPending={resumo.isPending}
+              isError={resumo.isError}
+              onRetry={() => resumo.refetch()}
+            >
+              {null}
+            </BlocoAssincrono>
+          ) : null}
+          {ordem.principal.map((id) => bloco(id))}
         </div>
-      ) : resumo.isError || !ordem ? (
-        <p role="alert" className="text-compact text-graphite">
-          {t('loadError')}
-        </p>
-      ) : (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
-          <div className="flex min-w-0 flex-col gap-6">
-            {ordem.principal.map((id) => bloco(id))}
-          </div>
-          <div className="flex min-w-0 flex-col gap-6">
-            {ordem.lateral.map((id) => bloco(id))}
-          </div>
+        <div className="flex min-w-0 flex-col gap-6">
+          {ordem.lateral.map((id) => bloco(id))}
         </div>
-      )}
+      </div>
 
       <PostDetailSheet
         groupId={openGroupId}

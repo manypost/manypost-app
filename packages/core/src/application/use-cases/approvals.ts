@@ -279,7 +279,7 @@ export const makeResolveApproval = (deps: ResolveApprovalDeps) =>
         : input.approverName
           ? { body: `por ${input.approverName}` }
           : {}),
-      link: `/posts/${link.groupId}`,
+      link: `/kanban?post=${encodeURIComponent(link.groupId)}`,
     });
     // badge de notificação + card do kanban se movem sem reload (SSE)
     await deps.realtime

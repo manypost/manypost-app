@@ -42,4 +42,20 @@ describe('refinamentos visuais da Home', () => {
     expect(view).not.toContain("'--i'");
     expect(view).not.toMatch(/bloco\(id,\s*i\)/);
   });
+
+  test('controles compactos preservam o alvo mínimo de 32px do Button sm', async () => {
+    const original = await source('./home-blocks.tsx');
+    const v2 = await source('./home-blocks-v2.tsx');
+    expect(original).not.toContain('h-7');
+    expect(v2).not.toContain('h-7');
+    expect((v2.match(/min-h-8/g) ?? []).length).toBeGreaterThanOrEqual(4);
+  });
+
+  test('leituras da Home têm fallback de polling quando o SSE não entrega eventos', async () => {
+    const hooks = await source('./hooks.ts');
+    const view = await source('./home-view.tsx');
+
+    expect((hooks.match(/refetchInterval: 60_000/g) ?? []).length).toBe(3);
+    expect(view).toContain('usePipelineFeed(30, { refetchInterval: 60_000 })');
+  });
 });

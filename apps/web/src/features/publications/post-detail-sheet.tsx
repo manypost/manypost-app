@@ -59,6 +59,7 @@ import {
   useRetryPost,
   useRevokeApprovalLink,
 } from './hooks';
+import { entradasDeTextoDoDetalhe } from './post-detail-logic';
 import { CANCELLABLE_STATES, EDITABLE_STATES, RETRYABLE_STATES, stateBadgeVariant } from './state';
 
 type FeedItem = components['schemas']['FeedItem'];
@@ -113,9 +114,11 @@ export function PostDetailSheet({
   const groupState = group.data?.state ?? items[0]?.group.state ?? 'SCHEDULED';
   const publishAt = group.data?.publishAt ?? items[0]?.publishAt ?? null;
   const publishAtDate = publishAt ? new Date(publishAt) : null;
-  const texts = [...new Set(items.map((i) => i.text))];
-  const hasOverrides = texts.length > 1;
   const publications = (group.data?.publications ?? []) as PublicationDetail[];
+  const textEntries = entradasDeTextoDoDetalhe(items, publications);
+  const texts = [...new Set(textEntries.map((entry) => entry.text))];
+  const primaryText = group.data?.text ?? textEntries[0]?.text ?? '';
+  const hasOverrides = texts.length > 1;
   const media = publications[0]?.media ?? [];
 
   // ---- resolve identidade do canal (real → feed → id) ----
@@ -184,7 +187,7 @@ export function PostDetailSheet({
     : null;
 
   const startEdit = () => {
-    setEditText(items[0]?.text ?? '');
+    setEditText(primaryText);
     setEditAt(publishAt ? toLocalInput(new Date(publishAt)) : '');
     const seed: Record<string, Record<string, unknown>> = {};
     for (const pub of publications) {
@@ -198,7 +201,7 @@ export function PostDetailSheet({
   const saveEdit = () => {
     if (!groupId) return;
     const at = editAt ? new Date(editAt) : null;
-    const textChanged = editText.trim() !== (items[0]?.text ?? '');
+    const textChanged = editText.trim() !== primaryText;
     const atChanged = at !== null && publishAt !== null && at.getTime() !== new Date(publishAt).getTime();
     const settingsByChannel: Record<string, Record<string, unknown>> = {};
     for (const pub of publications) {
@@ -362,15 +365,17 @@ export function PostDetailSheet({
                   <div className="bg-surface rounded-md border">
                     {texts.length <= 1 ? (
                       <p className="whitespace-pre-wrap px-3 py-2.5 text-compact leading-relaxed text-ink">
-                        {items[0]?.text ?? '…'}
+                        {primaryText || '…'}
                       </p>
                     ) : (
                       <ul className="divide-y divide-line">
-                        {items.map((item) => (
-                          <li key={item.id} className="px-3 py-2.5">
-                            <span className="text-meta font-semibold text-graphite">{item.channel.name}</span>
+                        {textEntries.map((entry) => (
+                          <li key={entry.key} className="px-3 py-2.5">
+                            <span className="text-meta font-semibold text-graphite">
+                              {resolveChannel(entry.channelId).name}
+                            </span>
                             <p className="mt-1 whitespace-pre-wrap text-compact leading-relaxed text-ink">
-                              {item.text}
+                              {entry.text}
                             </p>
                           </li>
                         ))}

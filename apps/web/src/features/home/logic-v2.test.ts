@@ -8,6 +8,7 @@ import {
   proximaAcao,
   rascunhosDoServidor,
   resumoDoRascunhoLocal,
+  destinoDaNotificacao,
   type EstadoDaHome,
 } from './logic';
 
@@ -259,6 +260,19 @@ describe('atividadeRecente: ordena por quando o desfecho ACONTECEU', () => {
 
 // ---------------------------------------------------------------------------
 
+describe('destino de notificações', () => {
+  test('migra o deep link legado de post para o detalhe existente no quadro', () => {
+    expect(destinoDaNotificacao('/posts/grupo com espaço')).toBe(
+      '/kanban?post=grupo%20com%20espa%C3%A7o',
+    );
+  });
+
+  test('preserva destinos internos já válidos e rejeita destinos externos', () => {
+    expect(destinoDaNotificacao('/kanban?post=g1')).toBe('/kanban?post=g1');
+    expect(destinoDaNotificacao('https://example.com')).toBeNull();
+  });
+});
+
 describe('rascunhosDoServidor: só o que NUNCA vai sair sozinho', () => {
   const draft = (over: Partial<FeedItem['group']> = {}, o: Partial<FeedItem> = {}) =>
     item({
@@ -322,6 +336,32 @@ describe('resumoDoRascunhoLocal', () => {
       resumoDoRascunhoLocal({ text: 'algo', thread: [], mediaIds: [], contentUpdatedAt: 0 }),
     ).toBeNull();
   });
+
+  test('texto personalizado por canal também conta como conteúdo pendente', () => {
+    const resumo = resumoDoRascunhoLocal({
+      text: '',
+      overrides: { c1: 'texto só para o LinkedIn' },
+      channelSettings: {},
+      thread: [],
+      mediaIds: [],
+      contentUpdatedAt: 9,
+    });
+
+    expect(resumo?.texto).toBe('texto só para o LinkedIn');
+  });
+
+  test('mídia numa réplica também conta mesmo sem texto principal', () => {
+    const resumo = resumoDoRascunhoLocal({
+      text: '',
+      overrides: {},
+      channelSettings: {},
+      thread: [{ text: '', mediaIds: ['m-thread'] }],
+      mediaIds: [],
+      contentUpdatedAt: 10,
+    });
+
+    expect(resumo).not.toBeNull();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -365,5 +405,45 @@ describe('ordemDosBlocos: a ordem é DADO, não JSX espalhado', () => {
   test('nenhum bloco aparece duas vezes', () => {
     const o = ordemDosBlocos(estado({ proximas: [item({ state: 'SCHEDULED' })] }));
     expect(new Set(o.unica).size).toBe(o.unica.length);
+  });
+
+  test('fontes pendentes ou com erro continuam na ordem para renderizar seu próprio estado', () => {
+    const ordenar = ordemDosBlocos as unknown as (
+      value: EstadoDaHome,
+      fontes: {
+        upcoming: 'pending' | 'error' | 'empty' | 'ready';
+        drafts: 'pending' | 'error' | 'empty' | 'ready';
+        pipeline: 'pending' | 'error' | 'empty' | 'ready';
+        activity: 'pending' | 'error' | 'empty' | 'ready';
+      },
+    ) => ReturnType<typeof ordemDosBlocos>;
+
+    const o = ordenar(estado(), {
+      upcoming: 'pending',
+      drafts: 'error',
+      pipeline: 'error',
+      activity: 'pending',
+    });
+
+    expect(o.principal).toContain('upcoming');
+    expect(o.principal).toContain('pipeline');
+    expect(o.lateral).toContain('drafts');
+    expect(o.lateral).toContain('activity');
+  });
+
+  test('primeiro uso ignora fontes independentes já resolvidas ou pendentes', () => {
+    const ordenar = ordemDosBlocos as unknown as (
+      value: EstadoDaHome,
+      fontes: Record<'upcoming' | 'drafts' | 'pipeline' | 'activity', 'pending'>,
+    ) => ReturnType<typeof ordemDosBlocos>;
+
+    expect(
+      ordenar(estado({ firstRun: 'no_channels' }), {
+        upcoming: 'pending',
+        drafts: 'pending',
+        pipeline: 'pending',
+        activity: 'pending',
+      }),
+    ).toEqual({ principal: ['firstRun'], lateral: [], unica: ['firstRun'] });
   });
 });

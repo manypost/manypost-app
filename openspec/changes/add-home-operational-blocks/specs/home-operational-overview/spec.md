@@ -182,6 +182,25 @@ starts being shown without the person reloading.
 - **WHEN** the realtime stream reports a published publication that had previously failed
 - **THEN** the resolved failure stops being counted without a reload
 
+#### Scenario: Realtime delivery is unavailable
+
+- **WHEN** the realtime connection carries no delivery events because pub/sub is unavailable
+- **THEN** the landing screen refreshes its operational reads on a bounded polling interval
+- **AND** losing realtime does not leave delivery state stale indefinitely
+
+#### Scenario: One recent-activity source fails
+
+- **WHEN** either delivery outcomes or approval notifications cannot be loaded
+- **AND** the other source returned recent activity
+- **THEN** the available activity remains visible
+- **AND** the block discloses that its list is incomplete and offers a retry
+
+#### Scenario: An approval notification is opened
+
+- **WHEN** a recent approval notification has a post-group destination
+- **THEN** its link opens that group's detail on an existing authenticated web route
+- **AND** historical `/posts/:groupId` destinations are mapped to the same valid detail route
+
 ## MODIFIED Requirements
 
 ### Requirement: The landing screen claims only what the platform measures

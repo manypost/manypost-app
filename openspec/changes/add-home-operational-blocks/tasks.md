@@ -63,8 +63,10 @@
   performance, reach or engagement.
 - [x] 6.2 Run `bun test apps/web/src/features/home apps/web/src/features/realtime`,
   `bun run check`, `bun run build:web`, `bun run db:check` and `bun run spec:validate`.
-- [ ] 6.3 Run `bun run scripts/e2e-insights.ts` against an isolated stack to confirm the summary
+- [x] 6.3 Run `bun run scripts/e2e-insights.ts` against an isolated stack to confirm the summary
   contract is unchanged, or record why the isolated stack was unavailable.
+  - 2026-08-05: the command exited before data access because no disposable PostgreSQL URL was
+    configured; no development or production database was used.
 - [ ] 6.4 Verify in a browser at 1440×900 and 375×812: block-level loading and error, a failure
   appearing without reload after a stream event, first run hiding the new blocks, and reduced motion.
 
@@ -74,3 +76,20 @@
   `docs/principal/CHANGELOG_ONDAS.md` with the Home's new blocks, their evidence and their rollback.
 - [ ] 7.2 Review the full diff for generated files, secrets and product identity, then archive
   `add-home-operational-blocks` only once every requirement above is satisfied.
+
+## 8. Audit follow-up — 2026-08-05
+
+- [x] 8.1 Add RED→GREEN regression coverage and make pending/error state keep each independent block
+  visible; a failed summary must not suppress upcoming, drafts, pipeline or activity.
+- [x] 8.2 Remove the successful nested-card composition and render the scheduled state, local-draft
+  relative edit time, notification destination and pipeline truncation disclosure.
+- [x] 8.3 Make every material composer draft mutation refresh `contentUpdatedAt`, and recognize drafts
+  made only of overrides, settings or thread media.
+- [x] 8.4 Add a bounded 60-second polling fallback for Home reads and restore every Home control to
+  the 32px minimum target.
+- [x] 8.5 Repeat focused tests, full checks, build, database/schema validation, OpenSpec validation and
+  diff review; update evidence without claiming unavailable browser or disposable-stack checks.
+- [x] 8.6 Address independent review findings test-first: valid/compatible notification deep links,
+  partial recent activity, explicit 32px list targets and a minute-updated operational clock.
+- [x] 8.7 Make directly linked draft details use the group read when the dated pipeline feed does not
+  contain them, so request-changes notifications open readable and editable content.

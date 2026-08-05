@@ -10,6 +10,7 @@ import { COLUNAS, type ColumnId, type GroupCard } from '@/features/kanban/logic'
 import { cn } from '@/lib/utils';
 import { Card } from './home-blocks';
 import {
+  destinoDaNotificacao,
   proximasPublicacoes,
   rascunhosDoServidor,
   type EntradaDeAtividade,
@@ -35,14 +36,12 @@ export function BlocoAssincrono({
   isPending,
   isError,
   onRetry,
-  action,
   children,
 }: {
   titulo: string;
   isPending: boolean;
   isError: boolean;
   onRetry: () => void;
-  action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const t = useTranslations('home');
@@ -61,7 +60,7 @@ export function BlocoAssincrono({
           <Button
             size="sm"
             variant="outline"
-            className="h-7 cursor-pointer px-2.5 text-meta"
+            className="cursor-pointer"
             onClick={onRetry}
           >
             {t('blockRetry')}
@@ -70,11 +69,7 @@ export function BlocoAssincrono({
       </Card>
     );
   }
-  return (
-    <Card title={titulo} action={action}>
-      {children}
-    </Card>
-  );
+  return <>{children}</>;
 }
 
 // ---------------------------------------------------------------------------
@@ -143,7 +138,7 @@ export function UpcomingBlock({
     <Card
       title={t('upcomingTitle')}
       action={
-        <Button asChild size="sm" variant="ghost" className="h-7 cursor-pointer px-2 text-meta">
+        <Button asChild size="sm" variant="ghost" className="cursor-pointer">
           <Link href="/calendario">{t('upcomingMore')}</Link>
         </Button>
       }
@@ -154,12 +149,15 @@ export function UpcomingBlock({
             <button
               type="button"
               onClick={() => onOpen(p.groupId)}
-              className="flex w-full cursor-pointer items-center gap-3 rounded-sm text-left outline-none transition-colors duration-200 hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className="flex min-h-8 w-full cursor-pointer items-center gap-3 rounded-sm text-left outline-none transition-colors duration-200 hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               <span className="w-24 shrink-0 text-meta tabular-nums text-graphite">
                 {p.publishAt ? quando(p.publishAt) : ''}
               </span>
               <SeloDoCanal provider={p.channel.provider} nome={p.channel.name} />
+              <span className="shrink-0 rounded-control bg-state-scheduled-tint px-1.5 py-0.5 text-meta font-medium text-state-scheduled">
+                {t('upcomingScheduled')}
+              </span>
               <span className="min-w-0 flex-1 truncate text-compact text-ink">{p.text || '…'}</span>
             </button>
           </li>
@@ -190,10 +188,14 @@ export function ActivityBlock({
   entradas,
   agora,
   onOpen,
+  incompleta = false,
+  onRetry,
 }: {
   entradas: EntradaDeAtividade[];
   agora: Date;
   onOpen: (groupId: string) => void;
+  incompleta?: boolean;
+  onRetry?: () => void;
 }) {
   const t = useTranslations('home');
   if (entradas.length === 0) return null;
@@ -212,11 +214,26 @@ export function ActivityBlock({
       <ul className="flex flex-col divide-y divide-line">
         {entradas.map((e) => {
           if (e.tipo === 'notification') {
-            return (
-              <li key={e.chave} className="flex items-center gap-2 py-1.5 first:pt-0 last:pb-0">
+            const destino = destinoDaNotificacao(e.link);
+            const conteudo = (
+              <>
                 <span className="size-1.5 shrink-0 rounded-full bg-state-review" aria-hidden />
                 <span className="min-w-0 flex-1 truncate text-meta text-ink">{e.title}</span>
                 <span className="shrink-0 text-meta text-graphite">{haQuantoTempo(e.em)}</span>
+              </>
+            );
+            return (
+              <li key={e.chave} className="py-1.5 first:pt-0 last:pb-0">
+                {destino ? (
+                  <Link
+                    href={destino}
+                    className="flex min-h-8 items-center gap-2 rounded-sm outline-none transition-colors duration-200 hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  >
+                    {conteudo}
+                  </Link>
+                ) : (
+                  <span className="flex items-center gap-2">{conteudo}</span>
+                )}
               </li>
             );
           }
@@ -225,7 +242,7 @@ export function ActivityBlock({
               <button
                 type="button"
                 onClick={() => onOpen(e.groupId)}
-                className="flex w-full cursor-pointer items-center gap-2 rounded-sm text-left outline-none transition-colors duration-200 hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                className="flex min-h-8 w-full cursor-pointer items-center gap-2 rounded-sm text-left outline-none transition-colors duration-200 hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 <span
                   className={cn('size-1.5 shrink-0 rounded-full', COR_ATIVIDADE[e.state] ?? 'bg-mist')}
@@ -240,6 +257,14 @@ export function ActivityBlock({
           );
         })}
       </ul>
+      {incompleta ? (
+        <div role="status" className="flex flex-wrap items-center gap-2 text-meta text-graphite">
+          <span>{t('activityIncomplete')}</span>
+          <Button size="sm" variant="outline" onClick={onRetry}>
+            {t('blockRetry')}
+          </Button>
+        </div>
+      ) : null}
     </Card>
   );
 }
@@ -256,19 +281,36 @@ export function ActivityBlock({
 export function DraftsBlock({
   local,
   servidor,
+  agora = new Date(),
+  serverPending = false,
+  serverError = false,
+  onRetryServer,
   onResumeLocal,
   onDuplicate,
   onApproval,
 }: {
   local: RascunhoLocal | null;
   servidor: FeedItem[];
+  agora?: Date;
+  serverPending?: boolean;
+  serverError?: boolean;
+  onRetryServer?: () => void;
   onResumeLocal: () => void;
   onDuplicate: (groupId: string) => void;
   onApproval: (groupId: string) => void;
 }) {
   const t = useTranslations('home');
   const orfaos = rascunhosDoServidor(servidor);
-  if (!local && orfaos.length === 0) return null;
+  if (!local && orfaos.length === 0 && !serverPending && !serverError) return null;
+
+  const haQuantoTempo = (em: number) => {
+    const min = Math.max(0, Math.round((agora.getTime() - em) / 60_000));
+    if (min < 2) return t('activityJustNow');
+    if (min < 60) return t('activityAgo', { tempo: t('activityMinutes', { count: min }) });
+    const horas = Math.round(min / 60);
+    if (horas < 24) return t('activityAgo', { tempo: t('activityHours', { count: horas }) });
+    return t('activityAgo', { tempo: t('activityDays', { count: Math.round(horas / 24) }) });
+  };
 
   return (
     <Card title={t('draftsTitle')}>
@@ -278,15 +320,31 @@ export function DraftsBlock({
             <span className="text-meta font-medium text-graphite">
               {t('draftsLocal')}
             </span>
+            <span className="text-meta text-graphite">
+              {t('draftsEdited', { tempo: haQuantoTempo(local.atualizadoEm) })}
+            </span>
             <p className="line-clamp-2 text-compact leading-relaxed text-ink">
               {local.texto || '…'}
             </p>
             <Button
               size="sm"
-              className="mt-0.5 h-7 cursor-pointer px-2.5 text-meta"
+              className="mt-0.5 cursor-pointer"
               onClick={onResumeLocal}
             >
               {t('draftsLocalCta')}
+            </Button>
+          </li>
+        ) : null}
+
+        {serverPending ? (
+          <li className="py-2 first:pt-0 last:pb-0" aria-hidden>
+            <Skeleton className="h-16 rounded-md" />
+          </li>
+        ) : serverError ? (
+          <li className="flex flex-wrap items-center gap-3 py-2 first:pt-0 last:pb-0">
+            <p className="text-compact text-graphite">{t('blockError')}</p>
+            <Button size="sm" variant="outline" onClick={onRetryServer}>
+              {t('blockRetry')}
             </Button>
           </li>
         ) : null}
@@ -299,7 +357,7 @@ export function DraftsBlock({
               <Button
                 size="sm"
                 variant="outline"
-                className="h-7 cursor-pointer px-2.5 text-meta"
+                className="cursor-pointer"
                 onClick={() => onDuplicate(d.groupId)}
               >
                 {t('draftsDuplicate')}
@@ -307,7 +365,7 @@ export function DraftsBlock({
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-7 cursor-pointer px-2.5 text-meta"
+                className="cursor-pointer"
                 onClick={() => onApproval(d.groupId)}
               >
                 {t('draftsApproval')}
@@ -329,7 +387,13 @@ export function DraftsBlock({
  * números diferentes do mesmo pipeline. Sem arraste, sem seleção: a home é a porta, o quadro é a
  * ferramenta.
  */
-export function PipelineBlock({ cards }: { cards: GroupCard[] }) {
+export function PipelineBlock({
+  cards,
+  truncado = false,
+}: {
+  cards: GroupCard[];
+  truncado?: boolean;
+}) {
   const t = useTranslations('home');
   const tk = useTranslations('kanban');
   if (cards.length === 0) return null;
@@ -340,7 +404,7 @@ export function PipelineBlock({ cards }: { cards: GroupCard[] }) {
     <Card
       title={t('pipelineTitle')}
       action={
-        <Button asChild size="sm" variant="ghost" className="h-7 cursor-pointer px-2 text-meta">
+        <Button asChild size="sm" variant="ghost" className="cursor-pointer">
           <Link href="/kanban">{t('pipelineOpen')}</Link>
         </Button>
       }
@@ -352,7 +416,7 @@ export function PipelineBlock({ cards }: { cards: GroupCard[] }) {
             <Link
               href={`/kanban?col=${id}`}
               className={cn(
-                'flex cursor-pointer flex-col gap-1 rounded-kpi p-3 transition-colors duration-200',
+                'flex min-h-8 cursor-pointer flex-col gap-1 rounded-kpi p-3 transition-colors duration-200',
                 index % 2 === 0 ? 'bg-kpi-lilac' : 'bg-kpi-blue',
                 'hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
               )}
@@ -368,6 +432,17 @@ export function PipelineBlock({ cards }: { cards: GroupCard[] }) {
           </li>
         ))}
       </ul>
+      {truncado ? (
+        <p className="text-meta leading-relaxed text-graphite">
+          {t('pipelineTruncated')}{' '}
+          <Link
+            href="/kanban"
+            className="inline-flex min-h-8 items-center font-medium text-accent hover:text-accent-hover"
+          >
+            {t('pipelineOpen')}
+          </Link>
+        </p>
+      ) : null}
     </Card>
   );
 }

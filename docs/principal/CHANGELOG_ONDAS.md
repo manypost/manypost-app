@@ -10,6 +10,29 @@
 > **Como manter:** ao fechar uma fatia, adicione a onda nova **no topo** e atualize o STATUS.
 > Cada entrada é auto-contida: o que mudou, onde no código, e a prova de que funciona.
 
+## Onda 37 — 2026-08-05 — fechamento auditado da Home v2
+
+Uma revisão requisito por requisito encontrou cinco divergências na entrega da onda 34. O erro do
+summary ainda substituía toda a grade; blocos pending/error podiam desaparecer porque a ordem era
+calculada só com dados resolvidos; próximas publicações criavam um card dentro de outro e omitiam o
+estado; o timestamp do draft existia mas não era exibido nem tocado por todas as mutações; e a Home
+não tinha polling quando Redis/SSE deixavam de entregar eventos.
+
+Todos esses pontos foram fechados test-first. Cada fonte agora mantém loading, erro e retry próprios,
+inclusive quando o summary falha. A Home mostra estado agendado, idade real do draft, deep link de
+notificação que abre conteúdo legível/editável no detalhe existente no Quadro, mesmo para rascunhos
+fora da janela do feed (com compatibilidade histórica), e aviso de
+pipeline truncado; mantém atividade parcial se uma fonte falhar; reconhece override/settings/mídia
+de thread como conteúdo; atualiza o relógio a cada minuto; usa fallback de 60 segundos; e preserva
+alvos interativos de 32px. Não houve migration, mudança de API, provider, ambiente ou Railway.
+
+**Provas e limite:** 107 regressões da revisão e 174 testes focados anteriores; `bun run check` com
+**1359 passes e 18 skips de Postgres**;
+typechecks, fronteiras, catálogo de IA e 19 checks de brand verdes; Drizzle válido; build Next de 19
+páginas; OpenSpec 30/30; `git diff --check` limpo. `scripts/e2e-insights.ts` encerrou antes de tocar
+dados porque não havia PostgreSQL descartável configurado. Sem sessão/API local autenticada, o smoke
+de 1440×900 e 375×812 continua aberto; `add-home-operational-blocks` não foi arquivada.
+
 ## Onda 36 — 2026-07-31 — brand v1.5, shell editorial e Quadro aberto
 
 O mock escolhido pelo owner passou a ser o contrato operacional: canvas quente, rail escuro 208/64,

@@ -155,17 +155,26 @@ export interface RascunhoLocal {
  */
 export function resumoDoRascunhoLocal(draft: {
   text: string;
-  thread: Array<{ text: string }>;
+  overrides?: Record<string, string>;
+  channelSettings?: Record<string, Record<string, unknown>>;
+  thread: Array<{ text: string; mediaIds?: string[] }>;
   mediaIds: string[];
   contentUpdatedAt: number;
 }): RascunhoLocal | null {
   if (!draft.contentUpdatedAt) return null;
+  const textos = [
+    draft.text,
+    ...Object.values(draft.overrides ?? {}),
+    ...draft.thread.map((i) => i.text),
+  ];
+  const primeiroTexto = textos.find((texto) => texto.trim() !== '')?.trim() ?? '';
   const comecou =
-    draft.text.trim() !== '' ||
+    primeiroTexto !== '' ||
     draft.mediaIds.length > 0 ||
-    draft.thread.some((i) => i.text.trim() !== '');
+    draft.thread.some((i) => (i.mediaIds?.length ?? 0) > 0) ||
+    Object.values(draft.channelSettings ?? {}).some((settings) => Object.keys(settings).length > 0);
   if (!comecou) return null;
-  return { texto: draft.text.trim(), atualizadoEm: draft.contentUpdatedAt };
+  return { texto: primeiroTexto, atualizadoEm: draft.contentUpdatedAt };
 }
 
 // --- rascunhos do servidor ----------------------------------------------------
@@ -225,6 +234,21 @@ export type EntradaDeAtividade =
       em: number;
     }
   | { tipo: 'notification'; chave: string; title: string; link: string | null; em: number };
+
+/**
+ * Mantém notificações históricas acionáveis sem aceitar navegação externa. A rota `/posts/:id`
+ * existia apenas na API; no web, o detalhe compartilhado vive no quadro.
+ */
+export function destinoDaNotificacao(link: string | null): string | null {
+  if (!link || !link.startsWith('/') || link.startsWith('//')) return null;
+  const legado = link.match(/^\/posts\/([^/?#]+)$/);
+  if (!legado) return link;
+  try {
+    return `/kanban?post=${encodeURIComponent(decodeURIComponent(legado[1]!))}`;
+  } catch {
+    return `/kanban?post=${encodeURIComponent(legado[1]!)}`;
+  }
+}
 
 /**
  * O que mudou desde ontem.
@@ -376,6 +400,15 @@ export interface OrdemDosBlocos {
   unica: BlocoId[];
 }
 
+export type EstadoDeFonte = 'pending' | 'error' | 'empty' | 'ready';
+
+export interface EstadosDasFontesDaHome {
+  upcoming: EstadoDeFonte;
+  drafts: EstadoDeFonte;
+  pipeline: EstadoDeFonte;
+  activity: EstadoDeFonte;
+}
+
 /**
  * A ordem vira dado.
  *
@@ -386,26 +419,38 @@ export interface OrdemDosBlocos {
  * O plano sai do topo da lateral de propósito: é o bloco menos urgente da tela e ocupava a posição
  * mais nobre dela. Acionável primeiro, informativo depois, comercial por último.
  */
-export function ordemDosBlocos(e: EstadoDaHome): OrdemDosBlocos {
-  if (e.firstRun !== null) {
+export function ordemDosBlocos(
+  e: EstadoDaHome | null,
+  fontes?: EstadosDasFontesDaHome,
+): OrdemDosBlocos {
+  if (e?.firstRun) {
     return { principal: ['firstRun'], lateral: [], unica: ['firstRun'] };
   }
 
-  const temAtencao = linhasDeAtencao(e.atencao).length > 0;
-  const temProximaAcao = !temAtencao && proximaAcao(e) !== null;
+  const temAtencao = e ? linhasDeAtencao(e.atencao).length > 0 : false;
+  const temProximaAcao = e ? !temAtencao && proximaAcao(e) !== null : false;
+  const fonteVisivel = (id: keyof EstadosDasFontesDaHome) =>
+    fontes ? fontes[id] !== 'empty' : false;
 
   const principal: BlocoId[] = [];
   if (temAtencao) principal.push('attention');
   else if (temProximaAcao) principal.push('nextAction');
-  principal.push('today');
-  if (proximasPublicacoes(e.proximas).length > 0) principal.push('upcoming');
-  if (e.pipelineTemAlgo) principal.push('pipeline');
+  if (e) principal.push('today');
+  if ((e && proximasPublicacoes(e.proximas).length > 0) || fonteVisivel('upcoming')) {
+    principal.push('upcoming');
+  }
+  if (e?.pipelineTemAlgo || fonteVisivel('pipeline')) principal.push('pipeline');
 
   const lateral: BlocoId[] = [];
-  if (rascunhosDoServidor(e.rascunhosServidor).length > 0 || e.rascunhoLocal) lateral.push('drafts');
-  lateral.push('week');
-  if ((e.atividade?.length ?? 0) > 0) lateral.push('activity');
-  if (e.mostrarPlano) lateral.push('usage');
+  if (
+    (e && (rascunhosDoServidor(e.rascunhosServidor).length > 0 || e.rascunhoLocal)) ||
+    fonteVisivel('drafts')
+  ) {
+    lateral.push('drafts');
+  }
+  if (e) lateral.push('week');
+  if ((e?.atividade?.length ?? 0) > 0 || fonteVisivel('activity')) lateral.push('activity');
+  if (e?.mostrarPlano) lateral.push('usage');
 
   return { principal, lateral, unica: [...principal, ...lateral] };
 }

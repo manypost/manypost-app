@@ -6,6 +6,8 @@ import { KanbanColumn, CancelDropZone } from './kanban-column';
 import { KanbanCard } from './kanban-card';
 import type { FeedItem, GroupCard } from './logic';
 
+const boardSource = () => Bun.file(new URL('./kanban-board.tsx', import.meta.url)).text();
+
 /**
  * Renderização real dos pedaços do quadro, no molde de `features/home/home-blocks.test.tsx`
  * (`renderToStaticMarkup`, sem DOM e sem dependência nova).
@@ -191,6 +193,14 @@ describe('card: estrutura antes de estética', () => {
 });
 
 // ---------------------------------------------------------------------------
+
+describe('deep link do detalhe', () => {
+  test('abre o grupo indicado por post na URL e remove o parâmetro ao fechar', async () => {
+    const source = await boardSource();
+    expect(source).toContain("useState<string | null>(() => params.get('post'))");
+    expect(source).toContain("proximos.delete('post')");
+  });
+});
 
 describe('coluna', () => {
   test('coluna sem cards ainda declara sua contagem — zero é informação', () => {

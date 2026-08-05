@@ -67,6 +67,19 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Fixed
 
+- **A Home v2 passou a cumprir o isolamento e os metadados prometidos pelo OpenSpec.** Loading e
+  erro agora pertencem à fonte que falhou; indisponibilidade do resumo não apaga próximas
+  publicações, rascunhos, pipeline ou atividade, e cada erro oferece retry local. A lista de próximas
+  publicações mostra o estado agendado sem cartão aninhado; rascunho local informa a última edição;
+  notificações da atividade abrem um detalhe existente no Quadro (inclusive links históricos e
+  rascunhos fora da janela do feed), uma
+  fonte de atividade saudável continua visível se a outra falhar, e pipeline truncado declara que
+  as contagens são parciais. O relógio operacional avança a cada minuto. O composer reconhece
+  overrides, settings e mídia de thread como rascunho e atualiza
+  `contentUpdatedAt` em toda mutação material. As leituras da Home ganharam polling de 60 segundos
+  como fallback do SSE/Redis, e controles compactos têm alvo mínimo explícito de 32px. Sem migration,
+  mudança de API ou dado novo. OpenSpec: `add-home-operational-blocks`.
+
 - **O quadro mostrava colunas vazias que não estavam vazias.** O feed é ordenado por horário
   crescente e era lido com teto de 200 linhas numa janela de 30 dias: uma organização com mais que
   isso recebia as 200 publicações **mais antigas** e via "Agendado" vazio enquanto havia trabalho

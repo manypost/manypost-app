@@ -102,7 +102,7 @@ export function KanbanBoard() {
     useSensor(KeyboardSensor),
   );
 
-  const [openGroupId, setOpenGroupId] = useState<string | null>(null);
+  const [openGroupId, setOpenGroupId] = useState<string | null>(() => params.get('post'));
   const [arrastando, setArrastando] = useState<string | null>(null);
   const [selecionados, setSelecionados] = useState<string[]>([]);
   const [ancora, setAncora] = useState<string | null>(null);
@@ -355,7 +355,17 @@ export function KanbanBoard() {
         }}
       />
 
-      <PostDetailSheet groupId={openGroupId} items={openItems} onClose={() => setOpenGroupId(null)} />
+      <PostDetailSheet
+        groupId={openGroupId}
+        items={openItems}
+        onClose={() => {
+          setOpenGroupId(null);
+          const proximos = new URLSearchParams(params.toString());
+          proximos.delete('post');
+          const query = proximos.toString();
+          router.replace(query ? `/kanban?${query}` : '/kanban', { scroll: false });
+        }}
+      />
       {duplicateDialog}
       <ConfirmarAcao
         pendente={confirmar}
