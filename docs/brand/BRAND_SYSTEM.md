@@ -37,8 +37,8 @@ Princípios:
 | `--ink` | `#0C0F17` | texto principal |
 | `--graphite` | `#74767C` | texto secundário |
 | `--mist` | `#9B9DA2` | detalhe decorativo |
-| `--accent` | `#7C56CD` | marca, ação, seleção, série principal |
-| `--accent-hover` | `#6E44C7` | hover primário |
+| `--accent` | `#8B3CF0` | marca, ação, seleção, série principal |
+| `--accent-hover` | `#6D28D9` | hover primário |
 | `--accent-tint` | `#EDEEFC` | realce lilás |
 | `--kpi-lilac` | `#EDEEFC` | KPI alternado |
 | `--kpi-blue` | `#E6F1FD` | KPI alternado |

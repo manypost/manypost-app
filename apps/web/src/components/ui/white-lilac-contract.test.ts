@@ -16,7 +16,7 @@ describe('contrato visual branco/lilás', () => {
     expect(css).toContain('--surface-2: #f5f5f5');
     expect(css).toContain('--kpi-lilac: #edeefc');
     expect(css).toContain('--kpi-blue: #e6f1fd');
-    expect(css).toContain('--accent: #7c56cd');
+    expect(css).toContain('--accent: #8b3cf0');
     expect(css).toContain('--data-2-bright: #00f3bc');
     expect(css).toContain('--line: #ededed');
   });

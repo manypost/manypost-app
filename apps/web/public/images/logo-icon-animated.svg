@@ -23,7 +23,7 @@
   </defs>
 
   <!-- Fundo roxo fixo — só o símbolo gira -->
-  <rect x="20" y="20" width="216" height="216" rx="46" fill="#7C56CD"/>
+  <rect x="20" y="20" width="216" height="216" rx="46" fill="#8B3CF0"/>
 
   <path
     class="symbol"

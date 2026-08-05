@@ -49,7 +49,7 @@ Seguindo a filosofia da paleta (tons -700 que passam AA como texto sobre branco 
 ```css
 :root {
   /* rascunho: neutro (usa --graphite / --surface-2 existentes) */
-  --state-scheduled:       #7C3AED;  /* = --accent: "nas mãos do sistema" */
+  --state-scheduled:       #8B3CF0;  /* = --accent: "nas mãos do sistema" */
   --state-scheduled-tint:  #EDE9FE;  /* = --accent-tint */
   --state-publishing:      #B45309;  /* âmbar 700 — 4,7:1 sobre branco */
   --state-publishing-tint: #FEF3C7;

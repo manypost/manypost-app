@@ -68,7 +68,7 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 ### Fixed
 
 - **A marca SVG agora usa o mesmo roxo dos botões primários.** Os assets horizontal, compacto e
-  animado foram normalizados para `#7C56CD`, a cor normativa de marca/ação, removendo gradientes
+  animado foram normalizados para `#8B3CF0`, a cor normativa de marca/ação, removendo gradientes
   legados que divergiam do token `--accent`.
 
 - **A Home v2 passou a cumprir o isolamento e os metadados prometidos pelo OpenSpec.** Loading e

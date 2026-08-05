@@ -109,12 +109,12 @@ Todos os componentes usam tokens. Hexadecimal só é permitido em `globals.css` 
   --kpi-lilac: #edeefc;
   --kpi-blue: #e6f1fd;
 
-  --accent: #7c56cd;
-  --accent-hover: #6e44c7;
+  --accent: #8b3cf0;
+  --accent-hover: #6d28d9;
   --accent-tint: #edeefc;
   --accent-on-dark: #d0c4ea;
 
-  --data-1: #7c56cd;
+  --data-1: #8b3cf0;
   --data-2: #00866c;
   --data-2-bright: #00f3bc;
 
@@ -220,11 +220,11 @@ Gradiente é codificação de dados, nunca decoração de superfície. Só três
 
 ```css
 .viz-active-bar {
-  background: linear-gradient(180deg, rgba(208, 196, 234, 0.7), #a389dc 24%, #7c56cd 72%, #6e44c7);
+  background: linear-gradient(180deg, rgba(208, 196, 234, 0.7), #a389dc 24%, #8b3cf0 72%, #6d28d9);
 }
 
 .viz-donut-segment {
-  background: linear-gradient(145deg, #d8cfef, #a389dc 38%, #7c56cd 72%, #6e44c7);
+  background: linear-gradient(145deg, #d8cfef, #a389dc 38%, #8b3cf0 72%, #6d28d9);
 }
 
 .viz-area-fill {
