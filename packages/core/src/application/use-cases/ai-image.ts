@@ -159,7 +159,7 @@ export const makeGenerateImage =
     );
 
     // auditoria registra QUE gerou, nunca o prompt nem os bytes (SPEC ai-content-generation)
-    void deps.audit
+    await deps.audit
       .append({
         orgId: actor.orgId,
         actorType: actor.actorType ?? 'USER',

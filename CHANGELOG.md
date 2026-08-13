@@ -170,6 +170,10 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
   - `AI_IMAGE_PROVIDER=none` desliga só imagens, e uma instalação pode gerar imagens mesmo com
     texto desligado. Não há migration nem fallback automático após falha externa. Rollback:
     remover o bloco independente e reverter API/core/config/web juntos.
+  - A resposta de geração agora aguarda a tentativa best-effort de gravar `ai.image` no
+    `audit_log`. Isso elimina a corrida em que um HTTP 200 podia ficar visível antes da auditoria
+    correspondente, sem transformar falha isolada da auditoria em nova cobrança ou geração
+    duplicada.
   OpenSpec: `add-ai-image-quality-modes`.
 - **Geração de imagem compatível com endpoints atuais.** O adapter do protocolo
   `openai-compatible` deixou de enviar o parâmetro opcional

@@ -55,3 +55,12 @@
   `bun run db:check` and `bun run build:web`.
 - [x] 5.6 Commit and push the PR #55 update, wait for CI, deploy the branch to Coolify staging
   without syncing environment secrets and smoke-test the configured URL.
+
+## 6. Post-merge audit ordering correction
+
+- [x] 6.1 Add a focused failing use-case test proving image generation does not resolve while the
+  corresponding audit append is still pending; run the focused file and record the expected RED.
+- [x] 6.2 Await the best-effort audit append before returning successful media, while preserving
+  the completed generation when the audit repository rejects; rerun the focused test GREEN.
+- [x] 6.3 Update `CHANGELOG.md`, run `bun run spec:validate`, `git diff --check`, `bun run check`,
+  `bun run db:check` and `bun run build:web`, then verify the real-API AI E2E in CI.
