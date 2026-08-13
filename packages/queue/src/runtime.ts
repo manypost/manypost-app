@@ -28,8 +28,7 @@ import { makeRedisIdempotencyStore } from './redis-idempotency';
 import { makeRedisRateLimiter } from './redis-rate-limiter';
 import { makeRedisRealtimeBus } from './redis-realtime-bus';
 
-const log = (level: string, msg: string, data?: object) =>
-  console.log(JSON.stringify({ level, msg, module: 'queue', ...data }));
+import { queueLog as log } from './log';
 
 /**
  * Percorre um lote inteiro e RELANÇA a primeira falha depois de percorrê-lo.

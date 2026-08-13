@@ -116,6 +116,13 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Changed
 
+- **Todo log estruturado sai por um helper único por fronteira.** `packages/queue/src/log.ts`
+  cobre o runtime de filas, os três adapters Redis e o boot do worker; `apps/api/src/log.ts`
+  cobre migrations/boot (o banner virou linha estruturada com modo/porta/hosts),
+  `unhandled_error` e assinatura inválida da Stripe. Nenhum módulo fora dos dois helpers chama
+  `console.*` — o lugar por onde um token vazaria em log agora é um só, e auditável. OpenSpec:
+  `improve-maintainability-baseline`.
+
 - **`packages/queue` deixou de ser o único package sem testes, e todo repositório prova escopo
   por organização.** O queue ganhou 21 testes: falha aberta sem Redis (janela, semáforo e
   idempotência concedem em vez de travar a publicação), janela all-or-nothing, semáforo com

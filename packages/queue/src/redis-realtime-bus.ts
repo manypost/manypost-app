@@ -1,5 +1,6 @@
 import Redis from 'ioredis';
 import type { RealtimeEvent, RealtimePublisher, RealtimeSubscriber } from '@manypost/core';
+import { queueLog } from './log';
 
 const channelOf = (orgId: string) => `mp:rt:${orgId}`;
 
@@ -46,9 +47,7 @@ export function makeRedisRealtimeBus(
         if (pub.status === 'wait') await pub.connect();
         await pub.publish(channelOf(orgId), JSON.stringify(e));
       } catch (err) {
-        console.log(
-          JSON.stringify({ level: 'warn', msg: 'realtime sem Redis — evento descartado', err: String(err) }),
-        );
+        queueLog('warn', 'realtime sem Redis — evento descartado', { err: String(err) });
       }
     },
 

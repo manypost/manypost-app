@@ -38,9 +38,11 @@ refactor:
   changing any failure mode.
 - Test floors: `packages/queue` gains tests for fail-open behavior, semaphore release, `runBatch`
   rethrow semantics and idempotency TTL; every repository gains an `org_id` scoping test.
-- Structured logging goes through one helper instead of seven inline `console.*` sites; the four
-  oversized web components (`post-detail-sheet`, `network-preview`, `calendar-grids`,
-  `settings-view`) split into focused modules behind stable entry points.
+- Structured logging goes through one helper per app boundary instead of inline `console.*`
+  sites; the four oversized web components (`post-detail-sheet`, `network-preview`,
+  `calendar-grids`, `settings-view`) split into focused modules behind stable entry points —
+  sequenced after `propagate-flat-visual-system`, which recomposes three of those four surfaces
+  (splitting first would rewrite the split twice).
 
 ## Non-goals
 

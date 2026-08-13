@@ -9,7 +9,7 @@ import {
 } from '@manypost/db';
 import { AesGcmCryptoService, makeMediaStorage } from '@manypost/core';
 import { providerRegistry } from '@manypost/providers';
-import { createPublishingRuntime } from '@manypost/queue';
+import { createPublishingRuntime, queueLog } from '@manypost/queue';
 import { fileURLToPath } from 'node:url';
 
 /** Worker dedicado (MODE=worker em escala; no self-host pequeno a api MODE=all já consome a fila). */
@@ -41,4 +41,4 @@ const runtime = await createPublishingRuntime({
   storage: makeMediaStorage(mediaStorageConfigFromEnv(env)),
 });
 await runtime.startWorker();
-console.log(JSON.stringify({ level: 'info', msg: 'manypost worker ativo' }));
+queueLog('info', 'manypost worker ativo');

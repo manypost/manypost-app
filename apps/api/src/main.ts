@@ -4,6 +4,7 @@ import { loadEnv, machineEndpoints, machineHosts } from '@manypost/config';
 import { runMigrations } from '@manypost/db';
 import { providerRegistry } from '@manypost/providers';
 import { buildContainer } from './container';
+import { log } from './log';
 import { humansOnly } from './http/middleware/auth';
 import { createApp } from './http/openapi';
 import { buildSurfaceRouter, installBaseMiddleware } from './http/surfaces';
@@ -35,7 +36,7 @@ if (env.DB_MIGRATE === 'auto') {
     new URL('../../../packages/db/migrations', import.meta.url),
   );
   await runMigrations(env.DATABASE_URL, migrationsFolder);
-  console.log(JSON.stringify({ level: 'info', msg: 'migrations aplicadas' }));
+  log('info', 'migrations aplicadas');
 }
 
 const ctn = await buildContainer(env);
@@ -259,11 +260,12 @@ app.get('/', (c) =>
 // Fase 1 restante: analytics (get_channel_analytics / GET /channels/{id}/analytics), IA
 // (generate_content) e OAuth 2.1 do MCP (hoje o /mcp autentica por API key escopo mcp).
 const hosts = machineHosts(env);
-console.log(
-  `manypost api (MODE=${env.MODE}) on :${env.PORT}` +
-    (hosts.api ? ` · REST de máquina em ${hosts.api}/v1` : '') +
-    (hosts.mcp ? ` · MCP em ${hosts.mcp}/` : ''),
-);
+log('info', 'manypost api ativa', {
+  mode: env.MODE,
+  port: env.PORT,
+  ...(hosts.api ? { machineApi: `${hosts.api}/v1` } : {}),
+  ...(hosts.mcp ? { mcp: `${hosts.mcp}/` } : {}),
+});
 
 // Despacho por Host: app (PUBLIC_URL) × API de máquina (api.) × MCP (mcp.) — ver http/surfaces.ts
 export default {

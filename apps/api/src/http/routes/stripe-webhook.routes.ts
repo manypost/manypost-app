@@ -1,6 +1,7 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import type { Container } from '../../container';
 import { STRIPE_SERVICE_TAG, toRemoteSubscription } from '../../infra/billing/stripe.gateway';
+import { log } from '../../log';
 import { createApp, jsonResponse } from '../openapi';
 
 /**
@@ -41,9 +42,7 @@ export function stripeWebhookRoutes(ctn: Container) {
       try {
         event = billing.constructEvent(await c.req.text(), signature);
       } catch (err) {
-        console.warn(
-          JSON.stringify({ level: 'warn', msg: 'stripe_signature_invalid', err: String(err) }),
-        );
+        log('warn', 'stripe_signature_invalid', { err: String(err) });
         return c.json({ ok: false }, 400);
       }
 

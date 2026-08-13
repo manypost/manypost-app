@@ -1,5 +1,6 @@
 import Redis from 'ioredis';
 import type { RateLimiter } from '@manypost/core';
+import { queueLog } from './log';
 
 /**
  * Janela fixa all-or-nothing em Lua (atômico) — SPEC_QUEUE §6.
@@ -82,9 +83,7 @@ export function makeRedisRateLimiter(
         )) as [number, number];
         return res[0] === 1 ? { ok: true } : { ok: false, retryAfterSec: Math.max(1, res[1]) };
       } catch (err) {
-        console.log(
-          JSON.stringify({ level: 'warn', msg: 'rate-limiter sem Redis — falha aberta', err: String(err) }),
-        );
+        queueLog('warn', 'rate-limiter sem Redis — falha aberta', { err: String(err) });
         return { ok: true };
       }
     },
@@ -104,9 +103,7 @@ export function makeRedisRateLimiter(
         // sem retryAfter natural (o slot libera a qualquer momento): backoff curto com jitter
         return got === 1 ? { ok: true } : { ok: false, retryAfterSec: 2 + Math.floor(Math.random() * 4) };
       } catch (err) {
-        console.log(
-          JSON.stringify({ level: 'warn', msg: 'semáforo sem Redis — falha aberta', err: String(err) }),
-        );
+        queueLog('warn', 'semáforo sem Redis — falha aberta', { err: String(err) });
         return { ok: true };
       }
     },

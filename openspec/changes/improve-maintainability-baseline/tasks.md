@@ -61,10 +61,16 @@
 
 ## 7. Logging and component splits
 
-- [ ] 7.1 Route the seven inline structured `console.*` sites through one logging helper per app
-  boundary.
+- [x] 7.1 Route the inline structured `console.*` sites through one logging helper per app
+  boundary: `packages/queue/src/log.ts` (runtime + the three Redis adapters + worker boot) and
+  `apps/api/src/log.ts` (migrations/boot, unhandled_error, stripe_signature_invalid). Only the
+  two helpers touch `console` now.
 - [ ] 7.2 Split `post-detail-sheet.tsx`, `network-preview.tsx`, `calendar-grids.tsx` and
-  `settings-view.tsx` into focused modules behind stable entry points, after section 1 is done.
+  `settings-view.tsx` into focused modules behind stable entry points. SEQUENCED AFTER
+  `propagate-flat-visual-system`: that change recomposes calendar, composer (the preview file is
+  also the named file-scoped brand exception referenced by the gate) and settings — splitting
+  first would mean rewriting the split twice. Section 1 (rendered assertions) already removed the
+  false-failure risk the split needed.
 
 ## 8. Delivery
 

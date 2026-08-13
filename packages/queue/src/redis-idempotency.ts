@@ -1,5 +1,6 @@
 import Redis from 'ioredis';
 import type { IdempotencyClaim, IdempotencyStore, StoredResponse } from '@manypost/core';
+import { queueLog } from './log';
 
 /**
  * Idempotência de POSTs de mutação (SPEC_API_MCP §3) via um hash Redis por chave.
@@ -65,9 +66,7 @@ export function makeRedisIdempotencyStore(
         if (res[0] === 'pending') return { outcome: 'pending' };
         return { outcome: 'claimed' };
       } catch (err) {
-        console.log(
-          JSON.stringify({ level: 'warn', msg: 'idempotency sem Redis — falha aberta', err: String(err) }),
-        );
+        queueLog('warn', 'idempotency sem Redis — falha aberta', { err: String(err) });
         return { outcome: 'claimed' };
       }
     },
