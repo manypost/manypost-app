@@ -8,6 +8,14 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Added
 
+- **A API pública ganhou os campos aditivos que o feed interno já tinha.** `GET
+  /public/v1/publications` agora expõe `publishedAt` (quando a entrega de fato aconteceu),
+  `updatedAt` (última mutação, o que ordena atividade recente) e `mediaPreview` (primeira mídia do
+  conteúdo); as respostas de mídia expõem `source` (`ai`/`upload`) — a mesma marcação de
+  proveniência que a biblioteca interna já mostrava. Tudo aditivo: nenhum campo mudou de nome,
+  tipo ou significado, e cursores existentes continuam paginando. OpenSpec:
+  `unify-machine-api-serialization`.
+
 - **O feed de publicações ganhou `mediaPreview` aditivo e opcional.** O serializer projeta somente
   a primeira mídia que já existe no conteúdo, com tipo, URL, MIME e alt; imagem, vídeo e ausência
   de mídia têm contrato e testes próprios. O cliente OpenAPI foi regenerado pela API, sem mudança
@@ -67,6 +75,15 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Fixed
 
+- **As tools MCP de posts viam um post diferente do REST.** `get_post` (e as respostas de
+  agendar/reagendar/cancelar via MCP) omitia `media` e `attemptCount` de cada publicação porque o
+  servidor MCP mantinha uma cópia própria do serializer — e as cópias divergiram em silêncio. A
+  serialização das superfícies de máquina (REST interno, `/public/v1` e MCP) agora sai de um
+  módulo único em `apps/api/src/http/routes/shared/serialize.ts`, junto com o cursor keyset do
+  feed (antes duplicado byte a byte com um comentário admitindo a duplicação). Contrato coberto
+  por teste focado e por asserções novas nos E2E reais de MCP e API pública. OpenSpec:
+  `unify-machine-api-serialization`.
+
 - **A marca SVG agora usa o mesmo roxo dos botões primários.** Os assets horizontal, compacto e
   animado foram normalizados para `#8B3CF0`, a cor normativa de marca/ação, removendo gradientes
   legados que divergiam do token `--accent`.
@@ -98,6 +115,64 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
   mensagem.
 
 ### Changed
+
+- **Todo log estruturado sai por um helper único por fronteira.** `packages/queue/src/log.ts`
+  cobre o runtime de filas, os três adapters Redis e o boot do worker; `apps/api/src/log.ts`
+  cobre migrations/boot (o banner virou linha estruturada com modo/porta/hosts),
+  `unhandled_error` e assinatura inválida da Stripe. Nenhum módulo fora dos dois helpers chama
+  `console.*` — o lugar por onde um token vazaria em log agora é um só, e auditável. OpenSpec:
+  `improve-maintainability-baseline`.
+
+- **`packages/queue` deixou de ser o único package sem testes, e todo repositório prova escopo
+  por organização.** O queue ganhou 21 testes: falha aberta sem Redis (janela, semáforo e
+  idempotência concedem em vez de travar a publicação), janela all-or-nothing, semáforo com
+  release exato e reclaim de slot de worker morto, `runBatch` (extraído do closure do worker)
+  processando o lote inteiro e relançando a primeira falha, e o ciclo claim/replay/conflict/
+  release/TTL da idempotência — a metade real roda no CI via `TEST_REDIS_URL` no serviço já
+  provisionado. No banco, `org-scoping.integration.test.ts` cobre os sete repositórios que não
+  tinham teste de isolamento (media, channels, webhooks, notifications, approvals, billing e
+  grants OAuth): um `where org_id` esquecido agora falha em teste, não em produção. OpenSpec:
+  `improve-maintainability-baseline`.
+
+- **O web perdeu o marcador geracional da Home e 50 cópias do mesmo boilerplate.** Os blocos
+  "v2" da Home viraram `home-blocks-operational` (nome pelo conteúdo, não pela geração), o bloco
+  fantasma `'today'` saiu do sistema de ordem (o resumo do dia renderiza fora dele), o `SetaCta`
+  sem uso e o `textoParaAplicar` vestigial (função identidade viva só pelo próprio teste) foram
+  deletados, e as ~50 repetições de `if (error) throw error` nas chamadas à API viraram um
+  `unwrap()` único em `lib/api`. A separação deliberada dos três stores do composer (rascunho
+  persistido / UI efêmera / modal) agora está documentada no ponto de entrada. OpenSpec:
+  `improve-maintainability-baseline`.
+
+- **A dobra de acento da busca tem uma autoridade única com paridade testada.** A tabela
+  `translate` do SQL agora vem de `@manypost/contracts` (dado, não lógica), a paleta e o Quadro
+  compartilham uma única dobra NFD em `apps/web/src/lib/text.ts` (eram duas cópias), e um teste de
+  paridade pina caractere a caractere que cliente e servidor concordam — a classe de defeito que o
+  `e2e-search` pegou na onda 34 agora falha em teste unitário. OpenSpec:
+  `improve-maintainability-baseline`.
+
+- **As duas variantes de Instagram passaram a compartilhar um único pipeline Graph.** O fluxo
+  container → poll → publish → permalink, o carrossel por filhos, o comentário de thread, a
+  validação de mídia e a taxonomia de erros da Meta estavam copiados (~400 linhas) entre
+  `instagram` (Facebook Business) e `instagram-standalone` (Instagram Login); agora vivem em
+  `packages/providers/src/shared/instagram-graph.ts`, parametrizados pelo host da Graph e pelo
+  alvo de publicação. Os 51 testes de contrato dos dois providers passam inalterados. OpenSpec:
+  `improve-maintainability-baseline`.
+
+- **O runner de publicação foi decomposto em unidades nomeadas.** A função única de ~400 linhas
+  que misturava admissão (semáforo, janela de rate-limit, claim com fencing), resolução de
+  `mediaSettings`, laço de entrega com posse por item, refresh de token e retry virou sete
+  unidades com contrato próprio (`makeProviderSlot`, `admitRun`, `isStaleContinuation`,
+  `makeOutcomeReporters`, `resolveMediaSettings`, `deliverItems`, `recoverExpiredToken`/
+  `scheduleTransientRetry`), orquestradas por um `makeRunner` de ~90 linhas. Comportamento
+  idêntico: os 59 testes da suíte de publishing passam sem nenhuma alteração. OpenSpec:
+  `improve-maintainability-baseline`.
+
+- **Testes de conformidade visual pararam de pinar markup exato.** Os pins de string de classe,
+  expressão de chamada e contagem exata sobre o código-fonte — que quebravam em qualquer refactor
+  legítimo sem mudança visual — viraram asserções sobre HTML renderizado (`kanban-blocks`,
+  novo `calendar-grids.test.tsx`) ou regras genéricas de brand; os helpers de leitura de fonte,
+  antes copiados em cinco arquivos, agora vivem em `apps/web/src/test-utils/source-lint.ts`.
+  OpenSpec: `improve-maintainability-baseline`.
 
 - **Redes sociais ganharam identidade visual explícita nos cards.** Em Conexões, o logotipo da
   plataforma agora é a âncora de 48px e o nome da rede ocupa o primeiro nível, com a conta logo

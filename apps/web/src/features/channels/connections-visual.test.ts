@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+import { sourceReader } from '@/test-utils/source-lint';
 
-const source = () => Bun.file(new URL('./connections-view.tsx', import.meta.url)).text();
+const source = () => sourceReader(import.meta.url)('./connections-view.tsx');
 
 describe('ênfase visual das redes em Conexões', () => {
   test('o catálogo mantém a marca dominante em uma escala mais compacta', async () => {

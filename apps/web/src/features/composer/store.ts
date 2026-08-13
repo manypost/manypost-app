@@ -13,6 +13,15 @@ import {
  * rascunho em localStorage — fechar/reabrir ou dar F5 não perde conteúdo.
  * `editorNonce` força o remount dos editores TipTap (não-controlados) quando o
  * rascunho é descartado.
+ *
+ * O estado do composer é DELIBERADAMENTE três stores, um por ciclo de vida:
+ *  - `useComposerStore` (este arquivo): o RASCUNHO — persistido, sobrevive a F5;
+ *  - `useComposerUiStore` (composer-ui-store.ts): aba/peek/prévia — efêmero e
+ *    isolado para hover não re-renderizar a view inteira;
+ *  - `useComposerModal` (use-composer-modal.ts): abre/fecha o popup global.
+ * Fundi-los faria hover escrever no store persistido (o defeito que motivou a
+ * separação). Não é geração antiga convivendo com nova: é fronteira de ciclo
+ * de vida.
  */
 export type ScheduleMode = 'now' | 'schedule';
 

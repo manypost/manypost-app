@@ -4,19 +4,10 @@ import { DomainError, MIME_BY_EXT, parseMediaKey, type MediaRecord } from '@many
 import type { Container } from '../../container';
 import { requireAuth } from '../middleware/auth';
 import { AUTH_SECURITY, createApp, errorResponses, jsonBody, jsonResponse } from '../openapi';
+import { serializeMedia } from './shared/serialize';
 
-const serialize = (ctn: Container, m: MediaRecord) => ({
-  id: m.id,
-  url: ctn.storage.publicUrl(m.path),
-  mime: m.mime,
-  // a biblioteca marca o que é sintético (SPEC ai-image-generation)
-  source: m.source,
-  byteSize: m.byteSize,
-  width: m.width,
-  height: m.height,
-  alt: m.alt,
-  createdAt: m.createdAt.toISOString(),
-});
+const serialize = (ctn: Container, m: MediaRecord) =>
+  serializeMedia((path) => ctn.storage.publicUrl(path), m);
 
 const MediaOut = z
   .object({

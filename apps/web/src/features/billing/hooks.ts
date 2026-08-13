@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api/client';
+import { unwrap } from '@/lib/api/unwrap';
 
 export type PlanTier = 'FREE' | 'PRO' | 'PREMIUM';
 export type BillingPeriod = 'MONTHLY' | 'YEARLY';
@@ -14,8 +15,7 @@ export function useCapabilities() {
   return useQuery({
     queryKey: ['capabilities'],
     queryFn: async () => {
-      const { data, error } = await api.GET('/v1/capabilities');
-      if (error) throw error;
+      const data = unwrap(await api.GET('/v1/capabilities'));
       return data;
     },
     staleTime: 60_000,
@@ -51,8 +51,7 @@ export function usePlanCatalog() {
   return useQuery({
     queryKey: ['billing', 'plans'],
     queryFn: async () => {
-      const { data, error } = await api.GET('/v1/billing/plans');
-      if (error) throw error;
+      const data = unwrap(await api.GET('/v1/billing/plans'));
       return data;
     },
     staleTime: 300_000,
@@ -63,8 +62,7 @@ export function useBilling() {
   return useQuery({
     queryKey: ['billing'],
     queryFn: async () => {
-      const { data, error } = await api.GET('/v1/billing');
-      if (error) throw error;
+      const data = unwrap(await api.GET('/v1/billing'));
       return data;
     },
   });
@@ -74,8 +72,7 @@ export function useInvoices() {
   return useQuery({
     queryKey: ['billing', 'invoices'],
     queryFn: async () => {
-      const { data, error } = await api.GET('/v1/billing/invoices');
-      if (error) throw error;
+      const data = unwrap(await api.GET('/v1/billing/invoices'));
       return data;
     },
   });
@@ -86,8 +83,7 @@ export function useCheckout() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: { tier: 'PRO' | 'PREMIUM'; period: BillingPeriod }) => {
-      const { data, error } = await api.POST('/v1/billing/checkout', { body: input });
-      if (error) throw error;
+      const data = unwrap(await api.POST('/v1/billing/checkout', { body: input }));
       return data;
     },
     onSuccess: () => {
@@ -100,8 +96,7 @@ export function useCheckout() {
 export function useBillingPortal() {
   return useMutation({
     mutationFn: async () => {
-      const { data, error } = await api.GET('/v1/billing/portal');
-      if (error) throw error;
+      const data = unwrap(await api.GET('/v1/billing/portal'));
       return data;
     },
   });
@@ -112,8 +107,7 @@ export function useToggleCancel() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: { feedback?: string }) => {
-      const { data, error } = await api.POST('/v1/billing/cancel', { body: input });
-      if (error) throw error;
+      const data = unwrap(await api.POST('/v1/billing/cancel', { body: input }));
       return data;
     },
     onSuccess: () => {
@@ -128,8 +122,7 @@ export function useSyncSubscription() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      const { data, error } = await api.POST('/v1/billing/sync', {});
-      if (error) throw error;
+      const data = unwrap(await api.POST('/v1/billing/sync', {}));
       return data;
     },
     onSuccess: () => {

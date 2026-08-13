@@ -385,7 +385,6 @@ export type BlocoId =
   | 'firstRun'
   | 'attention'
   | 'nextAction'
-  | 'today'
   | 'upcoming'
   | 'pipeline'
   | 'drafts'
@@ -435,7 +434,7 @@ export function ordemDosBlocos(
   const principal: BlocoId[] = [];
   if (temAtencao) principal.push('attention');
   else if (temProximaAcao) principal.push('nextAction');
-  if (e) principal.push('today');
+  // o TodayBlock renderiza FORA do sistema de ordem (largura cheia acima da grade) — não entra aqui
   if ((e && proximasPublicacoes(e.proximas).length > 0) || fonteVisivel('upcoming')) {
     principal.push('upcoming');
   }

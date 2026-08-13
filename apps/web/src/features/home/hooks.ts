@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api/client';
+import { unwrap } from '@/lib/api/unwrap';
 
 /**
  * Resumo operacional da tela inicial.
@@ -39,10 +40,9 @@ export function useInsightsSummary() {
     refetchInterval: 60_000,
     refetchOnWindowFocus: true,
     queryFn: async () => {
-      const { data, error } = await api.GET('/v1/insights/summary', {
+      const data = unwrap(await api.GET('/v1/insights/summary', {
         params: { query: { tz: timezone } },
-      });
-      if (error) throw error;
+      }));
       return data as InsightsSummary;
     },
   });
@@ -61,12 +61,11 @@ export function useUpcomingPublications() {
     staleTime: 20_000,
     refetchInterval: 60_000,
     queryFn: async () => {
-      const { data, error } = await api.GET('/v1/publications', {
+      const data = unwrap(await api.GET('/v1/publications', {
         params: {
           query: { from: new Date().toISOString(), state: 'SCHEDULED', limit: '20' },
         },
-      });
-      if (error) throw error;
+      }));
       return data?.items ?? [];
     },
   });
@@ -85,10 +84,9 @@ export function useDraftGroups() {
     staleTime: 60_000,
     refetchInterval: 60_000,
     queryFn: async () => {
-      const { data, error } = await api.GET('/v1/publications', {
+      const data = unwrap(await api.GET('/v1/publications', {
         params: { query: { state: 'DRAFT', limit: '50' } },
-      });
-      if (error) throw error;
+      }));
       return data?.items ?? [];
     },
   });

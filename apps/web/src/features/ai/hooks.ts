@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef } from 'react';
 import { api } from '@/lib/api/client';
+import { unwrap } from '@/lib/api/unwrap';
 import { useCapabilities, usePlanFeatures } from '@/features/billing/hooks';
 
 /**
@@ -60,8 +61,7 @@ export function useGenerateCaption() {
       tone?: string;
       settings?: Record<string, unknown>;
     }) => {
-      const { data, error } = await api.POST('/v1/ai/caption', { body: input });
-      if (error) throw error;
+      const data = unwrap(await api.POST('/v1/ai/caption', { body: input }));
       return data.variants as AiVariant[];
     },
     onSettled: refresh,
@@ -106,8 +106,7 @@ export function useRewriteText() {
       channelId?: string;
       settings?: Record<string, unknown>;
     }) => {
-      const { data, error } = await api.POST('/v1/ai/rewrite', { body: input });
-      if (error) throw error;
+      const data = unwrap(await api.POST('/v1/ai/rewrite', { body: input }));
       return data as RewriteResult;
     },
     onSettled: refresh,
@@ -118,8 +117,7 @@ export function useSuggestHashtags() {
   const refresh = useInvalidateCredits();
   return useMutation({
     mutationFn: async (input: { text: string; channelId: string; count?: number }) => {
-      const { data, error } = await api.POST('/v1/ai/hashtags', { body: input });
-      if (error) throw error;
+      const data = unwrap(await api.POST('/v1/ai/hashtags', { body: input }));
       return data.hashtags as string[];
     },
     onSettled: refresh,
@@ -130,8 +128,7 @@ export function useGenerateAltText() {
   const refresh = useInvalidateCredits();
   return useMutation({
     mutationFn: async (input: { mediaId: string; context?: string }) => {
-      const { data, error } = await api.POST('/v1/ai/alt-text', { body: input });
-      if (error) throw error;
+      const data = unwrap(await api.POST('/v1/ai/alt-text', { body: input }));
       return data.alt as string;
     },
     onSettled: refresh,
@@ -142,8 +139,7 @@ export function useDraftMultichannel() {
   const refresh = useInvalidateCredits();
   return useMutation({
     mutationFn: async (input: { idea: string; channelIds: string[]; tone?: string }) => {
-      const { data, error } = await api.POST('/v1/ai/draft', { body: input });
-      if (error) throw error;
+      const data = unwrap(await api.POST('/v1/ai/draft', { body: input }));
       return data.drafts as AiVariant[];
     },
     onSettled: refresh,
@@ -167,10 +163,9 @@ export function useBestTimes(channelId: string | undefined, enabled: boolean) {
     enabled: Boolean(channelId) && enabled,
     staleTime: 300_000,
     queryFn: async () => {
-      const { data, error } = await api.GET('/v1/ai/best-times', {
+      const data = unwrap(await api.GET('/v1/ai/best-times', {
         params: { query: { channelId: channelId!, timezone } },
-      });
-      if (error) throw error;
+      }));
       return data as {
         channelId: string;
         timezone: string;
@@ -295,11 +290,10 @@ export function useGenerateImage() {
   const tracker = trackerRef.current;
   return useMutation({
     mutationFn: async (input: GenerateImageInput) => {
-      const { data, error } = await api.POST(
+      const data = unwrap(await api.POST(
         '/v1/ai/image',
         imageGenerationRequest(input, tracker),
-      );
-      if (error) throw error;
+      ));
       return data.media as GeneratedMedia;
     },
     onSuccess: (_data, input) => tracker.complete(input),

@@ -446,8 +446,3 @@ export function PipelineBlock({
     </Card>
   );
 }
-
-// ---------------------------------------------------------------------------
-
-/** seta do CTA principal do cabeçalho — separada só para não repetir a classe */
-export const SetaCta = () => <ArrowRight className="size-3.5" aria-hidden />;

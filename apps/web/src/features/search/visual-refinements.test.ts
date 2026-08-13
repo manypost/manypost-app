@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { sourceReader, stripComments } from '@/test-utils/source-lint';
 
 /**
  * Leitura do fonte da paleta.
@@ -8,9 +9,7 @@ import { describe, expect, test } from 'bun:test';
  * provável, e prendem o contrato do diálogo em `palette`.
  */
 
-const source = (name: string) => Bun.file(new URL(name, import.meta.url)).text();
-
-const semComentarios = (src: string) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+const source = sourceReader(import.meta.url);
 
 describe('conformidade visual da paleta', () => {
   test('não usa sombra', async () => {
@@ -26,7 +25,7 @@ describe('conformidade visual da paleta', () => {
   });
 
   test('todo botão cru da lista declara cursor-pointer', async () => {
-    const src = semComentarios(await source('./command-palette.tsx'));
+    const src = stripComments(await source('./command-palette.tsx'));
     const tags = src.match(/<button\b[^]*?type="button"/g) ?? [];
     expect(tags.length).toBeGreaterThan(0);
     // cada <button …> do arquivo carrega cursor-pointer na sua string de classe

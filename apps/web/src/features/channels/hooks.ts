@@ -2,17 +2,16 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api/client';
+import { unwrap } from '@/lib/api/unwrap';
 
 /** fetchers exportados p/ uso imperativo via queryClient (ex.: duplicar post) */
 export async function fetchProviders() {
-  const { data, error } = await api.GET('/v1/channels/providers');
-  if (error) throw error;
+  const data = unwrap(await api.GET('/v1/channels/providers'));
   return data;
 }
 
 export async function fetchChannels() {
-  const { data, error } = await api.GET('/v1/channels');
-  if (error) throw error;
+  const data = unwrap(await api.GET('/v1/channels'));
   return data;
 }
 
@@ -39,10 +38,9 @@ export function useChannels() {
 export function useConnectChannel() {
   return useMutation({
     mutationFn: async (input: { provider: string; fields?: Record<string, unknown> }) => {
-      const { data, error } = await api.POST('/v1/channels/connect', {
+      const data = unwrap(await api.POST('/v1/channels/connect', {
         body: { provider: input.provider, ...(input.fields ? { fields: input.fields } : {}) },
-      });
-      if (error) throw error;
+      }));
       return data;
     },
   });
@@ -57,8 +55,7 @@ export function useDisconnectChannel() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await api.DELETE('/v1/channels/{id}', { params: { path: { id } } });
-      if (error) throw error;
+      unwrap(await api.DELETE('/v1/channels/{id}', { params: { path: { id } } }));
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['channels'] }),
   });

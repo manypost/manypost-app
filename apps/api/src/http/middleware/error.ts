@@ -2,6 +2,7 @@ import type { Context } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { ZodError } from 'zod';
 import { DomainError } from '@manypost/core';
+import { log } from '../../log';
 
 /** DomainError.code → HTTP (RFC 9457 problem+json — SPEC_API_MCP §3). */
 const STATUS: Record<string, ContentfulStatusCode> = {
@@ -73,14 +74,10 @@ export function errorHandler(err: unknown, c: Context) {
       { 'content-type': 'application/problem+json' },
     );
   }
-  console.error(
-    JSON.stringify({
-      level: 'error',
-      msg: 'unhandled_error',
-      correlationId: c.get('correlationId'),
-      err: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
-    }),
-  );
+  log('error', 'unhandled_error', {
+    correlationId: c.get('correlationId'),
+    err: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
+  });
   return c.json(
     { type: 'about:blank', title: 'internal_error', status: 500 },
     500,

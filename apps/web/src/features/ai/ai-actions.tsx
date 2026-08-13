@@ -87,14 +87,6 @@ export interface AiActionsProps {
 export { editorUtilizavel };
 
 /**
- * Texto de trabalho das ações. Vem do STORE e **nunca** de uma leitura do editor — é
- * exatamente essa leitura que estourava em uso real. O parâmetro `editor` fica só para deixar
- * explícito, no teste, que a presença dele não muda a resposta.
- */
-export const textoParaAplicar = (textoDoStore: string, _editor: Editor | null): string =>
-  textoDoStore;
-
-/**
  * Distribui as variantes pelos canais que as pediram.
  *
  * Existe como função pura porque é aqui que o defeito vivia: a interface cobrava um crédito por

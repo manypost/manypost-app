@@ -1,12 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import type { Editor } from '@tiptap/react';
 import messages from '@/messages/pt-BR.json';
-import {
-  editorUtilizavel,
-  resolveAiScope,
-  textoParaAplicar,
-  variantesParaOverrides,
-} from './ai-actions';
+import { editorUtilizavel, resolveAiScope, variantesParaOverrides } from './ai-actions';
 import {
   ASPECTOS,
   createImageIdempotencyTracker,
@@ -27,9 +22,9 @@ const ai = messages.ai as Record<string, string>;
  * continua existindo depois de destruída pelo remount do `editorNonce` — nos dois casos
  * `editor.state` é null e a leitura estoura lá dentro.
  *
- * A correção tem duas partes, e as duas estão presas aqui:
- *  1. o texto passou a vir do STORE (nunca do editor) — o editor é só para escrever;
- *  2. escrever exige instância utilizável, não apenas não-nula.
+ * A correção: o texto vem do STORE (nunca de leitura do editor — os componentes de IA usam
+ * `useComposerStore`), e escrever exige instância utilizável, não apenas não-nula — a guarda
+ * abaixo.
  */
 describe('leitura e escrita seguras no editor do composer', () => {
   test('editor ausente não é utilizável', () => {
@@ -44,23 +39,6 @@ describe('leitura e escrita seguras no editor do composer', () => {
   test('editor vivo é utilizável', () => {
     const vivo = { isDestroyed: false } as unknown as Editor;
     expect(editorUtilizavel(vivo)).toBe(true);
-  });
-
-  // o coração do bug: mesmo com um editor que estoura ao ser lido, o componente tem o texto
-  test('o texto vem do store, então um editor que estoura ao ser lido não quebra a tela', () => {
-    const editorQueEstoura = {
-      isDestroyed: false,
-      getText: () => {
-        throw new TypeError("Cannot read properties of null (reading 'nodes')");
-      },
-    } as unknown as Editor;
-
-    expect(() => textoParaAplicar('texto do store', editorQueEstoura)).not.toThrow();
-    expect(textoParaAplicar('texto do store', editorQueEstoura)).toBe('texto do store');
-  });
-
-  test('acrescentar parte do texto do store, não de uma leitura do editor', () => {
-    expect(textoParaAplicar('legenda', null)).toBe('legenda');
   });
 });
 

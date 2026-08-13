@@ -5810,8 +5810,26 @@ export type components = {
             state: string;
             /** Format: date-time */
             publishAt: string | null;
+            /**
+             * Format: date-time
+             * @description quando a entrega de fato aconteceu (null antes de publicar)
+             */
+            publishedAt: string | null;
+            /**
+             * Format: date-time
+             * @description última mutação da linha — ordena atividade recente
+             */
+            updatedAt: string;
             text: string;
             mediaCount: number;
+            /** @description primeira mídia do conteúdo, quando existe */
+            mediaPreview: {
+                /** @enum {string} */
+                type: "image" | "video";
+                url: string;
+                mime: string | null;
+                alt: string | null;
+            } | null;
             externalId: string | null;
             releaseUrl: string | null;
             errorClass: string | null;
@@ -5850,6 +5868,8 @@ export type components = {
             url: string;
             /** @example image/png */
             mime: string;
+            /** @description `ai` = gerada por IA; `upload` = enviada por alguém */
+            source: string;
             byteSize: number;
             width: number | null;
             height: number | null;

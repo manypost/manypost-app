@@ -1,9 +1,9 @@
 import { z } from '@hono/zod-openapi';
 import { PublicationStates, type PublicationState } from '@manypost/contracts';
-import type { PublicationFeedItem } from '@manypost/core';
 import type { Container } from '../../container';
 import { requireAuth } from '../middleware/auth';
 import { AUTH_SECURITY, createApp, errorResponses, jsonResponse } from '../openapi';
+import { csvParam, decodeCursor, encodeCursor, serializeFeedItem } from './shared/serialize';
 
 // schema só de documentação: o Query real usa transforms (csv/coerce) que não renderizam
 // limpo em OpenAPI — aqui descrevemos os params como o cliente os envia (strings de query).
@@ -68,63 +68,18 @@ const FeedOut = z
   })
   .openapi('PublicationFeed');
 
-const csv = <T extends z.ZodTypeAny>(item: T) =>
-  z
-    .string()
-    .transform((s) => s.split(',').filter(Boolean))
-    .pipe(z.array(item).min(1).max(50));
-
 const Query = z.object({
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
   /** csv de estados de publicação (ex.: state=SCHEDULED,FAILED) */
-  state: csv(z.enum(PublicationStates as unknown as [PublicationState, ...PublicationState[]])).optional(),
+  state: csvParam(
+    z.enum(PublicationStates as unknown as [PublicationState, ...PublicationState[]]),
+  ).optional(),
   /** csv de ids de canal */
-  channelId: csv(z.string().uuid()).optional(),
+  channelId: csvParam(z.string().uuid()).optional(),
   cursor: z.string().max(200).optional(),
   limit: z.coerce.number().int().min(1).max(200).default(100),
 });
-
-const encodeCursor = (publishAt: Date | null, id: string) =>
-  Buffer.from(JSON.stringify({ p: (publishAt ?? new Date(0)).toISOString(), id })).toString(
-    'base64url',
-  );
-
-const decodeCursor = (raw: string): { publishAt: Date; id: string } | undefined => {
-  try {
-    const { p, id } = JSON.parse(Buffer.from(raw, 'base64url').toString()) as { p: string; id: string };
-    const publishAt = new Date(p);
-    if (Number.isNaN(publishAt.getTime()) || typeof id !== 'string') return undefined;
-    return { publishAt, id };
-  } catch {
-    return undefined; // cursor malformado = primeira página (não vaza detalhe)
-  }
-};
-
-const serialize = (p: PublicationFeedItem) => {
-  const preview = p.content.media?.[0];
-  return {
-    id: p.id,
-    groupId: p.groupId,
-    channelId: p.channelId,
-    state: p.state,
-    publishAt: p.publishAt?.toISOString() ?? null,
-    publishedAt: p.publishedAt?.toISOString() ?? null,
-    updatedAt: p.updatedAt.toISOString(),
-    text: p.content.text,
-    mediaCount: p.content.media?.length ?? 0,
-    mediaPreview: preview
-      ? { type: preview.type, url: preview.url, mime: preview.mime ?? null, alt: preview.alt ?? null }
-      : null,
-    externalId: p.externalId,
-    releaseUrl: p.releaseUrl,
-    errorClass: p.errorClass,
-    errorMessage: p.errorMessage,
-    attemptCount: p.attemptCount,
-    group: p.group,
-    channel: p.channel,
-  };
-};
 
 /** Feed p/ calendário e kanban (SPEC_FRONTEND §3.1-3.2): flat por publicação,
  *  o cliente agrupa por groupId; cursor keyset (publishAt, id). */
@@ -160,7 +115,7 @@ export function publicationRoutes(ctn: Container) {
     const page = rows.slice(0, q.limit);
     const last = page.at(-1);
     return c.json({
-      items: page.map(serialize),
+      items: page.map(serializeFeedItem),
       nextCursor: rows.length > q.limit && last ? encodeCursor(last.publishAt, last.id) : null,
     });
   });

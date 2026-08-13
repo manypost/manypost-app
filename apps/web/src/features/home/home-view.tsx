@@ -31,7 +31,7 @@ import {
   NextActionBlock,
   PipelineBlock,
   UpcomingBlock,
-} from './home-blocks-v2';
+} from './home-blocks-operational';
 import { useDraftGroups, useInsightsSummary, useUpcomingPublications } from './hooks';
 import {
   atividadeRecente,
@@ -196,8 +196,6 @@ export function HomeView() {
         return estado ? envolver(<AttentionBlock attention={estado.atencao} />) : null;
       case 'nextAction':
         return estado ? envolver(<NextActionBlock acao={proximaAcao(estado)} />) : null;
-      case 'today':
-        return null;
       case 'upcoming':
         return envolver(
           <BlocoAssincrono

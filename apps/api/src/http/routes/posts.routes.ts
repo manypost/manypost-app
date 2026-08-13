@@ -4,6 +4,7 @@ import { DomainError } from '@manypost/core';
 import type { Container } from '../../container';
 import { requireAuth } from '../middleware/auth';
 import { AUTH_SECURITY, createApp, errorResponses, jsonBody, jsonResponse } from '../openapi';
+import { serializeGroup } from './shared/serialize';
 
 const ScheduleBody = z.object({
   text: z.string().min(1).max(10_000),
@@ -28,26 +29,6 @@ const ScheduleBody = z.object({
     .optional(),
   /** true = nasce rascunho aguardando aprovação por link público (DECISIONS v1.1 §12) */
   requireApproval: z.boolean().optional(),
-});
-
-const serializeGroup = (g: NonNullable<Awaited<ReturnType<Container['posts']['getGroup']>>>) => ({
-  id: g.id,
-  state: g.state,
-  publishAt: g.publishAt?.toISOString() ?? null,
-  publications: g.publications.map((p) => ({
-    id: p.id,
-    channelId: p.channelId,
-    state: p.state,
-    media: p.content.media ?? [],
-    itemCount: p.itemCount ?? 1,
-    /** progresso da thread: itens <= índice já estão na rede */
-    lastPublishedIndex: p.lastPublishedIndex,
-    attemptCount: p.attemptCount,
-    externalId: p.externalId,
-    releaseUrl: p.releaseUrl,
-    errorClass: p.errorClass,
-    errorMessage: p.errorMessage,
-  })),
 });
 
 /** GET de detalhe = serializeGroup + conteúdo (texto/settings/thread) — o que o composer

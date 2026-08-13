@@ -2249,11 +2249,61 @@
             ],
             "format": "date-time"
           },
+          "publishedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "quando a entrega de fato aconteceu (null antes de publicar)"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "última mutação da linha — ordena atividade recente"
+          },
           "text": {
             "type": "string"
           },
           "mediaCount": {
             "type": "integer"
+          },
+          "mediaPreview": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "image",
+                  "video"
+                ]
+              },
+              "url": {
+                "type": "string"
+              },
+              "mime": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "alt": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "url",
+              "mime",
+              "alt"
+            ],
+            "description": "primeira mídia do conteúdo, quando existe"
           },
           "externalId": {
             "type": [
@@ -2337,8 +2387,11 @@
           "channelId",
           "state",
           "publishAt",
+          "publishedAt",
+          "updatedAt",
           "text",
           "mediaCount",
+          "mediaPreview",
           "externalId",
           "releaseUrl",
           "errorClass",
@@ -2438,6 +2491,10 @@
             "type": "string",
             "example": "image/png"
           },
+          "source": {
+            "type": "string",
+            "description": "`ai` = gerada por IA; `upload` = enviada por alguém"
+          },
           "byteSize": {
             "type": "integer"
           },
@@ -2468,6 +2525,7 @@
           "id",
           "url",
           "mime",
+          "source",
           "byteSize",
           "width",
           "height",
