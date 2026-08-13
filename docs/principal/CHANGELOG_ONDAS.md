@@ -10,6 +10,34 @@
 > **Como manter:** ao fechar uma fatia, adicione a onda nova **no topo** e atualize o STATUS.
 > Cada entrada é auto-contida: o que mudou, onde no código, e a prova de que funciona.
 
+## Onda 38 — 2026-08-13 — registro regularizado: modos de custo e qualidade na imagem (entrega de 2026-07-28)
+
+Regularização de registro: a entrega abaixo estava documentada no `CHANGELOG.md` da raiz e na
+mudança OpenSpec `add-ai-image-quality-modes` desde 28/07 (PR #55), mas nunca ganhou onda aqui nem
+atualizou o STATUS — que seguia anunciando a geração de imagem a 5 créditos fixos. O CLAUDE.md exige
+os dois registros ao fechar uma fatia; este fecha a metade que faltou.
+
+A geração de imagem ganhou dois modos fechados sobre o mesmo `AI_IMAGE_MODEL`: `economy`
+(renderização `low`, 2 créditos, padrão determinístico quando o campo é omitido) e `quality`
+(renderização `high`, 5 créditos). Os dois custos aparecem antes do clique, trocar o modo troca a
+identidade idempotente da submissão, e o navegador continua sem enviar nome de modelo ou parâmetro
+livre do provedor — a tradução de vocabulário permanece no adapter. Superfícies: o diálogo da
+biblioteca de mídia, a mesma ação no seletor de mídia do composer e a tool MCP `generate_image`
+(escopo de escrita).
+
+Junto veio a conexão independente de imagem: `AI_IMAGE_PROVIDER`/`AI_IMAGE_BASE_URL`/
+`AI_IMAGE_API_KEY`/`AI_IMAGE_MODEL` trocam o serviço OpenAI-compatible sem tocar a IA de texto.
+Omitir o provider herda a conexão de texto integral (compatibilidade); declará-lo exige o bloco
+completo (falha fechado no boot) e a chave de texto nunca é copiada em silêncio;
+`AI_IMAGE_PROVIDER=none` desliga só imagens. O adapter também deixou de enviar `response_format`,
+rejeitado pelo endpoint atual de imagens (`fix-image-generation-request-compatibility`).
+
+**Provas e limite:** RED→GREEN focado em core/config/web; `e2e-ai` estendido para o enum fechado,
+o padrão econômico, as cobranças por modo e a idempotência inalterada; OpenAPI regenerado pela API
+local; `bun run check`, `db:check` e `build:web` registrados nas tasks 4.1/5.5 da mudança; PR #55
+mergeado em 2026-07-28 com smoke em staging. Continuam abertas as tasks 4.2 (verificação do seletor
+em navegador autenticado) e 4.3 (arquivamento), presas no mesmo smoke compartilhado das ondas 34–37.
+
 ## Onda 37 — 2026-08-05 — fechamento auditado da Home v2
 
 Uma revisão requisito por requisito encontrou cinco divergências na entrega da onda 34. O erro do
