@@ -38,12 +38,16 @@
 
 ## 5. Web consistency
 
-- [ ] 5.1 Collapse the Home v1/v2 split (one blocks module, no phantom `'today'` entry) keeping
-  every behavioral test green.
-- [ ] 5.2 Delete dead code: `SetaCta`, `textoParaAplicar` and its assertions.
-- [ ] 5.3 Add the `unwrap()` helper in `apps/web/src/lib/api` and replace the repeated
-  `if (error) throw error; return data` call sites.
-- [ ] 5.4 Consolidate composer state files under one convention and document the store split.
+- [x] 5.1 Collapse the Home v1/v2 split: blocks renamed by content (`home-blocks-operational`),
+  the phantom `'today'` entry removed from `BlocoId`/`ordemDosBlocos` (the block renders outside
+  the ordering system), every behavioral test green.
+- [x] 5.2 Delete dead code: `SetaCta`, `textoParaAplicar` and its assertions.
+- [x] 5.3 Add the `unwrap()` helper in `apps/web/src/lib/api` and replace all 50
+  `if (error) throw error` call sites (44 data reads + 6 error-only mutations).
+- [x] 5.4 Document the composer's deliberate three-store lifecycle split at its entry point
+  (persisted draft / ephemeral UI / global modal); merging them would reintroduce the
+  hover-rerender defect that motivated the separation. Query-key factory evaluated and skipped
+  (see proposal).
 
 ## 6. Test floors
 

@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { NetworkPreview } from '@/features/composer/network-preview';
 import { api } from '@/lib/api/client';
+import { unwrap } from '@/lib/api/unwrap';
 import { useApiErrorMessage } from '@/lib/api/errors';
 import type { components } from '@/lib/api/schema';
 import { cn } from '@/lib/utils';
@@ -51,11 +52,10 @@ export function ApprovalView({ token }: { token: string }) {
 
   const approve = useMutation({
     mutationFn: async () => {
-      const { data, error } = await api.POST('/public/approval/{token}/approve', {
+      const data = unwrap(await api.POST('/public/approval/{token}/approve', {
         params: { path: { token } },
         body: { ...(name.trim() ? { name: name.trim() } : {}) },
-      });
-      if (error) throw error;
+      }));
       return data;
     },
     onSuccess: () => {
@@ -67,11 +67,10 @@ export function ApprovalView({ token }: { token: string }) {
 
   const requestChanges = useMutation({
     mutationFn: async () => {
-      const { data, error } = await api.POST('/public/approval/{token}/request-changes', {
+      const data = unwrap(await api.POST('/public/approval/{token}/request-changes', {
         params: { path: { token } },
         body: { feedback: feedback.trim(), ...(name.trim() ? { name: name.trim() } : {}) },
-      });
-      if (error) throw error;
+      }));
       return data;
     },
     onSuccess: () => {

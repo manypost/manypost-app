@@ -30,9 +30,12 @@ refactor:
   `packages/providers/src/shared/`, consumed by both `instagram` and `instagram-standalone`.
 - Accent folding gets one shared data table in `packages/contracts` (data, not logic) with a JS↔SQL
   parity test.
-- Web consistency: the Home v1/v2 split collapses, composer state consolidates, dead code is
-  deleted, an `unwrap()` helper replaces the repeated fetch boilerplate, and query keys get one
-  factory per feature convention.
+- Web consistency: the Home v1/v2 split collapses (content-based names, no phantom block), the
+  composer's deliberate three-store split is documented at its entry point, dead code is deleted,
+  and an `unwrap()` helper replaces the repeated fetch boilerplate. A query-key factory was
+  evaluated and deliberately skipped: keys are already feature-namespaced and SSE invalidation is
+  a tested pure data map (`realtime/invalidations.ts`), so a factory would add indirection without
+  changing any failure mode.
 - Test floors: `packages/queue` gains tests for fail-open behavior, semaphore release, `runBatch`
   rethrow semantics and idempotency TTL; every repository gains an `org_id` scoping test.
 - Structured logging goes through one helper instead of seven inline `console.*` sites; the four

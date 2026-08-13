@@ -20,7 +20,7 @@ describe('refinamentos visuais da Home', () => {
 
   test('listas operacionais não dependem de mapas de ícones decorativos', async () => {
     const original = await source('./home-blocks.tsx');
-    const v2 = await source('./home-blocks-v2.tsx');
+    const v2 = await source('./home-blocks-operational.tsx');
 
     expect(original).not.toContain('ICONE_ATENCAO');
     expect(v2).not.toContain('ICONE_ACAO');
@@ -28,7 +28,7 @@ describe('refinamentos visuais da Home', () => {
   });
 
   test('tiles do pipeline usam fill e ponto de estado, sem frame ou regra superior', async () => {
-    const v2 = await source('./home-blocks-v2.tsx');
+    const v2 = await source('./home-blocks-operational.tsx');
 
     expect(v2).not.toContain('border-t-2');
     expect(v2).toMatch(/size-1\.5[^'"]*rounded-full/);
@@ -46,7 +46,7 @@ describe('refinamentos visuais da Home', () => {
 
   test('controles compactos preservam o alvo mínimo de 32px do Button sm', async () => {
     const original = await source('./home-blocks.tsx');
-    const v2 = await source('./home-blocks-v2.tsx');
+    const v2 = await source('./home-blocks-operational.tsx');
     expect(original).not.toContain('h-7');
     expect(v2).not.toContain('h-7');
     expect((v2.match(/min-h-8/g) ?? []).length).toBeGreaterThanOrEqual(4);

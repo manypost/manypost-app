@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api/client';
+import { unwrap } from '@/lib/api/unwrap';
 import { kanbanFeedParams, type FeedItem } from './logic';
 
 /** teto de páginas do laço: 5 × 200 = 1000 itens */
@@ -45,7 +46,7 @@ export function usePipelineFeed(dias = 30, opts: { refetchInterval?: number } = 
       let cursor: string | undefined;
 
       for (let pagina = 0; pagina < MAX_PAGINAS; pagina++) {
-        const { data, error } = await api.GET('/v1/publications', {
+        const data = unwrap(await api.GET('/v1/publications', {
           params: {
             query: {
               from: params.from,
@@ -53,8 +54,7 @@ export function usePipelineFeed(dias = 30, opts: { refetchInterval?: number } = 
               ...(cursor ? { cursor } : {}),
             },
           },
-        });
-        if (error) throw error;
+        }));
         items.push(...((data?.items ?? []) as FeedItem[]));
         cursor = data?.nextCursor ?? undefined;
         if (!cursor) return { items, truncado: false };

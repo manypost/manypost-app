@@ -116,6 +116,15 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Changed
 
+- **O web perdeu o marcador geracional da Home e 50 cópias do mesmo boilerplate.** Os blocos
+  "v2" da Home viraram `home-blocks-operational` (nome pelo conteúdo, não pela geração), o bloco
+  fantasma `'today'` saiu do sistema de ordem (o resumo do dia renderiza fora dele), o `SetaCta`
+  sem uso e o `textoParaAplicar` vestigial (função identidade viva só pelo próprio teste) foram
+  deletados, e as ~50 repetições de `if (error) throw error` nas chamadas à API viraram um
+  `unwrap()` único em `lib/api`. A separação deliberada dos três stores do composer (rascunho
+  persistido / UI efêmera / modal) agora está documentada no ponto de entrada. OpenSpec:
+  `improve-maintainability-baseline`.
+
 - **A dobra de acento da busca tem uma autoridade única com paridade testada.** A tabela
   `translate` do SQL agora vem de `@manypost/contracts` (dado, não lógica), a paleta e o Quadro
   compartilham uma única dobra NFD em `apps/web/src/lib/text.ts` (eram duas cópias), e um teste de

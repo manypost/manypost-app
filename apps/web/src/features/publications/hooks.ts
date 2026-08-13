@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api/client';
+import { unwrap } from '@/lib/api/unwrap';
 
 /**
  * Feed flat de publicações (SPEC_FRONTEND §3.1): o cliente agrupa por dia/grupo.
@@ -14,7 +15,7 @@ export function usePublicationsFeed(
   return useQuery({
     queryKey: ['publications', params],
     queryFn: async () => {
-      const { data, error } = await api.GET('/v1/publications', {
+      const data = unwrap(await api.GET('/v1/publications', {
         params: {
           query: {
             ...(params.from ? { from: params.from } : {}),
@@ -24,8 +25,7 @@ export function usePublicationsFeed(
             limit: '200',
           },
         },
-      });
-      if (error) throw error;
+      }));
       return data;
     },
     refetchInterval: 30_000,
@@ -34,10 +34,9 @@ export function usePublicationsFeed(
 
 /** fetcher exportado p/ uso imperativo via queryClient (ex.: duplicar post) */
 export async function fetchPostGroup(groupId: string) {
-  const { data, error } = await api.GET('/v1/posts/{groupId}', {
+  const data = unwrap(await api.GET('/v1/posts/{groupId}', {
     params: { path: { groupId } },
-  });
-  if (error) throw error;
+  }));
   return data;
 }
 
@@ -67,7 +66,7 @@ export function useReschedulePost() {
       publishAt?: string;
       settingsByChannel?: Record<string, Record<string, unknown>>;
     }) => {
-      const { data, error } = await api.PATCH('/v1/posts/{groupId}', {
+      const data = unwrap(await api.PATCH('/v1/posts/{groupId}', {
         params: { path: { groupId: input.groupId } },
         body: {
           ...(input.text !== undefined ? { text: input.text } : {}),
@@ -76,8 +75,7 @@ export function useReschedulePost() {
             ? { settingsByChannel: input.settingsByChannel }
             : {}),
         },
-      });
-      if (error) throw error;
+      }));
       return data;
     },
     onSuccess: (_, vars) => invalidate(vars.groupId),
@@ -88,10 +86,9 @@ export function useCancelPost() {
   const invalidate = useInvalidatePost();
   return useMutation({
     mutationFn: async (groupId: string) => {
-      const { data, error } = await api.POST('/v1/posts/{groupId}/cancel', {
+      const data = unwrap(await api.POST('/v1/posts/{groupId}/cancel', {
         params: { path: { groupId } },
-      });
-      if (error) throw error;
+      }));
       return data;
     },
     onSuccess: (_, groupId) => invalidate(groupId),
@@ -103,11 +100,10 @@ export function useRetryPost() {
   const invalidate = useInvalidatePost();
   return useMutation({
     mutationFn: async (input: { groupId: string; channelId?: string }) => {
-      const { data, error } = await api.POST('/v1/posts/{groupId}/retry', {
+      const data = unwrap(await api.POST('/v1/posts/{groupId}/retry', {
         params: { path: { groupId: input.groupId } },
         ...(input.channelId ? { body: { channelId: input.channelId } } : {}),
-      });
-      if (error) throw error;
+      }));
       return data;
     },
     onSuccess: (_, vars) => invalidate(vars.groupId),
@@ -120,10 +116,9 @@ export function useApprovalLinkStatus(groupId: string | null, enabled = true) {
   return useQuery({
     queryKey: ['approval-link', groupId],
     queryFn: async () => {
-      const { data, error } = await api.GET('/v1/posts/{groupId}/approval-link', {
+      const data = unwrap(await api.GET('/v1/posts/{groupId}/approval-link', {
         params: { path: { groupId: groupId! } },
-      });
-      if (error) throw error;
+      }));
       return data;
     },
     enabled: groupId !== null && enabled,
@@ -134,11 +129,10 @@ export function useCreateApprovalLink() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: { groupId: string; expiresInHours?: number }) => {
-      const { data, error } = await api.POST('/v1/posts/{groupId}/approval-link', {
+      const data = unwrap(await api.POST('/v1/posts/{groupId}/approval-link', {
         params: { path: { groupId: input.groupId } },
         ...(input.expiresInHours ? { body: { expiresInHours: input.expiresInHours } } : {}),
-      });
-      if (error) throw error;
+      }));
       return data;
     },
     onSuccess: (_, vars) =>
@@ -150,10 +144,9 @@ export function useRevokeApprovalLink() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (groupId: string) => {
-      const { data, error } = await api.DELETE('/v1/posts/{groupId}/approval-link', {
+      const data = unwrap(await api.DELETE('/v1/posts/{groupId}/approval-link', {
         params: { path: { groupId } },
-      });
-      if (error) throw error;
+      }));
       return data;
     },
     onSuccess: (_, groupId) => {

@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api/client';
+import { unwrap } from '@/lib/api/unwrap';
 
 interface ScheduleInput {
   text: string;
@@ -19,7 +20,7 @@ export function useSchedulePost() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: ScheduleInput) => {
-      const { data, error } = await api.POST('/v1/posts', {
+      const data = unwrap(await api.POST('/v1/posts', {
         body: {
           text: input.text,
           channelIds: input.channelIds,
@@ -35,8 +36,7 @@ export function useSchedulePost() {
           ...(input.thread && input.thread.length > 0 ? { thread: input.thread } : {}),
           ...(input.requireApproval ? { requireApproval: true } : {}),
         },
-      });
-      if (error) throw error;
+      }));
       return data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['publications'] }),

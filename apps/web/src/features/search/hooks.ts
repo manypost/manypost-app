@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { create } from 'zustand';
 import { api } from '@/lib/api/client';
+import { unwrap } from '@/lib/api/unwrap';
 
 /** o servidor recusa consulta com menos que isto — não vale a pena nem sair do navegador */
 export const MIN_BUSCA = 2;
@@ -47,8 +48,7 @@ export function useSearchPosts(consulta: string) {
     enabled: q.length >= MIN_BUSCA,
     staleTime: 30_000,
     queryFn: async () => {
-      const { data, error } = await api.GET('/v1/search', { params: { query: { q } } });
-      if (error) throw error;
+      const data = unwrap(await api.GET('/v1/search', { params: { query: { q } } }));
       return data?.items ?? [];
     },
   });

@@ -13,7 +13,7 @@ describe('Home no sistema branco/lilás', () => {
 
   test('resumos operacionais usam fills KPI lilás/azul e cards analíticos usam raio próprio', async () => {
     const blocks = await source('./home-blocks.tsx');
-    const blocksV2 = await source('./home-blocks-v2.tsx');
+    const blocksV2 = await source('./home-blocks-operational.tsx');
 
     expect(blocks).toContain('rounded-card');
     expect(blocks).toContain('rounded-kpi');

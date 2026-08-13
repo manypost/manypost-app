@@ -10,7 +10,7 @@ import {
   NextActionBlock,
   PipelineBlock,
   UpcomingBlock,
-} from './home-blocks-v2';
+} from './home-blocks-operational';
 import type { EntradaDeAtividade, FeedItem, ProximaAcao } from './logic';
 
 /**
