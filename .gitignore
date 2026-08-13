@@ -9,6 +9,7 @@ uploads/
 .e2e-uploads/
 .e2e-api.log
 coverage/
+.playwright-cli/
 .DS_Store
 .vscode/
 .claude/settings.local.json
