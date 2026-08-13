@@ -131,8 +131,10 @@
 
 ## 11. Final validation and Coolify delivery
 
-- [ ] 11.1 Run focused tests, `bun run check`, `bun run db:check`, `bun run build:web`,
-  `bun run spec:validate`, `git diff --check` and the Docker build.
+- [x] 11.1 Run focused tests, `bun run check`, `bun run db:check`, `bun run build:web`,
+  `bun run spec:validate`, `git diff --check` and the Docker build. (2026-08-13: check com 1362
+  passes/18 skips de Postgres, Drizzle válido, build de 19 páginas, OpenSpec 31/31, diff limpo e
+  `docker build` da imagem única concluído com o web pré-compilado.)
 - [ ] 11.2 Verify desktop/tablet/mobile interaction and visual states with deterministic
   non-production data, including drag, filters, bulk actions, overlays, reduced motion and focus.
 - [ ] 11.3 Commit on `feat/ai-image-quality-modes`, push without opening a PR, deploy the exact commit
