@@ -1,11 +1,10 @@
 import { describe, expect, test } from 'bun:test';
+import { openingTags, sourceReader, stripComments } from '@/test-utils/source-lint';
 
 /**
- * Leitura do FONTE do quadro.
- *
- * O `check:brand` é regex por linha sobre o repositório inteiro e escapa de `className` montado por
- * `cn()` com variável — que é exatamente como o card e os filtros novos são escritos. Estes testes
- * cobrem esse buraco nos arquivos onde ele é mais provável.
+ * Leitura do FONTE do quadro — SÓ regras genéricas do brand (o buraco do `cn()` no
+ * `check:brand`). Asserções de marcação concreta vivem em `kanban-blocks.test.tsx`,
+ * renderizadas de verdade, onde um refactor de arquivo não produz falha falsa.
  */
 
 const ARQUIVOS = [
@@ -17,36 +16,7 @@ const ARQUIVOS = [
   'kanban-view.tsx',
 ] as const;
 
-const source = (name: string) => Bun.file(new URL(name, import.meta.url)).text();
-
-/** tira comentários de bloco e de linha, para prosa sobre markup não ser lida como markup */
-const semComentarios = (src: string) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
-
-/**
- * Extrai a tag de abertura inteira de cada `<nome ...>`.
- *
- * Um regex ganancioso não serve: `onClick={() => …}` tem um `>` dentro de chaves, e a busca pelo
- * primeiro `>` corta a tag no meio. Aqui o `>` só fecha quando a profundidade de chaves é zero.
- */
-function tagsDeAbertura(src: string, nomes: string[]): string[] {
-  const out: string[] = [];
-  for (const nome of nomes) {
-    const re = new RegExp(`<${nome}\\b`, 'g');
-    for (let m = re.exec(src); m; m = re.exec(src)) {
-      let profundidade = 0;
-      for (let i = m.index; i < src.length; i++) {
-        const ch = src[i];
-        if (ch === '{') profundidade++;
-        else if (ch === '}') profundidade--;
-        else if (ch === '>' && profundidade === 0) {
-          out.push(src.slice(m.index, i + 1));
-          break;
-        }
-      }
-    }
-  }
-  return out;
-}
+const source = sourceReader(import.meta.url);
 
 describe('conformidade visual do quadro', () => {
   test.each(ARQUIVOS)('%s não usa sombra (proibida sempre no brand)', async (arquivo) => {
@@ -82,10 +52,10 @@ describe('conformidade visual do quadro', () => {
     const crus: string[] = [];
     for (const arquivo of ARQUIVOS) {
       // comentários citam `<button>` ao explicar por que o card deixou de ser um: não são markup
-      const src = semComentarios(await source(`./${arquivo}`));
+      const src = stripComments(await source(`./${arquivo}`));
       // gatilhos crus (não o componente <Button>, que já traz cursor-pointer na variante)
       crus.push(
-        ...tagsDeAbertura(src, ['button', 'DropdownMenuTrigger']).filter(
+        ...openingTags(src, ['button', 'DropdownMenuTrigger']).filter(
           (tag) => !tag.includes('asChild'),
         ),
       );
@@ -103,18 +73,10 @@ describe('conformidade visual do quadro', () => {
     expect(src).toContain('motion-reduce:transition-none');
   });
 
-  test('colunas compartilham uma superfície de trabalho; card preserva moldura leve', async () => {
-    const board = await source('./kanban-board.tsx');
-    const coluna = await source('./kanban-column.tsx');
-    const card = await source('./kanban-card.tsx');
-
-    expect(board).toContain('rounded-card border border-line bg-surface');
-    expect(board).not.toMatch(/\d+\s*\/\s*\d+/);
-    expect(coluna).toContain('border-l');
-    expect(coluna).toContain('top-[59px]');
-    expect(coluna).not.toContain('lg:top-0');
-    expect(coluna).toContain("'size-1.5 shrink-0 rounded-full'");
-    expect(card).toContain('rounded-card border bg-surface');
+  test('o quadro não inventa denominador de capacidade', async () => {
+    // a marcação concreta de coluna/card (superfície, sticky, ponto de estado, moldura)
+    // é assertada RENDERIZADA em kanban-blocks.test.tsx
+    expect(await source('./kanban-board.tsx')).not.toMatch(/\d+\s*\/\s*\d+/);
   });
 
   test.each(ARQUIVOS)('%s não usa animate-* sem desligar sob reduced motion', async (arquivo) => {

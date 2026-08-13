@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+import { sourceReader } from '@/test-utils/source-lint';
 
-const source = () => Bun.file(new URL('./settings-view.tsx', import.meta.url)).text();
+const source = () => sourceReader(import.meta.url)('./settings-view.tsx');
 
 describe('framing e ritmo das configurações', () => {
   test('blocos de código usam o fill rebaixado sem uma moldura interna', async () => {

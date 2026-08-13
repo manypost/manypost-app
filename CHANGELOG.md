@@ -116,6 +116,13 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Changed
 
+- **Testes de conformidade visual pararam de pinar markup exato.** Os pins de string de classe,
+  expressão de chamada e contagem exata sobre o código-fonte — que quebravam em qualquer refactor
+  legítimo sem mudança visual — viraram asserções sobre HTML renderizado (`kanban-blocks`,
+  novo `calendar-grids.test.tsx`) ou regras genéricas de brand; os helpers de leitura de fonte,
+  antes copiados em cinco arquivos, agora vivem em `apps/web/src/test-utils/source-lint.ts`.
+  OpenSpec: `improve-maintainability-baseline`.
+
 - **Redes sociais ganharam identidade visual explícita nos cards.** Em Conexões, o logotipo da
   plataforma agora é a âncora de 48px e o nome da rede ocupa o primeiro nível, com a conta logo
   abaixo. No Quadro, o rodapé do post deixou de usar avatares sobrepostos com selos minúsculos e

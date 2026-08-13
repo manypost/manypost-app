@@ -233,6 +233,38 @@ describe('coluna', () => {
     expect(html).not.toContain('rounded-card bg-surface-2');
     expect(html).not.toMatch(/4\s*\/\s*\d+/);
   });
+
+  test('o cabeçalho gruda logo abaixo da topbar de 59px, em desktop e mobile', () => {
+    const html = render(
+      <KanbanColumn id="scheduled" accent="bg-state-scheduled" title="Agendado" count={4} compacta={false}>
+        {null}
+      </KanbanColumn>,
+    );
+    expect(html).toContain('top-[59px]');
+    expect(html).not.toContain('lg:top-0');
+  });
+
+  test('o estado da lane é um ponto, não uma régua colorida', () => {
+    const html = render(
+      <KanbanColumn id="failed" accent="bg-state-failed" title="Falhou" count={1} compacta={false}>
+        {null}
+      </KanbanColumn>,
+    );
+    expect(html).toMatch(/size-1\.5[^"]*rounded-full[^"]*bg-state-failed/);
+    expect(html).not.toContain('border-t-2');
+  });
+});
+
+describe('card: moldura de objeto arrastável', () => {
+  test('o card carrega a própria moldura — é o objeto dentro do palco sem borda', () => {
+    const html = renderCard();
+    const article = html.match(/<article[^>]*class="([^"]*)"/);
+    expect(article).not.toBeNull();
+    const classes = article![1]!;
+    expect(classes).toContain('rounded-card');
+    expect(classes).toContain('border');
+    expect(classes).toContain('bg-surface');
+  });
 });
 
 describe('alvo de cancelamento', () => {

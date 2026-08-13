@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+import { sourceReader } from '@/test-utils/source-lint';
 
-const source = (name: string) => Bun.file(new URL(name, import.meta.url)).text();
+const source = sourceReader(import.meta.url);
 
 describe('refinamentos visuais da Home', () => {
   test('Novo post explicita o texto branco no próprio CTA', async () => {
@@ -30,7 +31,7 @@ describe('refinamentos visuais da Home', () => {
     const v2 = await source('./home-blocks-v2.tsx');
 
     expect(v2).not.toContain('border-t-2');
-    expect(v2).toContain("'size-1.5 shrink-0 rounded-full'");
+    expect(v2).toMatch(/size-1\.5[^'"]*rounded-full/);
   });
 
   test('a Home não escalona entrada por CSS nem por índice', async () => {
@@ -55,7 +56,7 @@ describe('refinamentos visuais da Home', () => {
     const hooks = await source('./hooks.ts');
     const view = await source('./home-view.tsx');
 
-    expect((hooks.match(/refetchInterval: 60_000/g) ?? []).length).toBe(3);
-    expect(view).toContain('usePipelineFeed(30, { refetchInterval: 60_000 })');
+    expect((hooks.match(/refetchInterval: 60_000/g) ?? []).length).toBeGreaterThanOrEqual(3);
+    expect(view).toMatch(/usePipelineFeed\([^)]*refetchInterval: 60_000/s);
   });
 });
