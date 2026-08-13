@@ -8,6 +8,14 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Added
 
+- **A API pública ganhou os campos aditivos que o feed interno já tinha.** `GET
+  /public/v1/publications` agora expõe `publishedAt` (quando a entrega de fato aconteceu),
+  `updatedAt` (última mutação, o que ordena atividade recente) e `mediaPreview` (primeira mídia do
+  conteúdo); as respostas de mídia expõem `source` (`ai`/`upload`) — a mesma marcação de
+  proveniência que a biblioteca interna já mostrava. Tudo aditivo: nenhum campo mudou de nome,
+  tipo ou significado, e cursores existentes continuam paginando. OpenSpec:
+  `unify-machine-api-serialization`.
+
 - **O feed de publicações ganhou `mediaPreview` aditivo e opcional.** O serializer projeta somente
   a primeira mídia que já existe no conteúdo, com tipo, URL, MIME e alt; imagem, vídeo e ausência
   de mídia têm contrato e testes próprios. O cliente OpenAPI foi regenerado pela API, sem mudança
@@ -66,6 +74,15 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
   OpenSpec: `add-kanban-board-operations`.
 
 ### Fixed
+
+- **As tools MCP de posts viam um post diferente do REST.** `get_post` (e as respostas de
+  agendar/reagendar/cancelar via MCP) omitia `media` e `attemptCount` de cada publicação porque o
+  servidor MCP mantinha uma cópia própria do serializer — e as cópias divergiram em silêncio. A
+  serialização das superfícies de máquina (REST interno, `/public/v1` e MCP) agora sai de um
+  módulo único em `apps/api/src/http/routes/shared/serialize.ts`, junto com o cursor keyset do
+  feed (antes duplicado byte a byte com um comentário admitindo a duplicação). Contrato coberto
+  por teste focado e por asserções novas nos E2E reais de MCP e API pública. OpenSpec:
+  `unify-machine-api-serialization`.
 
 - **A marca SVG agora usa o mesmo roxo dos botões primários.** Os assets horizontal, compacto e
   animado foram normalizados para `#8B3CF0`, a cor normativa de marca/ação, removendo gradientes

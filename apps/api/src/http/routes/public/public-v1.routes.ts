@@ -7,13 +7,21 @@ import {
   type PublicationState,
   WebhookEvents,
 } from '@manypost/contracts';
-import { DomainError, type MediaRecord, type PublicationFeedItem } from '@manypost/core';
+import { DomainError, type MediaRecord } from '@manypost/core';
 import type { Container } from '../../../container';
 import { requireMachineAuth, requireScope } from '../../middleware/auth';
 import { machineCors } from '../../middleware/machine-cors';
 import { idempotency, rateLimitByCredential, requirePlanFeature } from '../../middleware/public-api';
 import { createApp, errorResponses, jsonBody, jsonResponse } from '../../openapi';
 import { isProviderAvailable, providerCatalogEntry } from '../shared/provider-catalog';
+import {
+  csvParam,
+  decodeCursor,
+  encodeCursor,
+  serializeFeedItem,
+  serializeGroup,
+  serializeMedia as serializeMediaShared,
+} from '../shared/serialize';
 import { protectedResourceMetadataUrl } from '../oauth.routes';
 
 /**
@@ -70,8 +78,26 @@ const PubFeedItem = z
     channelId: z.string(),
     state: z.string().openapi({ example: 'PUBLISHED' }),
     publishAt: z.string().datetime().nullable(),
+    publishedAt: z
+      .string()
+      .datetime()
+      .nullable()
+      .openapi({ description: 'quando a entrega de fato aconteceu (null antes de publicar)' }),
+    updatedAt: z
+      .string()
+      .datetime()
+      .openapi({ description: 'última mutação da linha — ordena atividade recente' }),
     text: z.string(),
     mediaCount: z.number().int(),
+    mediaPreview: z
+      .object({
+        type: z.enum(['image', 'video']),
+        url: z.string(),
+        mime: z.string().nullable(),
+        alt: z.string().nullable(),
+      })
+      .nullable()
+      .openapi({ description: 'primeira mídia do conteúdo, quando existe' }),
     externalId: z.string().nullable(),
     releaseUrl: z.string().nullable(),
     errorClass: z.string().nullable(),
@@ -109,6 +135,9 @@ const PubMedia = z
     id: z.string(),
     url: z.string(),
     mime: z.string().openapi({ example: 'image/png' }),
+    source: z
+      .string()
+      .openapi({ description: '`ai` = gerada por IA; `upload` = enviada por alguém' }),
     byteSize: z.number().int(),
     width: z.number().int().nullable(),
     height: z.number().int().nullable(),
@@ -174,84 +203,17 @@ const WebhookCreateBody = z.object({
   channelIds: z.array(z.string().uuid()).optional(),
 });
 
-// ---- serializers (fonte em runtime) ----
-type Group = NonNullable<Awaited<ReturnType<Container['posts']['getGroup']>>>;
-const serializeGroup = (g: Group) => ({
-  id: g.id,
-  state: g.state,
-  publishAt: g.publishAt?.toISOString() ?? null,
-  publications: g.publications.map((p) => ({
-    id: p.id,
-    channelId: p.channelId,
-    state: p.state,
-    media: p.content.media ?? [],
-    itemCount: p.itemCount ?? 1,
-    lastPublishedIndex: p.lastPublishedIndex,
-    attemptCount: p.attemptCount,
-    externalId: p.externalId,
-    releaseUrl: p.releaseUrl,
-    errorClass: p.errorClass,
-    errorMessage: p.errorMessage,
-  })),
-});
-
-const serializeFeedItem = (p: PublicationFeedItem) => ({
-  id: p.id,
-  groupId: p.groupId,
-  channelId: p.channelId,
-  state: p.state,
-  publishAt: p.publishAt?.toISOString() ?? null,
-  text: p.content.text,
-  mediaCount: p.content.media?.length ?? 0,
-  externalId: p.externalId,
-  releaseUrl: p.releaseUrl,
-  errorClass: p.errorClass,
-  errorMessage: p.errorMessage,
-  attemptCount: p.attemptCount,
-  group: p.group,
-  channel: p.channel,
-});
-
-const serializeMedia = (ctn: Container, m: MediaRecord) => ({
-  id: m.id,
-  url: ctn.storage.publicUrl(m.path),
-  mime: m.mime,
-  byteSize: m.byteSize,
-  width: m.width,
-  height: m.height,
-  alt: m.alt,
-  createdAt: m.createdAt.toISOString(),
-});
-
-// ---- cursor keyset do feed (idêntico ao /v1/publications) ----
-const encodeCursor = (publishAt: Date | null, id: string) =>
-  Buffer.from(JSON.stringify({ p: (publishAt ?? new Date(0)).toISOString(), id })).toString(
-    'base64url',
-  );
-const decodeCursor = (raw: string): { publishAt: Date; id: string } | undefined => {
-  try {
-    const { p, id } = JSON.parse(Buffer.from(raw, 'base64url').toString()) as { p: string; id: string };
-    const publishAt = new Date(p);
-    if (Number.isNaN(publishAt.getTime()) || typeof id !== 'string') return undefined;
-    return { publishAt, id };
-  } catch {
-    return undefined;
-  }
-};
-
-const csv = <T extends z.ZodTypeAny>(item: T) =>
-  z
-    .string()
-    .transform((s) => s.split(',').filter(Boolean))
-    .pipe(z.array(item).min(1).max(50));
+// ---- serialização compartilhada (shared/serialize) — o runtime é o MESMO do REST interno ----
+const serializeMedia = (ctn: Container, m: MediaRecord) =>
+  serializeMediaShared((path) => ctn.storage.publicUrl(path), m);
 
 const FeedQuery = z.object({
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
-  state: csv(
+  state: csvParam(
     z.enum(PublicationStates as unknown as [PublicationState, ...PublicationState[]]),
   ).optional(),
-  channelId: csv(z.string().uuid()).optional(),
+  channelId: csvParam(z.string().uuid()).optional(),
   cursor: z.string().max(200).optional(),
   limit: z.coerce.number().int().min(1).max(200).default(100),
 });

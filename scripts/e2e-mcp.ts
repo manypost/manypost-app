@@ -136,6 +136,11 @@ check(feedItem?.group.origin === 'MCP', `origin = MCP no feed (veio ${feedItem?.
 
 const got = await callTool(5, 'get_post', { groupId });
 check(got.data?.id === groupId, 'get_post devolve o grupo agendado');
+// paridade de contrato com o REST (spec machine-api-contract): o MCP vê o MESMO post,
+// incluindo media e attemptCount por publicação
+const gotPub = got.data?.publications?.[0];
+check(Array.isArray(gotPub?.media), 'get_post expõe media por publicação (paridade com REST)');
+check(typeof gotPub?.attemptCount === 'number', 'get_post expõe attemptCount (paridade com REST)');
 
 // ---- 5) validação de tool (uuid inválido → isError, não derruba a sessão) ----
 const bad = await callTool(6, 'get_post', { groupId: 'nao-e-uuid' });

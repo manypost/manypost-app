@@ -112,6 +112,10 @@ const feed = (await (await fetch(`${API}/publications`, { headers: H(postsKey) }
 const feedItem = feed.items?.find((it: any) => it.groupId === group.id);
 check(!!feedItem, 'a publicação aparece no feed público');
 check(feedItem?.group.origin === 'API', `origin = API (veio ${feedItem?.group.origin})`);
+// paridade com o feed interno (spec machine-api-contract): mesma linha, com os aditivos
+check('publishedAt' in (feedItem ?? {}), 'feed público expõe publishedAt (paridade interna)');
+check(typeof feedItem?.updatedAt === 'string', 'feed público expõe updatedAt (paridade interna)');
+check('mediaPreview' in (feedItem ?? {}), 'feed público expõe mediaPreview (paridade interna)');
 
 // cancelar via DELETE (contrato REST público)
 const cancel = await fetch(`${API}/posts/${group.id}`, { method: 'DELETE', headers: H(postsKey) });

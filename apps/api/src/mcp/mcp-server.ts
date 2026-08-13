@@ -7,6 +7,7 @@ import {
   hasMcpWriteScope,
 } from '@manypost/core';
 import type { Container } from '../container';
+import { serializeGroup } from '../http/routes/shared/serialize';
 
 /**
  * Servidor MCP do manypost (SPEC_API_MCP §5): expõe os MESMOS use-cases da API como tools —
@@ -43,23 +44,8 @@ function denyScope(kind: 'read' | 'write') {
   );
 }
 
-type Group = NonNullable<Awaited<ReturnType<Container['posts']['getGroup']>>>;
-const serializeGroup = (g: Group) => ({
-  id: g.id,
-  state: g.state,
-  publishAt: g.publishAt?.toISOString() ?? null,
-  publications: g.publications.map((p) => ({
-    id: p.id,
-    channelId: p.channelId,
-    state: p.state,
-    itemCount: p.itemCount ?? 1,
-    lastPublishedIndex: p.lastPublishedIndex,
-    externalId: p.externalId,
-    releaseUrl: p.releaseUrl,
-    errorClass: p.errorClass,
-    errorMessage: p.errorMessage,
-  })),
-});
+// a mesma serialização do REST — o agente MCP vê o MESMO post, incluindo media e attemptCount
+// (spec machine-api-contract: superfície não redeclara forma de entidade compartilhada)
 
 export function buildMcpServer(ctn: Container, principal: McpPrincipal): McpServer {
   const { orgId, credentialId, scopes } = principal;
