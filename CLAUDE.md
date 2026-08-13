@@ -40,10 +40,11 @@ Plataforma de agendamento/publicação multicanal. **O wordmark é sempre `manyp
 
 ## Regras visuais (resumo — a fonte é docs/brand/)
 
-- **Zero sombras** (`box-shadow` proibido, sempre). **Profundidade pervasiva por gradiente (brand v1.3) — nada de superfície flat:** a direção codifica a função — superfícies/controles **sobem** (botões, cards, overlays, sidebar, aba ativa, estados selecionados: `.bevel-*`), badges e caixas de tint ganham **brilho** (`.bevel-chip`), campos **afundam** (input/select/textarea: `.inset-field`, direção invertida). Só o fundo da página e o texto puro ficam sem volume. Tudo via gradiente + borda por lado; hover de relevo por `filter: brightness()`. Fonte: BRAND §2.2/§3.1/§6/§7.
-- **Hover estável**: nada de `translateY`/`scale`/`rotate` no hover; flat transiciona cor 0.2s, relevo usa `filter: brightness()` 0.2s.
+- **Brand v2.0, branco/lilás**: canvas `#D9DBDD`, main `#FDFDFD`, superfícies brancas, KPIs lilás/azul e rail cinza-preto 181/64. Sombra só no tooltip; gradientes só em dados nomeados. Hierarquia usa camadas chapadas, espaço, `--line` e `--line-strong`.
+- **Hover estável**: nada de `translateY`/`scale`/`rotate` ou `filter: brightness()`; transicione cor/borda/fill em 0.2s. Superfícies operacionais não animam a própria entrada.
 - **Cursor**: todo botão usa `cursor: pointer`.
-- Cores **somente via tokens CSS** do brand system (nunca hex ad-hoc; o relevo deriva dos tokens via `color-mix` só em `globals.css`); radius só 4/6/8px.
+- Cores **somente via tokens CSS**; raios por função 4/5/8/10/11/12px (`rounded-full` só busca/Avatar/dot); gaps 4/8/12/16/20/24/28/32px, sem margem negativa corretiva.
+- Produto usa escala tipográfica nomeada, sentence case e pesos normal/medium/semibold. Auth/onboarding são editoriais; preview de provider é exceção representacional nomeada.
 - Fontes: Inter (UI/corpo) + Plus Jakarta Sans (títulos/marca), self-hosted via `next/font`.
 - Light-first: o app v1 é light-only.
 

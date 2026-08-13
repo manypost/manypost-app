@@ -6,8 +6,155 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ## [Unreleased]
 
+### Added
+
+- **O feed de publicações ganhou `mediaPreview` aditivo e opcional.** O serializer projeta somente
+  a primeira mídia que já existe no conteúdo, com tipo, URL, MIME e alt; imagem, vídeo e ausência
+  de mídia têm contrato e testes próprios. O cliente OpenAPI foi regenerado pela API, sem mudança
+  de banco ou de domínio.
+
+- **A tela inicial passou a responder também "o que acontece agora?".** O `/inicio` ganhou
+  próximas publicações (até 5, com horário local, canal e estado), atividade recente (desfechos de
+  entrega mesclados com decisões de aprovação), rascunhos retomáveis e um resumo do pipeline. Um
+  único próximo passo contextual aparece **só** quando nada precisa de atenção, escolhido por uma
+  escada de prioridade determinística e testada. Todo bloco some quando não tem o que dizer, e
+  nenhum número é de desempenho — a plataforma não coleta engajamento, então tudo continua vindo do
+  registro do que ela pediu e do que entregou.
+  - **Cada bloco falha sozinho.** Antes uma leitura ruim derrubava a tela inteira, inclusive as
+    partes alimentadas por outra fonte; agora carregando e erro são do bloco, com "tentar de novo"
+    dentro dele.
+  - Rascunhos do servidor (grupos em `DRAFT` sem link de aprovação pendente) ficam visíveis pela
+    primeira vez: eles **nunca** são publicados sozinhos. O bloco oferece só o que a API faz —
+    duplicar no composer ou gerar link de aprovação — e deliberadamente **não** oferece agendar,
+    porque não existe operação que agende um rascunho.
+  - `GET /v1/publications` passou a expor `publishedAt` e `updatedAt` (aditivo). Sem eles a
+    atividade recente ordenaria pelo horário *agendado* e mentiria sobre o que falhou e foi
+    retentado.
+  OpenSpec: `add-home-operational-blocks`.
+- **Busca global e paleta de comandos (⌘K / Ctrl+K).** De qualquer tela autenticada, a paleta
+  encontra telas, ações, canais conectados e posts pelo texto. O atalho não dispara enquanto se
+  digita — abrir a paleta no meio de um post seria o pior defeito possível aqui — e um gatilho
+  visível na topbar anuncia o atalho, porque atalho invisível é atalho inexistente.
+  - Novo `GET /v1/search`: escopado pela organização do principal (um `orgId` na query é ignorado,
+    não confiado), consulta de 2 a 80 caracteres, teto de 10 resultados **no schema** (pedir mais é
+    recusado, não cortado em silêncio) e janela obrigatória de 180 dias. Rascunhos vêm primeiro —
+    é o que mais se procura. Devolve excerto, estado e canais; nunca credencial.
+  - A busca dobra acento **nos dois lados** (`translate` portátil, não a extensão `unaccent`): sem
+    isso "lancamento" não achava "Lançamento", enquanto a paleta já dobrava acento nas telas e
+    canais — a busca pareceria quebrada justamente para quem digita rápido. O defeito estava no SQL
+    e nenhum teste de rota o alcançava, porque todos usam repositório falso; foi pego pelo novo
+    `scripts/e2e-search.ts`, agora no CI.
+  - Sem `pg_trgm` de propósito: `CREATE EXTENSION` exige um privilégio que Postgres gerenciado
+    costuma negar, e quebrar a migração de todo mundo para acelerar uma tela é a troca errada. O
+    custo é contido por organização, janela, tamanho mínimo e teto de resultados.
+  - Construída sobre o `Dialog` já existente, sem adicionar `cmdk`: o ranking precisa ser puro e
+    testável, e o motor de pontuação de terceiros é justamente a parte que não daria para afirmar.
+  OpenSpec: `add-global-command-palette`.
+- **O quadro ganhou filtros, ações em lote, menu por card e operação por teclado.** Filtros de
+  canal, etapa, texto e período vivem na URL, então um quadro estreitado cabe num link e sobrevive
+  a voltar da tela de detalhe. Densidade confortável/compacta é preferência do navegador, não da
+  URL. Seleção múltipla com Shift+clique aplica nova tentativa ou cancelamento em leque limitado
+  (concorrência 4, teto de 50) e **reporta falha parcial** — "12 concluídos, 2 com erro" — em vez
+  de um toast verde que ensina a não conferir.
+  - O card deixou de ser um `<button>` e virou `<article>`: um botão não pode conter checkbox nem
+    gatilho de menu, e a marcação inválida quebrava teclado e leitor de tela.
+  - `KeyboardSensor` e `DragOverlay` adicionados — o quadro era inoperável sem ponteiro.
+  - O arraste passou a aceitar cancelamento (faixa que só existe durante o arraste, com
+    confirmação; **não** é uma sexta coluna) e a recusar cada transição inválida com o motivo e a
+    operação que funciona: link de aprovação para aguardando→agendado, duplicar para
+    rascunho→agendado, e o menu do card para publicar agora.
+  OpenSpec: `add-kanban-board-operations`.
+
+### Fixed
+
+- **A marca SVG agora usa o mesmo roxo dos botões primários.** Os assets horizontal, compacto e
+  animado foram normalizados para `#8B3CF0`, a cor normativa de marca/ação, removendo gradientes
+  legados que divergiam do token `--accent`.
+
+- **A Home v2 passou a cumprir o isolamento e os metadados prometidos pelo OpenSpec.** Loading e
+  erro agora pertencem à fonte que falhou; indisponibilidade do resumo não apaga próximas
+  publicações, rascunhos, pipeline ou atividade, e cada erro oferece retry local. A lista de próximas
+  publicações mostra o estado agendado sem cartão aninhado; rascunho local informa a última edição;
+  notificações da atividade abrem um detalhe existente no Quadro (inclusive links históricos e
+  rascunhos fora da janela do feed), uma
+  fonte de atividade saudável continua visível se a outra falhar, e pipeline truncado declara que
+  as contagens são parciais. O relógio operacional avança a cada minuto. O composer reconhece
+  overrides, settings e mídia de thread como rascunho e atualiza
+  `contentUpdatedAt` em toda mutação material. As leituras da Home ganharam polling de 60 segundos
+  como fallback do SSE/Redis, e controles compactos têm alvo mínimo explícito de 32px. Sem migration,
+  mudança de API ou dado novo. OpenSpec: `add-home-operational-blocks`.
+
+- **O quadro mostrava colunas vazias que não estavam vazias.** O feed é ordenado por horário
+  crescente e era lido com teto de 200 linhas numa janela de 30 dias: uma organização com mais que
+  isso recebia as 200 publicações **mais antigas** e via "Agendado" vazio enquanto havia trabalho
+  agendado. A leitura passou a seguir o cursor keyset até 1000 itens e, quando ainda assim não
+  couber, o quadro **diz** que truncou e oferece reduzir o período.
+- **A tela inicial não reagia ao stream de eventos.** Nenhum evento do SSE invalidava o resumo, então
+  uma falha nova ficava invisível e uma falha já resolvida continuava na tela até 20 s de
+  `staleTime` ou o foco da janela — a maneira mais rápida de ensinar alguém a não confiar num
+  painel. O mapa de invalidação virou função pura testada, e entrega e problema de canal agora
+  invalidam também as contagens da home.
+- O quadro passou a distinguir "o filtro excluiu tudo" de "o pipeline está vazio", que eram a mesma
+  mensagem.
+
 ### Changed
 
+- **Redes sociais ganharam identidade visual explícita nos cards.** Em Conexões, o logotipo da
+  plataforma agora é a âncora de 48px e o nome da rede ocupa o primeiro nível, com a conta logo
+  abaixo. No Quadro, o rodapé do post deixou de usar avatares sobrepostos com selos minúsculos e
+  passou a mostrar até dois chips com logo e conta, além da contagem real dos canais restantes.
+  As superfícies continuam brancas e neutras; as cores oficiais permanecem restritas aos logos.
+  OpenSpec: `adopt-white-lilac-dashboard-system`.
+
+- **O catálogo de redes passou a usar o espaço do desktop.** A grade de conexão fica em quatro
+  colunas, com cards de 160px, tiles de 64px e logos de 40px; contas conectadas ficam em três
+  colunas e também receberam marca maior. Os chips do Quadro seguem compactos para não disputar
+  leitura com o conteúdo da publicação. OpenSpec: `adopt-white-lilac-dashboard-system`.
+
+- **O catálogo de redes removeu o card aninhado atrás dos logos.** O logo agora ocupa 56px direto
+  sobre o card neutro, enquanto o card externo foi reduzido de 160px para 144px. OpenSpec:
+  `adopt-white-lilac-dashboard-system`.
+
+- **O catálogo de redes ficou mais compacto.** Os cards de conexão passaram de 144px para 128px e
+  os logos diretos de 56px para 48px, preservando a leitura imediata da plataforma sem ocupar altura
+  demais. OpenSpec: `adopt-white-lilac-dashboard-system`.
+
+- **Os resumos operacionais da Home adotaram o modelo leve de status.** Agendados, publicados e
+  falhas agora têm ícone pastel, superfície clara por estado, valor real e trama pontilhada discreta.
+  Não há percentual de variação quando o produto não possui esse dado. OpenSpec:
+  `adopt-white-lilac-dashboard-system`.
+
+- **Brand v2.0: o dashboard adotou o sistema branco/lilás aprovado.** O shell autenticado agora
+  usa main `#FDFDFD`, sidebar cinza-preta 181/64 e topbar funcional de 59px no desktop e mobile.
+  Inter compacta substitui títulos display no produto; cards usam bordas finas e raios por função;
+  lilás/azul identificam somente KPIs reais; sombra pertence apenas ao tooltip e gradientes apenas
+  a visualizações de dados nomeadas. A Home mostra três resumos reais do dia e rail de 260px. O
+  Quadro reúne filtros e cinco lanes numa única superfície branca sem alterar URL, filtros,
+  densidade, seleção, drag, teclado, ações em lote, retry ou confirmações. Não houve mudança de API,
+  banco, ambiente ou dados. Rollback: reverter o commit visual e redeployar a imagem anterior.
+  OpenSpec: `adopt-white-lilac-dashboard-system`.
+
+- **Brand v1.5: o app adotou a composição editorial aprovada.** O shell autenticado agora combina
+  canvas quente com rail escuro 208/64, busca/notificações/conta no rail, topbar somente mobile,
+  largura ampla nomeada e títulos Plus Jakarta de 32px (44px na saudação da Home). `/kanban`
+  permanece a rota, mas a interface se chama **Quadro** e usa cinco lanes abertas com divisores,
+  cabeçalhos sticky, cards com preview opcional, retry visível e nenhuma capacidade fictícia.
+  Filtros, URL, densidade, seleção, drag, teclado, lote e confirmações foram preservados.
+  OpenSpec: `adopt-flat-visual-system` + `add-kanban-board-operations`.
+
+- **O sistema visual voltou deliberadamente a superfícies chapadas (brand v1.4).** A direção de
+  relevo por gradiente da v1.3 foi revogada — não era um defeito de implementação, mas deixou de ser
+  a linguagem desejada. Botões, campos, cards, overlays, sidebar, tabs, badges e estados selecionados
+  agora usam fill uniforme, camadas de fundo e duas forças de borda; `--line-strong` mantém pelo
+  menos 3:1 quando a borda é o único limite de um controle ou overlay. Sombras continuam proibidas.
+  - O produto usa uma escala tipográfica nomeada, três pesos, sentence case, seis gaps de layout,
+    um shell de largura única e um nível de borda por região. `rounded-full` ficou restrito a Avatar
+    e pequenos dots; tracejado, apenas a drop targets reais; a Home deixou de animar a entrada.
+  - `check:brand` agora executa 18 regras linha a linha mais o check estrutural de cursor, cobrindo
+    relevo residual, tipografia crua/bold/uppercase, framing, spacing, raio e as regras anteriores.
+  - Exemplos semânticos do composer deixaram de trazer emoji decorativo. O preview de provider
+    preserva tipografia representacional por uma exceção explícita e limitada ao arquivo.
+  OpenSpec: `adopt-flat-visual-system` + `enforce-visual-system-lint`.
 - **Geração de imagem ganha modos explícitos de custo e qualidade.** O diálogo, a API e a tool
   MCP agora oferecem `economy` (renderização `low`, 2 créditos) e `quality` (renderização `high`,
   5 créditos), sempre sobre o `AI_IMAGE_MODEL` configurado. O padrão é econômico, os dois

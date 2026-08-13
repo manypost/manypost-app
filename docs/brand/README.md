@@ -2,14 +2,14 @@
 
 [← Índice da documentação](../README.md) · [BRAND_SYSTEM.md](BRAND_SYSTEM.md) · [SPEC_FRONTEND](../specs/SPEC_FRONTEND.md) · [README do projeto](../../README.md)
 
-> **Fonte da verdade visual:** [BRAND_SYSTEM.md](BRAND_SYSTEM.md) (especificação) e [BRAND_SYSTEM.html](BRAND_SYSTEM.html) (guia renderizado — abra no navegador). **Todo trabalho de frontend segue esses dois arquivos.** Este README é a avaliação técnica e o guia de adaptação da marca (escrita para landing/Astro) para o **app** (Next.js + shadcn/ui — SPEC_FRONTEND).
+> **Fonte da verdade visual:** [`design.md`](../../design.md) contém o contrato completo e [BRAND_SYSTEM.md](BRAND_SYSTEM.md) o resumo oficial. **Todo trabalho de frontend segue esses arquivos e os tokens de `globals.css`.** O HTML histórico não prevalece sobre a v2.0.
 
 ## 1. Avaliação
 
 ### Pontos fortes (acima da média para um brand system)
 1. **Contraste WCAG documentado por token** — cada cor traz a razão de contraste e a regra de uso (`--accent` 5,7:1 sobre branco pode ser texto; `--accent-on-dark` para fundo escuro; `--mist` proibido para texto legível). Isso elimina a maior fonte de bugs de acessibilidade e casa com o critério "Lighthouse a11y ≥ 95" da SPEC_FRONTEND.
-2. **Regras binárias fáceis de automatizar**: zero sombras (`box-shadow: none`), zero `translateY` no hover, wordmark sempre minúsculo, radius em 3 níveis (4/6/8px), espaçamento múltiplo de 4/8px. Todas viram lint/review checklist.
-3. **Tipografia dupla bem delimitada** (Plus Jakarta Sans = display/marca; Inter = UI/dados) com escala completa e pesos definidos.
+2. **Regras binárias fáceis de automatizar**: sombra somente no tooltip, zero `translateY` no hover, wordmark sempre minúsculo, raios por função e espaçamento fechado. Todas viram lint/review checklist.
+3. **Tipografia bem delimitada**: Inter em todo o produto autenticado; Plus Jakarta Sans somente em marketing, auth e onboarding.
 4. **Sistema de botões fechado** (3 tamanhos × 5 variantes) que mapeia 1:1 para variantes do shadcn `<Button>`.
 5. Os dois arquivos são **consistentes entre si** (mesmos hex, mesmas regras).
 
@@ -30,13 +30,16 @@
 
 ## 2. Adaptação para o app (Next.js + shadcn/ui + Tailwind)
 
-- **Tokens**: as CSS vars do BRAND_SYSTEM entram em `globals.css` como estão; o tema shadcn referencia elas (`--background: var(--surface)`, `--foreground: var(--ink)`, `--primary: var(--accent)`, `--muted: var(--surface-2)`, `--border: var(--line)`, `--radius: 8px` com botões/inputs em 6px e badges em 4px).
-- **Zero sombras (`box-shadow` proibido) + profundidade pervasiva por gradiente** *(brand v1.3)*: nenhum componente usa `shadow-*`/`box-shadow`. **Nada de superfície flat** — a direção codifica a função (BRAND §2.2): **relevo forte** = botões preenchidos, aba ativa, pílula do dia (`.bevel-primary|enterprise|outline|destructive`); **relevo sutil** = cards, tiles, **overlays**, **sidebar**, cabeçalhos/rodapés e estados selecionados de acento (`.bevel-surface`/`.bevel-ink`/`.bevel-accent`); **pastilha** = badges e caixas de tint (`.bevel-chip`, brilho sobre qualquer cor); **campo afundado** = input/select/textarea (`.inset-field`, recuo com direção invertida). Só o **fundo da página** e o texto puro ficam sem volume (o plano de referência).
-- **Hover estável**: proibido `translate`/`scale`/`rotate` em hover. Variantes flat transicionam `background-color/border-color/color` 0.2s; variantes com relevo (gradiente) usam `filter: brightness()` 0.2s — também sem deslocar o elemento (regra da marca; vira regra de lint de classe Tailwind).
+- **Tokens**: as CSS vars do BRAND_SYSTEM entram em `globals.css`; o tema shadcn referencia as superfícies, texto, destaque e borda. Raios são definidos por papel: key `4px`, compact `5px`, tooltip `8px`, control `10px`, card `11px` e KPI `12px`.
+- **Sistema branco/lilás v2.0**: canvas `#D9DBDD`, main `#FDFDFD`, superfícies brancas, KPIs lilás/azul, rail cinza-preto 181/64 e títulos Inter compactos. Superfícies persistentes não usam sombra; só o tooltip usa a sombra nomeada. Gradientes pertencem apenas a dados.
+- **Hover estável**: proibido `translate`/`scale`/`rotate`, `filter: brightness()` e animação de entrada em superfícies operacionais. O hover transiciona `background-color`, `border-color` e `color` em 0.2s.
 - **Cursor**: todo botão usa `cursor: pointer` (base do `<Button>`); `disabled` cai para `pointer-events: none`.
-- **Botões**: `primary|enterprise|outline|ghost|link` (+`destructive`) × `sm|md|lg` exatamente como BRAND §6 (11/13/15px, radius 6px).
-- **Densidade do app** (substitui as métricas de landing): páginas com padding 24px; cards de app com padding 16–24px; linhas de tabela/lista 40–48px; gaps 8/12/16/24px — sempre múltiplos de 4/8 (princípio da marca preservado, escala reduzida).
-- **Fontes**: `next/font` self-hosted — Inter 400/500/600/700 e Plus Jakarta Sans 600/700/800.
+- **Botões**: `primary|outline|ghost|link|destructive` × `sm|md|lg`, com raio de controle de `10px` e ícones compactos.
+- **Densidade do app** (substitui as métricas de landing): o shell limita a largura em `--container-app` ou `--container-wide`, descrições usam `--container-reading`, e gaps de layout usam 4/8/12/16/20/24/28/32px. Margens negativas não corrigem agrupamento.
+- **Tipografia do produto**: utilities `text-axis|meta|compact|panel|title|figure` em 10/11/13/15/18/23px. Inter, peso máximo 600 e algarismos tabulares em dados comparáveis.
+- **Shell e Quadro**: rail desktop 181/64; topbar de 59px no desktop e mobile. Busca/notificações/conta ficam na topbar. O Quadro usa uma superfície única com cinco lanes, divisores, cabeçalhos sticky e cards reais, nunca capacidade inventada.
+- **Framing e raio**: raios por função em 4/5/8/10/11/12px; `rounded-full` apenas em busca pill, Avatar e pontos circulares.
+- **Fontes**: `next/font` self-hosted — Inter 400/500/600 no produto e Plus Jakarta Sans apenas em auth, onboarding e marketing.
 - **Wordmark**: `manypost` sempre minúsculo (UI, `<title>`, e-mails, docs). Logos SVG em `apps/web/public/images/`: `logo.svg` (completa, ícone + texto) e `logoSimplificada.svg` (mark quadrado). Header usa a completa via `Wordmark` (~28px de altura); espaços apertados usam a simplificada.
 
 ## 3. Tokens semânticos de estado (✅ APROVADO — promovido ao BRAND_SYSTEM.md §3.1 em 2026-07-10)
@@ -46,7 +49,7 @@ Seguindo a filosofia da paleta (tons -700 que passam AA como texto sobre branco 
 ```css
 :root {
   /* rascunho: neutro (usa --graphite / --surface-2 existentes) */
-  --state-scheduled:       #7C3AED;  /* = --accent: "nas mãos do sistema" */
+  --state-scheduled:       #8B3CF0;  /* = --accent: "nas mãos do sistema" */
   --state-scheduled-tint:  #EDE9FE;  /* = --accent-tint */
   --state-publishing:      #B45309;  /* âmbar 700 — 4,7:1 sobre branco */
   --state-publishing-tint: #FEF3C7;
@@ -63,12 +66,13 @@ Uso: badge/chip de estado = `tint` de fundo + cor como texto/borda (padrão `.ba
 
 ## 4. Critérios de aceite de conformidade (entram no CI/review do web)
 
-1. Nenhum hex fora de `globals.css` (lint: cores só via token — inclui a matemática de cor do relevo via `color-mix`).
-2. Nenhum `shadow-*`/`box-shadow` e nenhum `translate`/`scale`/`rotate` em hover (lint de classes). Relevo 3D é permitido **apenas** por gradiente + borda por lado; hover de relevo usa `filter: brightness()`.
-3. Radius apenas 4/6/8px (e `9999px` só em avatar).
-4. Fontes só Inter/Plus Jakarta Sans via `next/font`.
-5. Wordmark minúsculo em 100% das ocorrências (grep no CI: `Manypost|MANYPOST` proibidos em UI/docs voltados a usuário).
-6. Screenshot test das telas principais comparado após mudanças de tema.
+1. Nenhum hex fora de `globals.css`; gradientes apenas em utilities nomeadas de visualização.
+2. Nenhum `shadow-*`/`box-shadow` fora do tooltip e nenhum `translate`/`scale`/`rotate` em hover.
+3. Raios apenas nos papéis 4/5/8/10/11/12px; `rounded-full` só em busca, Avatar e pontos.
+4. Produto sem escala tipográfica crua, bold ou uppercase; exceções editoriais e de preview são nomeadas.
+5. Gaps na escala 4/8/12/16/20/24/28/32px, sem margem negativa corretiva; tracejado só em drop target.
+6. Fontes só Inter/Plus Jakarta Sans via `next/font`; wordmark `manypost` minúsculo.
+7. `bun run check:brand`, testes focados e inspeção visual das telas principais após mudanças de tema.
 
 ---
 

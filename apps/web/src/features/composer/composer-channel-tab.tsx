@@ -79,7 +79,7 @@ export function ComposerChannelTab({
         }}
         cabecalho={
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-line bg-surface-2/60 px-3 py-1.5">
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-ink">
+            <span className="flex items-center gap-1.5 text-meta font-semibold text-ink">
               <LockOpen className="size-3.5 text-accent" aria-hidden />
               {t('channelTab.customizing', { name: nome })}
             </span>
@@ -127,9 +127,9 @@ function TextoHerdado({ channel }: { channel: Channel }) {
   const vazio = text.trim().length === 0;
 
   return (
-    <div className="bevel-surface flex flex-col gap-3 rounded-md border p-3">
+    <div className="bg-surface flex flex-col gap-3 rounded-md border p-3">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="flex items-center gap-1.5 text-xs font-semibold text-ink">
+        <span className="flex items-center gap-1.5 text-meta font-semibold text-ink">
           <Lock className="size-3.5 text-graphite" aria-hidden />
           {t('channelTab.inheriting')}
         </span>
@@ -145,9 +145,9 @@ function TextoHerdado({ channel }: { channel: Channel }) {
         </Button>
       </div>
       {vazio ? (
-        <p className="text-xs leading-relaxed text-graphite">{t('channelTab.inheritingEmpty')}</p>
+        <p className="text-meta leading-relaxed text-graphite">{t('channelTab.inheritingEmpty')}</p>
       ) : (
-        <p className="max-h-40 overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed text-graphite">
+        <p className="max-h-40 overflow-y-auto whitespace-pre-wrap text-compact leading-relaxed text-graphite">
           {text}
         </p>
       )}

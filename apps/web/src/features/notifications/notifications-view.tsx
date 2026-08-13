@@ -4,6 +4,7 @@ import { CheckCheck, CircleAlert, Inbox } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useApiErrorMessage } from '@/lib/api/errors';
 import { relativeTime } from '@/lib/datetime';
@@ -15,7 +16,7 @@ import {
 } from './hooks';
 
 /** Página de notificações: clique marca como lida; "marcar todas" no topo. */
-export function NotificationsView() {
+function NotificationsContent() {
   const t = useTranslations('notifications');
   const locale = useLocale();
   const errorMessage = useApiErrorMessage();
@@ -51,9 +52,9 @@ export function NotificationsView() {
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-line bg-surface-2 px-6 py-16 text-center">
+      <div className="flex flex-col items-center gap-3 rounded-lg bg-surface-2 px-6 py-16 text-center">
         <Inbox className="size-8 text-mist" aria-hidden />
-        <p className="text-sm leading-relaxed text-graphite">{t('emptyPage')}</p>
+        <p className="text-compact leading-relaxed text-graphite">{t('emptyPage')}</p>
       </div>
     );
   }
@@ -61,7 +62,7 @@ export function NotificationsView() {
   return (
     <div className="flex flex-col gap-4">
       {unread > 0 ? (
-        <div className="bevel-chip flex items-center justify-between rounded-lg border border-line bg-accent-tint px-4 py-2.5">
+        <div className="flex items-center justify-between rounded-lg border border-line bg-accent-tint px-4 py-2.5">
           <span className="text-compact font-semibold text-accent">
             {t('unreadCount', { count: unread })}
           </span>
@@ -88,7 +89,7 @@ export function NotificationsView() {
               className={cn(
                 'flex w-full items-start gap-3 rounded-lg border p-4 text-left outline-none transition-colors duration-200',
                 'hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
-                n.readAt ? 'bevel-surface' : 'bevel-accent',
+                n.readAt ? 'bg-surface' : 'bg-accent-tint',
               )}
             >
               <span
@@ -96,18 +97,29 @@ export function NotificationsView() {
                 className={cn('mt-1.5 size-2 shrink-0 rounded-full', n.readAt ? 'bg-line' : 'bg-accent')}
               />
               <span className="min-w-0 flex-1">
-                <span className={cn('block text-sm', n.readAt ? 'text-graphite' : 'font-semibold text-ink')}>
+                <span className={cn('block text-compact', n.readAt ? 'text-graphite' : 'font-semibold text-ink')}>
                   {n.title}
                 </span>
                 {n.body ? (
                   <span className="mt-0.5 block text-compact leading-relaxed text-graphite">{n.body}</span>
                 ) : null}
               </span>
-              <span className="shrink-0 text-xs text-mist">{relativeTime(n.createdAt, locale)}</span>
+              <span className="shrink-0 text-meta text-mist">{relativeTime(n.createdAt, locale)}</span>
             </button>
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+export function NotificationsView() {
+  const t = useTranslations('notifications');
+
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader title={t('title')} description={t('subtitle')} />
+      <NotificationsContent />
     </div>
   );
 }

@@ -34,11 +34,17 @@ function DialogContent({
   children,
   size = 'default',
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Content> & { size?: 'default' | 'panel' }) {
+}: React.ComponentProps<typeof DialogPrimitive.Content> & {
+  size?: 'default' | 'panel' | 'palette';
+}) {
+  // `palette` ancora no ALTO em vez de centralizar: a lista cresce para baixo enquanto se digita, e
+  // um diálogo centralizado ficaria pulando de posição a cada resultado que chega.
   const base =
     size === 'panel'
       ? 'fixed inset-0 z-50 flex flex-col overflow-hidden bg-surface animate-fade-in outline-none sm:inset-auto sm:left-1/2 sm:top-1/2 sm:h-[90dvh] sm:max-h-[920px] sm:w-[calc(100vw-2rem)] sm:max-w-[1640px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg sm:border sm:border-line'
-      : 'bevel-surface fixed left-1/2 top-1/2 z-50 grid w-full max-w-md -translate-x-1/2 -translate-y-1/2 gap-4 rounded-md border p-6 animate-fade-in';
+      : size === 'palette'
+        ? 'border-line-strong bg-surface fixed left-1/2 top-4 z-50 flex max-h-[80dvh] w-[calc(100vw-2rem)] max-w-2xl -translate-x-1/2 flex-col overflow-hidden rounded-lg border p-0 animate-fade-in outline-none sm:top-24'
+        : 'border-line-strong bg-surface fixed left-1/2 top-1/2 z-50 grid w-full max-w-md -translate-x-1/2 -translate-y-1/2 gap-4 rounded-md border p-6 animate-fade-in';
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -77,7 +83,7 @@ function DialogTitle({ className, ...props }: React.ComponentProps<typeof Dialog
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn('text-lg font-semibold tracking-[-0.2px] text-ink', className)}
+      className={cn('text-panel font-semibold tracking-[-0.2px] text-ink', className)}
       {...props}
     />
   );
@@ -90,7 +96,7 @@ function DialogDescription({
   return (
     <DialogPrimitive.Description
       data-slot="dialog-description"
-      className={cn('text-sm leading-relaxed text-graphite', className)}
+      className={cn('text-compact leading-relaxed text-graphite', className)}
       {...props}
     />
   );

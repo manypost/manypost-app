@@ -9,9 +9,9 @@ import { cn } from '@/lib/utils';
  * chegou aqui pela primeira vez, e o §36.4 pede exatamente isso ("empty states descrevem o
  * próximo passo"; a mesma lógica vale para a tela cheia).
  *
- * Regras do §13 implementadas aqui:
- *  - título 20px/500, alinhado à esquerda, **sem** ponto final;
- *  - descrição no máximo 680px, em texto secundário;
+ * Regras do contrato branco/lilás implementadas aqui:
+ *  - título 18px/500 em Inter, alinhado à esquerda, **sem** ponto final;
+ *  - descrição na medida única de leitura, em texto secundário;
  *  - ações à direita no desktop e **abaixo** no mobile — nunca encolhendo o título (§37).
  */
 export function PageHeader({
@@ -19,24 +19,33 @@ export function PageHeader({
   description,
   actions,
   className,
+  titleClassName,
 }: {
   title: string;
   description?: string;
   /** ação primária da tela; no mobile desce para a própria linha */
   actions?: ReactNode;
   className?: string;
+  titleClassName?: string;
 }) {
   return (
     <div
       className={cn(
-        'mb-5 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-start sm:gap-6',
+        'flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-start sm:gap-6',
         className,
       )}
     >
       <div className="min-w-0">
-        <h1 className="text-xl font-medium leading-tight tracking-[-0.015em] text-ink">{title}</h1>
+        <h1
+          className={cn(
+            'font-sans text-title font-medium text-ink',
+            titleClassName,
+          )}
+        >
+          {title}
+        </h1>
         {description ? (
-          <p className="mt-1.5 max-w-[680px] text-compact leading-relaxed text-graphite">
+          <p className="mt-1.5 max-w-reading text-compact leading-relaxed text-graphite">
             {description}
           </p>
         ) : null}

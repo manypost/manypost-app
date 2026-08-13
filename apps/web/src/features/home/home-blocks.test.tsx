@@ -68,23 +68,31 @@ describe('bloco de atenção', () => {
 });
 
 describe('bloco de hoje', () => {
-  test('nada hoje: oferece o próximo passo em vez de um zero solto', () => {
+  test('nada hoje: mantém os três resumos reais sem fabricar estado', () => {
     const html = render(<TodayBlock today={{ scheduled: 0, published: 0, failed: 0 }} />);
-    expect(html).toContain('Nada agendado para hoje');
-    expect(html).toContain('/compor');
+    expect(html).toContain('Agendados hoje');
+    expect(html).toContain('Publicados hoje');
+    expect(html).toContain('Falhas hoje');
+    expect(html.match(/>0</g)?.length).toBe(3);
+    expect(html).toContain('Nada agendado para hoje.');
+    expect(html).toContain('href="/compor"');
   });
 
-  test('com posts, mostra a contagem', () => {
+  test('com posts, mostra contagens em KPIs lilás e azul', () => {
     const html = render(<TodayBlock today={{ scheduled: 4, published: 1, failed: 0 }} />);
-    expect(html).toContain('4');
-    expect(html).toContain('1 já publicado hoje');
+    expect(html).toContain('>4<');
+    expect(html).toContain('>1<');
+    expect(html).toContain('bg-kpi-lilac');
+    expect(html).toContain('bg-kpi-blue');
+    expect(html).toContain('href="/calendario"');
+    expect(html).toContain('href="/kanban?col=published"');
   });
 
-  test('falha de hoje não vira estado vazio e oferece o caminho de resolução', () => {
+  test('falha de hoje permanece semanticamente vermelha dentro do KPI', () => {
     const html = render(<TodayBlock today={{ scheduled: 0, published: 0, failed: 2 }} />);
-    expect(html).not.toContain('Nada agendado para hoje');
-    expect(html).toContain('2 falharam hoje');
-    expect(html).toContain('/kanban');
+    expect(html).toContain('>2<');
+    expect(html).toContain('text-state-failed');
+    expect(html).toContain('href="/kanban?col=failed"');
   });
 });
 
@@ -200,11 +208,18 @@ describe('conformidade visual dos blocos (o que o check:brand não vê)', () => 
     expect(todos).not.toContain('shadow');
   });
 
-  test('profundidade vem de bevel (gradiente), como o adendo §51.4 manda', () => {
-    expect(todos).toContain('bevel-');
+  /**
+   * Invertido na brand v1.4. Até aqui este teste exigia `bevel-` — a v1.3 mandava que NADA fosse
+   * chapado. A v1.4 reverteu a direção: superfície é fill + borda, e a profundidade vem da camada
+   * de fundo. O teste continua no mesmo lugar de propósito, agora prendendo o oposto, para que a
+   * remoção não volte por descuido.
+   */
+  test('superfície é chapada: fill + borda, sem relevo por gradiente', () => {
+    expect(todos).not.toContain('bevel-');
+    expect(todos).toContain('border');
   });
 
-  test('raio só na escala 4/6/8 (rounded-sm|md|lg)', () => {
+  test('raio usa somente os papéis aprovados do sistema', () => {
     // O padrão é montado a partir de pedaços de propósito: escrito inteiro, o próprio
     // `check:brand` reprovaria ESTE arquivo por "radius fora da escala" — mesmo precedente do
     // `prompts.test.ts`, que monta os nomes de fornecedor por pedaços pelo mesmo motivo.
@@ -218,7 +233,16 @@ describe('conformidade visual dos blocos (o que o check:brand não vê)', () => 
     // o teste não pode passar por vacuidade: se o padrão não casar nada, ele não provou nada
     expect(raios.length).toBeGreaterThan(0);
     for (const r of new Set(raios)) {
-      expect([`${prefixo}-sm`, `${prefixo}-md`, `${prefixo}-lg`, `${prefixo}-full`]).toContain(r);
+      expect([
+        `${prefixo}-sm`,
+        `${prefixo}-key`,
+        `${prefixo}-compact`,
+        `${prefixo}-tooltip`,
+        `${prefixo}-control`,
+        `${prefixo}-card`,
+        `${prefixo}-kpi`,
+        `${prefixo}-full`,
+      ]).toContain(r);
     }
   });
 

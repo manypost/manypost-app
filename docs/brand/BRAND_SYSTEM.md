@@ -1,240 +1,211 @@
-# manypost BRAND & DESIGN SYSTEM · ESPECIFICAÇÃO OFICIAL
+# manypost BRAND & DESIGN SYSTEM · ESPECIFICAÇÃO OFICIAL v2.0
 
-[← Índice da documentação](../README.md) · [Guia de adaptação para o app](README.md) · [SPEC_FRONTEND](../specs/SPEC_FRONTEND.md) · [README do projeto](../../README.md)
+[← Índice da documentação](../README.md) · [Contrato visual completo](../../design.md) · [Guia de adaptação](README.md) · [SPEC_FRONTEND](../specs/SPEC_FRONTEND.md)
 
-> **Documento de Referência para Agentes de IA e Engenheiros de Frontend**
-> Este arquivo estabelece as regras de identidade visual, estrutura de interface, tokens de cor, escala tipográfica e anatomia de componentes do **manypost**. Toda nova página, componente ou interface gerada por IA ou humanos DEVE seguir estes padrões, inspirados na clareza, solidez e maturidade de plataformas como **Zapier** e **Cloudflare**.
->
-> **Wordmark canônico:** sempre **`manypost`** em caixa baixa (UI, `<title>`, e-mails, docs de produto). A forma ManyPost é **histórica** neste arquivo e não deve ser reintroduzida. Fonte: [docs/brand/README.md](README.md), `CLAUDE.md`, `check:brand`.
+> Este arquivo resume a identidade do produto. Medidas, composição, responsividade, gráficos,
+> Quadro, Home, checklist e código-base completos vivem no [`design.md`](../../design.md).
 
----
+## 1. Identidade
 
-## 1. Contexto da Aplicação, Posicionamento & Ecossistema (Branding)
+O **manypost** é uma plataforma multi-tenant de agendamento e publicação multicanal. A interface
+deve transmitir precisão, controle e leveza para equipes que trabalham diariamente com conteúdo.
 
-O **manypost** é uma plataforma de gestão inteligente de canais sociais, agendamento multicanal, automação de fluxo de trabalho e análise de dados. Desenvolvida com tecnologia **100% brasileira (BR)** para atender agências, criadores, marcas e desenvolvedores em escala global e nacional, a plataforma elimina o trabalho manual e fragmentado da gestão de conteúdo, oferecendo um ambiente seguro, profissional e fácil de usar.
+O wordmark canônico é sempre **`manypost`** em caixa baixa na UI, `<title>`, e-mails e docs de
+produto. Não reintroduza formas históricas com capitalização diferente.
 
-### A. O Foco Duplo · Agências + Desenvolvedores
-O manypost preenche a lacuna entre o design visual e a engenharia de software, unindo os dois mundos em uma única plataforma prática e integrada:
-* **Para Agências & Gestores (Dashboard Completo):** Uma interface limpa, intuitiva e sem distrações ("zero sombras") onde equipes de marketing, atendimento e criadores gerenciam todo o ciclo de vida do conteúdo em um único painel, sem trinta abas abertas e com zero necessidade de conhecimento técnico em código.
-* **Para Desenvolvedores & IA (API RESTful + Protocolo MCP):** Para equipes de tecnologia e automação avançada, disponibilizamos uma **API oficial completa** e servidores nativos **MCP (Model Context Protocol)**. Isso permite que assistentes de IA (como Claude, ChatGPT e agentes autônomos) e scripts em qualquer linguagem consultem métricas, criem rascunhos, agendem e gerenciem postagens diretamente pelo pipeline oficial e autenticado da plataforma.
+Princípios:
 
-### B. Funcionalidades Centrais de Publicação & Multicanalidade
-* **Kanban de Postagens:** Quadro visual interativo para gestão ágil do pipeline de conteúdo (colunas de Ideação, Rascunho, Em Revisão, Aprovado pelo Cliente, Agendado e Publicado), com suporte a drag-and-drop e filtros por canal ou responsável.
-* **Criação de Rascunhos & Timeline de Agendamento:** Elaboração e teste de formatos com visualização cronológica precisa. O calendário interativo permite agendar posts em múltiplos fusos horários com prevenção de conflitos.
-* **Conexões Multicanal & Publicação Automática:** Integração nativa, confiável e segura com as principais redes sociais do mercado: **Instagram, Facebook, Telegram, X (Twitter), LinkedIn, TikTok, YouTube e Pinterest**. Após o agendamento, o manypost assume o disparo e realiza a publicação automática nas redes através das **APIs oficiais**, garantindo conformidade total e eliminando riscos de bloqueio ou banimento (shadowban).
+1. informação real antes de decoração;
+2. Inter compacta e hierarquia por escala, não por peso excessivo;
+3. superfícies brancas, bordas finas e espaço negativo;
+4. roxo com parcimônia e teal somente em dados;
+5. sidebar cinza-preta como âncora do shell;
+6. sombra somente no tooltip;
+7. gradiente somente como codificação de dados;
+8. hover estável e foco sempre visível.
 
-### C. Inteligência Analítica & Análise de Concorrentes (Competitive Intelligence)
-* **Criação e Otimização com IA:** Motores de Inteligência Artificial integrados ao fluxo de trabalho para simplificar a criação de posts, otimizar legendas, sugerir variações de tom de voz (adaptando o texto para a linguagem de cada rede social), indicar hashtags relevantes e prever o engajamento antes da publicação.
-* **Relatórios Avançados e Dashboards de Marketing & Mídias Sociais:** Gráficos e métricas aprofundadas de alcance, impressões, taxa de engajamento, conversão, crescimento de seguidores e ROI de mídia social em tempo real.
-* **Análise de Concorrentes (Benchmarking Avançado):** O manypost analisa, rastrea e compara o crescimento e a performance dos principais concorrentes do usuário. A plataforma revela insights estratégicos como:
-  * **Frequência de postagens e curvas de crescimento** do concorrente.
-  * **Horários e dias de maior publicação** e engajamento da concorrência.
-  * **Formatos de conteúdo utilizados** (proporção entre Vídeos/Reels, Carrosséis, Imagens estáticas e Textos).
-  * **Os melhores e piores posts** dos concorrentes (análise detalhada de performance histórica).
-  * **Hashtags mais frequentes** e estratégias de legendas utilizadas pelos líderes do setor.
+## 2. Paleta normativa
 
-### D. Gestão de Times, Workflow & Aprovação Externa (Links Públicos)
-* **Gestão de Equipes e Fluxo de Trabalho (Workflow):** Organização colaborativa com controle de permissões e papéis (Criador, Revisor, Gestor de Mídia e Admin). Cada alteração gera um **histórico de entregas e ajustes**, permitindo acompanhar quem criou, quem comentou, o que foi alterado e quando foi aprovado.
-* **Links Públicos para Aprovação de Clientes:** Para simplificar a validação com clientes finais ou gestores externos, o manypost gera **links públicos de preview interativo**. O cliente visualiza a postagem exatamente como ela será renderizada na rede social (com imagens, vídeos e carrosséis) e pode aprovar ou solicitar ajustes com apenas 1 clique — **sem precisar fazer login, criar conta ou enfrentar burocracia no sistema**.
+| Token | Valor | Papel |
+| --- | --- | --- |
+| `--canvas` | `#D9DBDD` | fundo externo |
+| `--main` | `#FDFDFD` | fundo central |
+| `--surface` / `--paper` | `#FFFFFF` | cards e overlays |
+| `--surface-2` | `#F5F5F5` | região recuada/selecionada |
+| `--line` | `#EDEDED` | divisor e borda de card |
+| `--line-strong` | `#8B8B8B` | limite acessível de controle/overlay |
+| `--ink` | `#0C0F17` | texto principal |
+| `--graphite` | `#74767C` | texto secundário |
+| `--mist` | `#9B9DA2` | detalhe decorativo |
+| `--accent` | `#8B3CF0` | marca, ação, seleção, série principal |
+| `--accent-hover` | `#6D28D9` | hover primário |
+| `--accent-tint` | `#EDEEFC` | realce lilás |
+| `--kpi-lilac` | `#EDEEFC` | KPI alternado |
+| `--kpi-blue` | `#E6F1FD` | KPI alternado |
+| `--data-2` | `#00866C` | teal acessível para texto/linha |
+| `--data-2-bright` | `#00F3BC` | marca gráfica não textual |
+| `--sidebar` | `#242629` | sidebar solicitada pelo owner |
+| `--sidebar-hover` | `#303236` | active/hover da sidebar |
+| `--sidebar-text` | `#F3F3F4` | texto principal da sidebar |
+| `--sidebar-muted` | `#AEB1B5` | apoio da sidebar |
 
----
+Hexadecimal não entra em componentes. `apps/web/src/app/globals.css` é a implementação canônica.
 
-## 2. Princípios Fundamentais de Design & Experiência
+## 3. Estados de publicação
 
-1. **Estética Limpa, Profissional e Acolhedora:**
-   O manypost é uma plataforma de gestão de redes sociais e automação de IA para quem valoriza seu tempo. Elementos decorativos em excesso (como globos 3D giratórios, **sombras flutuantes** ou animações exageradas) são evitados para manter o foco no conteúdo. Profundidade é permitida, mas **assentada na superfície** (relevo por gradiente, ver princípio 2) — nunca uma sombra pairando sob o elemento.
-2. **Regra do Zero Sombras + Profundidade por Gradiente (`box-shadow` continua proibido):** *(brand v1.3 — 2026-07-23)*
-   Inspirado no padrão visual da Zapier, **abolimos todas as sombras artificiais (`box-shadow`)** — a proibição de `box-shadow` é inviolável e vale para o app inteiro. A separação de blocos continua vindo de **bordas** e **sobreposição de cores de fundo** (ex: `--surface-2` sobre `--surface`). O que mudou: a profundidade agora é **linguagem pervasiva — nada de superfície flat**, construída por **gradiente de preenchimento** e **cor de borda por lado** + brilho fino sob o topo, sempre sem `box-shadow`. A **direção** codifica a função: superfícies e controles **sobem** (topo claro, base escura); campos **afundam** (topo escuro, base clara). Quatro tratamentos:
-   - **Relevo forte (controle elevado):** botões preenchidos (`primary`/`enterprise`/`outline`/`destructive`), aba ativa dos seletores, pílula do dia atual/selecionado. Classes `.bevel-primary|enterprise|outline|destructive`.
-   - **Relevo sutil (superfície elevada):** cards, tiles clicáveis, **todos os overlays** (popover, dropdown, dialog, sheet, tooltip, select), a **sidebar**, cabeçalhos/rodapés de painel; estados **ativos/selecionados** de acento (nav ativa, chip selecionado, notificação não lida) via `.bevel-accent`. Classes `.bevel-surface` (claro), `.bevel-ink` (escuro, tooltip), `.bevel-accent` (tint elevado).
-   - **Pastilha (brilho universal):** badges/chips de estado e caixas de tint de qualquer estado — `.bevel-chip` (só `background-image` translúcido: topo clareia, base escurece, compõe sobre qualquer cor sem alterá-la).
-   - **Profundidade pra dentro (campo afundado):** input/select/textarea e caixas de digitação — `.inset-field` (recuo: topo escuro/lábio, base clara). Campo é recuo, não relevo — daí a direção invertida.
+| Estado | Texto/ícone | Tint |
+| --- | --- | --- |
+| Rascunho | `--graphite` | `--surface-2` |
+| Agendado | `--state-scheduled` | `--state-scheduled-tint` |
+| Publicando | `--state-publishing` | `--state-publishing-tint` |
+| Publicado | `--state-published` | `--state-published-tint` |
+| Falhou | `--state-failed` | `--state-failed-tint` |
+| Revisão | `--state-review` | `--state-review-tint` |
 
-   **Único plano de referência (não recebe volume):** o fundo da página e o texto puro — o "chão" contra o qual tudo o mais tem profundidade. Anatomia técnica em §6 (botões) e §7 (cards); tokens de intensidade `--edge-light`/`--edge-dark`/`--bevel-gloss`/`--bevel-lift` no §3.1.
-3. **Regra de Estabilidade em Botões:**
-   Botões e elementos interativos não saltam ou se deslocam no hover. Ao passar o mouse, deve ocorrer apenas uma transição suave de cor (`background-color`, `border-color`, `color` em `0.2s ease`), mantendo o elemento firme e confortável na tela.
-4. **Alinhamento e Espaçamento Harmoniosos (`align-items: stretch`):**
-   Todos os cards ou colunas em uma mesma linha ou grid devem compartilhar a mesma altura. O espaçamento interno (padding) e externo (gap) segue múltiplos de 8px ou 4px (ex: 8px, 12px, 16px, 24px, 32px, 40px, 48px).
+Estados são semânticos. Vermelho, verde e âmbar não entram como ornamento.
 
----
+## 4. Tipografia
 
-## 3. Paleta de Cores & Design Tokens (CSS Variables)
+O produto autenticado usa Inter:
 
-Todas as cores devem ser referenciadas via variáveis CSS pré-definidas em `global.css`. Nunca utilize cores hexadecimais *ad-hoc* diretamente nos componentes.
+| Utility | Papel | Tamanho/peso |
+| --- | --- | --- |
+| `text-axis` | eixo | `10px/400` |
+| `text-meta` | metadado | `11px/400–500` |
+| `text-compact` | navegação/corpo | `13px/400–500` |
+| `text-panel` | título de card | `15px/500` |
+| `text-title` | H1 de página | `18px/500` |
+| `text-figure` | KPI | `23px/500` |
 
-O sistema é **light-first**: a base é o branco, o texto é quase-preto e o roxo entra como acento.
+- produto não usa `font-bold`;
+- título não usa display nem tracking perceptível;
+- números comparáveis usam `tabular-nums`;
+- labels compactos não quebram;
+- Plus Jakarta Sans fica restrita a marketing, auth e onboarding.
 
-### Tabela de Tokens
+## 5. Geometria
 
-| Token CSS | Hexadecimal | Cor / Tom | Uso Prescrito no Sistema |
-| :--- | :--- | :--- | :--- |
-| `--accent` | `#7C3AED` | Roxo | **Ação Primária:** CTAs, pontos de conversão, links, destaques de marca e hover de bordas interativas. Passa AA sobre branco (5,7:1) — pode ser **texto**, não só preenchimento. |
-| `--accent-hover` | `#6D28D9` | Roxo Escuro | **Hover Primário:** Estado `hover` e `active` de botões e links primários. |
-| `--accent-tint` | `#EDE9FE` | Roxo Lavado | **Fundo de Realce:** Badges, callouts e faixas de destaque suave sobre fundo claro. |
-| `--accent-on-dark` | `#C4B5FD` | Roxo Claro | **Acento sobre Escuro:** `--accent` cai para 3,3:1 sobre `--ink` e reprova AA como texto. Sobre fundo escuro, texto e ícone de acento usam este tom (10,2:1). Preenchimento e borda podem continuar em `--accent`. |
-| `--ink` | `#111111` | Quase-preto | **Texto Principal & Contraste:** Títulos H1/H2/H3, texto de alto contraste, superfícies escuras e bordas fortes. |
-| `--ink-soft` | `#262626` | Preto Suave | **Hover de Superfície Escura:** estado `hover` de botões e painéis com fundo `--ink`. Não é cor de texto. |
-| `--graphite` | `#6B6B70` | Cinza | **Texto Editorial & Apoio:** Subtítulos, parágrafos de corpo, sobretítulos em caixa alta, legendas, metadados e badges (5,3:1 sobre branco). |
-| `--mist` | `#8E8E96` | Cinza Claro | **Metadado Decorativo:** 3,2:1 sobre branco — reprova AA para corpo de texto. Nunca use em texto que precise ser lido. |
-| `--paper` / `--surface` | `#FFFFFF` | Branco | **Fundo Principal:** Fundo geral da página (`body`), painéis e badges. Também é o texto sobre fundo escuro ou roxo. |
-| `--surface-2` | `#F5F5F7` | Cinza-claro | **Superfície Base:** Cards de conteúdo, caixas de destaque, barras laterais e seções alternadas. |
-| `--night` | `#0A0A0A` | Preto Premium | **Momento Dark (opcional):** seções de alto impacto, com wordmark branco e acento roxo. |
-| `--line` | `#E2E2E7` | Linha / Borda | **Divisores & Estrutura:** Bordas de cards (`1px solid var(--line)`), linhas divisórias em tabelas e separadores de seções. |
+### 5.1 Espaçamento
 
-### Exemplo de Implementação CSS
-```css
-:root {
-  --accent: #7C3AED;
-  --accent-hover: #6D28D9;
-  --accent-tint: #EDE9FE;
-  --accent-on-dark: #C4B5FD;
-  --paper: #FFFFFF;
-  --surface: #FFFFFF;
-  --surface-2: #F5F5F7;
-  --night: #0A0A0A;
-  --ink: #111111;
-  --ink-soft: #262626;
-  --graphite: #6B6B70;
-  --mist: #8E8E96;
-  --line: #E2E2E7;
-}
-```
+Escala: `4 / 8 / 12 / 16 / 20 / 24 / 28 / 32px`.
 
-### 3.1 Tokens de Profundidade · Relevo 3D sem Sombra *(brand v1.3)*
+Gaps, paddings e agrupamentos usam o degrau coerente com a densidade. Margens negativas não
+corrigem alinhamento.
 
-O relevo dos elementos elevados (botões preenchidos e cards, ver §2.2, §6, §7) é derivado dos tokens de cor acima — **nenhuma cor nova, nenhum `box-shadow`**. Quatro tokens governam a **intensidade** de todo o app (padrão: média). Ajuste-os em um único ponto (`globals.css`) para deixar o relevo mais sutil ou mais forte.
+### 5.2 Raios por função
 
-| Token CSS | Valor (médio) | O que controla |
-| :--- | :--- | :--- |
-| `--edge-light` | `22%` | Quanto de branco entra na **borda de topo** (o lado que "pega luz"). Maior = topo mais claro. |
-| `--edge-dark` | `16%` | Quanto de preto entra na **borda de base** (o lado assentado). Maior = base mais funda. |
-| `--bevel-gloss` | `0.16` | Alpha do **brilho fino de 1–3px** logo abaixo da borda de topo (o realce "vidro"). |
-| `--bevel-lift` | `9%` | Rebaixo do **fundo do topo para a base** no gradiente de preenchimento. |
+| Utility | Valor | Uso |
+| --- | ---: | --- |
+| `rounded-key` | `4px` | badge/checkbox |
+| `rounded-compact` | `5px` | chip de tecla |
+| `rounded-tooltip` | `8px` | tooltip/microbarra |
+| `rounded-control` | `10px` | botão/input/nav/tile |
+| `rounded-card` | `11px` | card analítico/board |
+| `rounded-kpi` | `12px` | KPI |
+| `rounded-full` | pill | busca/avatar/ponto |
 
-Regra de contraste: no `primary`, a face vai de `--accent` (topo) a `--accent-hover` (base) — **os dois já passam AA com texto branco**, então o relevo nunca custa legibilidade. `--edge-light`/`--edge-dark` afetam só bordas (decorativas), nunca o texto.
+### 5.3 Bordas e sombras
 
----
+- card: `1px solid var(--line)`;
+- input e overlay usam `--line-strong` quando a borda é o único limite;
+- superfícies persistentes não usam sombra;
+- tooltip usa `--shadow-tooltip` e é a única exceção.
 
-## 4. Estrutura Visual & Cantos Suaves (Border Radius)
+## 6. Shell
 
-O manypost evita formatos pílula (`border-radius: 9999px`) em botões, cards ou containers, exceto em avatares circulares. O arredondamento dos cantos segue uma escala simples e natural em 3 níveis:
+- sidebar desktop: `181px`, recolhida `64px`;
+- sidebar: `#242629`; item ativo neutro `#303236`;
+- topbar: `59px`, desktop e mobile, `#FDFDFD`, borda inferior;
+- busca: `138 × 27px`, pill;
+- abaixo de `1024px`, sidebar vira drawer;
+- main: `#FDFDFD`, padding `16–24px`;
+- rail secundário: `260px` somente com dados reais;
+- `PageHeader` contém o único H1 da tela em `18px/500`.
 
-* **`4px` (Small Radius):** Badges, tags, tooltips, toolbars, pequenas pílulas de status e ícones de marca.
-* **`6px` (Medium Radius):** Botões padrão (todas as variações), campos de formulário (inputs, selects, textareas) e modais pequenos.
-* **`8px` (Large Radius):** Cards de funcionalidade, containers, caixas de destaque e painéis de dados.
+## 7. Superfícies
 
----
+### Card analítico
 
-## 5. Tipografia Dupla (Marca vs. Leitura Fluida)
+- branco, borda `#EDEDED`, raio `11px`, padding `20px`;
+- título `15px/500`;
+- zero sombra e zero gradiente.
 
-Utilizamos um sistema tipográfico duplo de alta precisão que combina a personalidade marcante da **Degular Display** nos grandes formatos com a legibilidade suíça da **Inter** na interface do usuário:
+### KPI
 
-```css
-@font-face {
-  font-family: "Degular Display";
-  src: url("/fonts/DegularDisplay-500.woff2") format("woff2");
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
+- lilás/azul/lilás;
+- referência `238 × 96px`, raio `12px`, padding `20px`;
+- sem borda e sem sombra;
+- valor `23px/500`, tabular;
+- tile de ícone branco `34 × 34px`, raio `10px`.
 
-:root {
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Degular Display', 'Plus Jakarta Sans', var(--font-sans);
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
-}
-```
+### Controles
 
-### A. Degular Display (`var(--font-display)`) · Títulos de Impacto & Grandes Formatos
-A fonte proprietária **Degular Display** (da fundição OH no Type Co.) é a assinatura visual do manypost e quem dá vida à manchete do Hero (*"Vários posts. Várias redes. Um clique."*). Com proporções singulares e geometria "regular mas nem tão regular", ela cria memória visual imediata.
+- altura conforme `sm/md/lg` existente;
+- raio `10px`;
+- fills sólidos;
+- outline de foco visível;
+- hover só altera cor/borda/fundo.
 
-> [!IMPORTANT]
-> **Regra Tipográfica Inegociável (`Degular Display` apenas $\ge 26\text{px}$):**
-> A `Degular Display` foi desenhada exclusivamente para **Grandes Formatos (Hero H1, grandes CTAs e Títulos Principais de Seção H2 entre 32px e 56px)**. É **terminantemente proibido** utilizá-la em toda a aplicação ou em textos pequenos ($\le 22\text{px}$ como subtítulos de cards H3/H4, metadados ou UI). Em tamanhos menores ela fica estranha, pesada e perde a legibilidade.
+## 8. Dados e gradientes
 
-* **Padrão Exato da LP para Manchetes (Hero H1 / Display):** `font-family: var(--font-display)`, `font-size: 44px a 56px`, `font-weight: 500` (equivalente ao `font-medium` do Tailwind/LP), `line-height: 1.02`, `letter-spacing: -0.5px` (`tracking-[-0.5px]`), `color: var(--ink)`.
-* **Títulos Principais de Seções (H2 / CTAs):** `font-family: var(--font-display)`, `font-size: 32px a 48px`, `font-weight: 500`, `letter-spacing: -0.5px`, `color: var(--ink)`.
-* **Kickers (Sobretítulos de Seção):** `font-size: 12px`, `font-weight: 700`, `letter-spacing: 0.05em a 0.08em`, `color: var(--accent) ou var(--graphite)`, `text-transform: uppercase`.
+O roxo é a série principal. O teal é a série secundária e, em linhas, aparece tracejado. Gráficos
+não têm gridlines visíveis e não exibem pontos em todas as amostras.
 
-### B. Inter UI (`var(--font-sans)`) · Cards ($\le 22\text{px}$), UI, Corpo & Dados
-O padrão imutável para todo o restante do sistema: subtítulos de cards, botões, navegação, tabelas, formulários e parágrafos de corpo.
-* **Títulos de Cards de Funcionalidade (H3 / H4 em Cards):** `font-family: var(--font-sans)`, `font-size: 18px a 22px`, `font-weight: 600`, `letter-spacing: -0.2px a -0.3px`, `color: var(--ink)`. (Exemplo exacto das seções *EveryTeam* e *Outcomes*).
-* **Corpo de Texto (`.body-lg` / Parágrafos):** `font-size: 14px a 16px`, `font-weight: 400`, `line-height: 1.6`, `color: var(--graphite)`.
-* **Textos de UI / Botões (`ZapButton`) / Form Labels:** `font-size: 11px, 13px ou 15px`, `font-weight: 600` (ou `700` no botão large).
-* **Metadados / Legendas / Carimbos de Tempo:** `font-size: 12px a 15px`, `font-weight: 600`, `color: var(--graphite)`.
-* **Exceção do eixo horário do calendário:** `font-size: 9px`, `line-height: 12px`, restrito aos rótulos `00:00–23:00` das grades de dia/semana; não reutilizar em metadados, botões ou conteúdo.
+Gradientes permitidos:
 
----
+- `.viz-active-bar`;
+- `.viz-donut-segment`;
+- `.viz-area-fill`.
 
-## 6. Sistema de Botões & Tamanhos Padronizados (11px, 13px, 15px)
+Qualquer outro gradiente de fill em shell, botão, card, campo ou navegação é violação.
 
-Para garantir uma navegação agradável e equilibrada, nosso sistema adota exatamente **três tamanhos claros de fonte**, todos com raio de borda fixo em **`6px`** e **sem deslocamento vertical no hover (`translateY: 0`)**.
+## 9. Home
 
-### Escala de Tamanhos (`size`)
-* **Small (`sm`):** `font-size: 11px`, `padding: 6px 14px`, `height: ~32px`. (Para toolbars, tabelas, filtros e ações em listas densas).
-* **Medium (`md`):** `font-size: 13px`, `padding: 10px 20px`, `height: ~38px`. (Padrão universal para formulários, cards e modais).
-* **Large (`lg`):** `font-size: 15px`, `padding: 14px 28px`, `height: ~44px`, `font-weight: 700`. (CTAs principais em cabeçalhos ou destaques de página).
+- três KPIs do dia com dados reais;
+- região principal + rail de `260px` no desktop;
+- cards detalhados só aparecem quando há conteúdo;
+- first run instrui em vez de mostrar zeros;
+- nenhum alcance, impressão, audiência, seguidor, contato ou capacidade é inventado.
 
-> **Relevo 3D nas variantes preenchidas (brand v1.3):** `primary`, `enterprise`, `outline` e `destructive` usam **relevo por gradiente + borda por lado** (classes `.bevel-*` em `globals.css`), nunca cor de fundo chapada. `ghost` e `link` **permanecem flat** (não têm preenchimento a biselar). Todos os botões usam `cursor: pointer`.
+## 10. Quadro
 
-### Variações de Estilo (`variant`)
-1. **Primary (`primary`):** Face em gradiente `--accent` (topo) → `--accent-hover` (base), texto branco; borda de topo = `--accent` clareado, borda de base = `--accent-hover` escurecido; brilho fino no topo. Hover: `filter: brightness(.95)` (escurece — sem mover). Ação principal da tela.
-2. **Enterprise (`enterprise`):** Face `--ink` clareado (topo) → `--ink` (base), texto `--paper`; base preta, topo clareado. Hover: `brightness(1.5)` (clareia rumo a `--ink-soft`). Ações corporativas ou secundárias de alta relevância.
-3. **Outline (`outline`):** Face `--surface` → `--surface` rebaixado com `--line`, texto `--ink`; borda de topo clara, de base escura. Hover: `brightness(.9)`. Ação secundária.
-4. **Ghost (`ghost`):** **Flat.** Fundo transparente, texto `--ink`. Hover: Fundo `--surface-2`, texto `--accent`.
-5. **Link (`link`):** **Flat.** Fundo transparente, texto `--accent`, sem borda ou padding. Hover: Texto `--accent-hover`.
-6. **Destructive (`destructive`):** Face `--state-failed` clareado (topo) → `--state-failed` (base), texto branco; mesmas bordas por lado. Hover: `brightness(.95)`. Ações destrutivas.
+- toolbar e cinco lanes em uma única superfície branca de raio `11px`;
+- lanes separadas por linhas verticais;
+- cabeçalhos `15px/500`, sticky, com contagens reais;
+- cards brancos de raio `11px`, preview opcional e zero sombra;
+- URL filters, densidade, seleção, drag, teclado, lote, retry, erro e confirmações permanecem;
+- nunca mostra `n / capacidade` fictícia;
+- rolagem horizontal em largura insuficiente.
 
-> **Hover sem deslocamento (BRAND §2.3 permanece):** como não dá para transicionar um `linear-gradient` com `background-color`, o hover das variantes preenchidas usa `filter: brightness()` — escurece/clareia suavemente em `0.2s`, **sem** `translate`/`scale`. O elemento continua firme.
+## 11. Responsividade
 
-### Especificação de Estilo CSS (Botões Firmes e Estáveis)
-```css
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-family: var(--sans);
-  font-weight: 600;
-  text-decoration: none;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-  white-space: nowrap;
-}
-/* TERMINANTEMENTE PROIBIDO: transform: translateY(-2px) NO HOVER! */
-```
+- `>=1260px`: composição completa;
+- `1024–1259px`: sidebar presente, rail pode empilhar;
+- `768–1023px`: drawer, KPIs `2 + 1`, superfícies empilhadas;
+- `<768px`: uma coluna, KPIs empilhados e touch targets críticos de `44px`.
 
----
+## 12. Iconografia e movimento
 
-## 7. Componentes e Interações Suaves
+- Lucide/Tabler/Phosphor regular, `15–17px`, stroke fino;
+- sem preenchimento em massa;
+- movimento respeita `prefers-reduced-motion`;
+- hover nunca usa translate/scale/rotate;
+- foco usa outline, não shadow ring.
 
-### A. Cards Interativos (`.card`)
-Cards estruturais devem ter altura igualizada (`height: 100%` em grids com `align-items: stretch`).
-* **Estado Normal:** **relevo 3D sutil e sem sombra** (`.bevel-surface`): face em gradiente `--surface` (topo levemente claro) → `--surface` rebaixado com `--line` (base assentada), borda de topo clara e borda de base escura, `border-radius: 8px`. O degradê é **mínimo** de propósito — superfície grande com relevo forte vira "plástico".
-* **Estado Hover (cards clicáveis):** `border-color: var(--accent)` — a borda ilumina em roxo, sem criar sombras nem saltos verticais. (Ao pintar as 4 bordas de roxo, o relevo cede lugar ao destaque de foco; é o comportamento desejado no hover.)
-* **`box-shadow` continua proibido** — a profundidade do card vem só do gradiente + bordas.
+## 13. Critérios de aceite
 
-### B. Badges de Indicadores (`.badge`)
-* **Especificação:** `font-size: 11px`, `font-weight: 600`, `padding: 4px 10px`, `border-radius: 4px`, `background: var(--surface)`, `border: 1px solid var(--line)`, `color: var(--graphite)`, `text-transform: uppercase`.
+1. `design.md` e `globals.css` concordam.
+2. Nenhum hex fora de `globals.css`.
+3. Sombra somente no tooltip.
+4. Gradiente somente em utilities de dados.
+5. Raios apenas nos papéis documentados.
+6. Produto em Inter compacta, sentence case, sem bold.
+7. Home e Quadro usam somente dados e operações reais.
+8. `bun run check:brand`, testes focados, build e inspeção responsiva passam.
 
-### C. Logo Oficial (SVG)
-* **Completa** (`public/images/logo.svg` / `apps/web/public/images/logo.svg`): horizontal com ícone + wordmark **`manypost`** em curvas (não depende de fonte). Usar sozinha — **não** duplicar o texto ao lado.
-* **Simplificada** (`logoSimplificada.svg`): mark quadrado roxo (ícone only). Usar em sidebar recolhida, diagramas e espaços onde o wordmark não cabe.
-* **No Header / Wordmark do app:** componente `Wordmark` → `<img src="/images/logo.svg" alt="manypost" height="28" />` (proporção ~1600×420).
-* **Mark só:** `<img src="/images/logoSimplificada.svg" alt="manypost" width="32" height="32" />`.
-* **Grafia da Marca:** A grafia oficial é sempre **`manypost`** (tudo minúsculo), inclusive em títulos, textos e `<title>`. Nunca escrever ManyPost ou `Manypost` em superfícies de produto.
+## 14. Histórico
 
----
-
-## 8. Boas Práticas para Agentes de IA ao Escrever Código Astro / HTML
-
-1. **Sempre importe o CSS Global:** Certifique-se de que `../styles/global.css` (ou equivalente) está importado na página ou layout principal.
-2. **Utilize o Componente `<Button />`:** Ao criar botões em arquivos `.astro`, prefira usar o componente pré-construído `<Button variant="..." size="...">Texto</Button>`.
-3. **Não invente classes utilitárias *ad-hoc*:** Evite adicionar `box-shadow`, `border-radius: 20px`, ou fontes gigantes nas tags inline. Utilize sempre os tokens e classes documentados acima.
-4. **Respeite o Espaçamento:** Em layouts de grade (`grid-2`, `grid-3`, `grid-4`), mantenha o gap em `24px`, `36px` ou `40px` e padding de seções em `88px 0` (`.section-block`).
-5. **Simplicidade e Clareza:** Em caso de dúvida sobre animações ou decorações excessivas, opte sempre pela **simplicidade limpa e funcional**. A elegância do sistema vem do contraste e da facilidade de uso, não do excesso.
-
----
-
-**Navegação:** [Índice da documentação](../README.md) · [Guia de adaptação](README.md) · [SPEC_FRONTEND](../specs/SPEC_FRONTEND.md) · [README do projeto](../../README.md)
+- v1.3: relevo por gradiente, revogado;
+- v1.4: superfícies chapadas;
+- v1.5: canvas quente, rail 208px, títulos display;
+- v2.0: sistema branco/lilás, rail 181px, Inter compacta e sombra somente no tooltip.

@@ -187,13 +187,21 @@ describe('cobertura de tradução da home', () => {
    */
   test('nenhuma mensagem da home fala de desempenho, alcance ou engajamento', () => {
     const proibidas = ['engajament', 'alcance', 'impressõ', 'impressoes', 'curtida', 'seguidor'];
-    for (const [key, valor] of Object.entries(home)) {
-      for (const p of proibidas) {
-        expect(valor.toLowerCase().includes(p), `home.${key} promete métrica que não coletamos`).toBe(
-          false,
-        );
+    // recursivo: os blocos novos aninham chaves (home.nextAction.*) e a regra vale para elas também
+    const percorrer = (no: unknown, caminho: string) => {
+      if (typeof no === 'string') {
+        for (const p of proibidas) {
+          expect(no.toLowerCase().includes(p), `${caminho} promete métrica que não coletamos`).toBe(
+            false,
+          );
+        }
+        return;
       }
-    }
+      if (no && typeof no === 'object') {
+        for (const [k, v] of Object.entries(no)) percorrer(v, `${caminho}.${k}`);
+      }
+    };
+    percorrer(home, 'home');
   });
 
   test('títulos não terminam com ponto (design.md §36.4)', () => {

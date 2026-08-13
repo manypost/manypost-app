@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
@@ -56,8 +57,8 @@ function UsageMeter({ label, used, limit }: { label: string; used: number; limit
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs text-graphite">{label}</span>
-      <span className={cn('text-xs font-semibold tabular-nums', full ? 'text-state-failed' : 'text-ink')}>
+      <span className="text-meta text-graphite">{label}</span>
+      <span className={cn('text-meta font-semibold tabular-nums', full ? 'text-state-failed' : 'text-ink')}>
         {used}/{unlimited ? '∞' : limit}
       </span>
       {unlimited ? (
@@ -164,7 +165,8 @@ export function PlansView() {
   };
 
   return (
-    <div className="flex max-w-5xl flex-col gap-4">
+    <div className="flex flex-col gap-4">
+      <PageHeader title={t('title')} description={t('subheadline')} />
       {/* faixa de status: plano, prazo, uso e ações numa linha só */}
       <section className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-lg border border-line bg-surface px-5 py-3.5">
         <div className="flex items-center gap-2">
@@ -172,11 +174,11 @@ export function PlansView() {
             {subscription ? statusLabel[subscription.status] : PLAN_LABEL.FREE}
           </Badge>
           {subscription?.cancelAt ? (
-            <span className="text-xs text-graphite">
+            <span className="text-meta text-graphite">
               {t('endsAt', { date: shortDate(subscription.cancelAt, locale) })}
             </span>
           ) : subscription?.currentPeriodEnd ? (
-            <span className="text-xs text-graphite">
+            <span className="text-meta text-graphite">
               {t('renewsAt', { date: shortDate(subscription.currentPeriodEnd, locale) })}
             </span>
           ) : null}
@@ -249,7 +251,7 @@ export function PlansView() {
       ) : null}
 
       {/* escolha do plano — mesma leitura do onboarding */}
-      <section className="flex flex-col gap-5 rounded-lg border border-line bg-surface p-5">
+      <section className="flex flex-col gap-6 rounded-lg border border-line bg-surface p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="max-w-xl text-compact leading-relaxed text-graphite">{t('subheadline')}</p>
           <PeriodToggle value={period} onChange={setPeriod} />
@@ -307,7 +309,7 @@ export function PlansView() {
 
       {/* faturas */}
       <section className="overflow-hidden rounded-lg border border-line bg-surface">
-        <h2 className="border-b border-line px-5 py-3 text-sm font-semibold text-ink">
+        <h2 className="border-b border-line px-5 py-3 text-compact font-semibold text-ink">
           {t('invoicesTitle')}
         </h2>
         {invoices.isPending ? (

@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { api } from '@/lib/api/client';
+import { chavesInvalidadasPor, EVENTOS_SSE } from './invalidations';
 import { expireBrowserSession, realtimeSessionAction } from './realtime-session';
 
 /**
@@ -25,22 +26,16 @@ export function useRealtime() {
 
   handler.current = (event, payload) => {
     const data = payload as { channelName?: string; releaseUrl?: string } | undefined;
-    switch (event) {
-      case 'post.scheduled':
-      case 'post.published':
-      case 'post.failed':
-        queryClient.invalidateQueries({ queryKey: ['publications'] });
-        queryClient.invalidateQueries({ queryKey: ['post-group'] });
-        if (event === 'post.published') toast.success(t('published'));
-        if (event === 'post.failed') toast.error(t('failed'));
-        break;
-      case 'channel.refresh_required':
-        queryClient.invalidateQueries({ queryKey: ['channels'] });
-        toast.warning(t('refreshRequired', { name: data?.channelName ?? '' }));
-        break;
-      case 'notification.created':
-        queryClient.invalidateQueries({ queryKey: ['notifications'] });
-        break;
+
+    // o que invalidar é dado (invalidations.ts) e é testado lá; aqui fica só o aviso à pessoa
+    for (const queryKey of chavesInvalidadasPor(event)) {
+      queryClient.invalidateQueries({ queryKey });
+    }
+
+    if (event === 'post.published') toast.success(t('published'));
+    else if (event === 'post.failed') toast.error(t('failed'));
+    else if (event === 'channel.refresh_required') {
+      toast.warning(t('refreshRequired', { name: data?.channelName ?? '' }));
     }
   };
 
@@ -67,14 +62,7 @@ export function useRealtime() {
         return;
       }
       source = new EventSource('/v1/events');
-      const EVENTS = [
-        'post.scheduled',
-        'post.published',
-        'post.failed',
-        'channel.refresh_required',
-        'notification.created',
-      ];
-      for (const name of EVENTS) {
+      for (const name of EVENTOS_SSE) {
         source.addEventListener(name, (e) => {
           let payload: unknown;
           try {

@@ -228,11 +228,11 @@ function ChipField({
 
   return (
     <div className="flex w-full flex-col gap-1 sm:w-72">
-      <div className="inset-field flex flex-wrap items-center gap-1.5 rounded-md border px-2 py-1.5 transition-colors duration-200 focus-within:border-accent">
+      <div className="border-line-strong bg-surface flex flex-wrap items-center gap-1.5 rounded-md border px-2 py-1.5 transition-colors duration-200 focus-within:border-accent">
         {items.map((tag, i) => (
           <span
             key={`${tag}-${i}`}
-            className="bevel-chip inline-flex items-center gap-1 rounded-sm border border-line bg-surface py-0.5 pl-2 pr-1 text-xs font-medium text-ink"
+            className="inline-flex items-center gap-1 rounded-sm border border-line bg-surface py-0.5 pl-2 pr-1 text-meta font-medium text-ink"
           >
             {tag}
             <button
@@ -259,7 +259,7 @@ function ChipField({
             }
           }}
           onBlur={() => add(draft)}
-          className="min-w-[6ch] flex-1 bg-transparent text-sm outline-none placeholder:text-mist disabled:cursor-not-allowed"
+          className="min-w-[6ch] flex-1 bg-transparent text-compact outline-none placeholder:text-mist disabled:cursor-not-allowed"
         />
       </div>
       {budget !== undefined ? (
@@ -429,14 +429,14 @@ export function ChannelSettingsCard({
   const isMediaField = (key: string) => (MEDIA_FIELDS[providerId] ?? []).includes(key);
 
   return (
-    <div className="bevel-surface overflow-hidden rounded-md border">
+    <div className="bg-surface overflow-hidden rounded-md border">
       <button
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          'bevel-primary flex w-full items-center gap-2 border px-3 py-2.5 text-left text-sm font-semibold text-paper outline-none transition-[filter] duration-200',
-          'hover:brightness-95 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent',
+          'flex w-full items-center gap-2 border border-accent bg-accent px-3 py-2.5 text-left text-compact font-semibold text-paper outline-none transition-colors duration-200',
+          'hover:border-accent-hover hover:bg-accent-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent',
         )}
       >
         {PROVIDER_ICONS[providerId] ? (
@@ -464,10 +464,10 @@ export function ChannelSettingsCard({
               const checked = typeof value === 'boolean' ? value : field.default === true;
               return (
                 <div key={key} className="flex items-start justify-between gap-3">
-                  <div className="flex min-w-0 flex-col gap-0.5">
+        <div className="flex min-w-0 flex-col gap-1">
                     {renderLabel(key)}
                     {description ? (
-                      <span className="text-xs leading-relaxed text-graphite">{description}</span>
+                      <span className="text-meta leading-relaxed text-graphite">{description}</span>
                     ) : null}
                   </div>
                   <Switch
@@ -560,7 +560,7 @@ export function ChannelSettingsCard({
                 {renderLabel(key)}
                 {inner}
                 {description ? (
-                  <span className="text-xs leading-relaxed text-graphite">{description}</span>
+                  <span className="text-meta leading-relaxed text-graphite">{description}</span>
                 ) : null}
               </div>
             );

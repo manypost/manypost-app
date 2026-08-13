@@ -50,14 +50,14 @@ export function PostPreview({
       .map((m) => ({ url: m.url, mime: m.mime, alt: m.alt }));
 
   if (channels.length === 0) {
-    return <p className="text-sm leading-relaxed text-graphite">{t('noChannels')}</p>;
+    return <p className="text-compact leading-relaxed text-graphite">{t('noChannels')}</p>;
   }
 
   const channel = current === 'global' ? undefined : channels.find((ch) => ch.id === current);
   const text = channel ? textFor(channel.id) : globalText;
 
   if (text.trim().length === 0 && mediaIds.length === 0) {
-    return <p className="text-sm leading-relaxed text-graphite">{t('startWriting')}</p>;
+    return <p className="text-compact leading-relaxed text-graphite">{t('startWriting')}</p>;
   }
 
   const entries = [

@@ -138,7 +138,7 @@ export function ComposerValidationPopover({
       >
         {capacidades.length > 0 ? (
           <section className="flex flex-col gap-2">
-            <h3 className="text-meta font-semibold uppercase tracking-wide text-graphite">
+            <h3 className="text-meta font-medium text-graphite">
               {t('validation.channelsTitle')}
             </h3>
             <ul className="flex flex-col gap-2">
@@ -146,7 +146,7 @@ export function ComposerValidationPopover({
                 const nome = channel.name ?? channel.username ?? channel.id;
                 return (
                   <li key={channel.id} className="flex flex-col gap-1">
-                    <div className="flex items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center justify-between gap-2 text-meta">
                       <span className="flex min-w-0 items-center gap-1.5 text-ink">
                         {PROVIDER_ICONS[channel.provider] ? (
                           <img
@@ -181,7 +181,7 @@ export function ComposerValidationPopover({
           <section
             className={cn('flex flex-col gap-1.5', capacidades.length > 0 && 'border-t border-line pt-3')}
           >
-            <h3 className="text-meta font-semibold uppercase tracking-wide text-graphite">
+            <h3 className="text-meta font-medium text-graphite">
               {t('validation.issuesTitle')}
             </h3>
             <ul className="flex flex-col gap-1">
@@ -196,7 +196,7 @@ export function ComposerValidationPopover({
                   return (
                     <li
                       key={issue.message}
-                      className="px-1 py-1 text-xs leading-relaxed text-state-failed"
+                      className="px-1 py-1 text-meta leading-relaxed text-state-failed"
                     >
                       {issue.message}
                     </li>
@@ -213,7 +213,7 @@ export function ComposerValidationPopover({
                         setAberto(false);
                       }}
                       className={cn(
-                        'flex w-full cursor-pointer items-start gap-1.5 rounded-sm px-1 py-1 text-left text-xs leading-relaxed text-state-failed outline-none transition-colors duration-200',
+                        'flex w-full cursor-pointer items-start gap-1.5 rounded-sm px-1 py-1 text-left text-meta leading-relaxed text-state-failed outline-none transition-colors duration-200',
                         'hover:bg-state-failed-tint focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
                       )}
                     >
@@ -228,7 +228,7 @@ export function ComposerValidationPopover({
         ) : (
           <p
             className={cn(
-              'flex items-center gap-1.5 text-xs text-graphite',
+              'flex items-center gap-1.5 text-meta text-graphite',
               capacidades.length > 0 && 'border-t border-line pt-3',
             )}
           >

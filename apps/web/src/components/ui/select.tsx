@@ -18,7 +18,7 @@ function SelectTrigger({
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
       className={cn(
-        'inset-field flex h-[38px] w-full items-center justify-between gap-2 rounded-md border px-3 py-1 text-compact text-ink transition-colors duration-200',
+        'border-line-strong bg-surface flex h-[38px] w-full items-center justify-between gap-2 rounded-md border px-3 py-1 text-compact text-ink transition-colors duration-200',
         'outline-none focus-visible:border-accent focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
         'disabled:cursor-not-allowed disabled:opacity-50 data-[placeholder]:text-mist [&>span]:truncate',
         className,
@@ -75,7 +75,7 @@ function SelectContent({
         data-slot="select-content"
         position={position}
         className={cn(
-          'bevel-surface relative z-50 max-h-96 min-w-[8rem] animate-fade-in overflow-hidden rounded-md border text-ink',
+          'border-line-strong bg-surface relative z-50 max-h-96 min-w-[8rem] animate-fade-in overflow-hidden rounded-md border text-ink',
           position === 'popper' && 'data-[side=bottom]:translate-y-1 data-[side=top]:-translate-y-1',
           className,
         )}
@@ -104,7 +104,7 @@ function SelectLabel({
   return (
     <SelectPrimitive.Label
       data-slot="select-label"
-      className={cn('px-2 py-1.5 text-xs font-semibold text-graphite', className)}
+      className={cn('px-2 py-1.5 text-meta font-semibold text-graphite', className)}
       {...props}
     />
   );

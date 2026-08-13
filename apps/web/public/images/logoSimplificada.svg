@@ -1,42 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="500" height="500" viewBox="0 0 500 500" preserveAspectRatio="xMidYMid meet">
-  <defs>
-    <clipPath id="rounded-square">
-      <rect x="39.5" y="38.5" width="421" height="422" rx="61.5" ry="61.5"/>
-    </clipPath>
-
-    <linearGradient id="grad-tl" x1="0" y1="1" x2="1" y2="0">
-      <stop offset="0" stop-color="#9750EC"/>
-      <stop offset="0.52" stop-color="#A05AF3"/>
-      <stop offset="1" stop-color="#AA67FB"/>
-    </linearGradient>
-    <linearGradient id="grad-tr" x1="0" y1="0.9" x2="1" y2="0.1">
-      <stop offset="0" stop-color="#883CEF"/>
-      <stop offset="0.52" stop-color="#8235EA"/>
-      <stop offset="1" stop-color="#7D2FE6"/>
-    </linearGradient>
-    <linearGradient id="grad-bl" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#9D57EF"/>
-      <stop offset="0.54" stop-color="#974BEC"/>
-      <stop offset="1" stop-color="#9040E8"/>
-    </linearGradient>
-    <linearGradient id="grad-br" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#8532ED"/>
-      <stop offset="0.55" stop-color="#7926E5"/>
-      <stop offset="1" stop-color="#731FDF"/>
-    </linearGradient>
-  </defs>
-
-  <g clip-path="url(#rounded-square)">
-    <rect x="39" y="38" width="211" height="210" fill="url(#grad-tl)"/>
-    <rect x="250" y="38" width="211" height="210" fill="url(#grad-tr)"/>
-    <rect x="39" y="248" width="211" height="213" fill="url(#grad-bl)"/>
-    <rect x="250" y="248" width="211" height="213" fill="url(#grad-br)"/>
-
-    <path d="M 250 70
-             C 250 168.3, 323.9 248, 415 248
-             C 322.1 248, 250 324.1, 250 418
-             C 250 324.1, 178.5 248, 91 248
-             C 176.7 248, 250 168.6, 250 70 Z"
-          fill="#FBFBFB"/>
-  </g>
+  <rect x="39.5" y="38.5" width="421" height="422" rx="61.5" ry="61.5" fill="#8B3CF0"/>
+  <path d="M 250 70
+           C 250 168.3, 323.9 248, 415 248
+           C 322.1 248, 250 324.1, 250 418
+           C 250 324.1, 178.5 248, 91 248
+           C 176.7 248, 250 168.6, 250 70 Z"
+        fill="#FBFBFB"/>
 </svg>

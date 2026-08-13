@@ -13,7 +13,7 @@ export function Wordmark({ className }: { className?: string }) {
       alt="manypost"
       width={107}
       height={28}
-      className={cn('h-7 w-auto', className)}
+      className={cn(className)}
       priority
     />
   );

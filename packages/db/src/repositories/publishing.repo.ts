@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, asc, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, isNull, lte, sql } from 'drizzle-orm';
 import { uuidv7 } from '../uuid';
 import type { MediaRef, PublicationState } from '@manypost/contracts';
 import type { PublicationView, PublishingRepository, TransitionPatch } from '@manypost/core';
@@ -33,6 +33,19 @@ const toView = (row: typeof publications.$inferSelect): PublicationView => ({
   errorClass: row.errorClass,
   errorMessage: row.errorMessage,
 });
+
+/**
+ * Mapa de dobra de acento da busca, aplicado aos DOIS lados da comparação.
+ *
+ * Sem isso "lancamento" não acha "Lançamento" — e a paleta já dobra acento nas telas e nos canais,
+ * então a busca de posts pareceria quebrada justamente para quem digita rápido, sem acento.
+ *
+ * `translate` em vez da extensão `unaccent` pelo mesmo motivo que levou a recusar `pg_trgm`:
+ * `CREATE EXTENSION` exige um privilégio que Postgres gerenciado costuma negar, e a migração
+ * falharia no deploy. As duas strings precisam ter o mesmo comprimento em caracteres.
+ */
+const COM_ACENTO = 'áàâãäéèêëíìîïóòôõöúùûüçñýÿ';
+const SEM_ACENTO = 'aaaaaeeeeiiiiooooouuuucnyy';
 
 export function makePublishingRepository(db: Db): PublishingRepository {
   return {
@@ -483,6 +496,8 @@ export function makePublishingRepository(db: Db): PublishingRepository {
         channelId: r.pub.channelId,
         state: r.pub.state,
         publishAt: r.pub.publishAt,
+        publishedAt: r.pub.publishedAt,
+        updatedAt: r.pub.updatedAt,
         content: r.pub.content as { text: string },
         externalId: r.pub.externalId,
         releaseUrl: r.pub.releaseUrl,
@@ -500,6 +515,74 @@ export function makePublishingRepository(db: Db): PublishingRepository {
           username: r.ch.username,
           avatarUrl: r.ch.avatarUrl,
         },
+      }));
+    },
+
+    /**
+     * Busca de posts pelo texto (paleta de comandos).
+     *
+     * Lê `post_groups` direto — um post é um resultado, sem `distinct on` sobre publicações.
+     *
+     * Três limites contêm o custo, já que não há índice de texto: `org_id` confina a varredura à
+     * fatia de um inquilino; a janela de 180 dias confina mais; e o `limit` chega com teto do
+     * schema da rota. `pg_trgm` foi descartado de propósito — `CREATE EXTENSION` exige um
+     * privilégio que Postgres gerenciado costuma negar, e a migração falharia no deploy.
+     *
+     * `nulls first` não é detalhe: rascunho não tem horário, e rascunho é justamente o que mais se
+     * procura — é o trabalho que ainda não saiu.
+     *
+     * O valor da consulta vai PARAMETRIZADO; os `%` são concatenados no SQL, nunca por interpolação
+     * de string.
+     */
+    async searchGroups(orgId, q, limit) {
+      const rows = await db
+        .select({
+          groupId: postGroups.id,
+          state: postGroups.state,
+          publishAt: postGroups.publishAt,
+          content: postGroups.baseContent,
+        })
+        .from(postGroups)
+        .where(
+          and(
+            eq(postGroups.orgId, orgId),
+            isNull(postGroups.deletedAt),
+            // dobra acento nos DOIS lados — ver COM_ACENTO/SEM_ACENTO acima
+            sql`translate(lower(${postGroups.baseContent}->>'text'), ${COM_ACENTO}, ${SEM_ACENTO})
+                like '%' || translate(lower(${q}), ${COM_ACENTO}, ${SEM_ACENTO}) || '%'`,
+            sql`(${postGroups.publishAt} is null or ${postGroups.publishAt} > now() - interval '180 days')`,
+          ),
+        )
+        .orderBy(sql`${postGroups.publishAt} desc nulls first`)
+        .limit(limit);
+
+      if (rows.length === 0) return [];
+
+      // canais em UMA ida: sem isso seriam N consultas para um resultado de dez linhas
+      const ids = rows.map((r) => r.groupId);
+      const canais = await db
+        .select({
+          groupId: publications.groupId,
+          provider: channels.provider,
+          name: channels.name,
+        })
+        .from(publications)
+        .innerJoin(channels, eq(channels.id, publications.channelId))
+        .where(and(eq(publications.orgId, orgId), inArray(publications.groupId, ids)));
+
+      const porGrupo = new Map<string, Array<{ provider: string; name: string }>>();
+      for (const c of canais) {
+        const lista = porGrupo.get(c.groupId) ?? [];
+        lista.push({ provider: c.provider, name: c.name });
+        porGrupo.set(c.groupId, lista);
+      }
+
+      return rows.map((r) => ({
+        groupId: r.groupId,
+        state: r.state,
+        publishAt: r.publishAt,
+        text: (r.content as { text?: string })?.text ?? '',
+        channels: porGrupo.get(r.groupId) ?? [],
       }));
     },
 

@@ -26,8 +26,22 @@ const FeedItemOut = z
     channelId: z.string(),
     state: z.string().openapi({ example: 'PUBLISHED' }),
     publishAt: z.string().datetime().nullable(),
+    publishedAt: z.string().datetime().nullable().openapi({ description: 'quando a entrega aconteceu' }),
+    updatedAt: z
+      .string()
+      .datetime()
+      .openapi({ description: 'última mutação da linha — ordena atividade recente' }),
     text: z.string(),
     mediaCount: z.number().int(),
+    mediaPreview: z
+      .object({
+        type: z.enum(['image', 'video']),
+        url: z.string(),
+        mime: z.string().nullable(),
+        alt: z.string().nullable(),
+      })
+      .nullable()
+      .openapi({ description: 'primeira mídia do conteúdo para reconhecimento visual do card' }),
     externalId: z.string().nullable(),
     releaseUrl: z.string().nullable(),
     errorClass: z.string().nullable(),
@@ -87,22 +101,30 @@ const decodeCursor = (raw: string): { publishAt: Date; id: string } | undefined 
   }
 };
 
-const serialize = (p: PublicationFeedItem) => ({
-  id: p.id,
-  groupId: p.groupId,
-  channelId: p.channelId,
-  state: p.state,
-  publishAt: p.publishAt?.toISOString() ?? null,
-  text: p.content.text,
-  mediaCount: p.content.media?.length ?? 0,
-  externalId: p.externalId,
-  releaseUrl: p.releaseUrl,
-  errorClass: p.errorClass,
-  errorMessage: p.errorMessage,
-  attemptCount: p.attemptCount,
-  group: p.group,
-  channel: p.channel,
-});
+const serialize = (p: PublicationFeedItem) => {
+  const preview = p.content.media?.[0];
+  return {
+    id: p.id,
+    groupId: p.groupId,
+    channelId: p.channelId,
+    state: p.state,
+    publishAt: p.publishAt?.toISOString() ?? null,
+    publishedAt: p.publishedAt?.toISOString() ?? null,
+    updatedAt: p.updatedAt.toISOString(),
+    text: p.content.text,
+    mediaCount: p.content.media?.length ?? 0,
+    mediaPreview: preview
+      ? { type: preview.type, url: preview.url, mime: preview.mime ?? null, alt: preview.alt ?? null }
+      : null,
+    externalId: p.externalId,
+    releaseUrl: p.releaseUrl,
+    errorClass: p.errorClass,
+    errorMessage: p.errorMessage,
+    attemptCount: p.attemptCount,
+    group: p.group,
+    channel: p.channel,
+  };
+};
 
 /** Feed p/ calendário e kanban (SPEC_FRONTEND §3.1-3.2): flat por publicação,
  *  o cliente agrupa por groupId; cursor keyset (publishAt, id). */

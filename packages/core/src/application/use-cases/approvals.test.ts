@@ -398,6 +398,7 @@ describe('resolver: aprovar / pedir ajustes', () => {
       ip: '1.2.3.4',
     });
     expect(w._state.notifs[0]!.title).toBe('Cliente aprovou o post');
+    expect(w._state.notifs[0]!.link).toBe(`/kanban?post=${w._state.groups[0]!.id}`);
   });
 
   test('idempotente: segunda chamada (qualquer ação) devolve o resolvido sem agir de novo', async () => {

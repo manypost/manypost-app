@@ -67,7 +67,7 @@ function ToolbarButton({
           {children}
         </Button>
       </TooltipTrigger>
-      <TooltipContent side="top" align="center" sideOffset={6} className="text-xs font-semibold">
+      <TooltipContent side="top" align="center" sideOffset={6} className="text-meta font-semibold">
         {label}
       </TooltipContent>
     </Tooltip>
@@ -92,7 +92,7 @@ export function FormattingToolbar({ editor }: { editor: Editor | null }) {
   return (
     // 150ms em vez dos 300ms globais: numa barra só de ícones a legenda precisa vir rápido
     <TooltipProvider delayDuration={150} skipDelayDuration={0}>
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center gap-1">
         <ToolbarButton
           label={t('bold')}
           active={marcas.bold}
@@ -131,7 +131,7 @@ export function FormattingToolbar({ editor }: { editor: Editor | null }) {
                 </Button>
               </DropdownMenuTrigger>
             </TooltipTrigger>
-            <TooltipContent side="top" align="center" sideOffset={6} className="text-xs font-semibold">
+            <TooltipContent side="top" align="center" sideOffset={6} className="text-meta font-semibold">
               {t('snippet')}
             </TooltipContent>
           </Tooltip>
@@ -141,7 +141,7 @@ export function FormattingToolbar({ editor }: { editor: Editor | null }) {
             // sem isto o Radix devolve o foco ao botão e o texto perde o cursor
             onCloseAutoFocus={(e) => e.preventDefault()}
           >
-            <DropdownMenuLabel className="flex flex-col gap-0.5">
+        <DropdownMenuLabel className="flex flex-col gap-1">
               <span>{t('snippet')}</span>
               <span className="text-meta font-normal leading-relaxed text-graphite">
                 {t('snippetHint')}
@@ -153,10 +153,10 @@ export function FormattingToolbar({ editor }: { editor: Editor | null }) {
               return (
                 <DropdownMenuItem
                   key={chave}
-                  className="flex cursor-pointer flex-col items-start gap-0.5 py-2"
+              className="flex cursor-pointer flex-col items-start gap-1 py-2"
                   onSelect={() => inserir(`\n\n${texto}`)}
                 >
-                  <span className="text-xs font-semibold text-ink">
+                  <span className="text-meta font-semibold text-ink">
                     {t(`snippets.${chave}.label`)}
                   </span>
                   <span className="max-w-full truncate text-meta text-graphite">

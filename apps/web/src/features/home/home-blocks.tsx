@@ -2,8 +2,8 @@
 
 import {
   CalendarDays,
-  CircleAlert,
-  Clock,
+  CircleCheckBig,
+  Clock3,
   Plug,
   PenSquare,
   Sparkles,
@@ -27,12 +27,12 @@ import { diasVazios, linhasDeAtencao, medidor, type AttentionRow } from './logic
  *  2. **Nenhum número aqui é de desempenho.** A plataforma não coleta engajamento, então tudo o
  *     que aparece vem do nosso registro do que foi pedido e do que foi entregue.
  *
- * Visual: relevo por gradiente (`bevel-surface`, `bevel-chip`), zero sombra, raio 8px, e a escala
+ * Visual: superfície chapada (fill branco + borda 1px), zero sombra, raio 8px, e a escala
  * tipográfica nomeada do §6.3 — nunca valor arbitrário.
  */
 
 /** Moldura comum dos cartões — superfície que "sobe", sem sombra (adendo design.md §51.4) */
-function Card({
+export function Card({
   title,
   children,
   action,
@@ -46,14 +46,14 @@ function Card({
   return (
     <section
       className={cn(
-        'home-surface bevel-surface flex flex-col gap-3 rounded-lg border p-4 transition-[border-color,filter] duration-200 hover:brightness-[0.99] motion-reduce:transition-none sm:p-5',
+        'flex flex-col gap-3 rounded-card border bg-surface p-4 sm:p-5',
         tone === 'alert' ? 'border-state-failed' : 'border-line',
       )}
     >
       <div className="flex items-center justify-between gap-3">
         <h2
           className={cn(
-            'flex items-center gap-2 text-compact font-semibold',
+            'flex items-center gap-2 text-panel font-medium',
             tone === 'alert' ? 'text-state-failed' : 'text-ink',
           )}
         >
@@ -68,14 +68,6 @@ function Card({
 }
 
 // ---------------------------------------------------------------------------
-
-const ICONE_ATENCAO: Record<AttentionRow['kind'], typeof CircleAlert> = {
-  failed: CircleAlert,
-  channel: Plug,
-  partial: TriangleAlert,
-  needsReview: CircleAlert,
-  awaitingApproval: Clock,
-};
 
 /**
  * "Precisa de atenção" — a resposta para "está tudo bem?".
@@ -119,17 +111,13 @@ export function AttentionBlock({ attention }: { attention: InsightsSummary['atte
     <Card title={t('attentionTitle')} tone="alert">
       <ul className="flex flex-col divide-y divide-line">
         {linhas.map((l, i) => {
-          const Icone = ICONE_ATENCAO[l.kind];
           return (
             <li
               key={`${l.kind}-${l.channel?.channelId ?? i}`}
-              className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 py-2 first:pt-0 last:pb-0"
+              className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 py-2 first:pt-0 last:pb-0"
             >
-              <span className="flex min-w-0 items-center gap-2">
-                <Icone className="size-3.5 shrink-0 text-graphite" aria-hidden />
-                <span className="min-w-0 truncate text-compact text-ink">{textoDaLinha(l)}</span>
-              </span>
-              <Button asChild size="sm" variant="outline" className="h-7 shrink-0 cursor-pointer px-2.5 text-meta">
+              <span className="min-w-0 truncate text-compact text-ink">{textoDaLinha(l)}</span>
+              <Button asChild size="sm" variant="outline" className="shrink-0 cursor-pointer">
                 <Link href={l.href}>{ctaDaLinha(l)}</Link>
               </Button>
             </li>
@@ -145,48 +133,85 @@ export function AttentionBlock({ attention }: { attention: InsightsSummary['atte
 /** "Sai hoje" — a segunda pergunta da manhã, depois de "está tudo bem?" */
 export function TodayBlock({ today }: { today: InsightsSummary['today'] }) {
   const t = useTranslations('home');
-  const nada = today.scheduled === 0 && today.published === 0 && today.failed === 0;
+  const nadaHoje = today.scheduled === 0 && today.published === 0 && today.failed === 0;
+  const metrics = [
+    {
+      value: today.scheduled,
+      label: t('todayScheduledLabel'),
+      icon: Clock3,
+      tone: 'bg-kpi-lilac',
+      iconSurface: 'bg-accent-tint',
+      dotsTone: 'bg-accent/15',
+      iconTone: 'text-accent',
+      href: '/calendario',
+    },
+    {
+      value: today.published,
+      label: t('todayPublishedLabel'),
+      icon: CircleCheckBig,
+      tone: 'bg-kpi-blue',
+      iconSurface: 'bg-data-2-tint',
+      dotsTone: 'bg-data-2/15',
+      iconTone: 'text-state-published',
+      href: '/kanban?col=published',
+    },
+    {
+      value: today.failed,
+      label: t('todayFailedLabel'),
+      icon: TriangleAlert,
+      tone: 'bg-state-failed-tint/45',
+      iconSurface: 'bg-state-failed-tint',
+      dotsTone: 'bg-state-failed/12',
+      iconTone: 'text-state-failed',
+      href: '/kanban?col=failed',
+    },
+  ] as const;
 
   return (
-    <Card
-      title={t('todayTitle')}
-      action={
-        <Button asChild size="sm" variant="ghost" className="h-7 cursor-pointer px-2 text-meta">
-          <Link href="/calendario">{t('openCalendar')}</Link>
-        </Button>
-      }
-    >
-      {nada ? (
-        <div className="flex flex-col items-start gap-2.5">
-          <p className="text-compact text-graphite">{t('todayEmpty')}</p>
-          <Button asChild size="sm" className="cursor-pointer">
+    <section aria-labelledby="today-summary-title">
+      <h2 id="today-summary-title" className="sr-only">
+        {t('todayTitle')}
+      </h2>
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        {metrics.map(({ value, label, icon: Icon, tone, iconSurface, dotsTone, iconTone, href }) => (
+          <Link
+            key={label}
+            href={href}
+            className={cn(
+              'relative isolate flex min-h-32 cursor-pointer flex-col gap-3 overflow-hidden rounded-kpi p-4 outline-none transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+              tone,
+            )}
+          >
+            <span className="relative z-10 flex items-center gap-3 text-compact font-medium text-ink">
+              <span className={cn('grid size-12 shrink-0 place-items-center rounded-control', iconSurface)}>
+                <Icon className={cn('size-5', iconTone)} aria-hidden />
+              </span>
+              {label}
+            </span>
+            <p className="relative z-10 mt-auto text-figure font-medium tabular-nums tracking-[-0.02em] text-ink">
+              {value}
+            </p>
+            <span
+              data-today-dots
+              aria-hidden
+              className="absolute bottom-4 right-4 grid grid-cols-4 gap-2 opacity-70"
+            >
+              {Array.from({ length: 20 }, (_, index) => (
+                <span key={index} className={cn('size-1 rounded-full', dotsTone)} />
+              ))}
+            </span>
+          </Link>
+        ))}
+      </div>
+      {nadaHoje ? (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-compact text-graphite">
+          <p>{t('todayEmpty')}</p>
+          <Button asChild size="sm" variant="outline">
             <Link href="/compor">{t('todayEmptyCta')}</Link>
           </Button>
         </div>
-      ) : (
-        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-2">
-          <p className="flex items-baseline gap-2">
-            <span className="text-2xl font-medium tabular-nums tracking-[-0.02em] text-ink">
-              {today.scheduled}
-            </span>
-            <span className="text-compact text-graphite">{t('todayScheduled', { count: today.scheduled })}</span>
-          </p>
-          {today.published > 0 ? (
-            <p className="text-compact text-graphite">
-              {t('todayPublished', { count: today.published })}
-            </p>
-          ) : null}
-          {today.failed > 0 ? (
-            <Link
-              href="/kanban"
-              className="text-compact font-semibold text-state-failed underline-offset-2 hover:underline"
-            >
-              {t('todayFailed', { count: today.failed })}
-            </Link>
-          ) : null}
-        </div>
-      )}
-    </Card>
+      ) : null}
+    </section>
   );
 }
 
@@ -208,9 +233,9 @@ function Meter({
 }) {
   const m = medidor(used, limit);
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-meta font-semibold uppercase tracking-wide text-graphite">{label}</span>
+        <span className="text-meta font-medium text-graphite">{label}</span>
         <span
           className={cn(
             'text-compact font-semibold tabular-nums',
@@ -260,12 +285,12 @@ export function UsageBlock({
     <Card
       title={t('usageTitle')}
       action={
-        <Button asChild size="sm" variant="ghost" className="h-7 cursor-pointer px-2 text-meta">
+        <Button asChild size="sm" variant="ghost" className="cursor-pointer">
           <Link href="/planos">{t('seePlans')}</Link>
         </Button>
       }
     >
-      <div className="flex flex-col gap-3.5">
+      <div className="flex flex-col gap-4">
         <Meter
           label={t('usagePosts')}
           used={usage.postsThisMonth}
@@ -327,15 +352,15 @@ export function WeekBlock({ week }: { week: InsightsSummary['week'] }) {
         <p className="text-compact text-graphite">{t('weekNothing')}</p>
       ) : (
         <>
-          <ul className="flex items-end justify-between gap-1.5">
+          <ul className="flex items-end justify-between gap-2">
             {week.byDay.map((n, i) => (
-              <li key={i} className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
+              <li key={i} className="flex min-w-0 flex-1 flex-col items-center gap-2">
                 <span className="text-meta tabular-nums text-graphite">{n > 0 ? n : ''}</span>
                 <div className="flex h-14 w-full items-end">
                   <div
                     className={cn(
                       'w-full rounded-sm',
-                      n === 0 ? 'bg-data-track' : 'bevel-chip bg-data-1',
+                      n === 0 ? 'bg-data-track' : 'bg-data-1',
                     )}
                     style={{ height: n === 0 ? '3px' : `${Math.max(12, (n / pico) * 100)}%` }}
                   />
@@ -406,12 +431,12 @@ export function FirstRunBlock({
       <ol className="flex flex-col gap-4">
         {passos.map((p) => (
           <li key={p.title} className="flex items-start gap-3">
-            <span className="bevel-chip mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-accent-tint">
+            <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-control bg-accent-tint">
               <p.icon className="size-3.5 text-accent" aria-hidden />
             </span>
-            <div className="flex min-w-0 flex-col items-start gap-1.5">
+            <div className="flex min-w-0 flex-col items-start gap-2">
               <p className="text-compact font-semibold text-ink">{p.title}</p>
-              <p className="max-w-[440px] text-compact leading-relaxed text-graphite">{p.body}</p>
+              <p className="max-w-reading text-compact leading-relaxed text-graphite">{p.body}</p>
               {p.cta ? (
                 <Button asChild size="sm" className="mt-0.5 cursor-pointer">
                   <Link href={p.cta.href}>{p.cta.label}</Link>
@@ -431,7 +456,7 @@ export function FirstRunBlock({
 export function CalendarShortcut() {
   const t = useTranslations('home');
   return (
-    <Button asChild variant="outline" size="sm" className="cursor-pointer gap-1.5">
+    <Button asChild variant="outline" size="sm" className="cursor-pointer gap-2">
       <Link href="/calendario">
         <CalendarDays className="size-3.5" aria-hidden />
         {t('openCalendar')}

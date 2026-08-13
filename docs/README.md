@@ -34,6 +34,7 @@ planejamento anterior e podem conter números ou topologias históricos.
 | [architecture/flows.md](architecture/flows.md) | autenticação, canais, publicação, mídia, webhooks, API/MCP e billing ponta a ponta |
 | [architecture/data-and-infrastructure.md](architecture/data-and-infrastructure.md) | entidades, migrations, cache, filas, storage, env, CI e Railway |
 | [operations/development.md](operations/development.md) | instalação, execução, testes, debug e recipes de mudança |
+| [operations/HANDOFF.md](operations/HANDOFF.md) | estado exato da Home operacional, deploy e próximos passos para o próximo dev |
 | [openspec.md](openspec.md) | criar, validar, implementar e arquivar mudanças OpenSpec |
 | [audits/2026-07-23-initial-diagnosis.md](audits/2026-07-23-initial-diagnosis.md) | fotografia inicial, evidências e severidade |
 | [audits/2026-07-23-validation-report.md](audits/2026-07-23-validation-report.md) | comandos executados, resultados, limitações e estado do PR |

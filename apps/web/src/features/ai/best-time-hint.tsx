@@ -82,7 +82,7 @@ export function BestTimeHint({
             </Button>
           </DropdownMenuTrigger>
         </TooltipTrigger>
-        <TooltipContent side="top" sideOffset={6} className="text-xs font-semibold">
+        <TooltipContent side="top" sideOffset={6} className="text-meta font-semibold">
           {t('bestTimeTrigger')}
         </TooltipContent>
       </Tooltip>
@@ -93,15 +93,15 @@ export function BestTimeHint({
 
         {travado ? (
           <div className="px-2 py-2">
-            <p className="text-xs text-graphite">{t('lockedPro')}.</p>
+            <p className="text-meta text-graphite">{t('lockedPro')}.</p>
             <Button asChild size="sm" className="mt-2 w-full cursor-pointer">
               <Link href="/planos">{t('seePlans')}</Link>
             </Button>
           </div>
         ) : consulta.isPending ? (
-          <p className="px-2 py-2 text-xs text-graphite">{t('bestTimeLoading')}</p>
+          <p className="px-2 py-2 text-meta text-graphite">{t('bestTimeLoading')}</p>
         ) : consulta.isError || !dados ? (
-          <p role="alert" className="px-2 py-2 text-xs leading-relaxed text-graphite">
+          <p role="alert" className="px-2 py-2 text-meta leading-relaxed text-graphite">
             {t('bestTimeError')}
           </p>
         ) : (

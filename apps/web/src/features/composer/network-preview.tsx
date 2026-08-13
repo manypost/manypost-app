@@ -194,7 +194,7 @@ function ChatPreview({ p }: { p: NetworkProps }) {
   const handle = p.username?.replace(/^@/, '') ?? p.name;
   return (
     <article className="overflow-hidden rounded-lg border border-line bg-surface">
-      <p className="flex items-center gap-2 border-b border-line bg-surface-2 px-3 py-2 text-meta font-semibold uppercase tracking-wider text-graphite">
+      <p className="flex items-center gap-2 border-b border-line bg-surface-2 px-3 py-2 text-meta font-medium text-graphite">
         <MessageCircle className="size-3.5" aria-hidden />
         {t('title', { network: p.name })}
       </p>
@@ -253,7 +253,7 @@ function InstagramPreview({ p }: { p: NetworkProps }) {
           {main.media.length > 1 ? (
             <span
               aria-hidden
-              className="absolute right-2 top-2 rounded-full bg-ink/80 px-2 py-0.5 text-axis font-semibold text-paper"
+              className="absolute right-2 top-2 rounded-md bg-ink/80 px-2 py-0.5 text-axis font-semibold text-paper"
             >
               1/{main.media.length}
             </span>
@@ -261,7 +261,7 @@ function InstagramPreview({ p }: { p: NetworkProps }) {
         </div>
       ) : (
         // o Instagram exige mídia — sem ela, o preview avisa (o agendamento também barra)
-        <div className="mx-3 my-2 flex aspect-square items-center justify-center rounded-md border border-dashed border-line bg-surface-2 text-center text-xs text-mist">
+        <div className="mx-3 my-2 flex aspect-square items-center justify-center rounded-md bg-surface-2 text-center text-xs text-mist">
           {t('mediaHint')}
         </div>
       )}
@@ -316,7 +316,7 @@ function FacebookPreview({ p }: { p: NetworkProps }) {
       ) : null}
       {main.media.length > 0 ? (
         // mídia de ponta a ponta, como no feed do Facebook
-        <div className="-mx-4 mt-3 flex gap-px overflow-hidden border-y border-line">
+      <div className="mt-3 flex gap-px overflow-hidden border-y border-line">
           {main.media.map((m, i) => (
             <MediaThumb
               key={i}
@@ -402,7 +402,7 @@ function LinkedinPreview({ p }: { p: NetworkProps }) {
       ) : null}
       {main.media.length > 0 ? (
         // mídia de ponta a ponta, como no feed do LinkedIn
-        <div className="-mx-4 mt-3 flex gap-px overflow-hidden border-y border-line">
+      <div className="mt-3 flex gap-px overflow-hidden border-y border-line">
           {main.media.map((m, i) => (
             <MediaThumb
               key={i}
@@ -588,7 +588,7 @@ function TiktokPreview({ p }: { p: NetworkProps }) {
           />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 px-4 text-center bg-surface-2/10">
-            <div className="flex size-12 items-center justify-center rounded-full border border-paper/10 bg-paper/5 text-paper/80">
+            <div className="flex size-12 items-center justify-center rounded-lg border border-paper/10 bg-paper/5 text-paper/80">
               <Music className="size-6 animate-pulse motion-reduce:animate-none" />
             </div>
             <span className="text-xs font-semibold text-paper/90">{t('media')}</span>
@@ -620,33 +620,33 @@ function TiktokPreview({ p }: { p: NetworkProps }) {
               {p.avatarUrl ? <AvatarImage src={p.avatarUrl} alt="" /> : null}
               <AvatarFallback className="bg-ink text-meta text-paper">{p.name.charAt(0)}</AvatarFallback>
             </Avatar>
-            <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 flex size-4 items-center justify-center rounded-full bg-accent text-paper">
+            <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 flex size-4 items-center justify-center rounded-lg bg-accent text-paper">
               <Plus className="size-3 stroke-[3]" />
             </span>
           </div>
 
-          <div className="flex flex-col items-center gap-0.5">
+        <div className="flex flex-col items-center gap-1">
             <Heart className="size-6 stroke-[1.8]" />
             <span className="text-axis font-semibold tabular-nums">{t('likes')}</span>
           </div>
 
-          <div className="flex flex-col items-center gap-0.5">
+        <div className="flex flex-col items-center gap-1">
             <MessageCircle className="size-6 stroke-[1.8]" />
             <span className="text-axis font-semibold tabular-nums">{t('comments')}</span>
           </div>
 
-          <div className="flex flex-col items-center gap-0.5">
+        <div className="flex flex-col items-center gap-1">
             <Bookmark className="size-6 stroke-[1.8]" />
             <span className="text-axis font-semibold tabular-nums">{t('bookmarks')}</span>
           </div>
 
-          <div className="flex flex-col items-center gap-0.5">
+        <div className="flex flex-col items-center gap-1">
             <Share className="size-6 stroke-[1.8]" />
             <span className="text-axis font-semibold tabular-nums">{t('shares')}</span>
           </div>
 
           {/* Disco de música giratório no rodapé direito */}
-          <div className="mt-1 flex size-8 items-center justify-center rounded-full border border-paper/30 bg-ink/80 p-1">
+          <div className="mt-1 flex size-8 items-center justify-center rounded-lg border border-paper/30 bg-ink/80 p-1">
             <Music className="size-4 animate-pulse text-paper/90 motion-reduce:animate-none" />
           </div>
         </div>
@@ -665,7 +665,7 @@ function TiktokPreview({ p }: { p: NetworkProps }) {
             <p className="italic text-xs text-paper/50">{t('captionPlaceholder')}</p>
           )}
 
-          <div aria-hidden className="mt-0.5 flex w-fit max-w-full items-center gap-1.5 rounded-full border border-paper/10 bg-ink/40 px-2 py-0.5 text-meta font-medium text-paper/90">
+          <div aria-hidden className="mt-0.5 flex w-fit max-w-full items-center gap-1.5 rounded-md border border-paper/10 bg-ink/40 px-2 py-0.5 text-meta font-medium text-paper/90">
             <Music className="size-3 shrink-0" />
             <span className="truncate">{t('sound')} - @{cleanUsername}</span>
           </div>
@@ -715,7 +715,7 @@ function DevtoPreview({ p }: { p: NetworkProps }) {
         {tags.length > 0 ? (
           <ul className="flex flex-wrap gap-1.5">
             {tags.map((tag) => (
-              <li key={tag} className="bevel-chip rounded-sm px-1.5 py-0.5 text-meta text-graphite">
+              <li key={tag} className="rounded-sm px-1.5 py-0.5 text-meta text-graphite">
                 #{tag}
               </li>
             ))}
@@ -769,7 +769,7 @@ function YoutubePreview({ p }: { p: NetworkProps }) {
           />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center">
-            <div className="flex size-11 items-center justify-center rounded-full border border-paper/10 bg-paper/5 text-paper/80">
+            <div className="flex size-11 items-center justify-center rounded-lg border border-paper/10 bg-paper/5 text-paper/80">
               <Play className="size-5" />
             </div>
             <span className="text-xs font-semibold text-paper/90">{t('media')}</span>
@@ -786,7 +786,7 @@ function YoutubePreview({ p }: { p: NetworkProps }) {
 
       <div className="mt-2.5 flex gap-2">
         <ChannelAvatar name={p.name} avatarUrl={p.avatarUrl} provider={p.provider} className="size-7 shrink-0" />
-        <div className="flex min-w-0 flex-col gap-0.5">
+          <div className="flex min-w-0 flex-col gap-1">
           {title ? (
             <h4 className="line-clamp-2 text-sm font-semibold leading-snug text-ink break-words">{title}</h4>
           ) : (

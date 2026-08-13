@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
@@ -32,7 +31,7 @@ import { cn } from '@/lib/utils';
 import { ConnectDialog } from './connect-dialog';
 import { useChannels, useConnectChannel, useDisconnectChannel, useProviders } from './hooks';
 import { connectionFields } from './provider-fields';
-import { PROVIDER_ICONS, ProviderIcon } from './provider-icon';
+import { ProviderIcon } from './provider-icon';
 import { ProviderNoteHelp } from './provider-note';
 import { UPCOMING_PROVIDERS } from './upcoming';
 import { useOauthFlow } from './use-oauth-flow';
@@ -107,17 +106,17 @@ export function ConnectionsView() {
     <div className="flex flex-col gap-8">
       <PageHeader title={t('title')} description={t('pageDescription')} />
       <section aria-labelledby="channels-title" className="flex flex-col gap-4">
-        <h2 id="channels-title" className="text-base font-semibold tracking-[-0.2px] text-ink">
+        <h2 id="channels-title" className="text-panel font-semibold tracking-[-0.2px] text-ink">
           {t('channelsTitle')}
           {channels.data ? (
             <span className="ml-1.5 font-normal text-graphite">({channels.data.length})</span>
           ) : null}
         </h2>
         {channels.isPending ? (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <Skeleton className="h-[76px] rounded-lg" />
-            <Skeleton className="h-[76px] rounded-lg" />
-            <Skeleton className="h-[76px] rounded-lg" />
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <Skeleton className="h-28 rounded-card" />
+            <Skeleton className="h-28 rounded-card" />
+            <Skeleton className="h-28 rounded-card" />
           </div>
         ) : channels.isError ? (
           <Alert variant="destructive">
@@ -130,42 +129,36 @@ export function ConnectionsView() {
             </AlertDescription>
           </Alert>
         ) : channels.data.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-line bg-surface-2 px-6 py-10 text-center">
-            <p className="text-sm leading-relaxed text-graphite">{t('empty')}</p>
+          <div className="rounded-lg bg-surface-2 px-6 py-10 text-center">
+            <p className="text-compact leading-relaxed text-graphite">{t('empty')}</p>
           </div>
         ) : (
-          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {channels.data.map((ch) => {
               const provider = providers.data?.find((p) => p.id === ch.provider);
               return (
                 <li key={ch.id}>
-                  <Card className="group flex items-center gap-3 p-3 transition-colors duration-200 hover:border-accent/40 hover:bg-surface-2/30">
-                    <span className="relative shrink-0">
-                      <Avatar className="size-10">
-                        {ch.avatarUrl ? <AvatarImage src={ch.avatarUrl} alt="" /> : null}
-                        <AvatarFallback>{(ch.name ?? ch.username ?? '?').charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      {PROVIDER_ICONS[ch.provider] ? (
-                        <img
-                          src={PROVIDER_ICONS[ch.provider]}
-                          alt=""
-                          aria-hidden
-                          className="absolute -bottom-0.5 -right-0.5 size-4 rounded-sm border-2 border-surface bg-surface"
-                        />
-                      ) : null}
+                  <Card
+                    data-connected-provider
+                    className="group flex min-h-28 items-center gap-4 p-4 transition-colors duration-200 hover:border-accent/40 hover:bg-surface-2/30"
+                  >
+                    <span className="grid size-14 shrink-0 place-items-center rounded-control border border-line bg-main">
+                      <ProviderIcon
+                        provider={ch.provider}
+                        name={provider?.name ?? ch.provider}
+                        className="size-9"
+                      />
                     </span>
-                    
+
                     <div className="flex min-w-0 flex-1 flex-col justify-center">
                       <div className="flex items-center gap-2">
-                        <p className="truncate text-compact font-medium text-ink">
-                          {ch.name ?? ch.username ?? ch.id}
-                        </p>
-                        <Badge variant={STATUS_VARIANT[ch.status] ?? 'neutral'} className="h-4 px-1 text-meta uppercase tracking-wider">
+                        <p className="truncate text-panel font-medium text-ink">{provider?.name ?? ch.provider}</p>
+                        <Badge variant={STATUS_VARIANT[ch.status] ?? 'neutral'} className="h-4 px-1 text-meta">
                           {t.has(`status.${ch.status}`) ? t(`status.${ch.status}`) : ch.status}
                         </Badge>
                       </div>
                       <p className="mt-0.5 truncate text-meta text-graphite">
-                        {provider?.name ?? ch.provider}
+                        {ch.name ?? ch.id}
                         {ch.username ? ` · @${ch.username.replace(/^@/, '')}` : ''}
                       </p>
                     </div>
@@ -202,14 +195,15 @@ export function ConnectionsView() {
       </section>
 
       <section aria-labelledby="catalog-title" className="flex flex-col gap-4">
-        <h2 id="catalog-title" className="text-base font-semibold tracking-[-0.2px] text-ink">
+        <h2 id="catalog-title" className="text-panel font-semibold tracking-[-0.2px] text-ink">
           {t('catalogTitle')}
         </h2>
         {providers.isPending ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <Skeleton className="h-[88px] rounded-lg" />
-            <Skeleton className="h-[88px] rounded-lg" />
-            <Skeleton className="h-[88px] rounded-lg" />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <Skeleton className="h-32 rounded-card" />
+            <Skeleton className="h-32 rounded-card" />
+            <Skeleton className="h-32 rounded-card" />
+            <Skeleton className="h-32 rounded-card" />
           </div>
         ) : providers.isError ? (
           <Alert variant="destructive">
@@ -222,11 +216,11 @@ export function ConnectionsView() {
             </AlertDescription>
           </Alert>
         ) : connectable.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-line bg-surface-2 px-6 py-10 text-center">
-            <p className="text-sm leading-relaxed text-graphite">{t('catalogEmpty')}</p>
+          <div className="rounded-lg bg-surface-2 px-6 py-10 text-center">
+            <p className="text-compact leading-relaxed text-graphite">{t('catalogEmpty')}</p>
           </div>
         ) : (
-          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {connectable.map((p) => {
               const connecting = connect.isPending && connect.variables?.provider === p.id;
               // rede que o plano atual não inclui (X no Grátis) — marca o cartão e leva a /planos
@@ -234,27 +228,28 @@ export function ConnectionsView() {
               return (
                 <li key={p.id} className="relative">
                   <button
+                    data-provider-card
                     type="button"
                     onClick={() => (locked ? router.push('/planos') : startConnect(p as ProviderInfo))}
                     disabled={connecting}
                     aria-label={t('connectTitle', { provider: p.name })}
                     className={cn(
-                      'group bevel-surface flex h-full w-full items-center gap-3 rounded-lg border p-3 pr-8 text-left outline-none transition-colors duration-200',
+                      'group flex min-h-32 w-full flex-col items-start gap-3 rounded-card border bg-surface p-4 pr-10 text-left outline-none transition-colors duration-200',
                       'hover:border-accent/40 hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
                       'disabled:cursor-progress disabled:opacity-60',
                     )}
                   >
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-line bg-surface-2 transition-colors group-hover:bg-surface">
-                      <ProviderIcon provider={p.id} name={p.name} className="size-5" />
-                    </div>
-                    <div className="flex flex-1 flex-col overflow-hidden">
-                      <span className="flex items-center gap-1.5 truncate text-compact font-medium text-ink">
+                    <span data-provider-mark className="grid size-12 shrink-0 place-items-center">
+                      <ProviderIcon provider={p.id} name={p.name} className="size-12" />
+                    </span>
+                    <div className="mt-auto flex w-full flex-col overflow-hidden">
+                      <span className="flex items-center gap-2 truncate text-title font-medium text-ink">
                         {p.name}
                         {locked ? (
                           <Lock className="size-3 shrink-0 text-accent" aria-hidden />
                         ) : null}
                       </span>
-                      <span className="truncate text-xs text-graphite">
+                      <span className="truncate text-meta text-graphite">
                         {locked
                           ? bt('lockedFeature', { plan: 'Pro' })
                           : p.threads
@@ -312,12 +307,12 @@ function NeedsSetupSection({
   return (
     <section aria-labelledby="setup-title" className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <h2 id="setup-title" className="text-base font-semibold tracking-[-0.2px] text-ink">
+        <h2 id="setup-title" className="text-panel font-semibold tracking-[-0.2px] text-ink">
           {t('setupTitle')}
         </h2>
-        <p className="text-sm leading-relaxed text-graphite">{t('setupSubtitle')}</p>
+        <p className="text-compact leading-relaxed text-graphite">{t('setupSubtitle')}</p>
       </div>
-      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {providers.map((p) => (
           <li key={p.id} className="relative">
             <div className="flex h-full w-full items-center gap-3 rounded-lg border border-line bg-surface p-3 pr-8">
@@ -326,7 +321,7 @@ function NeedsSetupSection({
               </div>
               <div className="flex flex-1 flex-col overflow-hidden">
                 <span className="truncate text-compact font-medium text-ink">{p.name}</span>
-                <span className="truncate text-xs text-graphite" title={p.setupEnv?.join(', ')}>
+                <span className="truncate text-meta text-graphite" title={p.setupEnv?.join(', ')}>
                   {t('setupHint', { vars: (p.setupEnv ?? []).join(', ') })}
                 </span>
               </div>
@@ -365,22 +360,22 @@ function UpcomingSection({
   return (
     <section aria-labelledby="upcoming-title" className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <h2 id="upcoming-title" className="text-base font-semibold tracking-[-0.2px] text-ink">
+        <h2 id="upcoming-title" className="text-panel font-semibold tracking-[-0.2px] text-ink">
           {t('upcomingTitle')}
         </h2>
-        <p className="text-sm leading-relaxed text-graphite">{t('upcomingSubtitle')}</p>
+        <p className="text-compact leading-relaxed text-graphite">{t('upcomingSubtitle')}</p>
       </div>
-      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {pending.map((p) => (
           <li key={p.id}>
-            <div className="flex h-full w-full items-center gap-3 rounded-lg border border-dashed border-line bg-surface-2 p-3">
+            <div className="flex h-full w-full items-center gap-3 rounded-lg border border-line bg-surface-2 p-3">
               <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-line bg-surface">
                 {/* logo em cinza: sinaliza "ainda não dá para conectar" sem inventar cor */}
                 <ProviderIcon provider={p.id} name={p.name} className="size-5 opacity-60 grayscale" />
               </div>
               <div className="flex flex-1 flex-col overflow-hidden">
                 <span className="truncate text-compact font-medium text-graphite">{p.name}</span>
-                <Badge variant="neutral" className="mt-1 h-4 w-fit px-1 text-meta uppercase tracking-wider">
+                <Badge variant="neutral" className="mt-1 h-4 w-fit px-1 text-meta">
                   {t('upcomingBadge')}
                 </Badge>
               </div>

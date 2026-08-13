@@ -10,6 +10,12 @@
 > preserva a análise que levou à primeira Home. Vários achados daquele dia já
 > foram entregues; esta revisão parte do código e dos specs vivos atuais.
 
+> **Atualização de estado — 2026-08-05:** Home v2, busca global/paleta e ações em lote do Quadro já
+> foram implementadas. O fechamento auditado da Home corrigiu isolamento de loading/erro, metadados
+> visíveis, draft freshness, polling fallback, truncamento e alvos interativos. Permanecem no P0 a
+> verificação autenticada de navegador e a central de falhas/reconexão; as tabelas abaixo preservam a
+> fotografia e a ordem de decisão de 2026-07-28, não o backlog vigente.
+
 ## Como ler a prioridade
 
 - **P0 — próxima rodada:** melhora confiança, orientação ou qualidade percebida

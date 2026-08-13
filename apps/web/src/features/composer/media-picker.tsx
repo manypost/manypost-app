@@ -72,7 +72,7 @@ export function MediaPicker({
               ))}
             </div>
           ) : media.isError || (media.data ?? []).length === 0 ? (
-            <p className="py-6 text-center text-sm text-graphite">{t('pickerEmpty')}</p>
+            <p className="py-6 text-center text-compact text-graphite">{t('pickerEmpty')}</p>
           ) : (
             <ul className="grid max-h-72 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4">
               {media.data!.map((item) => {
@@ -91,7 +91,7 @@ export function MediaPicker({
                     >
                       <MediaThumb url={item.url} mime={item.mime} alt={item.alt} className="aspect-square" />
                       {selected ? (
-                        <span className="absolute right-1 top-1 grid size-5 place-items-center rounded-full bg-accent text-paper">
+                        <span className="absolute right-1 top-1 grid size-5 place-items-center rounded-lg bg-accent text-paper">
                           <Check className="size-3" aria-hidden />
                         </span>
                       ) : null}
@@ -146,7 +146,7 @@ export function MediaStrip({
               aria-label={t('remove')}
               onClick={() => onRemove(id)}
               className={cn(
-                'absolute -right-1.5 -top-1.5 grid size-5 place-items-center rounded-full border border-line bg-surface text-graphite outline-none transition-colors duration-200',
+                'absolute -right-1.5 -top-1.5 grid size-5 place-items-center rounded-lg border border-line bg-surface text-graphite outline-none transition-colors duration-200',
                 'hover:border-state-failed hover:text-state-failed',
                 'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
               )}
