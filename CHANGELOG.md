@@ -116,6 +116,15 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Changed
 
+- **O runner de publicação foi decomposto em unidades nomeadas.** A função única de ~400 linhas
+  que misturava admissão (semáforo, janela de rate-limit, claim com fencing), resolução de
+  `mediaSettings`, laço de entrega com posse por item, refresh de token e retry virou sete
+  unidades com contrato próprio (`makeProviderSlot`, `admitRun`, `isStaleContinuation`,
+  `makeOutcomeReporters`, `resolveMediaSettings`, `deliverItems`, `recoverExpiredToken`/
+  `scheduleTransientRetry`), orquestradas por um `makeRunner` de ~90 linhas. Comportamento
+  idêntico: os 59 testes da suíte de publishing passam sem nenhuma alteração. OpenSpec:
+  `improve-maintainability-baseline`.
+
 - **Testes de conformidade visual pararam de pinar markup exato.** Os pins de string de classe,
   expressão de chamada e contagem exata sobre o código-fonte — que quebravam em qualquer refactor
   legítimo sem mudança visual — viraram asserções sobre HTML renderizado (`kanban-blocks`,

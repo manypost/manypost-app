@@ -12,11 +12,11 @@
 
 ## 2. Publishing runner decomposition
 
-- [ ] 2.1 Map `makeRunner`'s phases and add any missing focused test around claim/ownership,
+- [x] 2.1 Map `makeRunner`'s phases and add any missing focused test around claim/ownership,
   thread iteration and failure classification before moving code.
-- [ ] 2.2 Extract the phases into named units (claim/acquire, per-item delivery loop, failure
+- [x] 2.2 Extract the phases into named units (claim/acquire, per-item delivery loop, failure
   classification and retry scheduling) with identical behavior.
-- [ ] 2.3 Run the publishing suite unchanged (59 tests) plus `bun run check`.
+- [x] 2.3 Run the publishing suite unchanged (59 tests) plus `bun run check`.
 
 ## 3. Instagram shared Graph pipeline
 

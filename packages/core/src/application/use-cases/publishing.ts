@@ -10,7 +10,13 @@ import type { MediaRepository, MediaStorage } from '../ports/media';
 import type { MetricsSink } from '../ports/metrics';
 import type { PlanPolicy } from '../ports/plan-policy';
 import type { RateLimiter, RateWindowSpec } from '../ports/rate-limiter';
-import type { ChannelRepository, PublishingRepository } from '../ports/publishing';
+import type {
+  ChannelRecord,
+  ChannelRepository,
+  PublicationItemView,
+  PublicationView,
+  PublishingRepository,
+} from '../ports/publishing';
 import { randomToken } from '../tokens';
 import { channelAad } from './channels';
 
@@ -315,6 +321,434 @@ interface RunInput {
   afterIndex?: number;
 }
 
+type RunnableProvider = NonNullable<ReturnType<ChannelProviderRegistry['get']>>;
+
+/**
+ * Semáforo de concorrência por provider (maxConcurrent): o slot é adquirido no caminho
+ * não-continuação e liberado quando A invocação termina (finally do corpo do runner, ou nos
+ * returns de janela/claim). Continuações não seguram slot — a thread já está em voo e o ritmo
+ * é o delaySec. `release` é idempotente e best-effort. SPEC_QUEUE §6.
+ */
+const makeProviderSlot = (deps: PublishDeps, providerName: string) => {
+  const key = `sem:p:${providerName}`;
+  let held: string | null = null;
+  return {
+    async acquire(maxConcurrent: number): Promise<{ ok: true } | { ok: false; retryAfterSec: number }> {
+      if (!deps.rateLimiter?.acquireSlot || maxConcurrent <= 0) return { ok: true };
+      const token = randomToken(16);
+      const verdict = await deps.rateLimiter.acquireSlot(key, maxConcurrent, token);
+      if (verdict.ok) held = token;
+      return verdict;
+    },
+    async release() {
+      const token = held;
+      held = null;
+      if (token && deps.rateLimiter?.releaseSlot) {
+        await deps.rateLimiter.releaseSlot(key, token).catch(() => {});
+      }
+    },
+  };
+};
+type ProviderSlot = ReturnType<typeof makeProviderSlot>;
+
+/**
+ * Filtro barato para o caso comum de continuação obsoleta (evita ida ao banco pelo claim); a
+ * AUTORIDADE é o `claimItem` do laço de entrega, que revalida estado, versão e cursor na mesma
+ * instrução em que toma a posse. Este filtro sozinho não fence nada: duas continuações
+ * concorrentes passam por ele juntas.
+ */
+const isStaleContinuation = (
+  pub: PublicationView,
+  jobVersion: number | undefined,
+  afterIndex: number,
+): boolean =>
+  pub.state !== 'PUBLISHING' || jobVersion !== pub.jobVersion || pub.lastPublishedIndex !== afterIndex;
+
+/**
+ * Admissão do caminho NÃO-continuação, na ordem que não desperdiça recurso (SPEC_QUEUE §6):
+ * (1) semáforo de concorrência ANTES da janela — negação de concorrência não consome um token
+ * de janela (a janela só incrementa quando passa); (2) janela por provider/canal ANTES de
+ * reivindicar — negado não consome tentativa; (3) claim por transição condicional (fencing).
+ * `'exit'` = esta invocação não publica (job obsoleto, recurso negado ou claim perdido).
+ */
+const admitRun = async (
+  deps: PublishDeps,
+  pub: PublicationView,
+  channel: ChannelRecord,
+  jobVersion: number | undefined,
+  slot: ProviderSlot,
+): Promise<'run' | 'exit'> => {
+  if (!(RUNNABLE as readonly string[]).includes(pub.state)) return 'exit'; // já tratada — fencing
+  // job de uma versão anterior (post editado/cancelado): descarta
+  if (jobVersion !== undefined && jobVersion !== pub.jobVersion) return 'exit';
+
+  const provider0 = deps.registry.get(channel.provider);
+
+  const verdict = await slot.acquire(provider0?.rateDefaults.maxConcurrent ?? 0);
+  if (!verdict.ok) {
+    deps.metrics?.onRateLimitDenied(channel.provider, 'concurrency');
+    deps.log?.('warn', 'concorrência: publicação adiada', {
+      publicationId: pub.id,
+      retryAfterSec: verdict.retryAfterSec,
+    });
+    await deps.scheduler.enqueue(
+      PUBLISH_QUEUE,
+      { publicationId: pub.id, v: pub.jobVersion },
+      {
+        startAfter: new Date(Date.now() + Math.max(1, verdict.retryAfterSec) * 1000),
+        singletonKey: `${pub.id}:sem:${Math.floor(Date.now() / 1000)}`,
+      },
+    );
+    return 'exit';
+  }
+
+  if (deps.rateLimiter) {
+    const windows: RateWindowSpec[] = [];
+    const pw = provider0?.rateDefaults.perProviderWindow;
+    if (pw) windows.push({ key: `rl:p:${channel.provider}`, ...pw });
+    const cw = provider0?.rateDefaults.perChannelWindow;
+    if (cw) windows.push({ key: `rl:c:${channel.id}`, ...cw });
+    if (windows.length > 0) {
+      const windowVerdict = await deps.rateLimiter.acquire(windows);
+      if (!windowVerdict.ok) {
+        deps.metrics?.onRateLimitDenied(channel.provider, 'window');
+        deps.log?.('warn', 'rate-limit: publicação adiada', {
+          publicationId: pub.id,
+          retryAfterSec: windowVerdict.retryAfterSec,
+        });
+        await slot.release(); // não segura o slot enquanto espera a janela abrir
+        await deps.scheduler.enqueue(
+          PUBLISH_QUEUE,
+          { publicationId: pub.id, v: pub.jobVersion },
+          {
+            startAfter: new Date(Date.now() + Math.max(1, windowVerdict.retryAfterSec) * 1000),
+            singletonKey: `${pub.id}:rl:${Math.floor(Date.now() / 1000)}`,
+          },
+        );
+        return 'exit';
+      }
+    }
+  }
+
+  const claimed = await deps.publishing.transition(pub.id, [...RUNNABLE], 'PUBLISHING', {
+    incrementAttempt: true,
+    attemptId: randomToken(16),
+  });
+  if (!claimed) {
+    await slot.release();
+    return 'exit';
+  }
+  return 'run';
+};
+
+/**
+ * Desfechos terminais da entrega. `reviewIndeterminate`: o item PODE estar na rede — vai para
+ * revisão humana e o retry automático nunca o alcança (só o botão "tentar novamente", que é
+ * ação humana explícita — DECISIONS §7). `fail`: desfecho conhecido e classificado.
+ * `finalize`: tudo entregue — lê `firsts` na hora da chamada (o loop muta o objeto).
+ */
+const makeOutcomeReporters = (
+  deps: PublishDeps,
+  pub: PublicationView,
+  channel: ChannelRecord,
+  firsts: { externalId: string | null; releaseUrl: string | null },
+) => ({
+  reviewIndeterminate: async (msg: string) => {
+    await deps.publishing.transition(pub.id, ['PUBLISHING'], 'NEEDS_REVIEW', {
+      errorClass: 'indeterminate',
+      errorMessage: msg.slice(0, ERROR_MAX_LEN),
+    });
+    deps.metrics?.onDeliverySafety?.(channel.provider, 'indeterminate');
+    deps.log?.('error', 'desfecho indeterminado — publicação em revisão', {
+      publicationId: pub.id,
+      provider: channel.provider,
+    });
+    await deps.publishing.refreshGroupState(pub.groupId);
+  },
+  fail: async (cls: string, msg: string) => {
+    await deps.publishing.transition(pub.id, ['PUBLISHING', 'TOKEN_REFRESH'], 'FAILED', {
+      errorClass: cls,
+      errorMessage: msg.slice(0, ERROR_MAX_LEN),
+    });
+    deps.metrics?.onPublicationResult(channel.provider, 'failed');
+    await deps.publishing.refreshGroupState(pub.groupId);
+    await deps.events?.emit({
+      orgId: pub.orgId,
+      event: WebhookEvents.PostFailed,
+      channelId: channel.id,
+      data: { groupId: pub.groupId, publicationId: pub.id, channelId: channel.id, errorClass: cls },
+    });
+  },
+  finalize: async () => {
+    await deps.publishing.transition(pub.id, ['PUBLISHING'], 'PUBLISHED', {
+      publishedAt: new Date(),
+      errorClass: null,
+      errorMessage: null,
+    });
+    deps.metrics?.onPublicationResult(channel.provider, 'published');
+    await deps.publishing.refreshGroupState(pub.groupId);
+    await deps.events?.emit({
+      orgId: pub.orgId,
+      event: WebhookEvents.PostPublished,
+      channelId: channel.id,
+      data: {
+        groupId: pub.groupId,
+        publicationId: pub.id,
+        channelId: channel.id,
+        externalId: firsts.externalId,
+        releaseUrl: firsts.releaseUrl,
+      },
+    });
+  },
+});
+type OutcomeReporters = ReturnType<typeof makeOutcomeReporters>;
+
+/**
+ * mediaSettings: o valor guardado é um id de mídia da org; o provider recebe a URL pública.
+ * Resolução TRANSITÓRIA (o `pub.settings` no banco segue com o id — o post continua editável),
+ * ORG-SCOPED (findMany por orgId: id de outra org não resolve) e best-effort (o único uso hoje,
+ * a miniatura, jamais deve derrubar um post). Sem media/storage ligados, o id cru não vai ao
+ * provider: some do settings.
+ */
+const resolveMediaSettings = async (
+  deps: PublishDeps,
+  provider: RunnableProvider,
+  channel: ChannelRecord,
+  settings: Record<string, unknown>,
+): Promise<void> => {
+  if (!provider.mediaSettings?.length) return;
+  const keys = provider.mediaSettings;
+  const ids = keys
+    .map((k) => settings[k])
+    .filter((v): v is string => typeof v === 'string' && v.length > 0);
+  const urlById = new Map<string, string>();
+  if (ids.length && deps.media && deps.storage) {
+    const records = await deps.media.findMany(channel.orgId, ids);
+    for (const m of records) urlById.set(m.id, deps.storage.publicUrl(m.path));
+  }
+  for (const k of keys) {
+    const v = settings[k];
+    if (typeof v !== 'string' || v.length === 0) continue;
+    const url = urlById.get(v);
+    if (url) settings[k] = url;
+    else delete settings[k]; // não resolvida (sem storage, não encontrada ou outra org)
+  }
+};
+
+/**
+ * Laço de entrega item a item, do cursor em diante. Devolve:
+ *  - `'published'`: todos os itens confirmados — o chamador finaliza;
+ *  - `'deferred'`: próximo item de thread agendado na fila (estado segue PUBLISHING);
+ *  - `'exit'`: esta invocação perdeu a vez (posse negada) ou o desfecho virou revisão humana.
+ * Erros classificáveis (transient/permanent/refresh) SOBEM para o catch do runner;
+ * `progress.index` fica no item que falhou, para a mensagem de erro apontar o item certo.
+ */
+const deliverItems = async (args: {
+  deps: PublishDeps;
+  provider: RunnableProvider;
+  pub: PublicationView;
+  channel: ChannelRecord;
+  items: PublicationItemView[];
+  token: { accessToken: string; scopes: string[] };
+  settings: Record<string, unknown>;
+  ctx: ProviderContext;
+  reporters: OutcomeReporters;
+  firsts: { externalId: string | null; releaseUrl: string | null };
+  progress: { index: number };
+}): Promise<'published' | 'deferred' | 'exit'> => {
+  const { deps, provider, pub, channel, items, token, settings, ctx, reporters, firsts, progress } = args;
+  const startIdx = progress.index;
+  let prevExternalId = startIdx > 0 ? items[startIdx - 1]!.externalId : null;
+
+  for (let i = startIdx; i < items.length; i++) {
+    progress.index = i;
+    const item = items[i]!;
+
+    // POSSE ANTES DA REDE (SPEC_QUEUE §7). Uma instrução SQL valida a publicação viva
+    // (PUBLISHING + jobVersion + cursor exato) e concede o lease no mesmo passo. Sem isso,
+    // duas continuações sobrepostas passariam pela mesma checagem em memória e publicariam
+    // o mesmo item duas vezes. Negado = job duplicado/obsoleto, ou item já confirmado:
+    // não se chama o provider, não se altera estado — só sai.
+    const claim = await deps.publishing.claimItem({
+      publicationId: pub.id,
+      jobVersion: pub.jobVersion,
+      position: i,
+      leaseSec: PUBLISH_LEASE_SEC,
+    });
+    if (!claim) {
+      deps.metrics?.onDeliverySafety?.(channel.provider, 'claim_denied');
+      deps.log?.('warn', 'posse negada — item já em voo, confirmado ou versão obsoleta', {
+        publicationId: pub.id,
+        position: i,
+      });
+      return 'exit';
+    }
+    deps.metrics?.onDeliverySafety?.(channel.provider, 'claimed');
+    // a chave é estável por item lógico: a mesma em toda retentativa (o provider que a
+    // honra desduplica sozinho a repetição de um pedido cujo resultado se perdeu)
+    const itemCtx = { ...ctx, idempotencyKey: claim.idempotencyKey };
+
+    let res;
+    try {
+      if (i === 0) {
+        // item 0 publica a partir de pub.content — fonte de verdade p/ edições via PATCH
+        [res] = await provider.publish(
+          itemCtx,
+          token,
+          [{ content: pub.content.text, media: pub.content.media ?? [] }],
+          settings,
+        );
+      } else {
+        if (!provider.publishReply || !prevExternalId) {
+          throw { status: 422, body: 'thread sem suporte no provider ou sem item anterior' };
+        }
+        res = await provider.publishReply(
+          itemCtx,
+          token,
+          prevExternalId,
+          { content: item.content.text, media: item.media },
+          settings,
+        );
+      }
+    } catch (err) {
+      const safe = isSafeToRetry(err, provider.idempotentPublish === true);
+      await deps.publishing.releaseItem(claim.ownerToken, safe ? 'FAILED_SAFE' : 'INDETERMINATE');
+      if (!safe) {
+        await reporters.reviewIndeterminate(
+          `item ${i}: a rede pode ter aceitado o post antes de a conexão cair — confirme antes de repostar (${String((err as Error)?.message ?? err).slice(0, 300)})`,
+        );
+        return 'exit';
+      }
+      // desfecho conhecido: segue a classificação transient/permanent/refresh
+      throw Number((err as { status?: number })?.status ?? 0) > 0 ? err : new TransportFailure(err);
+    }
+
+    // cursor avança SÓ após confirmação da rede E com a posse na mão — retry nunca
+    // reposta (SPEC_QUEUE §7). Perder a posse aqui significa post publicado sem registro
+    // local: é o caso indeterminado, não um erro de rede.
+    const confirmed = await deps.publishing.confirmItem(pub.id, item.id, i, claim.ownerToken, {
+      externalId: res?.externalId ?? null,
+      releaseUrl: res?.releaseUrl ?? null,
+    });
+    if (!confirmed) {
+      await deps.publishing.releaseItem(claim.ownerToken, 'INDETERMINATE');
+      await reporters.reviewIndeterminate(
+        `item ${i}: publicado na rede, mas a posse da entrega foi perdida antes de registrar — confirme antes de repostar`,
+      );
+      return 'exit';
+    }
+    prevExternalId = res?.externalId ?? null;
+    if (i === 0) {
+      firsts.externalId = res?.externalId ?? null;
+      firsts.releaseUrl = res?.releaseUrl ?? null;
+    }
+
+    const next = items[i + 1];
+    if (next && next.delaySec > 0) {
+      // espera durável via fila (SPEC_QUEUE §9) — estado permanece PUBLISHING
+      await deps.scheduler.enqueue(
+        THREAD_QUEUE,
+        { publicationId: pub.id, v: pub.jobVersion, afterIndex: i },
+        {
+          startAfter: new Date(Date.now() + next.delaySec * 1000),
+          singletonKey: `${pub.id}:t${i + 1}:v${pub.jobVersion}`,
+        },
+      );
+      return 'deferred';
+    }
+  }
+  return 'published';
+};
+
+/**
+ * Classificação `refresh-token`: move para TOKEN_REFRESH, tenta renovar com o refresh token
+ * cifrado e re-enfileira (TOKEN_REFRESH é RUNNABLE). Sem refresh token, ou com o refresh
+ * falhando, o canal é marcado REFRESH_REQUIRED e a publicação falha para reconexão manual.
+ */
+const recoverExpiredToken = async (args: {
+  deps: PublishDeps;
+  pub: PublicationView;
+  channel: ChannelRecord;
+  provider: RunnableProvider;
+  aad: string;
+  ctx: ProviderContext;
+  settings: Record<string, unknown>;
+  attempt: number;
+  body: string;
+  fail: OutcomeReporters['fail'];
+}): Promise<void> => {
+  const { deps, pub, channel, provider, aad, ctx, settings, attempt, body, fail } = args;
+  const moved = await deps.publishing.transition(pub.id, ['PUBLISHING'], 'TOKEN_REFRESH', {
+    errorClass: 'refresh-token',
+    errorMessage: body.slice(0, ERROR_MAX_LEN),
+  });
+  if (!moved) return;
+  const markRefreshRequired = async () => {
+    await deps.channels.setStatus(channel.id, 'REFRESH_REQUIRED');
+    await deps.events?.emit({
+      orgId: pub.orgId,
+      event: WebhookEvents.ChannelRefreshRequired,
+      channelId: channel.id,
+      data: { channelId: channel.id, provider: channel.provider },
+    });
+  };
+  if (!channel.refreshTokenEnc) {
+    await markRefreshRequired();
+    return fail('refresh-token', 'canal sem refresh token — reconexão manual necessária');
+  }
+  try {
+    const refreshPlain = await deps.crypto.decrypt(
+      channel.refreshTokenEnc,
+      aad,
+      channel.tokenKeyVersion,
+    );
+    const fresh = await provider.refreshToken(ctx, refreshPlain, settings);
+    const tokenEnc = await deps.crypto.encrypt(fresh.accessToken, aad);
+    const refreshEnc = fresh.refreshToken
+      ? await deps.crypto.encrypt(fresh.refreshToken, aad)
+      : null;
+    await deps.channels.updateTokens(channel.id, {
+      tokenEnc: tokenEnc.ciphertext,
+      tokenKeyVersion: tokenEnc.keyVersion,
+      ...(refreshEnc ? { refreshTokenEnc: refreshEnc.ciphertext } : {}),
+      tokenExpiresAt: fresh.expiresAt ? new Date(fresh.expiresAt) : null,
+    });
+    // token renovado → tenta de novo já (estado TOKEN_REFRESH é RUNNABLE)
+    deps.metrics?.onRetry('refresh-token');
+    await deps.scheduler.enqueue(
+      PUBLISH_QUEUE,
+      { publicationId: pub.id, v: pub.jobVersion },
+      { singletonKey: `${pub.id}:refresh:${attempt}` },
+    );
+  } catch {
+    await markRefreshRequired();
+    return fail('refresh-token', 'refresh do token falhou — reconexão manual necessária');
+  }
+};
+
+/** Retry transitório com backoff exponencial + jitter; a exaustão de tentativas é do chamador. */
+const scheduleTransientRetry = async (
+  deps: PublishDeps,
+  pub: PublicationView,
+  attempt: number,
+  body: string,
+): Promise<void> => {
+  const delaySec = deps.retryBaseSec * 2 ** (attempt - 1) * (0.5 + Math.random());
+  await deps.publishing.transition(pub.id, ['PUBLISHING'], 'RETRYING', {
+    errorClass: 'transient',
+    errorMessage: body.slice(0, ERROR_MAX_LEN),
+  });
+  deps.metrics?.onRetry('transient');
+  await deps.scheduler.enqueue(
+    PUBLISH_QUEUE,
+    { publicationId: pub.id, v: pub.jobVersion },
+    {
+      startAfter: new Date(Date.now() + delaySec * 1000),
+      singletonKey: `${pub.id}:a${attempt}`,
+    },
+  );
+};
+
 const makeRunner = (deps: PublishDeps) =>
   async ({ publicationId, jobVersion, afterIndex }: RunInput): Promise<void> => {
     const found = await deps.publishing.findForPublish(publicationId);
@@ -322,137 +756,26 @@ const makeRunner = (deps: PublishDeps) =>
     const { publication: pub, channel } = found;
     const isContinuation = afterIndex !== undefined;
 
-    // Semáforo de concorrência por provider (maxConcurrent): o slot é adquirido no caminho
-    // não-continuação e liberado quando ESTA invocação termina (finally do corpo, ou nos
-    // returns de janela/claim). Continuações não seguram slot — a thread já está em voo e
-    // o ritmo é o delaySec. slotToken != null ⇒ há slot a liberar. SPEC_QUEUE §6.
-    const semaphoreKey = `sem:p:${channel.provider}`;
-    let slotToken: string | null = null;
-    const releaseSlot = async () => {
-      const token = slotToken;
-      slotToken = null;
-      if (token && deps.rateLimiter?.releaseSlot) {
-        await deps.rateLimiter.releaseSlot(semaphoreKey, token).catch(() => {});
-      }
-    };
-
+    const slot = makeProviderSlot(deps, channel.provider);
     if (isContinuation) {
-      // Filtro barato para o caso comum de job obsoleto (evita ida ao banco pelo claim); a
-      // AUTORIDADE é o `claimItem` do laço, que revalida estado, versão e cursor na mesma
-      // instrução em que toma a posse. Estas três linhas sozinhas não fencem nada: duas
-      // continuações concorrentes passam por elas juntas.
-      if (pub.state !== 'PUBLISHING') return;
-      if (jobVersion !== pub.jobVersion) return;
-      if (pub.lastPublishedIndex !== afterIndex) return;
-    } else {
-      if (!(RUNNABLE as readonly string[]).includes(pub.state)) return; // já tratada — fencing
-      // job de uma versão anterior (post editado/cancelado): descarta
-      if (jobVersion !== undefined && jobVersion !== pub.jobVersion) return;
-
-      const provider0 = deps.registry.get(channel.provider);
-
-      // (1) semáforo de concorrência ANTES da janela: assim uma negação de concorrência não
-      //     consome um token de janela (a janela só incrementa quando passa). Adquirido aqui,
-      //     liberado no finally do corpo ou nos returns abaixo. SPEC_QUEUE §6.
-      const maxConcurrent = provider0?.rateDefaults.maxConcurrent ?? 0;
-      if (deps.rateLimiter?.acquireSlot && maxConcurrent > 0) {
-        const token = randomToken(16);
-        const verdict = await deps.rateLimiter.acquireSlot(semaphoreKey, maxConcurrent, token);
-        if (!verdict.ok) {
-          deps.metrics?.onRateLimitDenied(channel.provider, 'concurrency');
-          deps.log?.('warn', 'concorrência: publicação adiada', {
-            publicationId: pub.id,
-            retryAfterSec: verdict.retryAfterSec,
-          });
-          await deps.scheduler.enqueue(
-            PUBLISH_QUEUE,
-            { publicationId: pub.id, v: pub.jobVersion },
-            {
-              startAfter: new Date(Date.now() + Math.max(1, verdict.retryAfterSec) * 1000),
-              singletonKey: `${pub.id}:sem:${Math.floor(Date.now() / 1000)}`,
-            },
-          );
-          return;
-        }
-        slotToken = token;
-      }
-
-      // (2) rate-limit por janela ANTES de reivindicar (negado não consome tentativa) — SPEC_QUEUE §6.
-      if (deps.rateLimiter) {
-        const windows: RateWindowSpec[] = [];
-        const pw = provider0?.rateDefaults.perProviderWindow;
-        if (pw) windows.push({ key: `rl:p:${channel.provider}`, ...pw });
-        const cw = provider0?.rateDefaults.perChannelWindow;
-        if (cw) windows.push({ key: `rl:c:${channel.id}`, ...cw });
-        if (windows.length > 0) {
-          const verdict = await deps.rateLimiter.acquire(windows);
-          if (!verdict.ok) {
-            deps.metrics?.onRateLimitDenied(channel.provider, 'window');
-            deps.log?.('warn', 'rate-limit: publicação adiada', {
-              publicationId: pub.id,
-              retryAfterSec: verdict.retryAfterSec,
-            });
-            await releaseSlot(); // não segura o slot enquanto espera a janela abrir
-            await deps.scheduler.enqueue(
-              PUBLISH_QUEUE,
-              { publicationId: pub.id, v: pub.jobVersion },
-              {
-                startAfter: new Date(Date.now() + Math.max(1, verdict.retryAfterSec) * 1000),
-                singletonKey: `${pub.id}:rl:${Math.floor(Date.now() / 1000)}`,
-              },
-            );
-            return;
-          }
-        }
-      }
-
-      const claimed = await deps.publishing.transition(pub.id, [...RUNNABLE], 'PUBLISHING', {
-        incrementAttempt: true,
-        attemptId: randomToken(16),
-      });
-      if (!claimed) {
-        await releaseSlot();
-        return;
-      }
+      if (isStaleContinuation(pub, jobVersion, afterIndex)) return;
+    } else if ((await admitRun(deps, pub, channel, jobVersion, slot)) === 'exit') {
+      return;
     }
     const attempt = isContinuation ? pub.attemptCount : pub.attemptCount + 1;
 
-    /**
-     * Desfecho incerto: o item PODE estar na rede. Vai para revisão humana e o retry automático
-     * nunca o alcança (só o botão "tentar novamente", que é ação humana explícita — DECISIONS §7).
-     */
-    const reviewIndeterminate = async (msg: string) => {
-      await deps.publishing.transition(pub.id, ['PUBLISHING'], 'NEEDS_REVIEW', {
-        errorClass: 'indeterminate',
-        errorMessage: msg.slice(0, ERROR_MAX_LEN),
-      });
-      deps.metrics?.onDeliverySafety?.(channel.provider, 'indeterminate');
-      deps.log?.('error', 'desfecho indeterminado — publicação em revisão', {
-        publicationId: pub.id,
-        provider: channel.provider,
-      });
-      await deps.publishing.refreshGroupState(pub.groupId);
+    // externalId/releaseUrl do item 0 (podem vir de tentativa anterior via cursor);
+    // o laço de entrega muta este objeto e o finalize lê na hora da chamada
+    const firsts = {
+      externalId: null as string | null,
+      releaseUrl: pub.releaseUrl as string | null,
     };
-
-    const fail = async (cls: string, msg: string) => {
-      await deps.publishing.transition(pub.id, ['PUBLISHING', 'TOKEN_REFRESH'], 'FAILED', {
-        errorClass: cls,
-        errorMessage: msg.slice(0, ERROR_MAX_LEN),
-      });
-      deps.metrics?.onPublicationResult(channel.provider, 'failed');
-      await deps.publishing.refreshGroupState(pub.groupId);
-      await deps.events?.emit({
-        orgId: pub.orgId,
-        event: WebhookEvents.PostFailed,
-        channelId: channel.id,
-        data: { groupId: pub.groupId, publicationId: pub.id, channelId: channel.id, errorClass: cls },
-      });
-    };
+    const reporters = makeOutcomeReporters(deps, pub, channel, firsts);
 
     const provider = deps.registry.get(channel.provider);
     if (!provider) {
-      await releaseSlot();
-      return fail('permanent', `provider ${channel.provider} desconhecido`);
+      await slot.release();
+      return reporters.fail('permanent', `provider ${channel.provider} desconhecido`);
     }
 
     const aad = channelAad(channel.orgId, channel.provider, channel.externalId);
@@ -463,33 +786,8 @@ const makeRunner = (deps: PublishDeps) =>
 
     const items = await deps.publishing.listItems(pub.id);
     const startIdx = pub.lastPublishedIndex + 1;
-    let i = startIdx;
-
-    const finalize = async () => {
-      await deps.publishing.transition(pub.id, ['PUBLISHING'], 'PUBLISHED', {
-        publishedAt: new Date(),
-        errorClass: null,
-        errorMessage: null,
-      });
-      deps.metrics?.onPublicationResult(channel.provider, 'published');
-      await deps.publishing.refreshGroupState(pub.groupId);
-      await deps.events?.emit({
-        orgId: pub.orgId,
-        event: WebhookEvents.PostPublished,
-        channelId: channel.id,
-        data: {
-          groupId: pub.groupId,
-          publicationId: pub.id,
-          channelId: channel.id,
-          externalId: firstExternalId,
-          releaseUrl: firstReleaseUrl,
-        },
-      });
-    };
-
-    // externalId/releaseUrl do item 0 (podem vir de tentativa anterior via cursor)
-    let firstExternalId: string | null = items[0]?.externalId ?? pub.externalId;
-    let firstReleaseUrl: string | null = pub.releaseUrl;
+    const progress = { index: startIdx };
+    firsts.externalId = items[0]?.externalId ?? pub.externalId;
 
     // settings do canal (ex.: instância Mastodon, service do Bluesky) + settings da publicação;
     // fora do try: o refresh de token (catch) também precisa deles
@@ -497,219 +795,65 @@ const makeRunner = (deps: PublishDeps) =>
       ...(channel.settings as Record<string, unknown>),
       ...(pub.settings as Record<string, unknown>),
     };
-
-    // mediaSettings: o valor guardado é um id de mídia da org; o provider recebe a URL pública.
-    // Resolução TRANSITÓRIA (o `pub.settings` no banco segue com o id — o post continua editável),
-    // ORG-SCOPED (findMany por orgId: id de outra org não resolve) e best-effort (o único uso hoje,
-    // a miniatura, jamais deve derrubar um post). Sem media/storage ligados, o id cru não vai ao
-    // provider: some do settings.
-    if (provider.mediaSettings?.length) {
-      const keys = provider.mediaSettings;
-      const ids = keys
-        .map((k) => settings[k])
-        .filter((v): v is string => typeof v === 'string' && v.length > 0);
-      const urlById = new Map<string, string>();
-      if (ids.length && deps.media && deps.storage) {
-        const records = await deps.media.findMany(channel.orgId, ids);
-        for (const m of records) urlById.set(m.id, deps.storage.publicUrl(m.path));
-      }
-      for (const k of keys) {
-        const v = settings[k];
-        if (typeof v !== 'string' || v.length === 0) continue;
-        const url = urlById.get(v);
-        if (url) settings[k] = url;
-        else delete settings[k]; // não resolvida (sem storage, não encontrada ou outra org)
-      }
-    }
+    await resolveMediaSettings(deps, provider, channel, settings);
 
     try {
       // retomada tardia (crash entre o último item e o PUBLISHED): só finaliza
       if (startIdx >= items.length) {
-        if (items.length > 0) await finalize();
+        if (items.length > 0) await reporters.finalize();
         return;
       }
 
       const accessToken = await deps.crypto.decrypt(channel.tokenEnc, aad, channel.tokenKeyVersion);
       const token = { accessToken, scopes: channel.scopes };
 
-      let prevExternalId = startIdx > 0 ? items[startIdx - 1]!.externalId : null;
-      for (; i < items.length; i++) {
-        const item = items[i]!;
-
-        // POSSE ANTES DA REDE (SPEC_QUEUE §7). Uma instrução SQL valida a publicação viva
-        // (PUBLISHING + jobVersion + cursor exato) e concede o lease no mesmo passo. Sem isso,
-        // duas continuações sobrepostas passariam pela mesma checagem em memória e publicariam
-        // o mesmo item duas vezes. Negado = job duplicado/obsoleto, ou item já confirmado:
-        // não se chama o provider, não se altera estado — só sai.
-        const claim = await deps.publishing.claimItem({
-          publicationId: pub.id,
-          jobVersion: pub.jobVersion,
-          position: i,
-          leaseSec: PUBLISH_LEASE_SEC,
-        });
-        if (!claim) {
-          deps.metrics?.onDeliverySafety?.(channel.provider, 'claim_denied');
-          deps.log?.('warn', 'posse negada — item já em voo, confirmado ou versão obsoleta', {
-            publicationId: pub.id,
-            position: i,
-          });
-          return;
-        }
-        deps.metrics?.onDeliverySafety?.(channel.provider, 'claimed');
-        // a chave é estável por item lógico: a mesma em toda retentativa (o provider que a
-        // honra desduplica sozinho a repetição de um pedido cujo resultado se perdeu)
-        const itemCtx = { ...ctx, idempotencyKey: claim.idempotencyKey };
-
-        let res;
-        try {
-          if (i === 0) {
-            // item 0 publica a partir de pub.content — fonte de verdade p/ edições via PATCH
-            [res] = await provider.publish(
-              itemCtx,
-              token,
-              [{ content: pub.content.text, media: pub.content.media ?? [] }],
-              settings,
-            );
-          } else {
-            if (!provider.publishReply || !prevExternalId) {
-              throw { status: 422, body: 'thread sem suporte no provider ou sem item anterior' };
-            }
-            res = await provider.publishReply(
-              itemCtx,
-              token,
-              prevExternalId,
-              { content: item.content.text, media: item.media },
-              settings,
-            );
-          }
-        } catch (err) {
-          const safe = isSafeToRetry(err, provider.idempotentPublish === true);
-          await deps.publishing.releaseItem(claim.ownerToken, safe ? 'FAILED_SAFE' : 'INDETERMINATE');
-          if (!safe) {
-            return reviewIndeterminate(
-              `item ${i}: a rede pode ter aceitado o post antes de a conexão cair — confirme antes de repostar (${String((err as Error)?.message ?? err).slice(0, 300)})`,
-            );
-          }
-          // desfecho conhecido: segue a classificação transient/permanent/refresh
-          throw Number((err as { status?: number })?.status ?? 0) > 0 ? err : new TransportFailure(err);
-        }
-
-        // cursor avança SÓ após confirmação da rede E com a posse na mão — retry nunca
-        // reposta (SPEC_QUEUE §7). Perder a posse aqui significa post publicado sem registro
-        // local: é o caso indeterminado, não um erro de rede.
-        const confirmed = await deps.publishing.confirmItem(pub.id, item.id, i, claim.ownerToken, {
-          externalId: res?.externalId ?? null,
-          releaseUrl: res?.releaseUrl ?? null,
-        });
-        if (!confirmed) {
-          await deps.publishing.releaseItem(claim.ownerToken, 'INDETERMINATE');
-          return reviewIndeterminate(
-            `item ${i}: publicado na rede, mas a posse da entrega foi perdida antes de registrar — confirme antes de repostar`,
-          );
-        }
-        prevExternalId = res?.externalId ?? null;
-        if (i === 0) {
-          firstExternalId = res?.externalId ?? null;
-          firstReleaseUrl = res?.releaseUrl ?? null;
-        }
-
-        const next = items[i + 1];
-        if (next && next.delaySec > 0) {
-          // espera durável via fila (SPEC_QUEUE §9) — estado permanece PUBLISHING
-          await deps.scheduler.enqueue(
-            THREAD_QUEUE,
-            { publicationId: pub.id, v: pub.jobVersion, afterIndex: i },
-            {
-              startAfter: new Date(Date.now() + next.delaySec * 1000),
-              singletonKey: `${pub.id}:t${i + 1}:v${pub.jobVersion}`,
-            },
-          );
-          return;
-        }
-      }
-
-      await finalize();
+      const outcome = await deliverItems({
+        deps,
+        provider,
+        pub,
+        channel,
+        items,
+        token,
+        settings,
+        ctx,
+        reporters,
+        firsts,
+        progress,
+      });
+      if (outcome === 'published') await reporters.finalize();
     } catch (err) {
       const status = Number((err as { status?: number })?.status ?? 0);
       const rawBody = String(
         (err as { body?: string })?.body ?? (err as Error)?.message ?? err,
       );
       // em thread, aponta o item que falhou (os anteriores ficam publicados — cursor)
-      const body = items.length > 1 ? `item ${i} da thread: ${rawBody}` : rawBody;
+      const body = items.length > 1 ? `item ${progress.index} da thread: ${rawBody}` : rawBody;
       const cls = err instanceof TransportFailure ? 'transient' : provider.classifyError(status, rawBody);
 
-      if (cls === 'permanent') return fail('permanent', body);
+      if (cls === 'permanent') return reporters.fail('permanent', body);
 
       if (cls === 'refresh-token') {
-        const moved = await deps.publishing.transition(pub.id, ['PUBLISHING'], 'TOKEN_REFRESH', {
-          errorClass: 'refresh-token',
-          errorMessage: body.slice(0, ERROR_MAX_LEN),
+        return recoverExpiredToken({
+          deps,
+          pub,
+          channel,
+          provider,
+          aad,
+          ctx,
+          settings,
+          attempt,
+          body,
+          fail: reporters.fail,
         });
-        if (!moved) return;
-        const markRefreshRequired = async () => {
-          await deps.channels.setStatus(channel.id, 'REFRESH_REQUIRED');
-          await deps.events?.emit({
-            orgId: pub.orgId,
-            event: WebhookEvents.ChannelRefreshRequired,
-            channelId: channel.id,
-            data: { channelId: channel.id, provider: channel.provider },
-          });
-        };
-        if (!channel.refreshTokenEnc) {
-          await markRefreshRequired();
-          return fail('refresh-token', 'canal sem refresh token — reconexão manual necessária');
-        }
-        try {
-          const refreshPlain = await deps.crypto.decrypt(
-            channel.refreshTokenEnc,
-            aad,
-            channel.tokenKeyVersion,
-          );
-          const fresh = await provider.refreshToken(ctx, refreshPlain, settings);
-          const tokenEnc = await deps.crypto.encrypt(fresh.accessToken, aad);
-          const refreshEnc = fresh.refreshToken
-            ? await deps.crypto.encrypt(fresh.refreshToken, aad)
-            : null;
-          await deps.channels.updateTokens(channel.id, {
-            tokenEnc: tokenEnc.ciphertext,
-            tokenKeyVersion: tokenEnc.keyVersion,
-            ...(refreshEnc ? { refreshTokenEnc: refreshEnc.ciphertext } : {}),
-            tokenExpiresAt: fresh.expiresAt ? new Date(fresh.expiresAt) : null,
-          });
-          // token renovado → tenta de novo já (estado TOKEN_REFRESH é RUNNABLE)
-          deps.metrics?.onRetry('refresh-token');
-          await deps.scheduler.enqueue(
-            PUBLISH_QUEUE,
-            { publicationId: pub.id, v: pub.jobVersion },
-            { singletonKey: `${pub.id}:refresh:${attempt}` },
-          );
-        } catch {
-          await markRefreshRequired();
-          return fail('refresh-token', 'refresh do token falhou — reconexão manual necessária');
-        }
-        return;
       }
 
-      // transient
-      if (attempt >= (deps.maxAttempts ?? 5)) return fail('transient', body);
-      const delaySec = deps.retryBaseSec * 2 ** (attempt - 1) * (0.5 + Math.random());
-      await deps.publishing.transition(pub.id, ['PUBLISHING'], 'RETRYING', {
-        errorClass: 'transient',
-        errorMessage: body.slice(0, ERROR_MAX_LEN),
-      });
-      deps.metrics?.onRetry('transient');
-      await deps.scheduler.enqueue(
-        PUBLISH_QUEUE,
-        { publicationId: pub.id, v: pub.jobVersion },
-        {
-          startAfter: new Date(Date.now() + delaySec * 1000),
-          singletonKey: `${pub.id}:a${attempt}`,
-        },
-      );
+      // transient: esgotar as tentativas é desfecho terminal; senão, backoff + re-enqueue
+      if (attempt >= (deps.maxAttempts ?? 5)) return reporters.fail('transient', body);
+      await scheduleTransientRetry(deps, pub, attempt, body);
     } finally {
       // libera o slot de concorrência ao fim desta invocação (sucesso, falha, retry
       // re-agendado ou próximo item de thread agendado). No-op se nenhum slot foi tomado.
-      await releaseSlot();
+      await slot.release();
     }
   };
 
