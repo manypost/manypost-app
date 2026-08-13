@@ -77,7 +77,9 @@ an authored composition, using the approved board reference as the visual source
   for the dark sidebar.
 - Replace the desktop topbar with a persistent 208px/64px navigation rail that owns global search,
   notifications and the account menu; retain a compact mobile topbar and drawer.
-- Recompose Home, board and the remaining product surfaces from open lists, rails and work areas.
+- Recompose Home and the board from open lists, rails and work areas. Propagating the same
+  composition to the remaining product surfaces was descoped on 2026-08-13 to the follow-up change
+  `propagate-flat-visual-system`, by owner decision, so the finished work ships instead of waiting.
 - Rename the board label to `Quadro` while preserving `/kanban`.
 - Add a nullable first-media preview to the publication feed.
 

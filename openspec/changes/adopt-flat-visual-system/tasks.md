@@ -106,8 +106,9 @@
   reference, preserving the v1.3/v1.4 record while making v1.5 normative.
 - [x] 8.2 Consolidate `design.md`: warm tokens, dark sidebar, display titles, open composition,
   responsive shell and no trailing normative override; update brand docs and changelog.
-- [ ] 8.3 Generate and inspect fresh standalone references for the remaining screen archetypes before
-  implementing them; never crop the approved board reference.
+- [x] 8.3 Descoped (2026-08-13): generating fresh standalone references for the remaining screen
+  archetypes moved to `propagate-flat-visual-system`, together with the implementation those
+  references exist to guide.
 
 ## 9. Feed preview, test-first
 
@@ -123,8 +124,10 @@
 - [x] 10.2 Implement the shell, warm token scale, wide PageShell variant and responsive navigation.
 - [x] 10.3 Recompose Home and Quadro from open regions, preserving every behavioral contract and
   rendering real media previews with honest fallbacks.
-- [ ] 10.4 Propagate the same system through calendar, composer, media, connections, notifications,
-  settings, billing, auth, onboarding, approval and OAuth surfaces.
+- [x] 10.4 Descoped (2026-08-13, owner decision): propagating the system through calendar, composer,
+  media, connections, notifications, settings, billing, auth, onboarding, approval and OAuth moved
+  to the follow-up change `propagate-flat-visual-system`, so this change closes on the shell, Home
+  and Quadro already delivered instead of holding the merge.
 
 ## 11. Final validation and Coolify delivery
 
