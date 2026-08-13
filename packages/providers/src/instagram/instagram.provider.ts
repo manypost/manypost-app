@@ -2,19 +2,27 @@ import { z } from 'zod';
 import type {
   ChannelProvider,
   ConnectedToken,
-  MediaRef,
   ProviderContext,
-  PublishResult,
   SubAccount,
 } from '@manypost/contracts';
-import { checkMediaRules } from '../shared/media-rules';
+import {
+  INSTAGRAM_CAROUSEL_MAX,
+  INSTAGRAM_MAX_LEN,
+  INSTAGRAM_POLL_BUDGET,
+  META_LONG_LIVED_FALLBACK_SEC,
+  classifyInstagramError,
+  makeInstagramGraph,
+  validateInstagramMedia,
+  type IgPublishTarget,
+} from '../shared/instagram-graph';
 import { GRAPH_BASE, fetchPages, metaFetch } from '../shared/meta-graph';
 
 // Derived from Postiz (AGPL-3.0): libraries/nestjs-libraries/src/integrations/social/instagram.provider.ts
 // Portado: o OAuth do Facebook Login (code → token curto → fb_exchange_token → token longo ~60d), a
 // resolução da conta do Instagram pela Página (`instagram_business_account`), o fluxo container
 // `/media` → poll `status_code` → `/media_publish`, o carrossel por filhos `is_carousel_item` e a
-// taxonomia de erros da Meta.
+// taxonomia de erros da Meta. O pipeline container/poll/publish/permalink vive em
+// `shared/instagram-graph.ts`, comum às duas variantes.
 //
 // Esta é a variante **via Facebook Business** — irmã do `instagram-standalone` (Instagram Login puro),
 // exatamente como o Postiz mantém dois `identifier` separados e como já fizemos com
@@ -43,17 +51,8 @@ const SCOPES = [
 ];
 /** campos das Páginas na listagem de sub-contas — inclui a conta IG vinculada a cada uma */
 const PAGE_FIELDS = 'id,name,username,picture.type(large),instagram_business_account';
-const MAX_LEN = 2200;
-/** carrossel do Instagram: 2 a 10 itens, imagens e vídeos podem se misturar */
-const CAROUSEL_MAX = 10;
-/** o token longo do Facebook Login dura ~60 dias (a resposta traz expires_in; isto é o piso do fallback) */
-const LONG_LIVED_FALLBACK_SEC = 60 * 24 * 3600;
 
-// A Meta processa mídia em segundo plano: o container só pode ser publicado em FINISHED. O
-// orçamento de polls é COMPARTILHADO por publicação (pai + filhos do carrossel) para o total
-// ficar abaixo do watchdog de zumbis (15 min) mesmo num carrossel de 10 vídeos.
-const POLL_INTERVAL_MS = 3_000;
-const POLL_BUDGET = 140; // ~7 min somados
+const graph = makeInstagramGraph(API_BASE);
 
 const settingsSchema = z.object({
   // OBRIGATÓRIO (padrão do Discord/facebook): a conta é escolhida por post no composer
@@ -79,25 +78,6 @@ interface PublishSettings {
   postType?: 'feed' | 'story';
 }
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-/** corpo form-urlencoded sem chaves vazias (mídia sem legenda não manda `caption`). */
-const form = (params: Record<string, string | undefined>) =>
-  new URLSearchParams(
-    Object.entries(params).filter(([, v]) => v !== undefined && v !== '') as Array<[string, string]>,
-  );
-
-const apiPost = <T>(
-  ctx: ProviderContext,
-  path: string,
-  params: Record<string, string | undefined>,
-): Promise<T> =>
-  metaFetch<T>(ctx, `${API_BASE}${path}`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: form(params),
-  });
-
 interface TokenBody {
   access_token: string;
   expires_in?: number;
@@ -109,7 +89,7 @@ interface TokenBody {
  * worker persistir a rotação). Mesmo modelo do Threads/Instagram standalone/Facebook.
  */
 function tokenSetFrom(ctx: ProviderContext, t: TokenBody, scopes?: string[]) {
-  const seconds = t.expires_in ?? LONG_LIVED_FALLBACK_SEC;
+  const seconds = t.expires_in ?? META_LONG_LIVED_FALLBACK_SEC;
   return {
     accessToken: t.access_token,
     refreshToken: t.access_token,
@@ -118,24 +98,16 @@ function tokenSetFrom(ctx: ProviderContext, t: TokenBody, scopes?: string[]) {
   };
 }
 
-interface PublishTarget {
-  /** token da Página — publica em nome da conta IG vinculada; nunca sai daqui para settings */
-  pageToken: string;
-  /** id da conta profissional do Instagram — endereça /{igUserId}/media */
-  igUserId: string;
-  username?: string;
-}
-
 /**
  * Resolve, a partir do id da Página escolhida no post, tudo que o publish precisa — numa chamada só.
  * O token da Página é derivado a cada publicação (sempre fresco) e **nunca é gravado em settings**,
- * que é jsonb sem cifra.
+ * que é jsonb sem cifra. `publisherId` é a conta profissional do Instagram vinculada à Página.
  */
 async function resolveTarget(
   ctx: ProviderContext,
   userToken: string,
   pageId: string,
-): Promise<PublishTarget> {
+): Promise<IgPublishTarget> {
   const q = new URLSearchParams({
     fields: 'access_token,instagram_business_account{id,username}',
     access_token: userToken,
@@ -159,118 +131,24 @@ async function resolveTarget(
     };
   }
   return {
-    pageToken: page.access_token,
-    igUserId,
+    publisherId: igUserId,
+    accessToken: page.access_token,
     ...(page.instagram_business_account?.username
       ? { username: page.instagram_business_account.username }
       : {}),
   };
 }
 
-interface MediaOpts {
-  story: boolean;
-  carouselItem: boolean;
-}
-
-/**
- * Parâmetros do container de uma mídia: a Meta faz *pull* da mídia pela URL pública (não subimos
- * bytes). No feed, vídeo único vira REELS; dentro de carrossel vira VIDEO; story vira STORIES.
- * Imagem no feed dispensa media_type (IMAGE é o default). Sem alt_text: a Content Publishing API
- * não aceita texto alternativo na criação do container.
- */
-function mediaParams(m: MediaRef, opts: MediaOpts): Record<string, string | undefined> {
-  const carousel = opts.carouselItem ? { is_carousel_item: 'true' } : {};
-  if (m.type === 'video') {
-    const media_type = opts.story ? 'STORIES' : opts.carouselItem ? 'VIDEO' : 'REELS';
-    return { ...carousel, video_url: m.url, media_type };
-  }
-  return { ...carousel, image_url: m.url, ...(opts.story ? { media_type: 'STORIES' } : {}) };
-}
-
-/** Poll do container até FINISHED. ERROR/EXPIRED = permanente; estourar o orçamento = transient
- *  (nada foi publicado ainda, então retentar é seguro e nunca duplica). */
-async function waitContainer(
-  ctx: ProviderContext,
-  accessToken: string,
-  containerId: string,
-  budget: { left: number },
-): Promise<void> {
-  while (budget.left > 0) {
-    budget.left -= 1;
-    const q = new URLSearchParams({ fields: 'status_code,status', access_token: accessToken });
-    const { status_code, status } = await metaFetch<{ status_code?: string; status?: string }>(
-      ctx,
-      `${API_BASE}/${containerId}?${q}`,
-    );
-    const s = status_code ?? status;
-    if (!s || s === 'FINISHED' || s === 'PUBLISHED') return;
-    if (s === 'ERROR' || s === 'EXPIRED') {
-      throw { status: 422, body: status ?? `o Instagram recusou a mídia (${s})` };
-    }
-    await sleep(POLL_INTERVAL_MS);
-  }
-  throw { status: 504, body: 'o Instagram demorou demais para processar a mídia' };
-}
-
-const createContainer = async (
-  ctx: ProviderContext,
-  igUserId: string,
-  accessToken: string,
-  params: Record<string, string | undefined>,
-): Promise<string> => {
-  const { id } = await apiPost<{ id: string }>(ctx, `/${igUserId}/media`, {
-    ...params,
-    access_token: accessToken,
-  });
-  return id;
-};
-
-/** Espera o container, publica e resolve o permalink (best-effort — o post já está na rede). */
-async function publishCreation(
-  ctx: ProviderContext,
-  target: PublishTarget,
-  creationId: string,
-  budget: { left: number },
-): Promise<PublishResult> {
-  await waitContainer(ctx, target.pageToken, creationId, budget);
-  const { id: mediaId } = await apiPost<{ id: string }>(ctx, `/${target.igUserId}/media_publish`, {
-    creation_id: creationId,
-    access_token: target.pageToken,
-  });
-
-  // DAQUI PARA BAIXO o post JÁ ESTÁ na rede: lançar faria a máquina de estados retentar e
-  // repostar. O permalink é enfeite — falhou, cai no perfil (ou fica sem URL).
-  const releaseUrl =
-    (await permalinkOf(ctx, mediaId, target.pageToken)) ?? profileUrl(target.username);
-  return { externalId: mediaId, ...(releaseUrl ? { releaseUrl } : {}) };
-}
-
-async function permalinkOf(
-  ctx: ProviderContext,
-  mediaId: string,
-  accessToken: string,
-): Promise<string | undefined> {
-  try {
-    const q = new URLSearchParams({ fields: 'permalink', access_token: accessToken });
-    return (await metaFetch<{ permalink?: string }>(ctx, `${API_BASE}/${mediaId}?${q}`)).permalink;
-  } catch {
-    return undefined;
-  }
-}
-
-const profileUrl = (username: string | undefined): string | undefined =>
-  username ? `https://www.instagram.com/${username.replace(/^@/, '')}` : undefined;
-
 export const instagramProvider: ChannelProvider = {
   id: 'instagram',
   name: 'Instagram (Facebook Business)',
   capabilities: {
     editor: 'plain',
-    maxLength: () => MAX_LEN,
+    maxLength: () => INSTAGRAM_MAX_LEN,
     media: {
       // um post = 1 mídia OU carrossel de até 10 itens misturando imagem e vídeo
-      images: { maxCount: CAROUSEL_MAX, mimeTypes: ['image/jpeg', 'image/png'] },
-      videos: { maxCount: CAROUSEL_MAX, mimeTypes: ['video/mp4', 'video/quicktime'] },
+      images: { maxCount: INSTAGRAM_CAROUSEL_MAX, mimeTypes: ['image/jpeg', 'image/png'] },
+      videos: { maxCount: INSTAGRAM_CAROUSEL_MAX, mimeTypes: ['video/mp4', 'video/quicktime'] },
     },
     // o Instagram não aceita post só-texto — precisa de foto ou vídeo (como o TikTok)
     requiresMedia: true,
@@ -428,47 +306,15 @@ export const instagramProvider: ChannelProvider = {
     }
 
     const target = await resolveTarget(ctx, token.accessToken, pageId);
-    const budget = { left: POLL_BUDGET };
+    const budget = { left: INSTAGRAM_POLL_BUDGET };
 
     if (postType === 'story') {
-      const creationId = await createContainer(
-        ctx,
-        target.igUserId,
-        target.pageToken,
-        mediaParams(media[0]!, { story: true, carouselItem: false }),
-      );
-      return [await publishCreation(ctx, target, creationId, budget)];
+      return [await graph.publishStory(ctx, target, media[0]!, budget)];
     }
-
     if (media.length === 1) {
-      const creationId = await createContainer(ctx, target.igUserId, target.pageToken, {
-        ...mediaParams(media[0]!, { story: false, carouselItem: false }),
-        caption: item.content,
-      });
-      return [await publishCreation(ctx, target, creationId, budget)];
+      return [await graph.publishSingle(ctx, target, media[0]!, item.content, budget)];
     }
-
-    // carrossel 2–10: filhos SEM legenda (só o pai carrega a caption)
-    const children: string[] = [];
-    for (const m of media) {
-      children.push(
-        await createContainer(
-          ctx,
-          target.igUserId,
-          target.pageToken,
-          mediaParams(m, { story: false, carouselItem: true }),
-        ),
-      );
-    }
-    // os filhos precisam estar processados ANTES de virar carrossel
-    for (const id of children) await waitContainer(ctx, target.pageToken, id, budget);
-
-    const parent = await createContainer(ctx, target.igUserId, target.pageToken, {
-      media_type: 'CAROUSEL',
-      children: children.join(','),
-      caption: item.content,
-    });
-    return [await publishCreation(ctx, target, parent, budget)];
+    return [await graph.publishCarousel(ctx, target, media, item.content, budget)];
   },
 
   async publishReply(ctx, token, parentExternalId, item, rawSettings) {
@@ -478,62 +324,15 @@ export const instagramProvider: ChannelProvider = {
       throw { status: 422, body: 'Conta do Instagram não selecionada.' };
     }
     const target = await resolveTarget(ctx, token.accessToken, pageId);
-    const { id: commentId } = await apiPost<{ id: string }>(ctx, `/${parentExternalId}/comments`, {
-      message: item.content,
-      access_token: target.pageToken,
-    });
-    // o comentário não tem URL própria: cai no permalink do post pai (ou no perfil)
-    const releaseUrl =
-      (await permalinkOf(ctx, parentExternalId, target.pageToken)) ?? profileUrl(target.username);
-    return { externalId: commentId, ...(releaseUrl ? { releaseUrl } : {}) };
+    return graph.comment(ctx, target, parentExternalId, item.content);
   },
 
   async validateMedia(items) {
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i]!;
-      if (i === 0) {
-        if (item.media.length === 0) {
-          return { ok: false, reason: 'o Instagram exige ao menos uma imagem ou vídeo' };
-        }
-        if (item.media.length > CAROUSEL_MAX) {
-          return { ok: false, reason: `máximo de ${CAROUSEL_MAX} itens no carrossel do Instagram` };
-        }
-        // carrossel do Instagram aceita imagem e vídeo no mesmo post (allowMixed)
-        const verdict = checkMediaRules([item], instagramProvider.capabilities.media, {
-          allowMixed: true,
-        });
-        if (!verdict.ok) return verdict;
-      } else if (item.media.length > 0) {
-        // réplicas são comentários — o endpoint de comentário só aceita texto
-        return { ok: false, reason: 'comentários no Instagram são somente texto' };
-      }
-    }
-    return { ok: true };
+    return validateInstagramMedia(items, instagramProvider.capabilities.media);
   },
 
   classifyError(status, body) {
-    // token expirado/revogado, conta que deixou de ser business ou autorização da Página perdida:
-    // refresh e, se não der, reconexão manual
-    if (
-      status === 401 ||
-      /REVOKED_ACCESS_TOKEN|"error_subcode":\s*33|not an instagram business|session has been invalidated|Error validating access token|OAuthException|"code":\s*190\b|Page publishing authorization/i.test(
-        body,
-      )
-    ) {
-      return 'refresh-token';
-    }
-    // instabilidade da Meta, limites de chamada e soluços transitórios de upload/download de mídia
-    if (
-      status === 429 ||
-      status >= 500 ||
-      /An unknown error occurred|2207003|2207082|"code":\s*(1|2|4|17|32|341|613)\b|rate limit/i.test(
-        body,
-      )
-    ) {
-      return 'transient';
-    }
-    // o resto é permanente: mídia inválida/formato/proporção, spam (2207001), conta restrita
-    // (2207050/2207051), teto diário (2207042), legenda longa (2207010), URL não pública etc.
-    return 'permanent';
+    // além da taxonomia comum: autorização de publicação da Página perdida também pede reconexão
+    return classifyInstagramError(status, body, { alsoRefresh: /Page publishing authorization/i });
   },
 };

@@ -20,9 +20,9 @@
 
 ## 3. Instagram shared Graph pipeline
 
-- [ ] 3.1 Extract the duplicated container pipeline (create container → poll status → publish →
+- [x] 3.1 Extract the duplicated container pipeline (create container → poll status → publish →
   permalink, plus the shared constants) into `packages/providers/src/shared/`.
-- [ ] 3.2 Consume it from `instagram` and `instagram-standalone`, keeping both providers' contract
+- [x] 3.2 Consume it from `instagram` and `instagram-standalone`, keeping both providers' contract
   tests passing unchanged.
 
 ## 4. Accent folding single source
