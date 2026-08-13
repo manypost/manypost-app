@@ -116,6 +116,17 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Changed
 
+- **`packages/queue` deixou de ser o único package sem testes, e todo repositório prova escopo
+  por organização.** O queue ganhou 21 testes: falha aberta sem Redis (janela, semáforo e
+  idempotência concedem em vez de travar a publicação), janela all-or-nothing, semáforo com
+  release exato e reclaim de slot de worker morto, `runBatch` (extraído do closure do worker)
+  processando o lote inteiro e relançando a primeira falha, e o ciclo claim/replay/conflict/
+  release/TTL da idempotência — a metade real roda no CI via `TEST_REDIS_URL` no serviço já
+  provisionado. No banco, `org-scoping.integration.test.ts` cobre os sete repositórios que não
+  tinham teste de isolamento (media, channels, webhooks, notifications, approvals, billing e
+  grants OAuth): um `where org_id` esquecido agora falha em teste, não em produção. OpenSpec:
+  `improve-maintainability-baseline`.
+
 - **O web perdeu o marcador geracional da Home e 50 cópias do mesmo boilerplate.** Os blocos
   "v2" da Home viraram `home-blocks-operational` (nome pelo conteúdo, não pela geração), o bloco
   fantasma `'today'` saiu do sistema de ordem (o resumo do dia renderiza fora dele), o `SetaCta`

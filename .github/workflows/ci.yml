@@ -12,6 +12,8 @@ jobs:
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ci_public
       CLERK_SECRET_KEY: sk_test_ci_server_only
       TEST_DATABASE_URL: postgresql://mp:mp@localhost:5499/mp
+      # liga as suítes gated de Redis (packages/queue) no serviço já provisionado abaixo
+      TEST_REDIS_URL: redis://localhost:6399
     services:
       postgres:
         image: postgres:17-alpine

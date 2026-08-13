@@ -51,10 +51,13 @@
 
 ## 6. Test floors
 
-- [ ] 6.1 Add `packages/queue` tests: fail-open without Redis, semaphore slot release, `runBatch`
-  rethrow semantics and idempotency TTL.
-- [ ] 6.2 Add `org_id` scoping tests for the repositories that lack them (media, oauth, channels,
-  platform, webhooks, billing, approvals).
+- [x] 6.1 Add `packages/queue` tests: fail-open without Redis (unreachable URL), window
+  all-or-nothing + denial, semaphore acquire/release/stale-reclaim, `runBatch` rethrow semantics
+  (extracted from the worker closure) and idempotency claim/replay/conflict/release/TTL; the
+  Redis-gated half runs in CI via `TEST_REDIS_URL` on the existing service.
+- [x] 6.2 Add `org_id` scoping tests for the repositories that lacked them (media, channels,
+  webhooks, notifications, approvals, billing, oauth grants) in
+  `org-scoping.integration.test.ts`, Postgres-gated like the existing integration suites.
 
 ## 7. Logging and component splits
 

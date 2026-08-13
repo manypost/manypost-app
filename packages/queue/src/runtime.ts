@@ -31,6 +31,32 @@ import { makeRedisRealtimeBus } from './redis-realtime-bus';
 const log = (level: string, msg: string, data?: object) =>
   console.log(JSON.stringify({ level, msg, module: 'queue', ...data }));
 
+/**
+ * Percorre um lote inteiro e RELANÇA a primeira falha depois de percorrê-lo.
+ *
+ * Falha inesperada de infraestrutura (banco fora, bug) precisa subir: engolir marcaria o job
+ * como entregue e a publicação ficaria presa no estado em que parou até o watchdog. Ao mesmo
+ * tempo, um job ruim não pode impedir os demais do lote. O retry de negócio continua sendo da
+ * máquina de estados (`retryLimit: 0`) — quem recupera o job falhado é o scanner do §8.
+ */
+export const runBatch = async <T>(
+  jobs: Array<{ data: T }>,
+  run: (data: T) => Promise<void>,
+  msg: string,
+  logFn: (level: string, msg: string, data?: object) => void = log,
+): Promise<void> => {
+  let failure: unknown;
+  for (const job of jobs) {
+    try {
+      await run(job.data);
+    } catch (err) {
+      logFn('error', msg, { ...(job.data as object), err: String(err) });
+      failure ??= err; // um job ruim não impede os demais do lote
+    }
+  }
+  if (failure !== undefined) throw failure;
+};
+
 export interface PublishingRuntimeOpts {
   databaseUrl: string;
   redisUrl?: string;
@@ -111,7 +137,8 @@ export async function createPublishingRuntime(
     ...(realtime ? { realtime } : {}),
     log,
   });
-  const publish = makePublishPublication({
+  // publish e continuação de thread compartilham EXATAMENTE as mesmas dependências
+  const publishDeps = {
     publishing: opts.publishing,
     channels: opts.channels,
     registry: opts.registry,
@@ -125,22 +152,9 @@ export async function createPublishingRuntime(
     ...(opts.storage ? { storage: opts.storage } : {}),
     events,
     log,
-  });
-  const continueThread = makeContinueThread({
-    publishing: opts.publishing,
-    channels: opts.channels,
-    registry: opts.registry,
-    crypto: opts.crypto,
-    scheduler,
-    retryBaseSec: opts.retryBaseSec,
-    ...(rateLimiter ? { rateLimiter } : {}),
-    ...(opts.metrics ? { metrics: opts.metrics } : {}),
-    ...(opts.providerSecrets ? { secrets: opts.providerSecrets } : {}),
-    ...(opts.media ? { media: opts.media } : {}),
-    ...(opts.storage ? { storage: opts.storage } : {}),
-    events,
-    log,
-  });
+  };
+  const publish = makePublishPublication(publishDeps);
+  const continueThread = makeContinueThread(publishDeps);
   const recover = makeRecoverDue({
     publishing: opts.publishing,
     scheduler,
@@ -182,23 +196,6 @@ export async function createPublishingRuntime(
       }
     },
     async startWorker() {
-      // Falha inesperada de infraestrutura (banco fora, bug) é RELANÇADA depois de percorrer o
-      // lote: engolir marcaria o job como entregue e a publicação ficaria presa no estado em que
-      // parou até o watchdog. O retry de negócio continua sendo da máquina de estados
-      // (`retryLimit: 0`) — quem recupera o job falhado é o scanner do §8.
-      const runBatch = async <T>(jobs: Array<{ data: T }>, run: (data: T) => Promise<void>, msg: string) => {
-        let failure: unknown;
-        for (const job of jobs) {
-          try {
-            await run(job.data);
-          } catch (err) {
-            log('error', msg, { ...(job.data as object), err: String(err) });
-            failure ??= err; // um job ruim não impede os demais do lote
-          }
-        }
-        if (failure !== undefined) throw failure;
-      };
-
       await boss.work<{ publicationId: string; v?: number }>(PUBLISH_QUEUE, (jobs) =>
         runBatch(jobs, (d) => publish(d.publicationId, d.v), 'publish handler falhou'),
       );
