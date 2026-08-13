@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^7.6.0",
+    "@manypost/contracts": "workspace:*",
     "@dnd-kit/core": "^6.3.1",
     "@hookform/resolvers": "^5.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.19",

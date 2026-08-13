@@ -27,10 +27,14 @@
 
 ## 4. Accent folding single source
 
-- [ ] 4.1 Add the accent map as data in `packages/contracts` and consume it from `auth.ts`,
-  `search/ranking.ts` and `kanban/logic.ts`.
-- [ ] 4.2 Add a parity test proving the TS folding and the SQL `translate` table in
-  `publishing.repo.ts` agree character by character.
+- [x] 4.1 Add the accent map as data in `packages/contracts`, consume it from the SQL translate in
+  `publishing.repo.ts`, and fold `search/ranking.ts` + `kanban/logic.ts` into one client
+  implementation (`apps/web/src/lib/text.ts`). The NFD strip inside `auth.ts`'s slugify stays: a
+  slug is not part of the search-parity contract, and reducing it to the table would regress
+  names with diacritics outside it.
+- [x] 4.2 Add a parity test proving the TS folding and the SQL `translate` table agree character
+  by character (`apps/web/src/lib/text.test.ts`), including uppercase folding and the onda-34
+  regression case.
 
 ## 5. Web consistency
 

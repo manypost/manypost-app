@@ -38,6 +38,7 @@
         "@clerk/nextjs": "^7.6.0",
         "@dnd-kit/core": "^6.3.1",
         "@hookform/resolvers": "^5.2.0",
+        "@manypost/contracts": "workspace:*",
         "@radix-ui/react-alert-dialog": "^1.1.19",
         "@radix-ui/react-avatar": "^1.1.0",
         "@radix-ui/react-checkbox": "^1.3.7",

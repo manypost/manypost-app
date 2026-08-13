@@ -1,4 +1,5 @@
 import type { components } from '@/lib/api/schema';
+import { normalizarTexto } from '@/lib/text';
 
 /**
  * Regras do quadro como funções PURAS.
@@ -96,16 +97,10 @@ export function agruparEmCards(items: FeedItem[]): GroupCard[] {
 }
 
 /**
- * Caixa baixa sem diacrítico.
- *
- * Compartilhada com a paleta de comandos: uma única regra de normalização, para "conexoes" achar
- * "Conexões" nos dois lugares em vez de duas implementações que divergem com o tempo.
+ * Caixa baixa sem diacrítico — a dobra única de `lib/text`, a mesma da paleta de comandos:
+ * "conexoes" acha "Conexões" nos dois lugares porque a regra é uma só.
  */
-export const normalizarTexto = (s: string): string =>
-  s
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase();
+export { normalizarTexto };
 
 export interface FiltrosDoQuadro {
   colunas?: ColumnId[];

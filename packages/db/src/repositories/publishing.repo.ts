@@ -1,7 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { and, asc, desc, eq, gte, inArray, isNull, lte, sql } from 'drizzle-orm';
 import { uuidv7 } from '../uuid';
-import type { MediaRef, PublicationState } from '@manypost/contracts';
+import {
+  ACCENT_TRANSLATE_FROM,
+  ACCENT_TRANSLATE_TO,
+  type MediaRef,
+  type PublicationState,
+} from '@manypost/contracts';
 import type { PublicationView, PublishingRepository, TransitionPatch } from '@manypost/core';
 import type { Db } from '../index';
 import {
@@ -42,10 +47,11 @@ const toView = (row: typeof publications.$inferSelect): PublicationView => ({
  *
  * `translate` em vez da extensão `unaccent` pelo mesmo motivo que levou a recusar `pg_trgm`:
  * `CREATE EXTENSION` exige um privilégio que Postgres gerenciado costuma negar, e a migração
- * falharia no deploy. As duas strings precisam ter o mesmo comprimento em caracteres.
+ * falharia no deploy. A tabela vem de `@manypost/contracts` — a MESMA que o teste de paridade
+ * do cliente pina contra a dobra NFD da paleta/Quadro.
  */
-const COM_ACENTO = 'áàâãäéèêëíìîïóòôõöúùûüçñýÿ';
-const SEM_ACENTO = 'aaaaaeeeeiiiiooooouuuucnyy';
+const COM_ACENTO = ACCENT_TRANSLATE_FROM;
+const SEM_ACENTO = ACCENT_TRANSLATE_TO;
 
 export function makePublishingRepository(db: Db): PublishingRepository {
   return {

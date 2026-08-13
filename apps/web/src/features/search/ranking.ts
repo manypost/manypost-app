@@ -10,12 +10,10 @@
  * interação inteira depende.
  */
 
-/** caixa baixa sem diacrítico: "conexoes" precisa achar "Conexões" */
-export const normalizar = (s: string): string =>
-  s
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase();
+import { normalizarTexto } from '@/lib/text';
+
+/** caixa baixa sem diacrítico: "conexoes" precisa achar "Conexões" — a dobra única de `lib/text` */
+export const normalizar = normalizarTexto;
 
 export interface Rankeavel {
   chave: string;

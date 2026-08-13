@@ -116,6 +116,21 @@ e o projeto pretende seguir versionamento semântico quando publicar releases.
 
 ### Changed
 
+- **A dobra de acento da busca tem uma autoridade única com paridade testada.** A tabela
+  `translate` do SQL agora vem de `@manypost/contracts` (dado, não lógica), a paleta e o Quadro
+  compartilham uma única dobra NFD em `apps/web/src/lib/text.ts` (eram duas cópias), e um teste de
+  paridade pina caractere a caractere que cliente e servidor concordam — a classe de defeito que o
+  `e2e-search` pegou na onda 34 agora falha em teste unitário. OpenSpec:
+  `improve-maintainability-baseline`.
+
+- **As duas variantes de Instagram passaram a compartilhar um único pipeline Graph.** O fluxo
+  container → poll → publish → permalink, o carrossel por filhos, o comentário de thread, a
+  validação de mídia e a taxonomia de erros da Meta estavam copiados (~400 linhas) entre
+  `instagram` (Facebook Business) e `instagram-standalone` (Instagram Login); agora vivem em
+  `packages/providers/src/shared/instagram-graph.ts`, parametrizados pelo host da Graph e pelo
+  alvo de publicação. Os 51 testes de contrato dos dois providers passam inalterados. OpenSpec:
+  `improve-maintainability-baseline`.
+
 - **O runner de publicação foi decomposto em unidades nomeadas.** A função única de ~400 linhas
   que misturava admissão (semáforo, janela de rate-limit, claim com fencing), resolução de
   `mediaSettings`, laço de entrega com posse por item, refresh de token e retry virou sete
